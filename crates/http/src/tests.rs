@@ -358,6 +358,24 @@ fn only_a_single_full_control_entry_for_the_user_counts_as_owner_only() {
     }
 }
 
+#[test]
+fn the_user_written_as_an_sddl_alias_is_the_user() {
+    // SDDL writes some accounts by alias: the built-in Administrator (RID 500, a CI runner's
+    // account) as LA, LocalSystem as SY
+    let admin = "S-1-5-21-1-2-3-500";
+    assert!(owner_only_dacl(
+        "f.txt
+D:PAI(A;;FA;;;LA)
+",
+        admin
+    ));
+    assert!(owner_only_dacl("D:PAI(A;;FA;;;SY)", "S-1-5-18"));
+    assert!(trustee_is("la", admin));
+    assert!(!trustee_is("LA", "S-1-5-21-1-2-3-1001"));
+    assert!(!trustee_is("BA", admin));
+    assert!(!owner_only_dacl("D:PAI(A;;FA;;;LA)(A;;FA;;;BA)", admin));
+}
+
 /// Windows: the token file has one access entry, the user's full control, nothing inherited from
 /// its folder (which here, under the temp folder, grants others too).
 #[cfg(windows)]

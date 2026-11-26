@@ -811,7 +811,7 @@ pub fn restrict_to_owner(path: &std::path::Path) -> io::Result<()> {
         .1
         .iter()
         .filter_map(|ace| ace_trustee(ace))
-        .filter(|t| !t.eq_ignore_ascii_case(sid))
+        .filter(|t| !trustee_is(t, sid))
         .map(|t| format!("*{t}"))
         .collect();
     if !others.is_empty() {
@@ -822,8 +822,12 @@ pub fn restrict_to_owner(path: &std::path::Path) -> io::Result<()> {
             return Err(failed("icacls could not remove the other entries"));
         }
     }
-    if !owner_only_dacl(&read_sddl()?, sid) {
-        return Err(failed("the list still grants someone else"));
+    let last = read_sddl()?;
+    if !owner_only_dacl(&last, sid) {
+        let dacl = last.find("D:").and_then(|i| last.get(i..)).unwrap_or("").trim();
+        return Err(failed(&format!(
+            "the list is not the user's alone (user {sid}, list {dacl})"
+        )));
     }
     Ok(())
 }
@@ -887,7 +891,26 @@ fn owner_only_dacl(sddl: &str, sid: &str) -> bool {
         && fields.first() == Some(&"A")
         && fields.get(1) == Some(&"")
         && fields.get(2) == Some(&"FA")
-        && fields.get(5).is_some_and(|t| t.eq_ignore_ascii_case(sid))
+        && fields.get(5).is_some_and(|t| trustee_is(t, sid))
+}
+
+/// Whether an SDDL trustee (a SID, or an alias SDDL writes for some accounts) is `sid`: `SY`,
+/// `LS`, `NS` for the service accounts, `LA` and `LG` for a machine's built-in Administrator
+/// (RID 500) and Guest (RID 501).
+#[cfg_attr(not(windows), allow(dead_code))]
+fn trustee_is(trustee: &str, sid: &str) -> bool {
+    if trustee.eq_ignore_ascii_case(sid) {
+        return true;
+    }
+    let machine_account = |rid: &str| sid.starts_with("S-1-5-21-") && sid.ends_with(rid);
+    match trustee.to_ascii_uppercase().as_str() {
+        "SY" => sid == "S-1-5-18",
+        "LS" => sid == "S-1-5-19",
+        "NS" => sid == "S-1-5-20",
+        "LA" => machine_account("-500"),
+        "LG" => machine_account("-501"),
+        _ => false,
+    }
 }
 
 /// The SID in `whoami /user /fo csv /nh`'s line (`"host\user","S-1-5-21-…"`).
