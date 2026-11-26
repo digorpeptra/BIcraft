@@ -2675,28 +2675,33 @@ pub(crate) fn page_interactions(s: &mut Session, p: &Value) -> Result<Value, Str
     let (_, r) = parts(s)?;
     let pi = page_index(r, key)?;
     let page = r.pages.get(pi).ok_or("internal: page index out of range")?;
-    let name_of = |k: &str, what: &str| -> Result<String, String> {
+    // a visual stands for itself; a visual group for every visual inside it (nested groups too)
+    let members_of = |k: &str, what: &str| -> Result<(String, Vec<String>), String> {
         let i = visual_index(page, k).map_err(|e| format!("{what}: {e}"))?;
         let v = page.visuals.get(i).ok_or("internal: visual index out of range")?;
-        if v.visual_type.is_none() {
-            return Err(format!(
-                "{what}: `{}` is a visual group; interactions are between visuals",
-                v.name
-            ));
+        if v.visual_type.is_some() {
+            return Ok((v.name.clone(), vec![v.name.clone()]));
         }
-        Ok(v.name.clone())
+        let members: Vec<String> = page
+            .visuals
+            .iter()
+            .filter(|m| m.visual_type.is_some() && inside_group(page, m, &v.name))
+            .map(|m| m.name.clone())
+            .collect();
+        Ok((v.name.clone(), members))
     };
-    // (source, target, Some(type) | None for default)
+    // (source, target, Some(type) | None for default), one per pair of visuals
     let mut parsed: Vec<(String, String, Option<&'static str>)> = Vec::new();
+    let mut listed: Vec<(String, String)> = Vec::new();
     for (i, rule) in rules.iter().enumerate() {
         let what = format!("rules[{i}]");
         let o = as_object(rule, &what)?;
         check_keys(o, &["source", "target", "type"], &what)?;
-        let source = name_of(
+        let (source, sources) = members_of(
             get_text(o.get("source").unwrap_or(&Value::Null), &format!("{what}.source"))?,
             &what,
         )?;
-        let target = name_of(
+        let (target, targets) = members_of(
             get_text(o.get("target").unwrap_or(&Value::Null), &format!("{what}.target"))?,
             &what,
         )?;
@@ -2719,10 +2724,31 @@ pub(crate) fn page_interactions(s: &mut Session, p: &Value) -> Result<Value, Str
                     .ok_or_else(|| format!("{what}.type must be filter, highlight, none or default"))?,
             )
         };
-        if parsed.iter().any(|(s2, t2, _)| *s2 == source && *t2 == target) {
+        if listed.iter().any(|(s2, t2)| *s2 == source && *t2 == target) {
             return Err(format!("{what}: {source} -> {target} is listed twice"));
         }
-        parsed.push((source, target, pbir));
+        let mut pairs = 0usize;
+        for a in &sources {
+            for b in targets.iter().filter(|b| *b != a && !sources.contains(b)) {
+                if parsed.len() >= MAX_RULES {
+                    return Err(format!("at most {MAX_RULES} pairs of visuals"));
+                }
+                // a later rule wins over an earlier one for the same pair
+                parsed.retain(|(x, y, _)| !(x == a && y == b));
+                parsed.push((a.clone(), b.clone(), pbir));
+                pairs += 1;
+            }
+        }
+        if sources.is_empty() || targets.is_empty() {
+            let empty = if sources.is_empty() { &source } else { &target };
+            return Err(format!("{what}: the group {empty} holds no visual"));
+        }
+        if pairs == 0 {
+            return Err(format!(
+                "{what}: {source} and {target} have no pair of visuals between them (one is inside the other)"
+            ));
+        }
+        listed.push((source, target));
     }
     let mut list: Vec<Value> = if clear {
         Vec::new()
@@ -2779,6 +2805,24 @@ pub(crate) fn page_interactions(s: &mut Session, p: &Value) -> Result<Value, Str
         s.report_dirty = true;
     }
     Ok(out)
+}
+
+/// Whether `v` sits inside the group named `group` (its parent, or a parent's parent…).
+fn inside_group(page: &Page, v: &Visual, group: &str) -> bool {
+    let mut parent = v.parent_group.as_deref();
+    // a bound on the depth: a cycle of `parentGroupName` ends here
+    for _ in 0..64 {
+        let Some(p) = parent else { return false };
+        if p.eq_ignore_ascii_case(group) {
+            return true;
+        }
+        parent = page
+            .visuals
+            .iter()
+            .find(|g| g.name.eq_ignore_ascii_case(p))
+            .and_then(|g| g.parent_group.as_deref());
+    }
+    false
 }
 
 // ---------------------------------------------------------------------------------------------

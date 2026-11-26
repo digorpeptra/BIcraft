@@ -16,7 +16,7 @@ built the same way, have their own note ([waterfall-gauge.md](waterfall-gauge.md
 |---|---|---|---|---|---|
 | display name | BIcraft Org Chart | BIcraft Venn | BIcraft Marimekko | BIcraft Calendar Heatmap | BIcraft Sankey |
 | guid (visual type) | `bicraftOrgChart3C8E1A6F2D4B9E7A5C1F0D2B` | `bicraftVenn9A2E4C6B8D1F3A5E7C9B0D2F` | `bicraftMarimekko5D7F9B1E3A6C8E0B2D4F6A` | `bicraftCalendarHeatmap1E3B5D7F9A2C4E6B8D0F` | `bicraftSankey7B3D5F1A9C2E4B6D8F0A1C3E` |
-| version | 1.3.5.0 | 1.3.4.0 | 1.3.5.0 | 1.3.3.0 | 1.3.6.0 (each raised on 2026-11-25 for the runtime's text settings it bundles, G119; nothing it draws changed) |
+| version | 1.3.5.0 | 1.3.4.0 | 1.3.5.0 | 1.3.3.0 | 1.3.6.0, the Sankey 1.3.7.0 (each raised on 2026-11-25 for the runtime's text settings it bundles, G119, nothing it draws changed; the Sankey's 1.3.7.0, 2026-11-26, places its labels beside the plot, below) |
 | data roles (at most one field each) | `id`, `parent` (Grouping, required), `label` (Grouping), `value` (Measure) | `item`, `set` (Grouping, required) | `category` (Grouping, required), `series` (Grouping), `value` (Measure, required) | `date` (Grouping, required), `value` (Measure, required) | `source`, `destination` (Grouping, required), `weight` (Measure, required) |
 | data view | categorical: categories `id`, `parent`, `label` (top 1,000), values `value` | categorical: categories `item`, `set` (top 5,000) | categorical: categories `category`, `series` (top 3,000), values `value` | categorical: category `date` (top 4,000), values `value` | categorical: categories `source`, `destination` (top 3,000), values `weight` |
 | format objects | `nodes`: `fill`, `fontColor`, `fontSize`, `showValues`; `tree`: `levels`, `toggled`, `compact`, `leftToRight` | `sets`: `color1`–`color3`, `proportional`; `labels`: `show`, `fontSize` | `colors`: `series1`–`series6`; `labels`: `show`, `fontSize`; `legend`: `show`; `columns`: `sort`, `widthAxis` | `colors`: `low`, `high`, `empty`; `legend`: `show`; `range`: `months`, `sundayFirst` | `nodes`: `width`, `padding`; `colors` (since 1.3.4.0): `node1`–`node12`; `links`: `colorBy` (enumeration `source`, `destination`, `fixed`), `fill`, `opacity`; `labels`: `show`, `fontSize` |
@@ -54,7 +54,8 @@ without them they draw what 1.3.2.0 drew. Version 1.3.4.0 of the Sankey (2026-11
 org chart's and the Marimekko's) adds the node colours (`colors.node1`–`node12`); without them it
 draws what 1.3.2.0 drew. The next versions of the five (2026-11-25: org chart and Marimekko 1.3.4.0,
 Venn 1.3.3.0, calendar 1.3.2.0, Sankey 1.3.5.0) change only the package icon, darker and bolder
-(G111); they draw what the versions before drew.
+(G111); they draw what the versions before drew. Version 1.3.7.0 of the Sankey (2026-11-26) moves
+its node labels off the ribbons ("Labels" under Sankey below).
 
 ## One input, two drawers
 
@@ -251,7 +252,10 @@ Sankey visual's code, text or drawing was looked at.
 - Columns: a node without an incoming link is in column 0; any other is one column right of its
   furthest source (the longest path, so in A → B → C and A → C the node C is in column 2). A
   destination with no outgoing link stays in the column its sources put it in.
-- Sizes: the plot is the visual less 8 px; columns are spread so the first starts at its left
+- Sizes: the plot is the visual less 8 px, less (since 1.3.7.0, with labels) a margin on the left
+  for the first column's labels and one on the right for the last column's, each the widest of
+  them (its estimated width, 0.55 of the size a character) plus 6 px, at most 30% of the visual's
+  width less 16 px; columns are spread so the first starts at the plot's left
   edge and the last ends at its right edge (`(w − 16 − node width) / (columns − 1)` apart). A
   node's value is the larger of its incoming and outgoing sums; one scale for every column, the
   largest that fits each column's values plus `nodePadding` (default 10 px, 0–60) between its
@@ -284,13 +288,17 @@ Sankey visual's code, text or drawing was looked at.
   that place (Node 1 … Node 12, Nœud 1 … Nœud 12, for a place without a drawn node); BIcraft's
   format pane lists them as Node 1 … Node 12.
 - Labels (`labels.show`, `labels.fontSize` default 11 in Minimal, 12 in Modern, 13 in Bold,
-  8–20, the look's name ink): each node's name beside it, 4 px off, on the right, or on the left
-  for the last column, at the node's centre kept inside the visual; cut with an ellipsis to the
-  room before the next column. The last two columns face each other: since 1.2.0.0 a label there
-  takes half the gap only when a node of the facing column has its label centre closer than the
-  label size, else the whole gap (a narrow visual keeps `Industry` whole). Then, in each column,
-  the labels of the larger nodes are placed first and a label whose centre is closer than its
-  size to one placed is left out (dense columns). The cycle note uses the tick size.
+  8–20, the look's name ink): each node's name beside it, 4 px off, at the node's centre kept
+  inside the visual. Since 1.3.7.0 the labels sit on the outer side: the first column's on the
+  left of their nodes and the last column's on the right, in the margins kept for them, where no
+  ribbon runs; a middle column's on the first side, right then left, whose box (estimated width,
+  the size high) meets no ribbon piece and no label placed, else on the first side clear of the
+  labels over a halo (a rect of the look's surface, 85% opaque, 2 px wider and 1 px taller each
+  way), else left out. Each is cut with an ellipsis to its margin less 6 px, or for a middle
+  column to the gap before the next column less 8 px. 1.3.6.0 drew the first and middle columns'
+  labels on the right of their nodes and the last column's on the left, over the ribbons. In each
+  column the labels of the larger nodes are placed first and a label whose centre is closer than
+  its size to one placed is left out (dense columns). The cycle note uses the tick size.
 - Dates: a node is told apart by its value; its drawn name (label and tooltip) is a date cell
   written with the format string of the column it was first seen in (`formats`, as above).
 
@@ -435,7 +443,9 @@ are 1.3.2.0 since, for their label size ("Seen in Desktop").
   1.2.0.0 every Sankey case is checked in Rust and TypeScript for two ribbons sharing a slot of a
   node and for a ribbon crossing a node it does not end at or a column it skips without a
   waypoint, and the narrow case for whole labels and ribbons meeting their nodes' edges (both
-  seen red on 1.1.0.0). The Rust layout is held to
+  seen red on 1.1.0.0). Since 1.3.7.0 every Sankey case with labels is checked in Rust and
+  TypeScript for a label box outside the visual, over another label, or over a ribbon without a
+  halo, and the two-column crossing case for any halo at all (seen red on 1.3.6.0). The Rust layout is held to
   `chart_pack_golden.json` (`BICRAFT_BLESS=1` rewrites it); the TypeScript layouts, compiled by
   `bicraft_tsbuild`, run under Node when Node is on the PATH and must give the same primitives and
   hits (to 0.011 px); every text stays inside the visual. Each package's capabilities validate

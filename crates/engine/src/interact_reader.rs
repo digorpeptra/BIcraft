@@ -1,6 +1,6 @@
-//! The reader's Spotlight and sort (`view.interact` `spotlight` and `sort`), as the Power BI
-//! service's report readers have them from a visual's More options (Microsoft Learn, "Add
-//! spotlights to Power BI reports" and "Change how a chart is sorted in a report"):
+//! The reader's Spotlight, sort and filters (`view.interact` `spotlight`, `sort` and `filter`), as
+//! the Power BI service's report readers have them (Microsoft Learn, "Add spotlights to Power BI
+//! reports", "Change how a chart is sorted in a report", "Filters and highlighting in reports"):
 //!
 //! - **Spotlight** puts one visual forward: the page's other visuals fade to near transparency
 //!   (the renderer draws them at [`bicraft_render`]'s spotlight opacity). Display state only: the
@@ -10,11 +10,15 @@
 //!   visual takes the reader's sort as its `query.sortDefinition`, so the preview and the
 //!   snapshot's `sort` follow it. `reset` (the service's Reset to default) drops it; a bookmark
 //!   carries it as `singleVisual.orderBy`.
+//! - **Filters** (`filter` / `filter_clear`): a reader changes the condition of a filter card the
+//!   author did not lock or hide, as Power BI's reading view allows; the changed `filterConfig`
+//!   is an override of the derived reports, never the report ([`filter`]).
 
 use bicraft_model::SemanticModel;
 use bicraft_report::{FieldRef, Report};
 use serde_json::{Value, json};
 
+use super::bookmark::Scope;
 use super::{Interactions, find_visual, focusable};
 
 /// `spotlight {page, visual | null}`: the visual put in spotlight (null ends it).
@@ -126,6 +130,73 @@ impl Interactions {
             .get(&(page.to_string(), visual.to_string()))
             .map(Vec::as_slice)
     }
+}
+
+/// `filter {page?, visual?, field, condition}` / `filter_clear {page?, visual?, field}`: the
+/// reader changes an unlocked filter card of the visual (`page` and `visual`), the page (`page`)
+/// or every page (neither), as Power BI's reading view allows
+/// ([`crate::filter_edit::reader_change`]). The changed `filterConfig` is an override of the
+/// data and display reports (the one a bookmark sets, [`super::bookmark::apply_overrides`]),
+/// never the report: `reset` drops it, a bookmark applied after it replaces it.
+pub(super) fn filter(
+    next: &mut Interactions,
+    r: &Report,
+    model: Option<&SemanticModel>,
+    p: &Value,
+    clear: bool,
+) -> Result<(), String> {
+    use crate::filter_edit::Scope as Level;
+    let mut keys = vec!["action", "page", "visual", "field", "hidden", "locked"];
+    if !clear {
+        keys.extend_from_slice(&[
+            "in",
+            "not_in",
+            "op",
+            "value",
+            "conditions",
+            "logic",
+            "relative",
+            "top",
+            "by",
+            "direction",
+        ]);
+    }
+    crate::params::allow(p, &keys)?;
+    let given = |k: &str| p.get(k).is_some_and(|x| !x.is_null());
+    let (scope, level, stored, known) = if given("visual") {
+        let (page, v) = find_visual(r, p)?;
+        if v.visual_type.is_none() {
+            return Err(format!("`{}` is a visual group; groups have no filters", v.name));
+        }
+        (
+            Scope::Visual(page.name.clone(), v.name.clone()),
+            Level::Visual,
+            &v.filter_config,
+            crate::visual_props::known_fields(v),
+        )
+    } else if given("page") {
+        let page = super::find_page(r, p.get("page"))?;
+        (
+            Scope::Page(page.name.clone()),
+            Level::Page,
+            &page.filter_config,
+            Vec::new(),
+        )
+    } else {
+        (Scope::Report, Level::Report, &r.filter_config, Vec::new())
+    };
+    let mut cfg = match next.filters.get(&scope) {
+        Some(c) => c.clone(),
+        None => stored.clone(),
+    };
+    let types = crate::report_settings::allow_change_filter_types(r);
+    crate::filter_edit::reader_change(&mut cfg, p, level, model, &known, clear, types)?;
+    if cfg == *stored {
+        next.filters.remove(&scope);
+    } else {
+        next.filters.insert(scope, cfg);
+    }
+    Ok(())
 }
 
 /// `tree_toggle {page, visual, id}`: a reader's click on an organization chart node's collapse

@@ -108,16 +108,50 @@ function dumbbell(r: Rows, c: Colors, k: Look, labels: boolean, w: number, h: nu
     }
     const hasCat = col(r.d, "category", 0) !== null;
     const lw = hasCat ? labelWidth(names, k.name, (w - 2 * PAD) * 0.4) : 0;
-    const margin = labels ? 28 + (k.value - 10) * 3 + (k.pills ? 10 : 0) : 0;
-    const left = PAD + lw + margin;
-    const right = w - PAD - margin;
     const top = PAD + 18;
     const bottom = h - PAD - 18;
-    if (right - left < 8 || bottom - top < 8) {
+    if (bottom - top < 8) {
         return;
     }
     const rh = (bottom - top) / r.n;
     if (rh < 3) {
+        return;
+    }
+    const rad = Math.min(Math.max(rh * 0.3, 2), minimal(k) ? 6 : 7);
+    const stem = Math.min(stemWidth(k), rad * 1.2);
+    const gap = rad + 4;
+    const padX = k.pills ? 5 : 0;
+    // each row's smaller and larger value (one alone counts as the larger)
+    const ends = (i: number): (number | null)[] => {
+        const a = r.start(i);
+        const b = r.end(i);
+        if (a !== null && b !== null) {
+            return a > b ? [b, a] : [a, b];
+        }
+        return [null, a !== null ? a : b];
+    };
+    const width = (v: number) => est(fmtAuto(v), k.value) + 2 * padX;
+    // the margins beside the scale: room for the widest smaller value's label on the left and
+    // the widest larger one's on the right (at least the look's margin, at most 30% of the plot)
+    let wLo = 0;
+    let wHi = 0;
+    if (labels) {
+        for (let i = 0; i < r.n; i++) {
+            const [lo, hi] = ends(i);
+            if (lo !== null) {
+                wLo = Math.max(wLo, width(lo));
+            }
+            if (hi !== null) {
+                wHi = Math.max(wHi, width(hi));
+            }
+        }
+    }
+    const base = 28 + (k.value - 10) * 3 + (k.pills ? 10 : 0);
+    const room = (w - 2 * PAD - lw) * 0.3;
+    const margin = (wd: number) => (labels ? Math.max(base, Math.min(gap + wd + 2, room)) : 0);
+    const left = PAD + lw + margin(wLo);
+    const right = w - PAD - margin(wHi);
+    if (right - left < 8) {
         return;
     }
     pushCard(prims, k, w, h);
@@ -126,35 +160,39 @@ function dumbbell(r: Rows, c: Colors, k: Look, labels: boolean, w: number, h: nu
     for (const t of dom.ticks) {
         prims.push(line(xs(t), top, xs(t), bottom, k.grid, 1));
     }
-    const rad = Math.min(Math.max(rh * 0.3, 2), minimal(k) ? 6 : 7);
-    const stem = Math.min(stemWidth(k), rad * 1.2);
-    const gap = rad + 4;
-    // the value labels: the smaller value on the left of its dot, the larger on the right,
-    // moved apart where they would overlap (`spreadBoxes`, kept above the axis), those that
-    // cannot fit in the plot left out (`fitInside`)
+    // the value labels: the smaller value on the left of its dot, the larger on the right (on
+    // the other side where a margin capped at 30% leaves it no room, left out where neither side
+    // has room), moved apart where they would overlap (`spreadBoxes`, kept above the axis),
+    // those that cannot fit in the plot left out (`fitInside`)
+    const loX = PAD + lw;
+    const hiX = w - 2;
     const tags: Tag[] = [];
     if (labels) {
         for (let i = 0; i < r.n; i++) {
             const y = top + rh * (i + 0.5);
-            const a = r.start(i);
-            const b = r.end(i);
-            let lo: number | null = null;
-            let hi: number | null = null;
-            if (a !== null && b !== null) {
-                lo = a > b ? b : a;
-                hi = a > b ? a : b;
-            } else {
-                hi = a !== null ? a : b;
-            }
-            if (lo !== null) {
-                tags.push({ row: i, x: xs(lo), y, s: fmtAuto(lo), side: "w" });
-            }
-            if (hi !== null) {
-                tags.push({ row: i, x: xs(hi), y, s: fmtAuto(hi), side: "e" });
+            const [lo, hi] = ends(i);
+            const sides: [number | null, string][] = [[lo, "w"], [hi, "e"]];
+            for (const [v, want] of sides) {
+                if (v === null) {
+                    continue;
+                }
+                const x = xs(v);
+                const wd = width(v);
+                const fitsW = x - gap - wd >= loX;
+                const fitsE = x + gap + wd <= hiX;
+                let side = want;
+                if (side === "w" && !fitsW && fitsE) {
+                    side = "e";
+                } else if (side === "e" && !fitsE && fitsW) {
+                    side = "w";
+                }
+                if ((side === "w" && !fitsW) || (side === "e" && !fitsE)) {
+                    continue;
+                }
+                tags.push({ row: i, x, y, s: fmtAuto(v), side });
             }
         }
     }
-    const padX = k.pills ? 5 : 0;
     const spans = tags.map((t) => {
         const wd = est(t.s, k.value) + 2 * padX;
         return t.side === "w" ? [t.x - gap - wd, t.x - gap] : [t.x + gap, t.x + gap + wd];

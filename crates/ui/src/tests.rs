@@ -737,6 +737,7 @@ mod pq_editor_ui_tests;
 mod pq_folding_ui_tests;
 mod pq_tabs_ui_tests;
 mod quick_ui_tests;
+mod reader_filters_ui_tests;
 mod recovery_tests;
 mod refresh_policy_ui_tests;
 mod refresh_ui_tests;

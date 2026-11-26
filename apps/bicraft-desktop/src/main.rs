@@ -5,6 +5,8 @@
 //! bicraft-desktop --server URL --workspace ID [--lang TAG]  a BIcraft server (token: BICRAFT_SERVER_TOKEN)
 //! bicraft-desktop --register | --unregister                 Windows: per-user Start menu entry and Open with
 //! bicraft-desktop [FILE] --control PORT [--control-file F]  the UI control channel (docs/desktop.md)
+//! bicraft-desktop [FILE] --render OUT.png [--size WxH] [--scale N] [--set JSON]
+//!                                                           the window drawn with no window
 //! bicraft-desktop --help | --version
 //! ```
 //!
@@ -30,6 +32,7 @@ use bicraft_ui::source::Server;
 const USAGE: &str = "\
 Usage: bicraft-desktop [FILE] [--lang TAG]
        bicraft-desktop --server URL --workspace ID [--lang TAG]
+       bicraft-desktop [FILE] --render OUT.png [--size WxH] [--scale N] [--set JSON]
        bicraft-desktop --register | --unregister
 
   FILE              a .pbix, .pbit, .pbip (or a project folder) or .bim to open
@@ -41,6 +44,12 @@ Usage: bicraft-desktop [FILE] [--lang TAG]
                     BICRAFT_CONTROL_PORT), its token in an owner-only file (docs/desktop.md)
   --control-file F  that file (also BICRAFT_CONTROL_FILE; default: control.json next to the
                     settings file)
+  --render OUT.png  draws the window with no window, no GPU and no display, once the file is
+                    open, its data computed and its page drawn, then quits (docs/desktop.md)
+  --size WxH        the window's size in points for --render (default 1366x860)
+  --scale N         pixels per point for --render (default 1)
+  --set JSON        what to show first for --render: the control channel's ui.set params
+                    ('{\"page\": \"Overview\", \"theme\": \"dark\", \"view\": \"model\"}')
   --register        Windows: Start menu shortcut and Open with entries, for this user only
   --unregister      Windows: removes them
   --help, -h        this help
@@ -61,6 +70,13 @@ enum Startup {
         control: Option<u16>,
         control_file: Option<PathBuf>,
     },
+    /// `--render OUT`: the window drawn offscreen.
+    Render {
+        file: Option<PathBuf>,
+        lang: Option<String>,
+        out: PathBuf,
+        opts: bicraft_desktop::headless::Options,
+    },
 }
 
 fn startup(args: impl IntoIterator<Item = String>) -> Result<Startup, String> {
@@ -70,6 +86,9 @@ fn startup(args: impl IntoIterator<Item = String>) -> Result<Startup, String> {
     let mut lang = None;
     let mut control = None;
     let mut control_file = None;
+    let mut render = None;
+    let mut opts = bicraft_desktop::headless::Options::default();
+    let mut render_opt = false;
     let mut args = args.into_iter();
     while let Some(a) = args.next() {
         let mut value = |flag: &str| args.next().ok_or_else(|| format!("{flag} needs a value"));
@@ -83,6 +102,29 @@ fn startup(args: impl IntoIterator<Item = String>) -> Result<Startup, String> {
             "--workspace" => workspace = Some(value("--workspace")?),
             "--control" => control = Some(port(&value("--control")?)?),
             "--control-file" => control_file = Some(PathBuf::from(value("--control-file")?)),
+            "--render" => render = Some(PathBuf::from(value("--render")?)),
+            "--size" => {
+                opts.size = bicraft_desktop::headless::size(&value("--size")?)?;
+                render_opt = true;
+            }
+            "--scale" => {
+                let v = value("--scale")?;
+                opts.scale = v
+                    .trim()
+                    .parse()
+                    .map_err(|_| format!("--scale needs a number (1, 2), not `{v}`"))?;
+                render_opt = true;
+            }
+            "--set" => {
+                let v = value("--set")?;
+                let set: serde_json::Value =
+                    serde_json::from_str(&v).map_err(|e| format!("--set needs a JSON object: {e}"))?;
+                if !set.is_object() {
+                    return Err("--set needs a JSON object (ui.set's params)".into());
+                }
+                opts.set = Some(set);
+                render_opt = true;
+            }
             s if s.starts_with("--") => return Err(format!("unknown option {s}")),
             _ => {
                 if file.replace(PathBuf::from(&a)).is_some() {
@@ -98,6 +140,20 @@ fn startup(args: impl IntoIterator<Item = String>) -> Result<Startup, String> {
     };
     if server.is_some() && file.is_some() {
         return Err("give a FILE or a --server, not both".into());
+    }
+    if let Some(out) = render {
+        if server.is_some() || control.is_some() || control_file.is_some() {
+            return Err("--render draws a FILE: no --server or --control".into());
+        }
+        return Ok(Startup::Render {
+            file,
+            lang,
+            out,
+            opts,
+        });
+    }
+    if render_opt {
+        return Err("--size, --scale and --set go with --render".into());
     }
     Ok(Startup::Run {
         file,
@@ -139,6 +195,12 @@ fn main() -> ExitCode {
             return report(r, "registered");
         }
         Startup::Unregister => return report(bicraft_desktop::register::unregister(), "removed"),
+        Startup::Render {
+            file,
+            lang,
+            out,
+            opts,
+        } => return render(file, lang, &out, &opts),
         Startup::Run {
             file,
             server,
@@ -271,6 +333,35 @@ fn start_control(
     Ok(server)
 }
 
+/// `--render`: the app with no settings file and no recovery journal, its pages drawn with the
+/// bundled fonts on the window's thread (the same pixels on every machine), drawn offscreen.
+fn render(
+    file: Option<PathBuf>,
+    lang: Option<String>,
+    out: &std::path::Path,
+    opts: &bicraft_desktop::headless::Options,
+) -> ExitCode {
+    let lang = lang.unwrap_or_else(|| "en-US".into());
+    let mut app = bicraft_desktop::app_with(&lang, None, None).with_sync_render();
+    if let Some(f) = &file {
+        app.open_path(f);
+    }
+    let r = bicraft_desktop::headless::render(&mut app, opts).and_then(|(png, [w, h])| {
+        std::fs::write(out, &png).map_err(|e| format!("{}: {e}", out.display()))?;
+        Ok(format!("{} ({w}×{h} pixels, {} bytes)", out.display(), png.len()))
+    });
+    match r {
+        Ok(done) => {
+            println!("rendered: {done}");
+            ExitCode::SUCCESS
+        }
+        Err(e) => {
+            eprintln!("bicraft-desktop: --render: {e}");
+            ExitCode::FAILURE
+        }
+    }
+}
+
 fn report(r: Result<Vec<String>, String>, verb: &str) -> ExitCode {
     match r {
         Ok(done) => {
@@ -343,5 +434,26 @@ mod tests {
         assert!(args(&["--lang"]).is_err());
         assert!(args(&["--nope"]).is_err());
         assert!(args(&["a.pbix", "--server", "u", "--workspace", "w"]).is_err());
+        let r = args(&[
+            "a.pbix",
+            "--render",
+            "o.png",
+            "--size",
+            "800x600",
+            "--scale",
+            "2",
+            "--set",
+            r#"{"page": 1}"#,
+        ]);
+        let Ok(Startup::Render { out, opts, .. }) = r else {
+            panic!("{r:?}")
+        };
+        assert_eq!(out, PathBuf::from("o.png"));
+        assert_eq!((opts.size, opts.scale), ([800.0, 600.0], 2.0));
+        assert!(opts.set.is_some());
+        assert!(args(&["a.pbix", "--size", "800x600"]).is_err());
+        assert!(args(&["a.pbix", "--render", "o.png", "--size", "800"]).is_err());
+        assert!(args(&["a.pbix", "--render", "o.png", "--set", "[1]"]).is_err());
+        assert!(args(&["a.pbix", "--render", "o.png", "--control", "0"]).is_err());
     }
 }

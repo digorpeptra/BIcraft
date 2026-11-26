@@ -6,7 +6,10 @@
 //! Highlight, None. The icon of the current effective mode is marked; when it is the default (no
 //! rule in the page's `visualInteractions`) it is marked with a lighter look and the tooltip says
 //! "Default: …". A click on another icon runs `page.interactions` with that one rule (one undo
-//! step); a click on the default mode removes the rule (`type: "default"`).
+//! step); a click on the default mode removes the rule (`type: "default"`). The icons take
+//! keyboard focus (Tab, then Enter or Space). A selected visual group is the source for all its
+//! visuals: they take no icons, a target where they differ marks no mode, and a click sends the
+//! group as the source (`page.interactions` writes one rule per visual of it).
 //!
 //! The modes offered and the default come from the snapshot, so they never disagree with what
 //! the viewer does (`crates/engine/src/interact.rs`, docs/interaction-oracle.md rules 7, 9 and
@@ -90,6 +93,11 @@ pub struct Choice {
     pub current: Mode,
     /// Whether a rule of the page sets it (`false`: the default).
     pub explicit: bool,
+    /// A group source whose visuals reach the target in different ways: no mode is marked.
+    pub mixed: bool,
+    /// Whether every visual of the source has `default` as its default (always, for one
+    /// visual); when not, a click always writes its mode.
+    pub shared_default: bool,
 }
 
 fn flag(v: &Value, k: &str) -> bool {
@@ -146,6 +154,65 @@ pub fn choice(page: &Value, source: &Value, target: &Value, cross_filter: bool) 
         explicit: current.is_some(),
         modes,
         default,
+        mixed: false,
+        shared_default: true,
+    })
+}
+
+/// Whether snapshot visual `v` is a visual group (no type).
+pub fn is_group(v: &Value) -> bool {
+    v.get("name").and_then(Value::as_str).is_some() && v.get("type").is_none_or(Value::is_null)
+}
+
+/// The visuals (not groups) inside the group named `group` among `visuals`, nested groups
+/// included.
+pub fn members<'a>(visuals: &'a [Value], group: &str) -> Vec<&'a Value> {
+    let parent = |v: &Value| v.get("parent_group").and_then(Value::as_str).map(str::to_string);
+    let inside = |v: &Value| {
+        let mut p = parent(v);
+        // bounded: a cycle of parents ends here
+        for _ in 0..64 {
+            let Some(g) = p else { return false };
+            if g.eq_ignore_ascii_case(group) {
+                return true;
+            }
+            p = visuals
+                .iter()
+                .find(|x| name(x).eq_ignore_ascii_case(&g))
+                .and_then(parent);
+        }
+        false
+    };
+    visuals.iter().filter(|v| !is_group(v) && inside(v)).collect()
+}
+
+/// The choice for `target` when the visuals `sources` (a group's members) are the source: the
+/// modes any of them can take; the marked mode when they all agree (`mixed` otherwise).
+/// `None`: no member reaches the target, or the target is one of them.
+pub fn group_choice(page: &Value, sources: &[&Value], target: &Value, cross_filter: bool) -> Option<Choice> {
+    if sources.iter().any(|s| name(s) == name(target)) {
+        return None;
+    }
+    let each: Vec<Choice> = sources
+        .iter()
+        .filter_map(|s| choice(page, s, target, cross_filter))
+        .collect();
+    let first = each.first()?;
+    let modes = [Mode::Filter, Mode::Highlight, Mode::None]
+        .into_iter()
+        .filter(|m| each.iter().any(|c| c.modes.contains(m)))
+        .collect();
+    let shared_default = each.iter().all(|c| c.default == first.default);
+    let mixed = !each
+        .iter()
+        .all(|c| c.current == first.current && c.explicit == first.explicit);
+    Some(Choice {
+        modes,
+        default: first.default,
+        current: first.current,
+        explicit: first.explicit,
+        mixed,
+        shared_default,
     })
 }
 
@@ -269,13 +336,28 @@ pub fn overlay(app: &mut App, ui: &Ui, rect: Rect, zoom: f32) {
     let Some(source) = visuals.iter().find(|v| name(v) == sel.visual) else {
         return;
     };
+    // a group as the source: its visuals together (`page.interactions` writes a rule for each)
+    let sources: Vec<&Value> = if is_group(source) {
+        members(&visuals, &sel.visual)
+    } else {
+        vec![source]
+    };
+    let targets: Vec<(&Value, Choice)> = visuals
+        .iter()
+        .take(2000)
+        .filter_map(|t| Some((t, group_choice(&page, &sources, t, cross_filter)?)))
+        .collect();
+    let titles: Vec<String> = targets.iter().map(|(t, _)| title(t)).collect();
+    let mut same: std::collections::HashMap<&str, usize> = std::collections::HashMap::new();
+    for x in &titles {
+        *same.entry(x.as_str()).or_default() += 1;
+    }
     let t = Tokens::of(app.prefs.theme);
     let l = app.lang;
     let mut picked: Option<(String, Mode, Choice)> = None;
-    for target in visuals.iter().take(2000) {
-        let Some(c) = choice(&page, source, target, cross_filter) else {
-            continue;
-        };
+    for (k, (target, c)) in targets.iter().enumerate() {
+        let c = c.clone();
+        let own = titles.get(k).cloned().unwrap_or_default();
         let n = |k: &str| {
             target
                 .get(k)
@@ -299,13 +381,18 @@ pub fn overlay(app: &mut App, ui: &Ui, rect: Rect, zoom: f32) {
             Stroke::new(1.0, t.border),
             StrokeKind::Inside,
         );
-        let target_title = title(target);
+        // titles that are the same: the name tells the icons apart
+        let target_title = if same.get(own.as_str()).copied().unwrap_or(0) > 1 {
+            format!("{own} ({})", name(target))
+        } else {
+            own
+        };
         for (i, m) in c.modes.iter().enumerate() {
             let at = pos2(s.min.x + 2.0 + i as f32 * (ICON + GAP), s.min.y + 2.0);
             let b = Rect::from_min_size(at, vec2(ICON, ICON));
             let id = ui.id().with(("bicraft-interaction", name(target), m.word()));
             let resp = ui.interact(b, id, Sense::click());
-            let marked = *m == c.current;
+            let marked = !c.mixed && *m == c.current;
             if marked {
                 // the default is marked with the soft fill only; a rule adds the ring
                 painter.rect_filled(b, CornerRadius::same(3), t.accent_soft);
@@ -323,11 +410,20 @@ pub fn overlay(app: &mut App, ui: &Ui, rect: Rect, zoom: f32) {
             icons::paint(&painter, b.shrink(3.0), m.icon(), t.text, false);
             let label = icon_label(*m, &target_title, l);
             resp.widget_info(|| egui::WidgetInfo::selected(egui::WidgetType::Button, true, marked, &label));
-            let tip = if *m == c.default {
+            let mut tip = if c.shared_default && *m == c.default {
                 format!("{} {}", l.t("Default:", "Par défaut :"), m.label(l))
             } else {
                 m.label(l).to_string()
             };
+            if c.mixed {
+                tip = format!(
+                    "{tip} ({})",
+                    l.t(
+                        "the group's visuals differ here",
+                        "les visuels du groupe diffèrent ici"
+                    )
+                );
+            }
             let clicked = resp.clicked();
             let _ = resp.on_hover_text(tip);
             if clicked {
@@ -347,7 +443,15 @@ pub fn overlay(app: &mut App, ui: &Ui, rect: Rect, zoom: f32) {
 /// The rule type a click on mode `m` sends for a target in state `c`: the default removes the
 /// rule (`"default"`), another mode sets it; `None` when nothing would change.
 pub fn rule_for(m: Mode, c: &Choice) -> Option<&'static str> {
-    if m == c.default {
+    if c.mixed {
+        Some(if c.shared_default && m == c.default {
+            "default"
+        } else {
+            m.word()
+        })
+    } else if !c.shared_default {
+        (!(m == c.current && c.explicit)).then_some(m.word())
+    } else if m == c.default {
         c.explicit.then_some("default")
     } else if m == c.current && c.explicit {
         None

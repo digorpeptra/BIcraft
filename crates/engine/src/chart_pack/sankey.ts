@@ -4,13 +4,15 @@
 // ribbons between cubic Bézier edges, the order within each column set by a fixed number of
 // barycentre sweeps. A link that skips columns runs through a waypoint in each column between
 // its ends, the waypoints sorted by the sweeps as nodes are, so it passes between the nodes
-// rather than over them. A label that would overlap a larger node's label in its column is left
-// out. A link that closes a cycle is left out and counted in a note. Drawn with
+// rather than over them. Labels sit beside their nodes on the outer side (the first column's on
+// the left, the last column's on the right, in margins kept for them), a middle column's on a side
+// clear of the ribbons or else over a halo; a label that would overlap a larger node's label in its
+// column is left out. A link that closes a cycle is left out and counted in a note. Drawn with
 // BIcraft's look (docs/formats/visual-look.md): nodes in its colours, rounded and shaded as its
 // bars, labels bolder in Bold. The TypeScript twin of crates/render/src/chart_pack/sankey.rs.
 "use strict";
 
-import { Out, PAD, cellLabel, cellNum, cellText, fit, highlighted, hlNum, lookOfInput, optBool, optColor, optNum, optionsOf, poly, rowsOf, text } from "./kit";
+import { Out, PAD, cellLabel, cellNum, cellText, est, fit, highlighted, hlNum, lookOfInput, optBool, optColor, optNum, optionsOf, poly, rect, rowsOf, text } from "./kit";
 import { bar, bold, color as colorOf, dim, part, pushCard, textW } from "./runtime/style";
 
 /** Most link rows read. */
@@ -73,6 +75,57 @@ function centreOf(n: SNode): number {
 function bez(a: number, b: number, c: number, d: number, t: number): number {
     const u = 1 - t;
     return u * u * u * a + 3 * u * u * t * b + 3 * u * t * t * c + t * t * t * d;
+}
+
+/** Whether the segment from `a` to `b` meets the box `[x0, y0, x1, y1]` (Liang–Barsky clipping). */
+function segmentMeetsBox(ax: number, ay: number, bx: number, by: number, r: number[]): boolean {
+    const dx = bx - ax;
+    const dy = by - ay;
+    let t0 = 0;
+    let t1 = 1;
+    const sides = [
+        [-dx, ax - r[0]],
+        [dx, r[2] - ax],
+        [-dy, ay - r[1]],
+        [dy, r[3] - ay],
+    ];
+    for (const [p, q] of sides) {
+        if (p === 0) {
+            if (q < 0) {
+                return false;
+            }
+        } else {
+            const t = q / p;
+            if (p < 0) {
+                t0 = Math.max(t0, t);
+            } else {
+                t1 = Math.min(t1, t);
+            }
+        }
+    }
+    return t0 <= t1;
+}
+
+/** Whether the polygon `pts` and the box `r` overlap: an edge meets the box, or the box's centre is inside the polygon (even-odd). */
+export function polygonMeetsBox(pts: number[][], r: number[]): boolean {
+    const n = pts.length;
+    if (n < 3) {
+        return false;
+    }
+    const cx = (r[0] + r[2]) / 2;
+    const cy = (r[1] + r[3]) / 2;
+    let inside = false;
+    for (let i = 0; i < n; i++) {
+        const a = pts[i];
+        const b = pts[(i + 1) % n];
+        if (segmentMeetsBox(a[0], a[1], b[0], b[1], r)) {
+            return true;
+        }
+        if (a[1] > cy !== b[1] > cy && cx < a[0] + ((cy - a[1]) * (b[0] - a[0])) / (b[1] - a[1])) {
+            inside = !inside;
+        }
+    }
+    return inside;
 }
 
 /** Stacks the nodes of a column from the top, centred in the plot's height. */
@@ -291,8 +344,24 @@ export function layoutSankey(input: any, w: number, h: number): Out {
         l.hops.push(l.t);
     }
     const withNote = broken > 0;
-    const x0 = PAD;
-    const x1 = w - PAD;
+    // the first column's labels on the left of their nodes, the last column's on the right: room
+    // beside the nodes for the widest of each (at most 30% of the width on each side)
+    const room = (w - 2 * PAD) * 0.3;
+    let ml = 0;
+    let mr = 0;
+    if (showLabels) {
+        for (const i of drawn) {
+            const wd = Math.min(est(nodes[i].label, size) + 6, room);
+            if (ncols > 1 && nodes[i].col === 0) {
+                ml = Math.max(ml, wd);
+            }
+            if (nodes[i].col === ncols - 1) {
+                mr = Math.max(mr, wd);
+            }
+        }
+    }
+    const x0 = PAD + ml;
+    const x1 = w - PAD - mr;
     const y0 = PAD;
     const y1 = h - PAD - (withNote ? 14 : 0);
     const iw = x1 - x0;
@@ -379,6 +448,8 @@ export function layoutSankey(input: any, w: number, h: number): Out {
     // set (the first twelve); its links coloured by it follow
     const color = (i: number) => (i < NODE_COLORS ? optColor(o, "nodeColor" + (i + 1), colorOf(k, i)) : colorOf(k, i));
     pushCard(p, k, w, h);
+    // each ribbon's column-to-column pieces, their bounding boxes first: the labels keep clear
+    const pieces: { box: number[]; pts: number[][] }[] = [];
     for (let li = 0; li < links.length; li++) {
         const l = links[li];
         if (!l.kept) {
@@ -418,6 +489,23 @@ export function layoutSankey(input: any, w: number, h: number): Out {
             }
             return pts;
         };
+        for (let j = 0; j < last; j++) {
+            const sx = xOf(nodes[l.hops[j]].col) + nodeW;
+            const tx = xOf(nodes[l.hops[j + 1]].col);
+            const xm = (sx + tx) / 2;
+            const a = topOf(j);
+            const b = topOf(j + 1);
+            const pts: number[][] = [];
+            for (let q = 0; q <= STEPS; q++) {
+                const u = q / STEPS;
+                pts.push([bez(sx, xm, xm, tx, u), bez(a, a, b, b, u)]);
+            }
+            for (let q = STEPS; q >= 0; q--) {
+                const u = q / STEPS;
+                pts.push([bez(sx, xm, xm, tx, u), bez(a + th, a + th, b + th, b + th, u)]);
+            }
+            pieces.push({ box: [Math.min(sx, tx), Math.min(a, b), Math.max(sx, tx), Math.max(a, b) + th], pts });
+        }
         const fill = mode === "destination" ? color(l.t) : mode === "fixed" ? fixed : color(l.s);
         const hit = { row: l.first, prim: p.length, link: li, source: s.name, target: t.name, sourceLabel: s.label, targetLabel: t.label, value: l.value };
         out.hits.push(hit);
@@ -451,18 +539,10 @@ export function layoutSankey(input: any, w: number, h: number): Out {
         for (const i of drawn) {
             const x = nodes[i];
             const y = yOf(x);
-            let avail = step - nodeW - 8;
-            if (ncols === 1) {
-                avail = x1 - (xOf(x.col) + nodeW + 4);
-            } else if (x.col + 2 >= ncols) {
-                // the last column's labels (on the left of their nodes) and the one before's
-                // share the gap between them: each takes half of it only where a label of the
-                // other column faces it
-                const facing = x.col + 1 === ncols ? ncols - 2 : ncols - 1;
-                if (cols[facing].some((j) => j < n && Math.abs(yOf(nodes[j]) - y) < size)) {
-                    avail = (step - nodeW) / 2 - 6;
-                }
-            }
+            // the outer columns' labels in the room beside the plot, a middle column's in the gap
+            // to the next column
+            const outer = ncols > 1 && x.col === 0 ? ml : x.col === ncols - 1 ? mr : 0;
+            const avail = outer > 0 ? outer - 6 : step - nodeW - 8;
             const label = fit(x.label, size, avail);
             if (label !== "") {
                 labs.push({ i, y, label, keep: false });
@@ -485,13 +565,38 @@ export function layoutSankey(input: any, w: number, h: number): Out {
                 ys.push(lb.y);
             }
         }
+        // each label beside its node: the first column's on the left, the last one's on the
+        // right, a middle column's on the first side (right, then left) clear of the ribbons and
+        // the labels placed, else on the first side clear of the labels on a halo of the surface;
+        // one with no side clear of the labels is left out
+        const boxes: number[][] = [];
+        const meets = (r: number[]) => boxes.some((q) => r[0] < q[2] && q[0] < r[2] && r[1] < q[3] && q[1] < r[3]);
+        const onRibbon = (r: number[]) =>
+            pieces.some((c) => c.box[0] < r[2] && r[0] < c.box[2] && c.box[1] < r[3] && r[1] < c.box[3] && polygonMeetsBox(c.pts, r));
         for (const lb of labs) {
             if (!lb.keep) {
                 continue;
             }
             const x = nodes[lb.i];
             const nx = xOf(x.col);
-            if (ncols > 1 && x.col + 1 === ncols) {
+            const wd = est(lb.label, size);
+            const right = [nx + nodeW + 4, lb.y - size / 2, nx + nodeW + 4 + wd, lb.y + size / 2];
+            const left = [nx - 4 - wd, lb.y - size / 2, nx - 4, lb.y + size / 2];
+            const sides = ncols > 1 && x.col === 0 ? [left] : x.col === ncols - 1 ? [right] : [right, left];
+            let pick = sides.find((r) => !meets(r) && !onRibbon(r));
+            let halo = false;
+            if (pick === undefined) {
+                pick = sides.find((r) => !meets(r));
+                halo = true;
+            }
+            if (pick === undefined) {
+                continue;
+            }
+            boxes.push(pick);
+            if (halo) {
+                p.push(rect(pick[0] - 2, pick[1] - 1, wd + 4, size + 2, k.surface, 0.85));
+            }
+            if (pick === left) {
                 p.push(textW(nx - 4, lb.y, lb.label, size, k.label, "end", 0, weight));
             } else {
                 p.push(textW(nx + nodeW + 4, lb.y, lb.label, size, k.label, "start", 0, weight));

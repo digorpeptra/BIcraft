@@ -43,6 +43,90 @@ fn num_of(v: Option<&Value>) -> Option<f64> {
     cell_num(v).filter(|n| n.abs() <= MAX_ABS)
 }
 
+/// Format string `f` with the commas right after a section's last decimal placeholder moved
+/// before its decimal point (`$#,0.00,,"M"` → `$#,0,,.00"M"`): read as scaling commas, ÷1000
+/// each, as before the point. Quoted and escaped text and scientific sections stay as they are.
+/// The twin of `gauge.ts` `scaleCommas`.
+pub fn scale_commas(f: &str) -> String {
+    // each character, and whether it is outside quotes and escapes
+    let mut sec: Vec<(char, bool)> = Vec::new();
+    let mut out = String::new();
+    let (mut quoted, mut esc) = (false, false);
+    for c in f.chars() {
+        if esc || quoted {
+            quoted = quoted && c != '"';
+            esc = false;
+            sec.push((c, false));
+            continue;
+        }
+        match c {
+            '"' => quoted = true,
+            '\\' => esc = true,
+            ';' => {
+                out.push_str(&scale_section(&sec));
+                out.push(';');
+                sec.clear();
+                continue;
+            }
+            _ => {}
+        }
+        sec.push((c, c != '"' && c != '\\'));
+    }
+    out.push_str(&scale_section(&sec));
+    out
+}
+
+fn scale_section(sec: &[(char, bool)]) -> String {
+    let text = |r: Option<&[(char, bool)]>| r.unwrap_or(&[]).iter().map(|(c, _)| *c).collect::<String>();
+    let dot = sec.iter().position(|&(c, p)| p && c == '.');
+    let last = sec.iter().rposition(|&(c, p)| p && (c == '0' || c == '#'));
+    let sci = sec.iter().any(|&(c, p)| p && (c == 'E' || c == 'e'));
+    let (Some(d), Some(l)) = (dot, last) else {
+        return text(Some(sec));
+    };
+    let n = sec
+        .get(l + 1..)
+        .map_or(0, |r| r.iter().take_while(|&&(c, p)| p && c == ',').count());
+    if sci || l < d || n == 0 {
+        return text(Some(sec));
+    }
+    format!(
+        "{}{}{}{}",
+        text(sec.get(..d)),
+        ",".repeat(n),
+        text(sec.get(d..=l)),
+        text(sec.get(l + 1 + n..))
+    )
+}
+
+/// `v` written with the whole format string `f`, as BIcraft's DAX `FORMAT` reads it
+/// (`bicraft_locale::vb`: scaling commas, quoted and escaped text, sections), after
+/// [`scale_commas`], grouped with the culture's display separator; `None` without a format string
+/// or for one `FORMAT` refuses.
+pub(crate) fn full_format(v: f64, f: &str, loc: &crate::fmt::Locale) -> Option<String> {
+    let g: String = f.chars().take(200).collect();
+    if g.trim().is_empty() || !v.is_finite() {
+        return None;
+    }
+    let s = bicraft_locale::vb::format(
+        bicraft_locale::vb::Value::Number(v),
+        &scale_commas(g.trim()),
+        loc.culture,
+    )?;
+    let vb = loc.culture.group;
+    Some(match loc.group {
+        Some(g) if g != vb => s.replace(vb, &g.to_string()),
+        _ => s,
+    })
+}
+
+/// A value of the gauge written with its field's format string ([`full_format`]); without one,
+/// or with one `FORMAT` refuses, as the pack writes numbers.
+fn fmt_value(v: f64, f: &str, fr: bool) -> String {
+    let loc = crate::fmt::Locale::new(if fr { "fr-FR" } else { "en-US" });
+    full_format(v, f, &loc).unwrap_or_else(|| fmt_num(v, f, fr))
+}
+
 /// sin and cos of `t` in [0, π] by their series (the same arithmetic as the TypeScript, so both
 /// drawers agree to the last bit).
 pub fn sin_cos(t: f64) -> (f64, f64) {
@@ -107,6 +191,9 @@ struct G {
     max_text: String,
     /// The variance line (empty without a target or previous value) and its ink.
     var_text: String,
+    /// The variance line with less and less of it, for the arc's narrow middle: the whole line,
+    /// then without its words (`-8 (-10.0%)`), then the difference alone.
+    var_texts: Vec<String>,
     var_ink: String,
     ref_text: String,
     reference: Option<f64>,
@@ -216,12 +303,15 @@ fn prepare(input: &Value, k: &Look) -> Option<G> {
     };
     let f = format_at(input, 1);
     let (mut var_text, mut var_ink, mut ref_text) = (String::new(), k.label.to_string(), String::new());
+    let mut var_texts = Vec::new();
     if let Some(rf) = reference {
         let diff = val - rf;
-        var_text = signed(diff, fmt_num(diff, &f, fr));
+        let diff_text = signed(diff, fmt_value(diff, &f, fr));
+        var_text = diff_text.clone();
         if rf != 0.0 {
             var_text.push_str(&format!(" ({})", pct_text(diff / rf.abs(), fr)));
         }
+        let bare = var_text.clone();
         var_text.push_str(match (ref_kind == "target", fr) {
             (true, true) => " vs cible",
             (true, false) => " vs target",
@@ -239,8 +329,9 @@ fn prepare(input: &Value, k: &Look) -> Option<G> {
                 (false, true) => "Précédent : ",
                 (false, false) => "Previous: ",
             },
-            fmt_num(rf, &f, fr)
+            fmt_value(rf, &f, fr)
         );
+        var_texts = vec![var_text.clone(), bare, diff_text];
     }
     let lit = highlighted(input);
     let row = cur.row;
@@ -254,10 +345,11 @@ fn prepare(input: &Value, k: &Look) -> Option<G> {
         bands,
         value_fill,
         target_fill: opt_color(o, "targetFill", k.label),
-        val_text: fmt_num(val, &f, fr),
-        min_text: fmt_num(min, &f, fr),
-        max_text: fmt_num(max, &f, fr),
+        val_text: fmt_value(val, &f, fr),
+        min_text: fmt_value(min, &f, fr),
+        max_text: fmt_value(max, &f, fr),
         var_text,
+        var_texts,
         var_ink,
         ref_text,
         reference,
@@ -371,22 +463,12 @@ fn arc_style(out: &mut Out, k: &Look, g: &G, input: &Value, trend: bool, w: f64,
         ));
     }
     let ly = cy + 4.0 + k.tick / 2.0;
-    out.prims.push(text(
-        inside(cx - big_r + thick / 2.0, &g.min_text, k.tick, w),
-        ly,
-        g.min_text.clone(),
-        k.tick,
-        k.text,
-        "middle",
-    ));
-    out.prims.push(text(
-        inside(cx + big_r - thick / 2.0, &g.max_text, k.tick, w),
-        ly,
-        g.max_text.clone(),
-        k.tick,
-        k.text,
-        "middle",
-    ));
+    let min_x = inside(cx - big_r + thick / 2.0, &g.min_text, k.tick, w);
+    let max_x = inside(cx + big_r - thick / 2.0, &g.max_text, k.tick, w);
+    out.prims
+        .push(text(min_x, ly, g.min_text.clone(), k.tick, k.text, "middle"));
+    out.prims
+        .push(text(max_x, ly, g.max_text.clone(), k.tick, k.text, "middle"));
     let inner = big_r - thick;
     let vs = (big_r * 0.3).clamp(12.0, 40.0);
     let vy = cy - inner * 0.35;
@@ -395,13 +477,29 @@ fn arc_style(out: &mut Out, k: &Look, g: &G, input: &Value, trend: bool, w: f64,
         out.hit(g.row as i64, g.value_hit());
         out.prims.push(text_w(cx, vy, s, vs, k.label, "middle", 0.0, 700));
     }
-    let v = fit(&g.var_text, k.name, 2.0 * inner - 8.0);
-    if !v.is_empty() {
+    // the variance under the value: the most of it that fits whole inside the ring, and between
+    // the minimum and the maximum when it reaches their line, at the name size, else the tick size
+    let gap = (cx - min_x - est(&g.min_text, k.tick) / 2.0).min(max_x - est(&g.max_text, k.tick) / 2.0 - cx);
+    let var_y = |size: f64| vy + vs / 2.0 + 3.0 + size / 2.0;
+    let room = |size: f64| {
+        let r = 2.0 * inner - 8.0;
+        if var_y(size) + size / 2.0 > ly - k.tick / 2.0 {
+            r.min(2.0 * gap - 8.0)
+        } else {
+            r
+        }
+    };
+    let pick = g
+        .var_texts
+        .iter()
+        .flat_map(|t| [(t, k.name), (t, k.tick)])
+        .find(|(t, size)| !t.is_empty() && est(t, *size) <= room(*size));
+    if let Some((v, size)) = pick {
         out.prims.push(text_w(
             cx,
-            vy + vs / 2.0 + 3.0 + k.name / 2.0,
-            v,
-            k.name,
+            var_y(size),
+            v.clone(),
+            size,
             &g.var_ink,
             "middle",
             0.0,
@@ -527,16 +625,33 @@ fn bullet_style(out: &mut Out, k: &Look, g: &G, input: &Value, trend: bool, w: f
 }
 
 fn kpi_style(out: &mut Out, k: &Look, g: &G, input: &Value, trend: bool, w: f64, h: f64) {
-    let trend_h = if trend && h >= 80.0 {
+    let mut trend_h = if trend && h >= 80.0 {
         (h * 0.3).min(60.0)
     } else {
         0.0
     };
-    let area = h - 2.0 * PAD - if trend_h > 0.0 { trend_h + 6.0 } else { 0.0 };
-    let vs = (area * 0.42).min(w * 0.16).clamp(12.0, 48.0);
-    let block = vs
-        + if g.var_text.is_empty() { 0.0 } else { k.name + 6.0 }
-        + if g.ref_text.is_empty() { 0.0 } else { k.tick + 4.0 };
+    let area_of = |t: f64| h - 2.0 * PAD - if t > 0.0 { t + 6.0 } else { 0.0 };
+    let vs = (area_of(trend_h) * 0.42).min(w * 0.16).clamp(12.0, 48.0);
+    let mut show_var = !g.var_text.is_empty();
+    let mut show_ref = !g.ref_text.is_empty();
+    let block_of =
+        |var: bool, rf: bool| vs + if var { k.name + 6.0 } else { 0.0 } + if rf { k.tick + 4.0 } else { 0.0 };
+    // the text first: the sparkline takes what it leaves (none under 16 px), then the reference
+    // and the variance lines give way when even that is too little
+    if trend_h > 0.0 && block_of(show_var, show_ref) > area_of(trend_h) {
+        trend_h = h - 2.0 * PAD - 6.0 - block_of(show_var, show_ref);
+        if trend_h < 16.0 {
+            trend_h = 0.0;
+        }
+    }
+    let area = area_of(trend_h);
+    if block_of(show_var, show_ref) > area {
+        show_ref = false;
+    }
+    if block_of(show_var, show_ref) > area {
+        show_var = false;
+    }
+    let block = block_of(show_var, show_ref);
     let mut y = PAD + ((area - block) / 2.0).max(0.0);
     let cx = w / 2.0;
     let s = fit(&g.val_text, vs, w - 2.0 * PAD);
@@ -551,8 +666,14 @@ fn kpi_style(out: &mut Out, k: &Look, g: &G, input: &Value, trend: bool, w: f64,
             .push(text_w(cx, y + vs / 2.0, s, vs, &ink, "middle", 0.0, 700));
     }
     y += vs;
-    let v = fit(&g.var_text, k.name, w - 2.0 * PAD);
-    if !v.is_empty() {
+    // the most of the variance that fits whole, else the whole line shortened
+    let v = g
+        .var_texts
+        .iter()
+        .find(|t| !t.is_empty() && est(t, k.name) <= w - 2.0 * PAD)
+        .cloned()
+        .unwrap_or_else(|| fit(&g.var_text, k.name, w - 2.0 * PAD));
+    if show_var && !v.is_empty() {
         out.prims.push(text_w(
             cx,
             y + 6.0 + k.name / 2.0,
@@ -566,7 +687,7 @@ fn kpi_style(out: &mut Out, k: &Look, g: &G, input: &Value, trend: bool, w: f64,
         y += k.name + 6.0;
     }
     let r = fit(&g.ref_text, k.tick, w - 2.0 * PAD);
-    if !r.is_empty() {
+    if show_ref && !r.is_empty() {
         out.prims
             .push(text(cx, y + 4.0 + k.tick / 2.0, r, k.tick, k.text, "middle"));
     }
@@ -611,7 +732,11 @@ pub fn layout(input: &Value, w: f64, h: f64) -> Out {
 pub(crate) fn targets(out: &Out, ds: &Dataset, ctx: &Ctx<'_>) -> Vec<Target> {
     let fr = ctx.ui_lang.to_ascii_lowercase().starts_with("fr");
     let vc = role_col(ds, "value");
-    let value = |x: f64| num_text(ds, vc, x, ctx);
+    let fmt = vc
+        .and_then(|c| ds.cols.get(c))
+        .map(|c| c.fmt.clone())
+        .unwrap_or_default();
+    let value = |x: f64| full_format(x, &fmt, &ctx.loc).unwrap_or_else(|| num_text(ds, vc, x, ctx));
     let value_name = vc
         .and_then(|c| ds.cols.get(c))
         .map(|c| c.name.clone())
@@ -724,5 +849,137 @@ mod tests {
             "{e:?}"
         );
         assert!(edges(json!({"rows": [["a", "x"]]})).is_empty());
+    }
+
+    /// Each text's box as the layouts estimate it: (left, top, right, bottom).
+    fn text_boxes(out: &Out) -> Vec<(f64, f64, f64, f64, String)> {
+        out.prims
+            .iter()
+            .filter_map(|p| match p {
+                Prim::Text {
+                    x,
+                    y,
+                    text,
+                    size,
+                    anchor,
+                    ..
+                } => {
+                    let w = est(text, *size);
+                    let x0 = match *anchor {
+                        "middle" => x - w / 2.0,
+                        "end" => x - w,
+                        _ => *x,
+                    };
+                    Some((x0, y - size / 2.0, x0 + w, y + size / 2.0, text.clone()))
+                }
+                _ => None,
+            })
+            .collect()
+    }
+
+    fn overlap(a: &(f64, f64, f64, f64, String), b: (f64, f64, f64, f64)) -> bool {
+        a.0 < b.2 && b.0 < a.2 && a.1 < b.3 && b.1 < a.3
+    }
+
+    /// Every text whole (no ellipsis), inside the `w`×`h` visual and clear of the other texts.
+    fn texts_fit(out: &Out, w: f64, h: f64, at: &str) {
+        let boxes = text_boxes(out);
+        for (i, a) in boxes.iter().enumerate() {
+            assert!(!a.4.contains('…'), "{at}: {:?} is cut", a.4);
+            assert!(
+                a.0 >= 0.0 && a.1 >= 0.0 && a.2 <= w && a.3 <= h,
+                "{at}: {a:?} outside {w}x{h}"
+            );
+            for b in boxes.iter().skip(i + 1) {
+                assert!(!overlap(a, (b.0, b.1, b.2, b.3)), "{at}: {a:?} over {b:?}");
+            }
+        }
+    }
+
+    /// The KPI card's numbers are written with the whole format string: scaling commas after
+    /// the decimals and quoted text.
+    #[test]
+    fn the_value_takes_its_whole_format_string() {
+        let input = json!({"rows": [[null, 7_433_915.0, null, null, null, null, null, null, 6_900_000.0]],
+                           "formats": ["", "$#,0.00,,\"M\""], "options": {"gaugeStyle": "kpi"}});
+        let texts: Vec<String> = text_boxes(&layout(&input, 300.0, 168.0))
+            .into_iter()
+            .map(|b| b.4)
+            .collect();
+        assert!(texts.iter().any(|t| t == "$7.43M"), "{texts:?}");
+        assert!(texts.iter().any(|t| t == "Previous: $6.90M"), "{texts:?}");
+        assert!(texts.iter().any(|t| t.starts_with("+$0.53M (")), "{texts:?}");
+        let fr = json!({"rows": [[null, 7_433_915.0]], "formats": ["", "#,0.0,,\" M€\""],
+                        "lang": "fr", "options": {"gaugeStyle": "kpi"}});
+        let texts: Vec<String> = text_boxes(&layout(&fr, 300.0, 168.0))
+            .into_iter()
+            .map(|b| b.4)
+            .collect();
+        assert!(texts.iter().any(|t| t == "7,4 M€"), "{texts:?}");
+    }
+
+    /// The arc's variance line fits its narrow middle whole, with less of it when needed, and
+    /// no text runs over another or out of the visual.
+    #[test]
+    fn the_arc_variance_fits_a_short_arc() {
+        let one = json!({"rows": [[null, 0.375, 0.38]], "formats": ["", "0.0%"]});
+        let trend = json!({"rows": [["a", 0.31, 0.38], ["b", 0.36, 0.38], ["c", 0.375, 0.38]],
+                           "formats": ["", "0.0%"], "options": {"min": 0.3, "max": 0.45}});
+        for input in [&one, &trend] {
+            for (w, h) in [
+                (300.0, 136.0),
+                (276.0, 120.0),
+                (240.0, 110.0),
+                (300.0, 168.0),
+                (360.0, 240.0),
+            ] {
+                let out = layout(input, w, h);
+                let at = format!("{w}x{h} {input}");
+                texts_fit(&out, w, h, &at);
+                let boxes = text_boxes(&out);
+                assert!(
+                    boxes.iter().any(|b| b.4.starts_with("-0.5%")),
+                    "{at}: no variance in {boxes:?}"
+                );
+            }
+        }
+    }
+
+    /// The KPI card keeps its sparkline below the reference line at every height.
+    #[test]
+    fn the_kpi_sparkline_stays_clear_of_the_text() {
+        let input = json!({"rows": [["a", 52, 70], ["b", 61, 70], ["c", 58, 75], ["d", 66, 75], ["e", 79, 80]],
+                           "formats": ["", "#,0"], "options": {"gaugeStyle": "kpi", "compareTo": "previous"}});
+        for w in [200.0, 300.0] {
+            for h in (80..=240).step_by(4).map(f64::from) {
+                let out = layout(&input, w, h);
+                let at = format!("{w}x{h}");
+                texts_fit(&out, w, h, &at);
+                let mut spark: Option<(f64, f64, f64, f64)> = None;
+                let mut add = |x0: f64, y0: f64, x1: f64, y1: f64| {
+                    let b = spark.get_or_insert((x0, y0, x1, y1));
+                    *b = (b.0.min(x0), b.1.min(y0), b.2.max(x1), b.3.max(y1));
+                };
+                for p in &out.prims {
+                    match p {
+                        Prim::Line { x1, y1, x2, y2, .. } => {
+                            add(x1.min(*x2), y1.min(*y2), x1.max(*x2), y1.max(*y2))
+                        }
+                        Prim::Circle { cx, cy, r, .. } => add(cx - r, cy - r, cx + r, cy + r),
+                        _ => {}
+                    }
+                }
+                for t in text_boxes(&out) {
+                    assert!(
+                        !spark.is_some_and(|s| overlap(&t, s)),
+                        "{at}: {t:?} over the sparkline {spark:?}"
+                    );
+                }
+                assert!(
+                    text_boxes(&out).iter().any(|t| t.4.starts_with("Previous: ")),
+                    "{at}: no reference line"
+                );
+            }
+        }
     }
 }

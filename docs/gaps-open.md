@@ -791,10 +791,17 @@ since. The one-line summary of each is in [gaps.md](gaps.md); closed entries are
   Headless Firefox drove both `bicraft view --control` and `bicraft serve --viewer-control`
   through `bicraft ui` (`apps/bicraft-cli/tests/browser_control.rs`, ignored by default:
   [webui.md](webui.md)), screenshots included.
+- **Headless render.** On 2026-11-26 (branch `feat/g39-headless-render`):
+  `bicraft-desktop FILE --render OUT.png [--size WxH] [--scale N] [--set JSON]` draws the whole
+  window with no window, GPU or display. The app runs offscreen (`crates/ui/src/offscreen.rs`)
+  and is driven by the channel's own `ui.wait`, `ui.set` and `ui.screenshot`; the screenshot is
+  egui's triangles filled on the CPU, the same bytes on every run (tested,
+  `apps/bicraft-desktop/src/tests/headless_tests.rs`, no `gpu-tests`; [desktop.md](desktop.md),
+  "Headless render"). Not compared pixel by pixel with a wgpu screenshot.
 - **Left.** No synthetic pointer or key
   input on purpose: requests name commands, tabs, pages and visuals; a click on a slicer item or
-  a data point goes through `command view.interact`. No headless `ui.render` (use
-  `report.render`). The browser test needs Firefox and an embedded bundle, so it is not in CI.
+  a data point goes through `command view.interact`. The headless render is the desktop
+  binary's (`bicraft ui` has no `render` of its own; the browser app has none). The browser test needs Firefox and an embedded bundle, so it is not in CI.
   An agent addresses a document view by the id `server.views` lists; the window's own
   `ui.inspect` does not show view ids.
 - **Deployment.** On 2026-11-05 (branch `chore/deploy-followups`): the chart's
@@ -869,13 +876,22 @@ since. The one-line summary of each is in [gaps.md](gaps.md); closed entries are
   `report.settings` (`default_interaction`, `drill_filters_other_visuals` in `report.json`
   `settings`), on the Visual tab and the palette; the viewer follows the cross-filter default,
   and an explicit `HighlightFilter` now highlights under it.
+- **Groups and keyboard (2026-11-26, branch `feat/g47-interactions`).** A visual group is a source
+  and a target of `page.interactions`: the rule stands for every pair between the visuals inside
+  it (nested groups too), each written as its own `visualInteractions` entry, a later rule of the
+  same call winning for a pair; a group and one of its own visuals have no pair (refused), as has
+  an empty group. No Desktop file with a group in `visualInteractions` has been seen, so BIcraft
+  never writes a group's name there (unconfirmed whether Desktop would). In Edit interactions a
+  selected group is the source: its visuals take no icons, the others show the modes any of them
+  can take, nothing is marked when they differ (tooltip "the group's visuals differ here"), and a
+  click writes the rule for all of them (the shared default removes them). The icons are reached
+  with Tab and run with Enter or Space; targets with the same title are named "Title (name)".
 - **Left.** Desktop draws its icons over the visual header; ours sit inside the visual's top-right
-  corner and can cover a title there. Titles that are the same give the icons the same
-  accessible name. Since M11.19 (G51) the reader's drill follows `drill_filters_other_visuals`, and the
+  corner and can cover a title there. A group is not a target in the mode itself (its visuals
+  are, one by one; `page.interactions` takes it). Since M11.19 (G51) the reader's drill follows `drill_filters_other_visuals`, and the
   per-visual "Apply drill down filters to" (`drillFilterOtherVisuals`) is `visual.drill_filter`. The
   report setting has no state in the interaction oracle corpus (its behaviour follows Microsoft
-  Learn's description; a recording would check it). Visual groups are not sources or targets
-  (as `page.interactions` refuses them).
+  Learn's description; a recording would check it).
 - **Effort.** S.
 
 ### G45. Editing DAX in a formula bar (M11.14) — done
@@ -982,6 +998,24 @@ since. The one-line summary of each is in [gaps.md](gaps.md); closed entries are
   `filterSortOrder` is read as A to Z from Microsoft Learn, not compared with a file Desktop
   saved; a visual's bound fields without a card are sorted in by name (in custom order they come
   last) and cannot be dragged until they have a card; cards are not dragged between sections.
+- **Reader filters (2026-11-26, `feat/g41-reader-filters`).** A reader (the `reader` role on a
+  server, the browser viewer) changes a card the author neither locked nor hid, as in Power BI's
+  reading view: `view.interact` `filter {page?, visual?, field, condition}` and `filter_clear`
+  (`crates/engine/src/interact_reader.rs`, `filter_edit::reader_change`) keep the changed
+  `filterConfig` as the reader's view state (the override an applied bookmark sets), so the
+  visuals and the Filters pane show it while the report, the revision, the dirty flags and the
+  saved files do not change; `reset` drops it, each server viewer has their own. Refused: a
+  locked or hidden card, a field without a card (a visual's bound field counts as one), the
+  view-mode flags, and a change of the filter type unless the report's "Allow users to change
+  filter types" is on. In the Filters pane the reader's clicks, Apply filter and eraser send
+  these actions; a locked card's controls are greyed with the reason; a reader has no ×. Checks:
+  engine `interact::filters_tests` (4), kittest `reader_filters_ui_tests` (1), seen red first.
+  Left: the reader's filters are not kept between sessions (Power BI's persistent filters).
+- **Long names (2026-11-26, `fix/card-units-assets`).** A Filters pane card's field name and
+  condition, and a Build pane well's field, are cut with an ellipsis where they do not fit (a
+  long name was clipped mid-letter, "Revenue Targe", beside a selected visual's card icons) and
+  shown whole on hover; the accessibility label keeps the whole name. Check: kittest
+  `a_long_field_name_is_elided_on_its_card_and_shown_whole_on_hover`, seen red first.
 - **Left.** Well captions are BIcraft's words for the common types, the role name for
   the others; the Filters pane has no "Require single selection" (relative date and time filters and the lock
   and hide icons landed on 2026-11-18, above; Top N stays visual-only, as in Desktop); a filter BIcraft does not read is shown as

@@ -30,7 +30,14 @@ fn line_text(
 
 // --- cards -----------------------------------------------------------------------------------
 
-pub fn card_body(cv: &mut Canvas, ds: &Dataset, b: Bx, ctx: &Ctx<'_>) {
+/// Power BI's classic card (`card`): the first measure's value over its name. The callout's
+/// display units and decimals (`labels.labelDisplayUnits` / `labelPrecision`, snapshot
+/// `format.labels`) apply as on data labels ([`crate::fmt::fmt_label`]); auto (0 or unset) with no
+/// decimals keeps the abbreviated value ("910K").
+pub fn card_body(cv: &mut Canvas, ds: &Dataset, b: Bx, f: &Fmt, ctx: &Ctx<'_>) {
+    let lo = get(&f.raw, "labels");
+    let units = fin(get(lo, "display_units")).filter(|u| *u != 0.0);
+    let prec = fin(get(lo, "precision")).map(|p| p.clamp(0.0, 10.0) as usize);
     let (cols, rows) = (&ds.cols, &ds.rows);
     let vi = cols
         .iter()
@@ -47,7 +54,13 @@ pub fn card_body(cv: &mut Canvas, ds: &Dataset, b: Bx, ctx: &Ctx<'_>) {
     let text = if raw.is_null() {
         ctx.blank()
     } else {
-        let t = fmt_cell(&raw, col.map(|c| c.cf()).as_ref(), &ctx.loc, true);
+        let cf = col.map(|c| c.cf());
+        let t = match raw.as_f64() {
+            Some(x) if units.is_some() || prec.is_some() => {
+                crate::fmt::fmt_label(x, cf.as_ref(), &ctx.loc, units, prec)
+            }
+            _ => fmt_cell(&raw, cf.as_ref(), &ctx.loc, true),
+        };
         if t.is_empty() { ctx.blank() } else { t }
     };
     let label = col.map(|c| c.name.clone()).unwrap_or_default();
@@ -184,7 +197,7 @@ pub fn card_new_body(cv: &mut Canvas, ds: &Dataset, b: Bx, f: &Fmt, ctx: &Ctx<'_
         .take(12)
         .collect();
     if vi.is_empty() {
-        return card_body(cv, ds, b, ctx);
+        return card_body(cv, ds, b, f, ctx);
     }
     let ci = (0..cols.len()).find(|i| !vi.contains(i) && cols.get(*i).is_some_and(|c| c.rc == Rc::Cat));
     let pt = |v: &Value, d: f32| fin(get(v, "font_size")).map_or(d, |s| clampf(s as f32, 5.0, 120.0) * PT);

@@ -27,6 +27,12 @@ fn literal(v: &Value) -> Option<&str> {
     v.pointer("/expr/Literal/Value").and_then(Value::as_str)
 }
 
+/// Whether readers may change a filter card's type ("Allow users to change filter types",
+/// `allowChangeFilterTypes`; off when absent, as the snapshot shows it).
+pub(crate) fn allow_change_filter_types(r: &Report) -> bool {
+    flag(r, "allowChangeFilterTypes").unwrap_or(false)
+}
+
 /// Whether readers see the Filters pane: `objects.outspacePane` `visible` (the pane's eye in
 /// Desktop); a report without it shows the pane.
 pub(crate) fn filter_pane_visible(r: &Report) -> bool {
@@ -125,7 +131,7 @@ pub(crate) fn settings_json(r: &Report) -> Map<String, Value> {
     o.insert("filter_pane_visible".into(), json!(filter_pane_visible(r)));
     o.insert(
         "allow_change_filter_types".into(),
-        json!(flag(r, "allowChangeFilterTypes").unwrap_or(false)),
+        json!(allow_change_filter_types(r)),
     );
     // the Optimize ribbon (optimize.rs)
     o.insert("paused".into(), json!(crate::optimize::paused(r)));

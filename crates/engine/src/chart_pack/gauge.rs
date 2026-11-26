@@ -36,7 +36,7 @@ pub(crate) const DEF: Def = Def {
     guid: "bicraftGaugeKpi9E1A3C5B7D2F4E6A8C0B1D3F",
     name: "bicraftGaugeKpi",
     display_name: "BIcraft Gauge / KPI+",
-    version: "1.0.2.0",
+    version: "1.0.3.0",
     description: "A gauge or KPI: one value against free colour bands, a target and up to three thresholds, as a radial arc, a linear bullet or a KPI card with its variance and a trend sparkline (BIcraft, docs/formats/chart-pack.md)",
     roles: &[
         Role {

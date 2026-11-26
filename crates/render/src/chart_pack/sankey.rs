@@ -4,8 +4,10 @@
 //! ribbons between cubic Bézier edges, the order within each column set by a fixed number of
 //! barycentre sweeps. A link that skips columns runs through a waypoint in each column between
 //! its ends, the waypoints sorted by the sweeps as nodes are, so it passes between the nodes
-//! rather than over them. A label that would overlap a larger node's label in its column is left
-//! out. A link that closes a cycle is left out and counted in a note. Drawn with
+//! rather than over them. Labels sit beside their nodes on the outer side (the first column's on
+//! the left, the last column's on the right, in margins kept for them), a middle column's on a side
+//! clear of the ribbons or else over a halo; a label that would overlap a larger node's label in its
+//! column is left out. A link that closes a cycle is left out and counted in a note. Drawn with
 //! BIcraft's look (docs/formats/visual-look.md): nodes in its colours, rounded and shaded as its
 //! bars, labels bolder in Bold. The Rust twin of `crates/engine/src/chart_pack/sankey.ts`.
 
@@ -14,8 +16,8 @@ use std::collections::HashMap;
 use serde_json::{Value, json};
 
 use super::{
-    Out, PAD, cell_label, cell_num, cell_text, fit, highlighted, hl_num, is_fr, look_of, opt_bool, opt_color,
-    opt_num, options_of, poly, rows_of, text,
+    Out, PAD, cell_label, cell_num, cell_text, est, fit, highlighted, hl_num, is_fr, look_of, opt_bool,
+    opt_color, opt_num, options_of, poly, rect, rows_of, text,
 };
 use crate::look::text_w;
 
@@ -127,6 +129,58 @@ fn node_of(
 fn bez(a: f64, b: f64, c: f64, d: f64, t: f64) -> f64 {
     let u = 1.0 - t;
     u * u * u * a + 3.0 * u * u * t * b + 3.0 * u * t * t * c + t * t * t * d
+}
+
+/// A box: `(x0, y0, x1, y1)`.
+type Bx4 = (f64, f64, f64, f64);
+
+/// Whether the segment from `a` to `b` meets the box `r` (Liang–Barsky clipping).
+fn segment_meets_box(a: (f64, f64), b: (f64, f64), r: Bx4) -> bool {
+    let (dx, dy) = (b.0 - a.0, b.1 - a.1);
+    let (mut t0, mut t1) = (0.0f64, 1.0f64);
+    for (p, q) in [
+        (-dx, a.0 - r.0),
+        (dx, r.2 - a.0),
+        (-dy, a.1 - r.1),
+        (dy, r.3 - a.1),
+    ] {
+        if p == 0.0 {
+            if q < 0.0 {
+                return false;
+            }
+        } else {
+            let t = q / p;
+            if p < 0.0 {
+                t0 = t0.max(t);
+            } else {
+                t1 = t1.min(t);
+            }
+        }
+    }
+    t0 <= t1
+}
+
+/// Whether the polygon `pts` and the box `r` overlap: an edge meets the box, or the box's centre
+/// is inside the polygon (even-odd).
+pub fn polygon_meets_box(pts: &[(f64, f64)], r: Bx4) -> bool {
+    let n = pts.len();
+    if n < 3 {
+        return false;
+    }
+    let (cx, cy) = ((r.0 + r.2) / 2.0, (r.1 + r.3) / 2.0);
+    let mut inside = false;
+    for (i, &a) in pts.iter().enumerate() {
+        let Some(&b) = pts.get((i + 1) % n) else {
+            continue;
+        };
+        if segment_meets_box(a, b, r) {
+            return true;
+        }
+        if (a.1 > cy) != (b.1 > cy) && cx < a.0 + (cy - a.1) * (b.0 - a.0) / (b.1 - a.1) {
+            inside = !inside;
+        }
+    }
+    inside
 }
 
 /// Stacks the nodes of a column from the top, centred in the plot's height.
@@ -383,8 +437,23 @@ pub fn layout(input: &Value, w: f64, h: f64) -> Out {
         l.hops.push(l.t);
     }
     let with_note = broken > 0;
-    let x0 = PAD;
-    let x1 = w - PAD;
+    // the first column's labels on the left of their nodes, the last column's on the right: room
+    // beside the nodes for the widest of each (at most 30% of the width on each side)
+    let room = (w - 2.0 * PAD) * 0.3;
+    let (mut ml, mut mr) = (0.0f64, 0.0f64);
+    if show_labels {
+        for x in drawn.iter().filter_map(|&i| nodes.get(i)) {
+            let wd = (est(&x.label, size) + 6.0).min(room);
+            if ncols > 1 && x.col == 0 {
+                ml = ml.max(wd);
+            }
+            if x.col + 1 == ncols {
+                mr = mr.max(wd);
+            }
+        }
+    }
+    let x0 = PAD + ml;
+    let x1 = w - PAD - mr;
     let y0 = PAD;
     let y1 = h - PAD - if with_note { 14.0 } else { 0.0 };
     let iw = x1 - x0;
@@ -512,6 +581,8 @@ pub fn layout(input: &Value, w: f64, h: f64) -> Out {
         }
     };
     k.push_card(&mut out.prims, w, h);
+    // each ribbon's column-to-column pieces, their bounding boxes first: the labels keep clear
+    let mut pieces: Vec<(Bx4, Vec<(f64, f64)>)> = Vec::new();
     for (li, l) in links.iter().enumerate() {
         if !l.kept {
             continue;
@@ -558,6 +629,22 @@ pub fn layout(input: &Value, w: f64, h: f64) -> Out {
             }
             pts
         };
+        for j in 0..last {
+            let sx = x_of(col_of(j)) + node_w;
+            let tx = x_of(col_of(j + 1));
+            let xm = (sx + tx) / 2.0;
+            let (a, b) = (top_of(j), top_of(j + 1));
+            let mut pts: Vec<(f64, f64)> = Vec::with_capacity(2 * STEPS + 2);
+            for q in 0..=STEPS {
+                let u = q as f64 / STEPS as f64;
+                pts.push((bez(sx, xm, xm, tx, u), bez(a, a, b, b, u)));
+            }
+            for q in (0..=STEPS).rev() {
+                let u = q as f64 / STEPS as f64;
+                pts.push((bez(sx, xm, xm, tx, u), bez(a + th, a + th, b + th, b + th, u)));
+            }
+            pieces.push(((sx.min(tx), a.min(b), sx.max(tx), a.max(b) + th), pts));
+        }
         let fill = match mode {
             "destination" => color(l.t),
             "fixed" => fixed.clone(),
@@ -600,22 +687,20 @@ pub fn layout(input: &Value, w: f64, h: f64) -> Out {
         for &i in &drawn {
             let Some(x) = nodes.get(i) else { continue };
             let y = y_of(x);
-            let mut avail = step - node_w - 8.0;
-            if ncols == 1 {
-                avail = x1 - (x_of(x.col) + node_w + 4.0);
-            } else if x.col + 2 >= ncols {
-                // the last column's labels (on the left of their nodes) and the one before's
-                // share the gap between them: each takes half of it only where a label of the
-                // other column faces it
-                let facing = if x.col + 1 == ncols { ncols - 2 } else { ncols - 1 };
-                let near = cols.get(facing).is_some_and(|c| {
-                    c.iter()
-                        .any(|&j| j < n && nodes.get(j).is_some_and(|o| (y_of(o) - y).abs() < size))
-                });
-                if near {
-                    avail = (step - node_w) / 2.0 - 6.0;
-                }
-            }
+            // the outer columns' labels in the room beside the plot, a middle column's in the gap
+            // to the next column
+            let outer = if ncols > 1 && x.col == 0 {
+                ml
+            } else if x.col + 1 == ncols {
+                mr
+            } else {
+                0.0
+            };
+            let avail = if outer > 0.0 {
+                outer - 6.0
+            } else {
+                step - node_w - 8.0
+            };
             let label = fit(&x.label, size, avail);
             if !label.is_empty() {
                 labs.push((i, y, label));
@@ -645,12 +730,55 @@ pub fn layout(input: &Value, w: f64, h: f64) -> Out {
                 }
             }
         }
+        // each label beside its node: the first column's on the left, the last one's on the
+        // right, a middle column's on the first side (right, then left) clear of the ribbons and
+        // the labels placed, else on the first side clear of the labels on a halo of the surface;
+        // one with no side clear of the labels is left out
+        let mut boxes: Vec<Bx4> = Vec::new();
+        let on_ribbon = |r: Bx4| {
+            pieces
+                .iter()
+                .any(|(c, pts)| c.0 < r.2 && r.0 < c.2 && c.1 < r.3 && r.1 < c.3 && polygon_meets_box(pts, r))
+        };
         for ((i, y, label), kept) in labs.into_iter().zip(keep) {
             let Some(x) = nodes.get(i).filter(|_| kept) else {
                 continue;
             };
             let nx = x_of(x.col);
-            let (lx, anchor) = if ncols > 1 && x.col + 1 == ncols {
+            let wd = est(&label, size);
+            let right = (
+                nx + node_w + 4.0,
+                y - size / 2.0,
+                nx + node_w + 4.0 + wd,
+                y + size / 2.0,
+            );
+            let left = (nx - 4.0 - wd, y - size / 2.0, nx - 4.0, y + size / 2.0);
+            let sides: Vec<(Bx4, bool)> = if ncols > 1 && x.col == 0 {
+                vec![(left, true)]
+            } else if x.col + 1 == ncols {
+                vec![(right, false)]
+            } else {
+                vec![(right, false), (left, true)]
+            };
+            let meets = |r: &Bx4| {
+                boxes
+                    .iter()
+                    .any(|q| r.0 < q.2 && q.0 < r.2 && r.1 < q.3 && q.1 < r.3)
+            };
+            let clear = sides.iter().find(|(r, _)| !meets(r) && !on_ribbon(*r));
+            let (pick, halo) = match clear {
+                Some(s) => (Some(s), false),
+                None => (sides.iter().find(|(r, _)| !meets(r)), true),
+            };
+            let Some(&(r, on_left)) = pick else {
+                continue;
+            };
+            boxes.push(r);
+            if halo {
+                out.prims
+                    .push(rect(r.0 - 2.0, r.1 - 1.0, wd + 4.0, size + 2.0, &k.surface, 0.85));
+            }
+            let (lx, anchor) = if on_left {
                 (nx - 4.0, "end")
             } else {
                 (nx + node_w + 4.0, "start")

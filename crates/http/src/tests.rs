@@ -334,6 +334,48 @@ fn the_sid_is_read_from_whoami() {
     }
 }
 
+#[test]
+fn only_a_single_full_control_entry_for_the_user_counts_as_owner_only() {
+    let me = "S-1-5-21-1-2-3-1001";
+    // what a CI runner's new file carried: the user, SYSTEM and Administrators
+    let ci = format!("f.txt\r\nD:PAI(A;;FA;;;{me})(A;;FA;;;SY)(A;;FA;;;BA)\r\n");
+    let (_, aces) = dacl_aces(&ci).unwrap();
+    let trustees: Vec<_> = aces.iter().filter_map(|a| ace_trustee(a)).collect();
+    assert_eq!(trustees, [me, "SY", "BA"]);
+    assert!(!owner_only_dacl(&ci, me));
+    assert!(owner_only_dacl(&format!("f.txt\r\nD:PAI(A;;FA;;;{me})\r\n"), me));
+    for bad in [
+        format!("D:AI(A;;FA;;;{me})"),    // not protected: inherits
+        format!("D:P(A;;FR;;;{me})"),     // not full control
+        format!("D:P(D;;FA;;;{me})"),     // a deny entry
+        format!("D:P(A;OICI;FA;;;{me})"), // an inheritable entry
+        "D:P(A;;FA;;;S-1-5-18)".into(),   // someone else
+        "D:P".into(),                     // empty
+        format!("D:P(A;;FA;;;{me}"),      // unbalanced
+        String::new(),
+    ] {
+        assert!(!owner_only_dacl(&bad, me), "{bad}");
+    }
+}
+
+#[test]
+fn the_user_written_as_an_sddl_alias_is_the_user() {
+    // SDDL writes some accounts by alias: the built-in Administrator (RID 500, a CI runner's
+    // account) as LA, LocalSystem as SY
+    let admin = "S-1-5-21-1-2-3-500";
+    assert!(owner_only_dacl(
+        "f.txt
+D:PAI(A;;FA;;;LA)
+",
+        admin
+    ));
+    assert!(owner_only_dacl("D:PAI(A;;FA;;;SY)", "S-1-5-18"));
+    assert!(trustee_is("la", admin));
+    assert!(!trustee_is("LA", "S-1-5-21-1-2-3-1001"));
+    assert!(!trustee_is("BA", admin));
+    assert!(!owner_only_dacl("D:PAI(A;;FA;;;LA)(A;;FA;;;BA)", admin));
+}
+
 /// Windows: the token file has one access entry, the user's full control, nothing inherited from
 /// its folder (which here, under the temp folder, grants others too).
 #[cfg(windows)]
@@ -367,5 +409,41 @@ fn owner_only_files_have_an_owner_only_acl_on_windows() {
         .output()
         .unwrap();
     assert_eq!(String::from_utf8_lossy(&out.stdout).matches(":(").count(), 1);
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
+/// Windows: in a folder whose entries are not inheritable (as on CI runners), a new file gets the
+/// creator's default DACL as explicit entries (SYSTEM, Administrators, the logon session…); the
+/// token file still ends with one entry, the user's.
+#[cfg(windows)]
+#[test]
+fn owner_only_files_drop_explicit_default_entries_on_windows() {
+    let system = std::path::PathBuf::from(std::env::var_os("SystemRoot").unwrap()).join("System32");
+    let whoami = std::process::Command::new(system.join("whoami.exe"))
+        .args(["/user", "/fo", "csv", "/nh"])
+        .output()
+        .unwrap();
+    let sid = current_sid(&String::from_utf8_lossy(&whoami.stdout))
+        .unwrap()
+        .to_string();
+    let dir = std::env::temp_dir().join(format!("bicraft-http-acl-noinherit-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).unwrap();
+    let status = std::process::Command::new(system.join("icacls.exe"))
+        .arg(&dir)
+        .args(["/inheritance:r", "/grant:r", &format!("*{sid}:(F)"), "/q"])
+        .stdout(std::process::Stdio::null())
+        .status()
+        .unwrap();
+    assert!(status.success());
+    let path = dir.join("control.json");
+    write_owner_only(&path, b"t").unwrap();
+    let out = std::process::Command::new(system.join("icacls.exe"))
+        .arg(&path)
+        .output()
+        .unwrap();
+    let text = String::from_utf8_lossy(&out.stdout).to_string();
+    assert_eq!(text.matches(":(").count(), 1, "one access entry only:\n{text}");
+    assert!(text.contains("(F)"), "full control for the owner:\n{text}");
     std::fs::remove_dir_all(&dir).unwrap();
 }

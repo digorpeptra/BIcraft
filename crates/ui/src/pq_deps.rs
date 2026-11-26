@@ -334,7 +334,7 @@ pub fn show(ui: &mut Ui, d: &mut Deps, l: Lang, t: &Tokens) -> Option<DepsAct> {
 }
 
 /// `text` cut with an ellipsis to fit `width`.
-fn fit_text(ui: &Ui, text: &str, font: egui::FontId, width: f32) -> String {
+pub(crate) fn fit_text(ui: &Ui, text: &str, font: egui::FontId, width: f32) -> String {
     let w = |s: &str| {
         ui.fonts_mut(|f| {
             f.layout_no_wrap(s.to_string(), font.clone(), Color32::WHITE)

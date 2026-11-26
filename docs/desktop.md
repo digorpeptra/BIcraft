@@ -1078,6 +1078,51 @@ bicraft ui ui.screenshot --out window.png
   `an_agent_takes_a_screenshot_of_the_window` checks the PNG of the window drawn by wgpu
   (`BICRAFT_DESKTOP_SHOTS=DIR` keeps it as `control-screenshot.png`).
 
+## Headless render (`--render`)
+
+The window drawn with no window: no GPU, no display, no settings file, no recovery journal. For
+a script, a server or a machine without a graphics adapter that wants to see what the app
+shows (`report.render` draws a report page alone; this draws the whole UI, ribbon and panes
+included).
+
+```text
+bicraft-desktop Sales.pbip --render shot.png                         # 1366x860 points, scale 1
+bicraft-desktop Sales.pbip --render shot.png --size 1440x900 --scale 2 --lang fr
+bicraft-desktop Sales.pbip --render shot.png --set '{"page": "Overview", "theme": "dark"}'
+```
+
+- **How.** The app runs its frames offscreen (`crates/ui/src/offscreen.rs`, `Offscreen`): a
+  fixed size and DPI, a time that advances by 1/30 s per frame. It is driven by the control
+  channel's own requests, as an agent drives the window (`apps/bicraft-desktop/src/headless.rs`):
+  `ui.wait` (the file open, every bound visual's data computed, the page drawn), then `ui.set`
+  with `--set`'s params and `ui.wait` again, then `ui.screenshot`. The screenshot egui asks for
+  is drawn in software (`Raster`): egui's tessellated triangles filled on the CPU, colours
+  interpolated, textures sampled as their options say (bilinear or nearest), clipped, blended
+  with premultiplied alpha, each pixel of a shared edge blended once. Report pages are drawn
+  with the bundled fonts on the window's thread, as in the screenshot tests.
+- **Deterministic.** No GPU, thread or clock in the drawing: the same file, size, scale,
+  language and `--set` give the same PNG bytes, however busy the machine. What the window went
+  through before (how many frames the file took to open, which status lines were shown) does
+  not show: the pass that applies the theme draws nothing (laid out in egui's default spacing,
+  it would size the panes, which keep their width), and textures are sampled on a 1/64-texel
+  grid, so a glyph draws the same wherever it sits in egui's font atlas (its place there
+  depends on the text drawn before it). Checked: 80 renders on a loaded machine, byte for byte
+  the same (measured, 2026-11-26). They are not the GPU's bytes: blending and
+  filtering are done in gamma space here, so edges and images can differ slightly from a
+  window's screenshot (not measured).
+- **Bounds.** Each side 64 to 8192 points, the scale 0.5 to 4, at most 64 M pixels, the PNG at
+  most 32 MB (the screenshot's cap); 120 s for the whole render. A file that does not open, a
+  refused `ui.set` or a timeout is an error (exit 1, the reason on stderr); `--size`, `--scale`
+  and `--set` without `--render`, or with `--server` or `--control`, are refused (exit 2).
+  stdout says `rendered: shot.png (W×H pixels, N bytes)`.
+- **Tests.** `apps/bicraft-desktop/src/tests/headless_tests.rs` (plain `cargo test`, no
+  `gpu-tests`): `shop.pbip` rendered at 1280×800 is opaque, has its ribbon and page drawn and
+  more than 100 colours, two renders give the same bytes, `--set` with another page and the dark
+  theme gives a darker picture; a broken file and a hostile size are errors
+  (`BICRAFT_DESKTOP_SHOTS=DIR` keeps `headless-light.png`, `headless-dark.png`). The rasterizer's
+  unit tests (`crates/ui/src/offscreen.rs`): a half-transparent rectangle of two triangles is
+  blended once per pixel and clipped, a texture is sampled and patched, hostile sizes refused.
+
 ## Windows integration (`--register`)
 
 `bicraft-desktop.exe --register` (once, from where the executable stays, e.g.

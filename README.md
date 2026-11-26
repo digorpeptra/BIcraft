@@ -27,8 +27,8 @@
 </p>
 
 <p align="center">
-  <img src="docs/images/report-visuals.png" alt="A report page rendered by BIcraft: a column chart, a line chart, a pie chart, a donut chart, a bar chart and an area chart of synthetic sales by region, month and channel, in BIcraft's own theme" width="100%">
-  <br><sub><b>A synthetic report page</b> built with <code>bicraft run</code> (the corpus recipe <code>corpus/recipes/visuals.json</code>, then <code>theme.set {"builtin": "bicraft"}</code>) and drawn by <code>bicraft render</code>; every value is made up.</sub>
+  <img src="docs/images/bicraft-app-light.png" alt="The BIcraft desktop app in its light theme: the Home ribbon (open, reload, light, dark and high-contrast themes, Power Query, get data, new measure, format painter, undo history), the Filters, Visualizations and Data panes on the right, and on the canvas a sales dashboard for a fictional bike shop: a title and a Region dropdown slicer, three year-to-date KPI cards (revenue, gross margin, units) each with its change against last year and a sparkline, a margin-rate bullet gauge against a 38% target, a line chart of revenue by month this year and last, a bullet chart of revenue against target by category, a column chart of gross margin by category, a slope chart of revenue by region from last year to this year, and a matrix of categories with revenue, margin and year-on-year growth" width="100%">
+  <br><sub><b>BIcraft's own app</b> (<code>bicraft-desktop</code>) with a synthetic dashboard open, built by the recipe <a href="examples/ridgeline-cycles.json"><code>examples/ridgeline-cycles.json</code></a> and drawn by <code>bicraft-desktop --render</code>; every value is made up.</sub>
 </p>
 
 <p align="center">
@@ -161,6 +161,30 @@ bicraft view out/Sales.pbip --open                     # live viewer in the brow
 bicraft-desktop out/Sales.pbip                         # native desktop app, no browser (docs/desktop.md)
 bicraft licenses                                       # licence and third-party notices
 ```
+
+### An example dashboard
+
+[`examples/ridgeline-cycles.json`](examples/ridgeline-cycles.json) builds the dashboard of the
+screenshots above from nothing: a model of made-up sales for a fictional bike shop (a date table,
+a sales table, measures with `TOTALYTD`, `SAMEPERIODLASTYEAR` and `DIVIDE`), BIcraft's own theme,
+and one report page with built-in visuals and three of BIcraft's own (Gauge / KPI+ as KPI cards
+and a bullet gauge, Bullet, Dumbbell as a slope chart). Every step is an engine command, so an agent can do the same over MCP.
+
+```sh
+bicraft run --file examples/ridgeline-cycles.json                    # writes ridgeline-cycles.pbip
+bicraft render ridgeline-cycles.pbip --page 0 --scale 1.25 --out dashboard.png
+bicraft-desktop ridgeline-cycles.pbip --render app.png --size 1920x1080 --set '{"ribbonTab": "home", "theme": "dark"}'
+```
+
+<p align="center">
+  <img src="docs/images/dashboard-ridgeline.png" alt="The example dashboard drawn by bicraft render without the app: KPI cards for year-to-date revenue, gross margin and units with their change against last year and sparklines, a margin-rate bullet gauge, a monthly revenue line chart against last year, a bullet chart of revenue against target by category, a gross margin column chart, a slope chart of revenue by region, and a category matrix" width="100%">
+  <br><sub>The page alone, drawn by <code>bicraft render</code> (no window, no Power BI Desktop).</sub>
+</p>
+
+<p align="center">
+  <img src="docs/images/bicraft-app-dark.png" alt="The BIcraft desktop app in its dark theme with the same example dashboard on the canvas, the Home ribbon with the Dark theme button selected, and the Filters, Visualizations and Data panes" width="100%">
+  <br><sub>The same app in its dark theme (<code>"theme": "dark"</code> in <code>--set</code>).</sub>
+</p>
 
 ## Agents, CLI and MCP
 
@@ -309,6 +333,12 @@ Embedded third-party material keeps its own licence: each component is described
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md), every asset is listed with its author, source
 and licence in [ATTRIBUTION.md](ATTRIBUTION.md), and the licence texts are under
 [`licenses/`](licenses/). `bicraft licenses` prints them.
+
+BIcraft's icons, themes, custom visuals, screenshots, sample reports and test files are its own
+work, drawn or generated in code on synthetic data. Apart from the open-licensed Microsoft
+releases listed in THIRD_PARTY_NOTICES.md (the XPress9 source, JSON schemas, best-practice rules
+and the Selawik font), no Microsoft icons, logos, themes, templates, sample reports or files saved
+from someone else's content are included.
 
 Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in
 the work by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without

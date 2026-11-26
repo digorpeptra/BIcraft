@@ -8,7 +8,9 @@
 //! under every preset), listed in [`ROUTED`]; and the cases that ask for BIcraft's colours, which
 //! draw its new palette ([`BICRAFT_COLORS`]); and the slope chart whose labels moved apart, which
 //! draws leader lines to them (G110, [`LEADERS`]); and the Spec cases over two measures whose
-//! marks read only the first, which now draw the second as its own series (G119, [`SERIES`]).
+//! marks read only the first, which now draw the second as its own series (G119, [`SERIES`]); and
+//! the dumbbell whose margins now hold its widest value labels and the Sankey cases whose labels
+//! now sit beside their nodes off the ribbons ([`LABELS`]).
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -44,6 +46,16 @@ const SERIES: &[&str] = &[
     "spec/look_bar_bold",
     "spec/no_axes_tiny",
     "spec/x_text_rule",
+];
+
+/// Cases whose labels are placed anew under every preset (2026-11-26): the dumbbell's margins hold
+/// its widest value labels (1.3.5.0), the Sankey's labels sit beside their nodes on the outer side,
+/// off the ribbons (1.3.7.0). The Sankey cases of [`ROUTED`] changed again too.
+const LABELS: &[&str] = &[
+    "bvis/dumbbell",
+    "chart_pack/sankey_crossing",
+    "chart_pack/sankey_cycle_fr",
+    "chart_pack/sankey_dates_fr",
 ];
 
 /// FNV-1a, 64 bits, of the layout's JSON text.
@@ -125,7 +137,8 @@ fn minimal_draws_what_it_drew_before() {
                 if ROUTED.contains(&name.as_str())
                     || BICRAFT_COLORS.contains(&name.as_str())
                     || LEADERS.contains(&name.as_str())
-                    || SERIES.contains(&name.as_str()) =>
+                    || SERIES.contains(&name.as_str())
+                    || LABELS.contains(&name.as_str()) =>
             {
                 assert_ne!(
                     w, hash,

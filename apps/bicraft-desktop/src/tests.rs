@@ -573,6 +573,7 @@ mod filterpane_shots;
 mod get_data_shots;
 #[cfg(feature = "gpu-tests")]
 mod groups_shots;
+mod headless_tests;
 #[cfg(feature = "gpu-tests")]
 mod keyboard_shots;
 #[cfg(feature = "gpu-tests")]

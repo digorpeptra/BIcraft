@@ -15,7 +15,7 @@ BIcraft's (no visual's code, text or image was read or copied).
 | display name | BIcraft Waterfall+ | BIcraft Gauge / KPI+ |
 | guid (visual type) | `bicraftWaterfallPlus3C5E7A9B1D2F4A6C8E0B` | `bicraftGaugeKpi9E1A3C5B7D2F4E6A8C0B1D3F` |
 | name (`visual.add`, `bicraft visual export`) | `bicraftWaterfallPlus` | `bicraftGaugeKpi` |
-| version | 1.0.3.0 (1.0.2.0, 1.0.1.0 and 1.0.0.0 until 2026-11-25; 1.0.3.0 only the runtime it bundles, G119) | 1.0.2.0 (1.0.1.0 and 1.0.0.0 until 2026-11-25; 1.0.2.0 only the runtime it bundles, G119) |
+| version | 1.0.3.0 (1.0.2.0, 1.0.1.0 and 1.0.0.0 until 2026-11-25; 1.0.3.0 only the runtime it bundles, G119) | 1.0.3.0 (1.0.2.0 until 2026-11-26, 1.0.1.0 and 1.0.0.0 until 2026-11-25; 1.0.2.0 only the runtime it bundles, G119; 1.0.3.0 the whole format string, the arc's variance and the KPI card's sparkline, "Gauge / KPI+") |
 | data roles | `category`, `group`, `subtotal` (Grouping), `target` (Measure), `values` (Measure, required, up to 8 fields) | `trend` (Grouping), `value` (Measure, required), `target`, `min`, `max`, `threshold1`–`threshold3`, `previous` (Measure) |
 | data view | categorical: categories `category`, `group`, `subtotal` (top 1,000), values `values`, `target` | categorical: category `trend` (top 1,000), values the eight measures |
 | format objects | `waterfall`: `orientation` (`vertical`, `horizontal`), `showTotal`, `subtotalEvery`, `connectors`; `colors`: `colorBy` (`sign`, `category`, `rule`), `increase`, `decrease`, `total`, `ruleValue`, `ruleAbove`, `ruleBelow`; `labels`: `mode` (`value`, `percent`, `both`, `none`), `fontSize`; `target`: `fill`; `style` | `gauge`: `style` (`arc`, `bullet`, `kpi`), `compareTo` (`target`, `previous`), `lowerIsBetter`, `showTrend`; `range`: `min`, `max`, `target`, `threshold1`–`threshold3`; `colors`: `value`, `valueByBand`, `band1`–`band4`, `target`; `style` |
@@ -46,7 +46,15 @@ BI and by the renderer's `fmt_val` in BIcraft, held equal on the golden cases' f
 `fmtAuto` (no decimals for a whole number, else two). A negative value under a format with one
 section is written with the sign first (`-$40.00`); BIcraft's renderer elsewhere writes
 `$-40.00` there, so both layouts put the sign themselves. Percentages have one decimal,
-`-37.5%` in English and `-37,5 %` in French. Arcs use a sine and cosine series written
+`-37.5%` in English and `-37,5 %` in French. The Gauge / KPI+ (since 1.0.3.0) writes its values
+with the whole format string instead: by `formatNumber` in Power BI and by BIcraft's `FORMAT`
+rules (`bicraft_locale::vb`, grouped with the culture's display separator) in BIcraft, so
+scaling commas and quoted text apply (`$#,0.00,,"M"` of 7,433,915 is `$7.43M`, `#,0.0,," M€"` is
+`7,4 M€` in French); before, `fmt_val` kept only the digits and the currency (`$7,433,915.00`).
+Commas right after the last decimal placeholder are read as scaling commas, moved before the
+decimal point by both drawers (`scaleCommas`, `scale_commas`), as the dashboard that found the
+bug expected; DAX `FORMAT` itself leaves them out ([dax-functions.md](dax-functions.md)), and
+Desktop's own reading of them is not checked yet. The tooltips use the same formatting. Arcs use a sine and cosine series written
 alike in both languages, so both drawers agree to the hundredth.
 
 ## Waterfall+
@@ -116,11 +124,20 @@ alike in both languages, so both drawers agree to the hundredth.
   allows, the bands along its outer 26 %, the value as an inner ring from the minimum, the target
   a radial tick across the ring, the minimum and maximum under the ring's ends, the value (bold,
   30 % of the radius, 12–40 px) and the variance inside. Below 16 px of radius only the value.
+  Since 1.0.3.0 the variance is never cut: the first of the whole line, the line without its
+  words (`-0.5% (-1.3%)`) and the difference alone that fits the ring's inner width (and the
+  room between the minimum and maximum when it reaches their line), at the name size, else the
+  tick size; none fitting, none is drawn. 1.0.2.0 cut it with an ellipsis (`-0.5% (-1.3%) vs ta…`
+  in a 300×136 arc).
 - **Bullet** (`bullet`): the value top left (bold) and the variance top right; the bands as one
   rounded bar (at most 40 px tall), the value a bar 42 % as tall from the minimum, the target a
   vertical tick, the minimum and maximum under the ends.
 - **KPI card** (`kpi`): the value centred (bold, up to 48 px), the variance, then the reference
-  (`Target: 80`, `Cible : 80`, `Previous: 66`, `Précédent : 66`).
+  (`Target: 80`, `Cible : 80`, `Previous: 66`, `Précédent : 66`). Since 1.0.3.0 the text comes
+  first: the sparkline takes the height the value, variance and reference leave (left out under
+  16 px), then the reference and the variance lines give way when even the text does not fit;
+  the variance drops its words before it is cut. 1.0.2.0 drew the sparkline over the reference
+  line in a card about 100 px tall.
 - **Trend.** With two points or more and `showTrend` (default on), a sparkline along the foot
   (its own vertical scale): a line in the value's colour through every point and a dot on each
   (the latest larger), only the latest past 60 points. The arc and the bullet keep it for a
@@ -137,9 +154,13 @@ alike in both languages, so both drawers agree to the hundredth.
 - `crates/render/src/chart_pack/waterfall.rs` and `gauge.rs` tests: subtotals after flags and
   every N, never doubled, the total replacing a final subtotal; the caps (200 bars, 8 measures);
   formatted and signed numbers; the series against the platform's sine and cosine (to 10⁻⁹); the
-  range, thresholds and auto maximum. `crates/render/src/chart_pack_tests.rs`'s hostile test
+  range, thresholds and auto maximum; the gauge's whole format string (scaling commas after the
+  decimals, quoted text, French), the arc's variance whole and clear of the other texts at five
+  sizes down to 240×110, the KPI card's texts clear of each other and of the sparkline from 80 to
+  240 px tall (`the_value_takes_its_whole_format_string`, `the_arc_variance_fits_a_short_arc`,
+  `the_kpi_sparkline_stays_clear_of_the_text`, all three seen failing on 1.0.2.0). `crates/render/src/chart_pack_tests.rs`'s hostile test
   covers both kinds (odd JSON, extreme numbers and sizes, 20,000 rows).
-- `crates/engine/tests/report/waterfall_gauge_tests.rs`: 38 golden layouts
+- `crates/engine/tests/report/waterfall_gauge_tests.rs`: 41 golden layouts
   (`waterfall_gauge_golden.json`, every option, both orientations, French, Bold, Minimal, a dark
   theme, highlights, hostile and empty inputs), the TypeScript layouts equal to the Rust under
   Node, every text inside the visual, the running totals, the French axis grouped as the labels

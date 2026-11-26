@@ -116,20 +116,48 @@ fn dumbbell(
     } else {
         0.0
     };
-    let margin = if labels {
-        28.0 + (k.value - 10.0) * 3.0 + if k.pills { 10.0 } else { 0.0 }
-    } else {
-        0.0
-    };
-    let left = PAD + lw + margin;
-    let right = w - PAD - margin;
     let top = PAD + 18.0;
     let bottom = h - PAD - 18.0;
-    if right - left < 8.0 || bottom - top < 8.0 {
+    if bottom - top < 8.0 {
         return;
     }
     let rh = (bottom - top) / r.n as f64;
     if rh < 3.0 {
+        return;
+    }
+    let rad = (rh * 0.3).clamp(2.0, if k.minimal() { 6.0 } else { 7.0 });
+    let stem = k.stem_width().min(rad * 1.2);
+    let gap = rad + 4.0;
+    let pad_x = if k.pills { 5.0 } else { 0.0 };
+    // each row's smaller and larger value (one alone counts as the larger)
+    let ends = |i: usize| match (r.start(i), r.end(i)) {
+        (Some(a), Some(b)) if a > b => (Some(b), Some(a)),
+        (Some(a), Some(b)) => (Some(a), Some(b)),
+        (x, None) | (None, x) => (None, x),
+    };
+    let width = |v: f64| est(&fmt_auto(v), k.value) + 2.0 * pad_x;
+    // the margins beside the scale: room for the widest smaller value's label on the left and
+    // the widest larger one's on the right (at least the look's margin, at most 30% of the plot)
+    let (mut w_lo, mut w_hi) = (0.0f64, 0.0f64);
+    if labels {
+        for i in 0..r.n {
+            let (lo, hi) = ends(i);
+            w_lo = lo.map_or(w_lo, |v| w_lo.max(width(v)));
+            w_hi = hi.map_or(w_hi, |v| w_hi.max(width(v)));
+        }
+    }
+    let base = 28.0 + (k.value - 10.0) * 3.0 + if k.pills { 10.0 } else { 0.0 };
+    let room = (w - 2.0 * PAD - lw) * 0.3;
+    let margin = |wd: f64| {
+        if labels {
+            base.max((gap + wd + 2.0).min(room))
+        } else {
+            0.0
+        }
+    };
+    let left = PAD + lw + margin(w_lo);
+    let right = w - PAD - margin(w_hi);
+    if right - left < 8.0 {
         return;
     }
     k.push_card(out, w, h);
@@ -138,35 +166,41 @@ fn dumbbell(
     for t in &dom.ticks {
         out.push(line(xs(*t), top, xs(*t), bottom, k.grid, 1.0));
     }
-    let rad = (rh * 0.3).clamp(2.0, if k.minimal() { 6.0 } else { 7.0 });
-    let stem = k.stem_width().min(rad * 1.2);
-    let gap = rad + 4.0;
-    // the value labels: the smaller value on the left of its dot, the larger on the right,
-    // moved apart where they would overlap (`spread_boxes`, kept above the axis), those that
-    // cannot fit in the plot left out (`fit_inside`)
+    // the value labels: the smaller value on the left of its dot, the larger on the right (on
+    // the other side where a margin capped at 30% leaves it no room, left out where neither side
+    // has room), moved apart where they would overlap (`spread_boxes`, kept above the axis),
+    // those that cannot fit in the plot left out (`fit_inside`)
+    let (lo_x, hi_x) = (PAD + lw, w - 2.0);
     let mut tags: Vec<Tag> = Vec::new();
     if labels {
         for i in 0..r.n {
             let y = top + rh * (i as f64 + 0.5);
-            let (lo, hi) = match (r.start(i), r.end(i)) {
-                (Some(a), Some(b)) if a > b => (Some(b), Some(a)),
-                (Some(a), Some(b)) => (Some(a), Some(b)),
-                (x, None) | (None, x) => (None, x),
-            };
+            let (lo, hi) = ends(i);
             for (v, side) in [(lo, 'w'), (hi, 'e')] {
-                if let Some(v) = v {
-                    tags.push(Tag {
-                        row: i,
-                        x: xs(v),
-                        y,
-                        s: fmt_auto(v),
-                        side,
-                    });
+                let Some(v) = v else {
+                    continue;
+                };
+                let (x, wd) = (xs(v), width(v));
+                let fits_w = x - gap - wd >= lo_x;
+                let fits_e = x + gap + wd <= hi_x;
+                let side = match side {
+                    'w' if !fits_w && fits_e => 'e',
+                    'e' if !fits_e && fits_w => 'w',
+                    s => s,
+                };
+                if (side == 'w' && !fits_w) || (side == 'e' && !fits_e) {
+                    continue;
                 }
+                tags.push(Tag {
+                    row: i,
+                    x,
+                    y,
+                    s: fmt_auto(v),
+                    side,
+                });
             }
         }
     }
-    let pad_x = if k.pills { 5.0 } else { 0.0 };
     let spans: Vec<(f64, f64)> = tags
         .iter()
         .map(|t| {

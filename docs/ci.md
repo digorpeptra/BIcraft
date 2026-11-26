@@ -162,11 +162,13 @@ demand (Actions > Nightly > Run workflow).
 
 ## Assets and dependencies
 
-- **`cargo xtask assets`** (in `lint`): every file under `assets/`, every font under
-  `crates/ui/fonts/` and `crates/render/fonts/`, and the UI's icons (`crates/ui/src/icons.rs`,
-  drawn in code) have a table row in `ATTRIBUTION.md` naming them in backticks: the path, a
-  folder (`crates/render/fonts/`), a glob (`dir/*.png`, `dir/**`), or a bare file name in a
-  row that names its folder. It fails listing the files without a row, and the rows naming a
+- **`cargo xtask assets`** (in `lint`): every file under `assets/`, `docs/images/` (the README's
+  images) and `crates/render/geo/`, every font under `crates/ui/fonts/` and
+  `crates/render/fonts/`, and the UI's icons (`crates/ui/src/icons.rs`, drawn in code) have a
+  table row in `ATTRIBUTION.md` naming them in backticks: the path, a folder
+  (`crates/render/fonts/`), a glob (`dir/*.png`, `dir/**`), or a bare file name in a row that
+  names its folder. A folder or glob wider than the checked folder (`docs/` cited as a source)
+  covers nothing in it. It fails listing the files without a row, and the rows naming a
   checked file that is gone.
 - **`cargo xtask deny`** runs `cargo deny --all-features check` when cargo-deny is installed
   (`cargo install cargo-deny --version 0.20.2 --locked`), else prints a note and succeeds; the

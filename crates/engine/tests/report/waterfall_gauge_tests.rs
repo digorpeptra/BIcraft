@@ -341,6 +341,31 @@ pub(crate) fn cases() -> Vec<(&'static str, &'static str, Value, f64, f64)> {
             360.0,
             300.0,
         ),
+        // scaling commas after the decimals and quoted text (1.0.3.0)
+        (
+            "gauge_kpi_scaled",
+            "gauge",
+            json!({"rows": [[null, 7_433_915.0, null, null, null, null, null, null, 6_900_000.0]],
+                   "formats": ["", "$#,0.00,,\"M\""], "options": {"gaugeStyle": "kpi"}}),
+            300.0,
+            168.0,
+        ),
+        // a short arc writes the variance without its words, whole (1.0.3.0)
+        (
+            "gauge_arc_short",
+            "gauge",
+            json!({"rows": [[null, 0.375, 0.38]], "formats": ["", "0.0%"]}),
+            300.0,
+            136.0,
+        ),
+        // a short KPI card keeps its sparkline under the reference line (1.0.3.0)
+        (
+            "gauge_kpi_short",
+            "gauge",
+            json!({"rows": trend(), "formats": ["", "#,0"], "options": {"gaugeStyle": "kpi", "compareTo": "previous"}}),
+            300.0,
+            100.0,
+        ),
         (
             "gauge_small",
             "gauge",
@@ -949,7 +974,7 @@ fn both_visuals_are_added_by_name_drawn_formatted_and_kept() {
         drawn(&mut t, &[&wf, &bridge, &gauge]);
     }
     // both are in the pack and registered with their versions
-    for (kind, version) in [("waterfall", "1.0.3.0"), ("gauge", "1.0.2.0")] {
+    for (kind, version) in [("waterfall", "1.0.3.0"), ("gauge", "1.0.3.0")] {
         let d = find(kind).unwrap();
         assert_eq!(d.version, version);
         assert!(VISUALS.iter().any(|x| x.guid == d.guid));

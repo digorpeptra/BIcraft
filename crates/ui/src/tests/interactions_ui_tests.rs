@@ -456,3 +456,125 @@ fn the_mode_draws_the_same_frames_in_both_shells() {
     assert!(a.1 == b.1, "the font atlases differ");
     assert!(a.2 == b.2, "the pages differ");
 }
+
+/// Runs command `id` through the app (as a button would) and lets the snapshot follow.
+fn run(h: &mut Harness<'_, App>, id: &'static str, params: Value) {
+    h.state_mut()
+        .run(crate::actions::Call { id, params }, crate::app::Then::Nothing);
+    steps(h, 4);
+}
+
+#[test]
+fn the_icons_are_reached_and_run_by_keyboard() {
+    let mut h = open();
+    let col = visual_named(&h, "clusteredColumnChart");
+    let pie = visual_named(&h, "pieChart").visual;
+    select(&mut h, &col);
+    toggle_button(&mut h);
+    h.get_by_label(&label(&h, Mode::Filter, &pie)).focus();
+    steps(&mut h, 2);
+    assert!(h.get_by_label(&label(&h, Mode::Filter, &pie)).is_focused());
+    // Tab walks the strip: Highlight, then None
+    h.key_press(Key::Tab);
+    steps(&mut h, 2);
+    assert!(h.get_by_label(&label(&h, Mode::Highlight, &pie)).is_focused());
+    h.key_press(Key::Tab);
+    steps(&mut h, 2);
+    assert!(h.get_by_label(&label(&h, Mode::None, &pie)).is_focused());
+    // Enter runs the focused icon: one rule
+    h.key_press(Key::Enter);
+    steps(&mut h, 4);
+    assert_eq!(
+        page(&h)["interactions"],
+        json!([{"source": col.visual, "target": pie, "type": "none"}])
+    );
+    assert!(h.state().cmd.edit_interactions, "the mode stays on");
+}
+
+#[test]
+fn a_group_is_a_source_for_each_of_its_visuals() {
+    let mut h = open();
+    let col = visual_named(&h, "clusteredColumnChart");
+    let pie = visual_named(&h, "pieChart").visual;
+    let (card, table) = (
+        visual_named(&h, "card").visual,
+        visual_named(&h, "tableEx").visual,
+    );
+    let pg = col.page.clone();
+    run(
+        &mut h,
+        "visual.group",
+        json!({"page": pg, "visuals": [col.visual, pie]}),
+    );
+    let group = page(&h)["visuals"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|v| interactions::is_group(v))
+        .map(|v| v["name"].as_str().unwrap().to_string())
+        .expect("the group");
+    select(
+        &mut h,
+        &crate::ribbon::VisualSel {
+            page: pg.clone(),
+            visual: group.clone(),
+        },
+    );
+    toggle_button(&mut h);
+    // the group's own visuals take no icons; the card, the table and the slicer do
+    let got = icon_labels(&h);
+    assert_eq!(got.len(), 2 + 2 + 2, "{got:?}");
+    assert!(h.query_by_label(&label(&h, Mode::Filter, &pie)).is_none());
+    // a click writes the rule for every visual of the group
+    h.get_by_label(&label(&h, Mode::None, &card)).click();
+    steps(&mut h, 4);
+    let mut rules: Vec<Value> = page(&h)["interactions"].as_array().unwrap().clone();
+    rules.sort_by_key(|r| r["source"].as_str().unwrap().to_string());
+    let mut want = vec![
+        json!({"source": col.visual, "target": card, "type": "none"}),
+        json!({"source": pie, "target": card, "type": "none"}),
+    ];
+    want.sort_by_key(|r| r["source"].as_str().unwrap().to_string());
+    assert_eq!(rules, want);
+    assert!(pressed(&h, &label(&h, Mode::None, &card)));
+    // one visual of the group set apart: the table's icons mark nothing, a click unifies
+    run(
+        &mut h,
+        "page.interactions",
+        json!({"page": pg, "rules": [{"source": col.visual, "target": table, "type": "none"}]}),
+    );
+    assert!(!pressed(&h, &label(&h, Mode::Filter, &table)));
+    assert!(!pressed(&h, &label(&h, Mode::None, &table)));
+    h.get_by_label(&label(&h, Mode::Filter, &table)).click();
+    steps(&mut h, 4);
+    assert_eq!(
+        h.state().sent.last().unwrap().params["rules"][0]["type"],
+        "default"
+    );
+    assert!(pressed(&h, &label(&h, Mode::Filter, &table)));
+    assert_eq!(page(&h)["interactions"].as_array().unwrap().len(), 2);
+}
+
+#[test]
+fn targets_with_the_same_title_get_distinct_names() {
+    let mut h = open();
+    let col = visual_named(&h, "clusteredColumnChart");
+    let (card, table) = (
+        visual_named(&h, "card").visual,
+        visual_named(&h, "tableEx").visual,
+    );
+    for v in [&card, &table] {
+        run(
+            &mut h,
+            "visual.set_title",
+            json!({"page": col.page, "visual": v, "title": "Same"}),
+        );
+    }
+    select(&mut h, &col);
+    toggle_button(&mut h);
+    let got = icon_labels(&h);
+    let filters: Vec<&String> = got.iter().filter(|l| l.starts_with("Filter: Same")).collect();
+    assert_eq!(filters.len(), 2, "{got:?}");
+    assert_ne!(filters[0], filters[1]);
+    assert!(filters.iter().all(|l| l.starts_with("Filter: Same")));
+}
