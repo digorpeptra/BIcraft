@@ -1,0 +1,397 @@
+[
+ {
+  "id": "base-sales",
+  "query": "EVALUATE Sales",
+  "ordered": false
+ },
+ {
+  "id": "base-date-count",
+  "query": "EVALUATE ROW(\"Days\", COUNTROWS('Date'), \"First\", MIN('Date'[Date]), \"Last\", MAX('Date'[Date]))",
+  "ordered": false
+ },
+ {
+  "id": "total-control",
+  "query": "EVALUATE ROW(\"Total\", [Total Sales], \"Units\", [Units], \"Lines\", [Lines], \"Customers\", [Customers])",
+  "ordered": false
+ },
+ {
+  "id": "total-by-year",
+  "query": "EVALUATE SUMMARIZECOLUMNS('Date'[Year], \"Total\", [Total Sales], \"Units\", [Units]) ORDER BY 'Date'[Year]",
+  "ordered": true
+ },
+ {
+  "id": "total-by-channel-sum-check",
+  "query": "EVALUATE ROW(\"Diff\", SUMX(VALUES(Sales[Channel]), [Total Sales]) - [Total Sales])",
+  "ordered": false
+ },
+ {
+  "id": "total-by-category",
+  "query": "EVALUATE SUMMARIZECOLUMNS(Product[Category], \"Total\", [Total Sales], \"Lines\", [Lines])",
+  "ordered": false
+ },
+ {
+  "id": "total-by-cat-year",
+  "query": "EVALUATE SUMMARIZECOLUMNS(Product[Category], 'Date'[Year], \"Total\", [Total Sales]) ORDER BY Product[Category], 'Date'[Year] DESC",
+  "ordered": true
+ },
+ {
+  "id": "control-groupby-vs-total",
+  "query": "EVALUATE ROW(\"ByProduct\", SUMX(ADDCOLUMNS(VALUES(Product[ProductKey]), \"T\", [Total Sales]), [T]), \"Total\", [Total Sales])",
+  "ordered": false
+ },
+ {
+  "id": "revenue-related",
+  "query": "EVALUATE ROW(\"Revenue\", [Revenue])",
+  "ordered": false
+ },
+ {
+  "id": "avg-min-max",
+  "query": "EVALUATE ROW(\"Avg\", AVERAGE(Sales[Amount]), \"Min\", MIN(Sales[Amount]), \"Max\", MAX(Sales[Amount]), \"AvgX\", AVERAGEX(Sales, Sales[Qty] * Sales[Amount]))",
+  "ordered": false
+ },
+ {
+  "id": "count-distinct",
+  "query": "EVALUATE ROW(\"Dist\", DISTINCTCOUNT(Sales[ProductKey]), \"Count\", COUNT(Sales[Qty]), \"Blank\", COUNTBLANK(Sales[Channel]))",
+  "ordered": false
+ },
+ {
+  "id": "filter-channel",
+  "query": "EVALUATE SUMMARIZECOLUMNS(Customer[City], FILTER(ALL(Sales[Channel]), Sales[Channel] = \"Web\"), \"Total\", [Total Sales])",
+  "ordered": false
+ },
+ {
+  "id": "treatas-channel",
+  "query": "EVALUATE SUMMARIZECOLUMNS(Customer[Segment], TREATAS({\"Store\", \"App\"}, Sales[Channel]), \"Total\", [Total Sales], \"Lines\", [Lines])",
+  "ordered": false
+ },
+ {
+  "id": "web-sales",
+  "query": "EVALUATE SUMMARIZECOLUMNS('Date'[Year], \"Web\", [Web Sales], \"Share\", [Share of All])",
+  "ordered": false
+ },
+ {
+  "id": "calculatetable",
+  "query": "EVALUATE CALCULATETABLE(SUMMARIZECOLUMNS(Product[Product], \"Units\", [Units]), 'Date'[Year] = 2024, Customer[City] = \"Paris\")",
+  "ordered": false
+ },
+ {
+  "id": "keepfilters",
+  "query": "EVALUATE SUMMARIZECOLUMNS(Sales[Channel], \"Paris\", CALCULATE([Total Sales], KEEPFILTERS(Customer[City] = \"Paris\")), \"All Cities\", CALCULATE([Total Sales], ALL(Customer)))",
+  "ordered": false
+ },
+ {
+  "id": "removefilters",
+  "query": "EVALUATE SUMMARIZECOLUMNS(Product[Category], \"Pct\", DIVIDE([Total Sales], CALCULATE([Total Sales], REMOVEFILTERS(Product))))",
+  "ordered": false
+ },
+ {
+  "id": "allexcept",
+  "query": "EVALUATE SUMMARIZECOLUMNS(Product[Category], Product[Product], \"CatTotal\", CALCULATE([Total Sales], ALLEXCEPT(Product, Product[Category])))",
+  "ordered": false
+ },
+ {
+  "id": "allselected-filter",
+  "query": "EVALUATE SUMMARIZECOLUMNS(Product[Product], TREATAS({\"Toys\", \"Gear\"}, Product[Category]), \"Share\", DIVIDE([Total Sales], CALCULATE([Total Sales], ALLSELECTED(Product))))",
+  "ordered": false
+ },
+ {
+  "id": "allselected-calculatetable",
+  "query": "EVALUATE CALCULATETABLE(ADDCOLUMNS(VALUES(Product[Product]), \"Share\", DIVIDE([Total Sales], CALCULATE([Total Sales], ALLSELECTED(Product)))), Product[Category] = \"Toys\")",
+  "ordered": false
+ },
+ {
+  "id": "allselected-top",
+  "query": "EVALUATE ADDCOLUMNS(VALUES(Product[Category]), \"Share\", DIVIDE([Total Sales], CALCULATE([Total Sales], ALLSELECTED(Product[Category]))))",
+  "ordered": false
+ },
+ {
+  "id": "allselected-summarize-calc",
+  "query": "EVALUATE CALCULATETABLE(SUMMARIZECOLUMNS(Product[Product], \"Share\", DIVIDE([Total Sales], CALCULATE([Total Sales], ALLSELECTED(Product)))), Product[Category] = \"Gear\")",
+  "ordered": false
+ },
+ {
+  "id": "orphan-product-keys",
+  "query": "EVALUATE EXCEPT(VALUES(Sales[ProductKey]), VALUES(Product[ProductKey]))",
+  "ordered": false
+ },
+ {
+  "id": "orphan-customer-keys",
+  "query": "EVALUATE EXCEPT(DISTINCT(Sales[CustKey]), DISTINCT(Customer[CustKey]))",
+  "ordered": false
+ },
+ {
+  "id": "orphan-rows-related",
+  "query": "EVALUATE FILTER(Sales, ISBLANK(RELATED(Product[Product]))) ORDER BY Sales[SalesKey]",
+  "ordered": true
+ },
+ {
+  "id": "orphan-count",
+  "query": "EVALUATE ROW(\"Orphans\", COUNTROWS(FILTER(Sales, ISBLANK(RELATED(Customer[Name])))), \"Amount\", CALCULATE([Total Sales], ISBLANK(Customer[CustKey])))",
+  "ordered": false
+ },
+ {
+  "id": "blank-row-group",
+  "query": "EVALUATE SUMMARIZECOLUMNS(Customer[Name], \"Total\", [Total Sales])",
+  "ordered": false
+ },
+ {
+  "id": "unused-products",
+  "query": "EVALUATE FILTER(VALUES(Product[Product]), ISBLANK([Lines]))",
+  "ordered": false
+ },
+ {
+  "id": "kpi-targets",
+  "query": "EVALUATE SUMMARIZECOLUMNS('Date'[Year], Product[Category], \"Sales\", [Total Sales], \"Target\", [Target In Context], \"Gap\", [Total Sales] - [Target In Context]) ORDER BY 'Date'[Year], Product[Category]",
+  "ordered": true
+ },
+ {
+  "id": "kpi-total-target",
+  "query": "EVALUATE ROW(\"Target\", [Total Target], \"In context\", [Target In Context])",
+  "ordered": false
+ },
+ {
+  "id": "kpi-treatas-inline",
+  "query": "EVALUATE SUMMARIZECOLUMNS(Targets[Year], \"Target\", [Total Target], \"Sales\", CALCULATE([Total Sales], TREATAS(VALUES(Targets[Year]), 'Date'[Year])))",
+  "ordered": false
+ },
+ {
+  "id": "ti-ly-ytd",
+  "query": "EVALUATE SUMMARIZECOLUMNS('Date'[Year], 'Date'[Month], \"Sales\", [Total Sales], \"LY\", [Sales LY], \"YTD\", [Sales YTD]) ORDER BY 'Date'[Year], 'Date'[Month]",
+  "ordered": true
+ },
+ {
+  "id": "ti-yoy",
+  "query": "EVALUATE SUMMARIZECOLUMNS('Date'[Year], 'Date'[Quarter], \"YoY\", [Sales YoY %])",
+  "ordered": false
+ },
+ {
+  "id": "ti-dateadd",
+  "query": "EVALUATE SUMMARIZECOLUMNS('Date'[Year], 'Date'[Quarter], \"PrevQ\", CALCULATE([Total Sales], DATEADD('Date'[Date], -1, QUARTER)))",
+  "ordered": false
+ },
+ {
+  "id": "ti-datesytd-mtd",
+  "query": "EVALUATE SUMMARIZECOLUMNS('Date'[Year], 'Date'[Month], \"QTD\", TOTALQTD([Total Sales], 'Date'[Date]), \"MTD\", CALCULATE([Total Sales], DATESMTD('Date'[Date])))",
+  "ordered": false
+ },
+ {
+  "id": "ti-inperiod",
+  "query": "EVALUATE ROW(\"Last90\", CALCULATE([Total Sales], DATESINPERIOD('Date'[Date], DATE(2024, 12, 31), -90, DAY)), \"Between\", CALCULATE([Total Sales], DATESBETWEEN('Date'[Date], DATE(2023, 3, 1), DATE(2023, 5, 31))))",
+  "ordered": false
+ },
+ {
+  "id": "ti-previousmonth",
+  "query": "EVALUATE SUMMARIZECOLUMNS('Date'[Year], 'Date'[Month], \"PM\", CALCULATE([Total Sales], PREVIOUSMONTH('Date'[Date])), \"PY\", CALCULATE([Total Sales], PREVIOUSYEAR('Date'[Date])))",
+  "ordered": false
+ },
+ {
+  "id": "ti-parallelperiod",
+  "query": "EVALUATE SUMMARIZECOLUMNS('Date'[Year], \"PP\", CALCULATE([Total Sales], PARALLELPERIOD('Date'[Date], -12, MONTH)))",
+  "ordered": false
+ },
+ {
+  "id": "define-measure",
+  "query": "DEFINE MEASURE Sales[Avg Line] = DIVIDE([Total Sales], [Lines]) EVALUATE SUMMARIZECOLUMNS(Sales[Channel], \"Avg\", [Avg Line]) ORDER BY Sales[Channel]",
+  "ordered": true
+ },
+ {
+  "id": "define-measure-override",
+  "query": "DEFINE MEASURE Sales[Total Sales] = SUM(Sales[Qty]) EVALUATE ROW(\"T\", [Total Sales], \"Web\", [Web Sales])",
+  "ordered": false
+ },
+ {
+  "id": "define-var-table",
+  "query": "DEFINE VAR Big = 100 TABLE BigSales = FILTER(Sales, Sales[Amount] > Big) EVALUATE ROW(\"N\", COUNTROWS(BigSales), \"S\", SUMX(BigSales, Sales[Amount]))",
+  "ordered": false
+ },
+ {
+  "id": "define-measure-override-free",
+  "query": "DEFINE MEASURE Sales[Units] = SUM(Sales[Qty]) * 10 EVALUATE SUMMARIZECOLUMNS(Sales[Channel], \"U\", [Units])",
+  "ordered": false
+ },
+ {
+  "id": "define-table-only",
+  "query": "DEFINE TABLE BigSales = FILTER(Sales, Sales[Amount] > 100) EVALUATE ROW(\"N\", COUNTROWS(BigSales))",
+  "ordered": false
+ },
+ {
+  "id": "define-table-sumx",
+  "query": "DEFINE TABLE BigSales = FILTER(Sales, Sales[Amount] > 100) EVALUATE ROW(\"S\", SUMX(BigSales, Sales[Amount]))",
+  "ordered": false
+ },
+ {
+  "id": "define-var-only",
+  "query": "DEFINE VAR Big = 100 EVALUATE ROW(\"N\", COUNTROWS(FILTER(Sales, Sales[Amount] > Big)))",
+  "ordered": false
+ },
+ {
+  "id": "define-var-table-value",
+  "query": "DEFINE VAR T = FILTER(Sales, Sales[Amount] > 100) EVALUATE ROW(\"N\", COUNTROWS(T), \"S\", SUMX(T, Sales[Amount]))",
+  "ordered": false
+ },
+ {
+  "id": "define-column",
+  "query": "DEFINE COLUMN Sales[Line Value] = Sales[Qty] * Sales[Amount] EVALUATE SUMMARIZECOLUMNS(Sales[Channel], \"V\", SUM(Sales[Line Value]))",
+  "ordered": false
+ },
+ {
+  "id": "define-column-group",
+  "query": "DEFINE COLUMN Product[Price Band] = IF(Product[Price] >= 50, \"High\", \"Low\") EVALUATE SUMMARIZECOLUMNS(Product[Price Band], \"Sales\", [Total Sales]) ORDER BY Product[Price Band]",
+  "ordered": true
+ },
+ {
+  "id": "multi-evaluate",
+  "query": "EVALUATE ROW(\"A\", [Lines]) EVALUATE TOPN(3, VALUES(Customer[Name]), [Total Sales], DESC) EVALUATE {(1, \"x\"), (2, \"y\")}",
+  "ordered": false
+ },
+ {
+  "id": "topn",
+  "query": "EVALUATE TOPN(3, SUMMARIZECOLUMNS(Product[Product], \"S\", [Total Sales]), [S], DESC) ORDER BY [S] DESC",
+  "ordered": true
+ },
+ {
+  "id": "addcolumns-rank",
+  "query": "EVALUATE ADDCOLUMNS(VALUES(Product[Product]), \"S\", [Total Sales], \"Rank\", RANKX(ALL(Product[Product]), [Total Sales])) ORDER BY [Rank]",
+  "ordered": true
+ },
+ {
+  "id": "summarize",
+  "query": "EVALUATE SUMMARIZE(Sales, Sales[Channel], \"Qty\", SUM(Sales[Qty]))",
+  "ordered": false
+ },
+ {
+  "id": "selectcolumns-filter",
+  "query": "EVALUATE SELECTCOLUMNS(FILTER(Customer, Customer[City] = \"Lyon\"), \"Who\", Customer[Name], \"Seg\", Customer[Segment]) ORDER BY [Who]",
+  "ordered": true
+ },
+ {
+  "id": "order-start-at",
+  "query": "EVALUATE SUMMARIZECOLUMNS('Date'[Year], 'Date'[Month], \"S\", [Total Sales]) ORDER BY 'Date'[Year], 'Date'[Month] START AT 2024, 6",
+  "ordered": true
+ },
+ {
+  "id": "order-desc-start-at",
+  "query": "EVALUATE VALUES(Customer[Name]) ORDER BY Customer[Name] DESC START AT \"Cid\"",
+  "ordered": true
+ },
+ {
+  "id": "order-by-measure",
+  "query": "EVALUATE VALUES(Product[Product]) ORDER BY [Total Sales] DESC, Product[Product]",
+  "ordered": true
+ },
+ {
+  "id": "generate-topn",
+  "query": "EVALUATE GENERATE(VALUES(Customer[City]), TOPN(1, VALUES(Product[Category]), [Total Sales], DESC))",
+  "ordered": false
+ },
+ {
+  "id": "union-intersect",
+  "query": "EVALUATE UNION(ROW(\"K\", 1), ROW(\"K\", 7)) EVALUATE INTERSECT(VALUES(Sales[ProductKey]), {1, 7, 8})",
+  "ordered": false
+ },
+ {
+  "id": "iterators",
+  "query": "EVALUATE ROW(\"MaxX\", MAXX(VALUES(Customer[City]), [Total Sales]), \"MinX\", MINX(VALUES('Date'[Year]), [Units]), \"CountX\", COUNTX(FILTER(Sales, Sales[Qty] > 3), Sales[SalesKey]))",
+  "ordered": false
+ },
+ {
+  "id": "selectedvalue-hasone",
+  "query": "EVALUATE SUMMARIZECOLUMNS(Product[Category], \"One\", HASONEVALUE(Product[Product]), \"Sel\", SELECTEDVALUE(Product[Category], \"many\"))",
+  "ordered": false
+ },
+ {
+  "id": "switch-if",
+  "query": "EVALUATE ADDCOLUMNS(VALUES(Customer[Name]), \"Band\", SWITCH(TRUE(), [Total Sales] > 15000, \"A\", [Total Sales] > 10000, \"B\", \"C\"))",
+  "ordered": false
+ },
+ {
+  "id": "text-functions",
+  "query": "EVALUATE ADDCOLUMNS(VALUES(Product[Product]), \"Up\", UPPER(Product[Product]), \"Len\", LEN(Product[Product]), \"F\", FORMAT([Total Sales], \"0.00\"))",
+  "ordered": false
+ },
+ {
+  "id": "dates-columns",
+  "query": "EVALUATE TOPN(5, SUMMARIZECOLUMNS('Date'[Date], \"S\", [Total Sales]), 'Date'[Date], ASC) ORDER BY 'Date'[Date]",
+  "ordered": true
+ },
+ {
+  "id": "error-text-plus-number",
+  "query": "EVALUATE ROW(\"x\", 1 + \"abc\")",
+  "ordered": false
+ },
+ {
+  "id": "error-multiple-values",
+  "query": "EVALUATE ROW(\"x\", VALUES(Product[Product]))",
+  "ordered": false
+ },
+ {
+  "id": "clock-today-now",
+  "query": "EVALUATE ROW(\"SameDay\", DATEDIFF(TODAY(), TODAY(), DAY), \"NowIsToday\", INT(NOW()) = TODAY(), \"NowAfter\", NOW() >= TODAY(), \"UtcClose\", ABS(DATEDIFF(UTCTODAY(), TODAY(), DAY)) <= 1, \"UtcNowClose\", ABS(UTCNOW() - NOW()) < 1, \"Recent\", YEAR(TODAY()) >= 2026)",
+  "ordered": false
+ },
+ {
+  "id": "clock-age",
+  "query": "EVALUATE ROW(\"Old\", INT(TODAY() - MAX(Sales[Date])) > 600, \"Days\", DATEDIFF(MAX(Sales[Date]), TODAY(), DAY) > 600)",
+  "ordered": false
+ },
+ {
+  "id": "datediff-units",
+  "query": "EVALUATE ROW(\"d\", DATEDIFF(DATE(2024,1,31), DATE(2024,3,1), DAY), \"w\", DATEDIFF(DATE(2026,9,12), DATE(2026,9,13), WEEK), \"w0\", DATEDIFF(DATE(2026,9,13), DATE(2026,9,19), WEEK), \"m\", DATEDIFF(DATE(2024,1,31), DATE(2024,2,1), MONTH), \"q\", DATEDIFF(DATE(2024,3,31), DATE(2024,4,1), QUARTER), \"y\", DATEDIFF(DATE(2024,12,31), DATE(2023,1,1), YEAR), \"h\", DATEDIFF(DATE(2024,1,1), DATE(2024,1,2), HOUR), \"mi\", DATEDIFF(DATE(2024,1,1), DATE(2024,1,1) + 0.0625, MINUTE), \"b\", DATEDIFF(BLANK(), DATE(2024,1,1), DAY))",
+  "ordered": false
+ },
+ {
+  "id": "concatx-ordered",
+  "query": "EVALUATE ROW(\"c\", CONCATENATEX(VALUES(Product[Category]), Product[Category], \", \", Product[Category], ASC))",
+  "ordered": false
+ },
+ {
+  "id": "concatx-desc-measure",
+  "query": "EVALUATE ROW(\"c\", CONCATENATEX(VALUES(Product[Category]), Product[Category] & \"=\" & [Units], \"|\", [Units], DESC))",
+  "ordered": false
+ },
+ {
+  "id": "concatx-topn",
+  "query": "EVALUATE ROW(\"c\", CONCATENATEX(TOPN(3, VALUES(Product[Product]), [Units], DESC, Product[Product], ASC), Product[Product], \";\", [Units], DESC, Product[Product], ASC))",
+  "ordered": false
+ },
+ {
+  "id": "concatx-blank",
+  "query": "EVALUATE ROW(\"c\", CONCATENATEX({\"a\", BLANK(), \"b\"}, [Value], \",\", [Value], ASC))",
+  "ordered": false
+ },
+ {
+  "id": "concatx-empty",
+  "query": "EVALUATE ROW(\"c\", CONCATENATEX(FILTER(Product, FALSE()), Product[Product]), \"e\", ISBLANK(CONCATENATEX(FILTER(Product, FALSE()), Product[Product])))",
+  "ordered": false
+ },
+ {
+  "id": "concatx-two-keys",
+  "query": "EVALUATE ROW(\"c\", CONCATENATEX(SUMMARIZE(Product, Product[Category], Product[Product]), Product[Product], \",\", Product[Category], DESC, Product[Product]))",
+  "ordered": false
+ },
+ {
+  "id": "concatx-single-no-delimiter",
+  "query": "EVALUATE ROW(\"c\", CONCATENATEX(FILTER(VALUES(Sales[Channel]), Sales[Channel] = \"Web\"), Sales[Channel]))",
+  "ordered": false
+ },
+ {
+  "id": "concatx-by-group",
+  "query": "EVALUATE SUMMARIZECOLUMNS(Product[Category], \"Names\", CONCATENATEX(VALUES(Product[Product]), Product[Product], \", \", Product[Product], ASC)) ORDER BY Product[Category]",
+  "ordered": true
+ },
+ {
+  "id": "totals-grand-row",
+  "query": "DEFINE MEASURE Sales[Share] = DIVIDE([Total Sales], CALCULATE([Total Sales], REMOVEFILTERS(Product))) MEASURE Sales[Rank] = IF(NOT ISBLANK([Total Sales]), RANKX(ALLSELECTED(Product[Category]), [Total Sales], , DESC, DENSE)) MEASURE Sales[YoY] = VAR a = [Total Sales] VAR b = CALCULATE([Total Sales], SAMEPERIODLASTYEAR('Date'[Date])) RETURN DIVIDE(a - b, b) EVALUATE ROW(\"Total\", [Total Sales], \"Share\", [Share], \"Rank\", [Rank], \"YoY\", [YoY])",
+  "ordered": false
+ },
+ {
+  "id": "totals-rollup",
+  "query": "DEFINE MEASURE Sales[Share] = DIVIDE([Total Sales], CALCULATE([Total Sales], REMOVEFILTERS(Product))) MEASURE Sales[Rank] = IF(NOT ISBLANK([Total Sales]), RANKX(ALLSELECTED(Product[Category]), [Total Sales], , DESC, DENSE)) MEASURE Sales[YoY] = VAR a = [Total Sales] VAR b = CALCULATE([Total Sales], SAMEPERIODLASTYEAR('Date'[Date])) RETURN DIVIDE(a - b, b) EVALUATE SUMMARIZECOLUMNS(ROLLUPADDISSUBTOTAL(Product[Category], \"IsGrandTotal\"), \"Total\", [Total Sales], \"Share\", [Share], \"Rank\", [Rank], \"YoY\", [YoY]) ORDER BY [IsGrandTotal] DESC, Product[Category]",
+  "ordered": true
+ },
+ {
+  "id": "totals-filtered-year",
+  "query": "DEFINE MEASURE Sales[Share] = DIVIDE([Total Sales], CALCULATE([Total Sales], REMOVEFILTERS(Product))) MEASURE Sales[Rank] = IF(NOT ISBLANK([Total Sales]), RANKX(ALLSELECTED(Product[Category]), [Total Sales], , DESC, DENSE)) MEASURE Sales[YoY] = VAR a = [Total Sales] VAR b = CALCULATE([Total Sales], SAMEPERIODLASTYEAR('Date'[Date])) RETURN DIVIDE(a - b, b) EVALUATE SUMMARIZECOLUMNS(ROLLUPADDISSUBTOTAL(Product[Category], \"IsGrandTotal\"), TREATAS({2024}, 'Date'[Year]), \"Total\", [Total Sales], \"Share\", [Share], \"Rank\", [Rank], \"YoY\", [YoY]) ORDER BY [IsGrandTotal] DESC, Product[Category]",
+  "ordered": true
+ }
+]

@@ -1,0 +1,47 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/powerbi-desktop-samples/main/Report%20Theme%20JSON%20Schema/reportThemeSchema-2.157.json",
+  "name": "BIcraft Orchard",
+  "dataColors": [
+    "#2E7D32",
+    "#B5530B",
+    "#4E7A57",
+    "#8D6E00",
+    "#A0522D",
+    "#3F6E2A",
+    "#7B5E00",
+    "#6B5B95"
+  ],
+  "foreground": "#2F3A1F",
+  "foregroundNeutralSecondary": "#56613F",
+  "background": "#FFFDF7",
+  "tableAccent": "#2E7D32",
+  "good": "#2E7D32",
+  "neutral": "#8D6E00",
+  "bad": "#A0301E",
+  "maximum": "#2E7D32",
+  "center": "#8D6E00",
+  "minimum": "#A0522D",
+  "hyperlink": "#1F5F99",
+  "textClasses": {
+    "title": {
+      "fontFace": "Segoe UI Semibold",
+      "fontSize": 12,
+      "color": "#2F3A1F"
+    },
+    "label": {
+      "fontFace": "Segoe UI",
+      "fontSize": 10,
+      "color": "#2F3A1F"
+    },
+    "callout": {
+      "fontFace": "Segoe UI Light",
+      "fontSize": 32,
+      "color": "#2F3A1F"
+    },
+    "header": {
+      "fontFace": "Segoe UI Semibold",
+      "fontSize": 12,
+      "color": "#2F3A1F"
+    }
+  }
+}

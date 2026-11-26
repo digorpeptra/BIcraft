@@ -1,0 +1,17 @@
+[package]
+name = "bicraft-vertipaq"
+description = "L0: VertiPaq column storage (idf, idfmeta, dictionary, hidx) reader and encoder"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+thiserror.workspace = true
+
+[dev-dependencies]
+bicraft-env.workspace = true
+# tests/large.rs reads the JSON manifests of the local-only large-model data
+serde_json.workspace = true
+
+[lints]
+workspace = true

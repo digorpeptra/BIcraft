@@ -1,0 +1,1 @@
+LEN(CONCATENATEX(VALUES(Sales[Channel]), Sales[Channel]))

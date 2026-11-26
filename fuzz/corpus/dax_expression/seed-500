@@ -1,0 +1,1 @@
+CALCULATE(DISTINCTCOUNT(Sales[CustomerKey]), Sales[IsReturn] = FALSE())

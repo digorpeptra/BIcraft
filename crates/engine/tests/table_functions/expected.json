@@ -1,0 +1,2615 @@
+[
+ {
+  "id": "addcolumns-product",
+  "expression": "ADDCOLUMNS(Product, \"T\", [Total], \"U\", [Units], \"Twice\", Product[Price] * 2)",
+  "columns": [
+   "Product[ProductKey]",
+   "Product[Product]",
+   "Product[Category]",
+   "Product[Price]",
+   "[T]",
+   "[U]",
+   "[Twice]"
+  ],
+  "types": [
+   "Int64",
+   "String",
+   "String",
+   "Decimal",
+   "Double",
+   "Int64",
+   "Decimal"
+  ],
+  "rows": [
+   [
+    1,
+    "Bike",
+    "Wheels",
+    100,
+    450,
+    4,
+    200
+   ],
+   [
+    2,
+    "Ball",
+    "Toys",
+    10,
+    90,
+    9,
+    20
+   ],
+   [
+    3,
+    "Car",
+    "Wheels",
+    250,
+    300,
+    1,
+    500
+   ],
+   [
+    4,
+    "Kite",
+    "Toys",
+    15,
+    -15,
+    2,
+    30
+   ]
+  ]
+ },
+ {
+  "id": "addcolumns-values",
+  "expression": "ADDCOLUMNS(VALUES(Product[Category]), \"T\", [Total])",
+  "columns": [
+   "Product[Category]",
+   "[T]"
+  ],
+  "types": [
+   "String",
+   "Double"
+  ],
+  "rows": [
+   [
+    "Wheels",
+    750
+   ],
+   [
+    "Toys",
+    75
+   ],
+   [
+    null,
+    50
+   ]
+  ]
+ },
+ {
+  "id": "addcolumns-values-table",
+  "expression": "ADDCOLUMNS(VALUES(Product), \"T\", [Total])",
+  "columns": [
+   "Product[ProductKey]",
+   "Product[Product]",
+   "Product[Category]",
+   "Product[Price]",
+   "[T]"
+  ],
+  "types": [
+   "Int64",
+   "String",
+   "String",
+   "Decimal",
+   "Double"
+  ],
+  "rows": [
+   [
+    1,
+    "Bike",
+    "Wheels",
+    100,
+    450
+   ],
+   [
+    2,
+    "Ball",
+    "Toys",
+    10,
+    90
+   ],
+   [
+    3,
+    "Car",
+    "Wheels",
+    250,
+    300
+   ],
+   [
+    4,
+    "Kite",
+    "Toys",
+    15,
+    -15
+   ],
+   [
+    null,
+    null,
+    null,
+    null,
+    50
+   ]
+  ]
+ },
+ {
+  "id": "addcolumns-filter",
+  "expression": "FILTER(ADDCOLUMNS(Customer, \"@T\", [Total]), [@T] > 200)",
+  "columns": [
+   "Customer[CustKey]",
+   "Customer[Name]",
+   "Customer[City]",
+   "[@T]"
+  ],
+  "types": [
+   "Int64",
+   "String",
+   "String",
+   "Double"
+  ],
+  "rows": [
+   [
+    1,
+    "Ann",
+    "Paris",
+    420
+   ],
+   [
+    2,
+    "Bob",
+    "Lyon",
+    290
+   ]
+  ]
+ },
+ {
+  "id": "addcolumns-related",
+  "expression": "ADDCOLUMNS(Sales, \"P\", RELATED(Product[Product]), \"All\", SUM(Sales[Amount]))",
+  "columns": [
+   "Sales[SalesKey]",
+   "Sales[ProductKey]",
+   "Sales[CustKey]",
+   "Sales[Date]",
+   "Sales[Qty]",
+   "Sales[Amount]",
+   "Sales[Channel]",
+   "[P]",
+   "[All]"
+  ],
+  "types": [
+   "Int64",
+   "Int64",
+   "Int64",
+   "DateTime",
+   "Int64",
+   "Double",
+   "String",
+   "String",
+   "Double"
+  ],
+  "rows": [
+   [
+    1,
+    1,
+    1,
+    {
+     "date": 44936
+    },
+    1,
+    100,
+    "Web",
+    "Bike",
+    875
+   ],
+   [
+    2,
+    2,
+    1,
+    {
+     "date": 44972
+    },
+    2,
+    20,
+    "Store",
+    "Ball",
+    875
+   ],
+   [
+    3,
+    1,
+    2,
+    {
+     "date": 45107
+    },
+    2,
+    200,
+    "Store",
+    "Bike",
+    875
+   ],
+   [
+    4,
+    9,
+    2,
+    {
+     "date": 45291
+    },
+    1,
+    50,
+    "App",
+    null,
+    875
+   ],
+   [
+    5,
+    1,
+    3,
+    {
+     "date": 45296
+    },
+    1,
+    150,
+    "Web",
+    "Bike",
+    875
+   ],
+   [
+    6,
+    2,
+    3,
+    {
+     "date": 45351
+    },
+    3,
+    30,
+    "App",
+    "Ball",
+    875
+   ],
+   [
+    7,
+    3,
+    1,
+    {
+     "date": 45352
+    },
+    1,
+    300,
+    "Store",
+    "Car",
+    875
+   ],
+   [
+    8,
+    2,
+    2,
+    {
+     "date": 45488
+    },
+    4,
+    40,
+    "Web",
+    "Ball",
+    875
+   ],
+   [
+    9,
+    4,
+    3,
+    {
+     "date": 45493
+    },
+    2,
+    -15,
+    "Web",
+    "Kite",
+    875
+   ]
+  ]
+ },
+ {
+  "id": "addcolumns-nested",
+  "expression": "ADDCOLUMNS(ADDCOLUMNS(Customer, \"A\", [Total]), \"B\", [A] * 2)",
+  "columns": [
+   "Customer[CustKey]",
+   "Customer[Name]",
+   "Customer[City]",
+   "[A]",
+   "[B]"
+  ],
+  "types": [
+   "Int64",
+   "String",
+   "String",
+   "Double",
+   "Double"
+  ],
+  "rows": [
+   [
+    1,
+    "Ann",
+    "Paris",
+    420,
+    840
+   ],
+   [
+    3,
+    "Cid",
+    "Paris",
+    165,
+    330
+   ],
+   [
+    2,
+    "Bob",
+    "Lyon",
+    290,
+    580
+   ]
+  ]
+ },
+ {
+  "id": "selectcolumns-rename",
+  "expression": "SELECTCOLUMNS(Product, \"Name\", Product[Product], \"Cat\", Product[Category])",
+  "columns": [
+   "[Name]",
+   "[Cat]"
+  ],
+  "types": [
+   "String",
+   "String"
+  ],
+  "rows": [
+   [
+    "Bike",
+    "Wheels"
+   ],
+   [
+    "Car",
+    "Wheels"
+   ],
+   [
+    "Ball",
+    "Toys"
+   ],
+   [
+    "Kite",
+    "Toys"
+   ]
+  ]
+ },
+ {
+  "id": "selectcolumns-lineage",
+  "expression": "ADDCOLUMNS(SELECTCOLUMNS(Product, \"Cat\", Product[Category]), \"T\", [Total])",
+  "columns": [
+   "[Cat]",
+   "[T]"
+  ],
+  "types": [
+   "String",
+   "Double"
+  ],
+  "rows": [
+   [
+    "Wheels",
+    750
+   ],
+   [
+    "Wheels",
+    750
+   ],
+   [
+    "Toys",
+    75
+   ],
+   [
+    "Toys",
+    75
+   ]
+  ]
+ },
+ {
+  "id": "selectcolumns-mixed",
+  "expression": "SELECTCOLUMNS(Sales, Sales[Channel], \"Amt\", Sales[Amount] + 1)",
+  "columns": [
+   "Sales[Channel]",
+   "[Amt]"
+  ],
+  "types": [
+   "String",
+   "Double"
+  ],
+  "rows": [
+   [
+    "Web",
+    101
+   ],
+   [
+    "Store",
+    21
+   ],
+   [
+    "Store",
+    201
+   ],
+   [
+    "App",
+    51
+   ],
+   [
+    "Web",
+    151
+   ],
+   [
+    "App",
+    31
+   ],
+   [
+    "Store",
+    301
+   ],
+   [
+    "Web",
+    41
+   ],
+   [
+    "Web",
+    -14
+   ]
+  ]
+ },
+ {
+  "id": "summarize-related",
+  "expression": "SUMMARIZE(Sales, Product[Category], \"T\", SUM(Sales[Amount]), \"N\", COUNTROWS(Sales))",
+  "columns": [
+   "Product[Category]",
+   "[T]",
+   "[N]"
+  ],
+  "types": [
+   "String",
+   "Double",
+   "Int64"
+  ],
+  "rows": [
+   [
+    null,
+    50,
+    1
+   ],
+   [
+    "Wheels",
+    750,
+    4
+   ],
+   [
+    "Toys",
+    75,
+    4
+   ]
+  ]
+ },
+ {
+  "id": "summarize-two",
+  "expression": "SUMMARIZE(Sales, Sales[Channel], Customer[City], \"T\", [Total])",
+  "columns": [
+   "Sales[Channel]",
+   "Customer[City]",
+   "[T]"
+  ],
+  "types": [
+   "String",
+   "String",
+   "Double"
+  ],
+  "rows": [
+   [
+    "Web",
+    "Paris",
+    235
+   ],
+   [
+    "Web",
+    "Lyon",
+    40
+   ],
+   [
+    "Store",
+    "Paris",
+    320
+   ],
+   [
+    "Store",
+    "Lyon",
+    200
+   ],
+   [
+    "App",
+    "Paris",
+    30
+   ],
+   [
+    "App",
+    "Lyon",
+    50
+   ]
+  ]
+ },
+ {
+  "id": "summarize-filtered",
+  "expression": "SUMMARIZE(FILTER(Sales, Sales[Amount] >= 100), Product[Category], \"T\", SUM(Sales[Amount]))",
+  "columns": [
+   "Product[Category]",
+   "[T]"
+  ],
+  "types": [
+   "String",
+   "Double"
+  ],
+  "rows": [
+   [
+    "Wheels",
+    750
+   ]
+  ]
+ },
+ {
+  "id": "summarize-rollup",
+  "expression": "SUMMARIZE(Sales, ROLLUP(Product[Category], Sales[Channel]), \"T\", SUM(Sales[Amount]), \"Sub\", ISSUBTOTAL(Sales[Channel]))",
+  "columns": [
+   "Product[Category]",
+   "Sales[Channel]",
+   "[T]",
+   "[Sub]"
+  ],
+  "types": [
+   "String",
+   "String",
+   "Double",
+   "Boolean"
+  ],
+  "rows": [
+   [
+    "Wheels",
+    "Web",
+    250,
+    false
+   ],
+   [
+    "Toys",
+    "Web",
+    25,
+    false
+   ],
+   [
+    "Wheels",
+    "Store",
+    500,
+    false
+   ],
+   [
+    "Toys",
+    "Store",
+    20,
+    false
+   ],
+   [
+    null,
+    "App",
+    50,
+    false
+   ],
+   [
+    "Toys",
+    "App",
+    30,
+    false
+   ],
+   [
+    null,
+    null,
+    50,
+    true
+   ],
+   [
+    "Wheels",
+    null,
+    750,
+    true
+   ],
+   [
+    "Toys",
+    null,
+    75,
+    true
+   ],
+   [
+    null,
+    null,
+    875,
+    true
+   ]
+  ]
+ },
+ {
+  "id": "summarize-own",
+  "expression": "SUMMARIZE(Product, Product[Category])",
+  "columns": [
+   "Product[Category]"
+  ],
+  "types": [
+   "String"
+  ],
+  "rows": [
+   [
+    "Wheels"
+   ],
+   [
+    "Toys"
+   ]
+  ]
+ },
+ {
+  "id": "summarize-expanded",
+  "expression": "SUMMARIZE(Sales, Product[Category], \"Prods\", COUNTROWS(Product))",
+  "columns": [
+   "Product[Category]",
+   "[Prods]"
+  ],
+  "types": [
+   "String",
+   "Int64"
+  ],
+  "rows": [
+   [
+    null,
+    null
+   ],
+   [
+    "Wheels",
+    2
+   ],
+   [
+    "Toys",
+    2
+   ]
+  ]
+ },
+ {
+  "id": "summarizecolumns-one",
+  "expression": "SUMMARIZECOLUMNS(Product[Category], \"T\", [Total])",
+  "columns": [
+   "Product[Category]",
+   "[T]"
+  ],
+  "types": [
+   "String",
+   "Double"
+  ],
+  "rows": [
+   [
+    null,
+    50
+   ],
+   [
+    "Wheels",
+    750
+   ],
+   [
+    "Toys",
+    75
+   ]
+  ]
+ },
+ {
+  "id": "summarizecolumns-two",
+  "expression": "SUMMARIZECOLUMNS(Product[Category], Customer[City], \"T\", [Total])",
+  "columns": [
+   "Product[Category]",
+   "Customer[City]",
+   "[T]"
+  ],
+  "types": [
+   "String",
+   "String",
+   "Double"
+  ],
+  "rows": [
+   [
+    "Wheels",
+    "Paris",
+    550
+   ],
+   [
+    "Toys",
+    "Paris",
+    35
+   ],
+   [
+    null,
+    "Lyon",
+    50
+   ],
+   [
+    "Wheels",
+    "Lyon",
+    200
+   ],
+   [
+    "Toys",
+    "Lyon",
+    40
+   ]
+  ]
+ },
+ {
+  "id": "summarizecolumns-treatas",
+  "expression": "SUMMARIZECOLUMNS(Sales[Channel], TREATAS({\"Paris\"}, Customer[City]), \"T\", [Total], \"U\", [Units])",
+  "columns": [
+   "Sales[Channel]",
+   "[T]",
+   "[U]"
+  ],
+  "types": [
+   "String",
+   "Double",
+   "Int64"
+  ],
+  "rows": [
+   [
+    "Web",
+    235,
+    4
+   ],
+   [
+    "Store",
+    320,
+    3
+   ],
+   [
+    "App",
+    30,
+    3
+   ]
+  ]
+ },
+ {
+  "id": "summarizecolumns-nomeasure",
+  "expression": "SUMMARIZECOLUMNS(Product[Category], Product[Product])",
+  "columns": [
+   "Product[Category]",
+   "Product[Product]"
+  ],
+  "types": [
+   "String",
+   "String"
+  ],
+  "rows": [
+   [
+    "Wheels",
+    "Bike"
+   ],
+   [
+    "Wheels",
+    "Car"
+   ],
+   [
+    "Toys",
+    "Ball"
+   ],
+   [
+    "Toys",
+    "Kite"
+   ],
+   [
+    null,
+    null
+   ]
+  ]
+ },
+ {
+  "id": "summarizecolumns-filter",
+  "expression": "SUMMARIZECOLUMNS(Customer[City], FILTER(ALL(Product[Category]), Product[Category] = \"Toys\"), \"T\", [Total])",
+  "columns": [
+   "Customer[City]",
+   "[T]"
+  ],
+  "types": [
+   "String",
+   "Double"
+  ],
+  "rows": [
+   [
+    "Paris",
+    35
+   ],
+   [
+    "Lyon",
+    40
+   ]
+  ]
+ },
+ {
+  "id": "series-int",
+  "expression": "GENERATESERIES(1, 5)",
+  "columns": [
+   "[Value]"
+  ],
+  "types": [
+   "Int64"
+  ],
+  "rows": [
+   [
+    1
+   ],
+   [
+    2
+   ],
+   [
+    3
+   ],
+   [
+    4
+   ],
+   [
+    5
+   ]
+  ]
+ },
+ {
+  "id": "series-quarter",
+  "expression": "GENERATESERIES(0, 1, 0.25)",
+  "columns": [
+   "[Value]"
+  ],
+  "types": [
+   "Double"
+  ],
+  "rows": [
+   [
+    0
+   ],
+   [
+    0.25
+   ],
+   [
+    0.5
+   ],
+   [
+    0.75
+   ],
+   [
+    1
+   ]
+  ]
+ },
+ {
+  "id": "series-tenth",
+  "expression": "GENERATESERIES(0, 1, 0.1)",
+  "columns": [
+   "[Value]"
+  ],
+  "types": [
+   "Double"
+  ],
+  "rows": [
+   [
+    0
+   ],
+   [
+    0.1
+   ],
+   [
+    0.2
+   ],
+   [
+    0.30000000000000004
+   ],
+   [
+    0.4
+   ],
+   [
+    0.5
+   ],
+   [
+    0.6
+   ],
+   [
+    0.7
+   ],
+   [
+    0.7999999999999999
+   ],
+   [
+    0.8999999999999999
+   ],
+   [
+    0.9999999999999999
+   ]
+  ]
+ },
+ {
+  "id": "series-dates",
+  "expression": "GENERATESERIES(DATE(2024, 1, 1), DATE(2024, 1, 5), 2)",
+  "columns": [
+   "[Value]"
+  ],
+  "types": [
+   "DateTime"
+  ],
+  "rows": [
+   [
+    {
+     "date": 45292
+    }
+   ],
+   [
+    {
+     "date": 45294
+    }
+   ],
+   [
+    {
+     "date": 45296
+    }
+   ]
+  ]
+ },
+ {
+  "id": "series-empty",
+  "expression": "GENERATESERIES(5, 1)",
+  "columns": [
+   "[Value]"
+  ],
+  "types": [
+   "Int64"
+  ],
+  "rows": []
+ },
+ {
+  "id": "series-decimal-start",
+  "expression": "GENERATESERIES(1.5, 4)",
+  "columns": [
+   "[Value]"
+  ],
+  "types": [
+   "Double"
+  ],
+  "rows": [
+   [
+    1.5
+   ],
+   [
+    2.5
+   ],
+   [
+    3.5
+   ]
+  ]
+ },
+ {
+  "id": "generate-filter",
+  "expression": "GENERATE(VALUES(Customer[City]), FILTER(VALUES(Product[Category]), [Total] > 100))",
+  "columns": [
+   "Customer[City]",
+   "Product[Category]"
+  ],
+  "types": [
+   "String",
+   "String"
+  ],
+  "rows": [
+   [
+    "Paris",
+    "Wheels"
+   ],
+   [
+    "Lyon",
+    "Wheels"
+   ]
+  ]
+ },
+ {
+  "id": "generateall",
+  "expression": "GENERATEALL(VALUES(Customer[Name]), FILTER(VALUES(Sales[Channel]), CALCULATE(COUNTROWS(Sales)) > 1))",
+  "columns": [
+   "Customer[Name]",
+   "Sales[Channel]"
+  ],
+  "types": [
+   "String",
+   "String"
+  ],
+  "rows": [
+   [
+    "Ann",
+    "Store"
+   ],
+   [
+    "Bob",
+    null
+   ],
+   [
+    "Cid",
+    "Web"
+   ]
+  ]
+ },
+ {
+  "id": "crossjoin",
+  "expression": "CROSSJOIN(VALUES(Product[Category]), VALUES(Customer[City]))",
+  "columns": [
+   "Product[Category]",
+   "Customer[City]"
+  ],
+  "types": [
+   "String",
+   "String"
+  ],
+  "rows": [
+   [
+    "Wheels",
+    "Paris"
+   ],
+   [
+    "Toys",
+    "Paris"
+   ],
+   [
+    null,
+    "Paris"
+   ],
+   [
+    "Wheels",
+    "Lyon"
+   ],
+   [
+    "Toys",
+    "Lyon"
+   ],
+   [
+    null,
+    "Lyon"
+   ]
+  ]
+ },
+ {
+  "id": "crossjoin-measure",
+  "expression": "ADDCOLUMNS(CROSSJOIN(VALUES(Product[Category]), VALUES(Customer[City])), \"T\", [Total])",
+  "columns": [
+   "Product[Category]",
+   "Customer[City]",
+   "[T]"
+  ],
+  "types": [
+   "String",
+   "String",
+   "Double"
+  ],
+  "rows": [
+   [
+    "Wheels",
+    "Paris",
+    550
+   ],
+   [
+    "Toys",
+    "Paris",
+    35
+   ],
+   [
+    null,
+    "Paris",
+    null
+   ],
+   [
+    "Wheels",
+    "Lyon",
+    200
+   ],
+   [
+    "Toys",
+    "Lyon",
+    40
+   ],
+   [
+    null,
+    "Lyon",
+    50
+   ]
+  ]
+ },
+ {
+  "id": "topn-product",
+  "expression": "TOPN(2, Product, [Total])",
+  "columns": [
+   "Product[ProductKey]",
+   "Product[Product]",
+   "Product[Category]",
+   "Product[Price]"
+  ],
+  "types": [
+   "Int64",
+   "String",
+   "String",
+   "Decimal"
+  ],
+  "rows": [
+   [
+    3,
+    "Car",
+    "Wheels",
+    250
+   ],
+   [
+    1,
+    "Bike",
+    "Wheels",
+    100
+   ]
+  ]
+ },
+ {
+  "id": "topn-asc",
+  "expression": "TOPN(2, VALUES(Product[Category]), [Total], ASC)",
+  "columns": [
+   "Product[Category]"
+  ],
+  "types": [
+   "String"
+  ],
+  "rows": [
+   [
+    "Toys"
+   ],
+   [
+    null
+   ]
+  ]
+ },
+ {
+  "id": "topn-ties",
+  "expression": "TOPN(3, Sales, Sales[Qty], DESC)",
+  "columns": [
+   "Sales[SalesKey]",
+   "Sales[ProductKey]",
+   "Sales[CustKey]",
+   "Sales[Date]",
+   "Sales[Qty]",
+   "Sales[Amount]",
+   "Sales[Channel]"
+  ],
+  "types": [
+   "Int64",
+   "Int64",
+   "Int64",
+   "DateTime",
+   "Int64",
+   "Double",
+   "String"
+  ],
+  "rows": [
+   [
+    2,
+    2,
+    1,
+    {
+     "date": 44972
+    },
+    2,
+    20,
+    "Store"
+   ],
+   [
+    9,
+    4,
+    3,
+    {
+     "date": 45493
+    },
+    2,
+    -15,
+    "Web"
+   ],
+   [
+    3,
+    1,
+    2,
+    {
+     "date": 45107
+    },
+    2,
+    200,
+    "Store"
+   ],
+   [
+    8,
+    2,
+    2,
+    {
+     "date": 45488
+    },
+    4,
+    40,
+    "Web"
+   ],
+   [
+    6,
+    2,
+    3,
+    {
+     "date": 45351
+    },
+    3,
+    30,
+    "App"
+   ]
+  ]
+ },
+ {
+  "id": "topn-two-keys",
+  "expression": "TOPN(1, ADDCOLUMNS(VALUES(Customer[Name]), \"T\", [Total]), [T], DESC, [Name], ASC)",
+  "columns": [
+   "Customer[Name]",
+   "[T]"
+  ],
+  "types": [
+   "String",
+   "Double"
+  ],
+  "rows": [
+   [
+    "Ann",
+    420
+   ]
+  ]
+ },
+ {
+  "id": "topn-blank",
+  "expression": "TOPN(2, {-5, 3, BLANK()}, [Value], ASC)",
+  "columns": [
+   "[Value]"
+  ],
+  "types": [
+   "Int64"
+  ],
+  "rows": [
+   [
+    null
+   ],
+   [
+    -5
+   ]
+  ]
+ },
+ {
+  "id": "topn-zero",
+  "expression": "TOPN(0, Product, [Total])",
+  "columns": [
+   "Product[ProductKey]",
+   "Product[Product]",
+   "Product[Category]",
+   "Product[Price]"
+  ],
+  "types": [
+   "Int64",
+   "String",
+   "String",
+   "Decimal"
+  ],
+  "rows": []
+ },
+ {
+  "id": "union",
+  "expression": "UNION(VALUES(Product[Category]), {\"Other\"})",
+  "columns": [
+   "Product[Category]"
+  ],
+  "types": [
+   "String"
+  ],
+  "rows": [
+   [
+    "Wheels"
+   ],
+   [
+    "Toys"
+   ],
+   [
+    null
+   ],
+   [
+    "Other"
+   ]
+  ]
+ },
+ {
+  "id": "union-lineage",
+  "expression": "ADDCOLUMNS(UNION(VALUES(Product[Category]), VALUES(Product[Category])), \"T\", [Total])",
+  "columns": [
+   "Product[Category]",
+   "[T]"
+  ],
+  "types": [
+   "String",
+   "Double"
+  ],
+  "rows": [
+   [
+    "Wheels",
+    750
+   ],
+   [
+    "Toys",
+    75
+   ],
+   [
+    null,
+    50
+   ],
+   [
+    "Wheels",
+    750
+   ],
+   [
+    "Toys",
+    75
+   ],
+   [
+    null,
+    50
+   ]
+  ]
+ },
+ {
+  "id": "union-mixed-lineage",
+  "expression": "ADDCOLUMNS(UNION(VALUES(Product[Category]), VALUES(Customer[City])), \"T\", [Total])",
+  "columns": [
+   "Product[Category]",
+   "[T]"
+  ],
+  "types": [
+   "String",
+   "Double"
+  ],
+  "rows": [
+   [
+    "Wheels",
+    875
+   ],
+   [
+    "Toys",
+    875
+   ],
+   [
+    null,
+    875
+   ],
+   [
+    "Paris",
+    875
+   ],
+   [
+    "Lyon",
+    875
+   ]
+  ]
+ },
+ {
+  "id": "intersect",
+  "expression": "INTERSECT(VALUES(Customer[City]), {\"Paris\", \"Rome\"})",
+  "columns": [
+   "Customer[City]"
+  ],
+  "types": [
+   "String"
+  ],
+  "rows": [
+   [
+    "Paris"
+   ]
+  ]
+ },
+ {
+  "id": "except",
+  "expression": "EXCEPT(VALUES(Sales[Channel]), {\"web\"})",
+  "columns": [
+   "Sales[Channel]"
+  ],
+  "types": [
+   "String"
+  ],
+  "rows": [
+   [
+    "Store"
+   ],
+   [
+    "App"
+   ]
+  ]
+ },
+ {
+  "id": "distinct-table",
+  "expression": "DISTINCT(SELECTCOLUMNS(Sales, \"C\", Sales[Channel]))",
+  "columns": [
+   "[C]"
+  ],
+  "types": [
+   "String"
+  ],
+  "rows": [
+   [
+    "Web"
+   ],
+   [
+    "Store"
+   ],
+   [
+    "App"
+   ]
+  ]
+ },
+ {
+  "id": "blank-row-counts",
+  "expression": "ROW(\"V\", COUNTROWS(VALUES(Product)), \"D\", COUNTROWS(DISTINCT(Product)), \"A\", COUNTROWS(ALL(Product)), \"N\", COUNTROWS(ALLNOBLANKROW(Product)), \"T\", COUNTROWS(Product))",
+  "columns": [
+   "[V]",
+   "[D]",
+   "[A]",
+   "[N]",
+   "[T]"
+  ],
+  "types": [
+   "Int64",
+   "Int64",
+   "Int64",
+   "Int64",
+   "Int64"
+  ],
+  "rows": [
+   [
+    5,
+    4,
+    5,
+    4,
+    4
+   ]
+  ]
+ },
+ {
+  "id": "values-table",
+  "expression": "VALUES(Product)",
+  "columns": [
+   "Product[ProductKey]",
+   "Product[Product]",
+   "Product[Category]",
+   "Product[Price]"
+  ],
+  "types": [
+   "Int64",
+   "String",
+   "String",
+   "Decimal"
+  ],
+  "rows": [
+   [
+    1,
+    "Bike",
+    "Wheels",
+    100
+   ],
+   [
+    2,
+    "Ball",
+    "Toys",
+    10
+   ],
+   [
+    3,
+    "Car",
+    "Wheels",
+    250
+   ],
+   [
+    4,
+    "Kite",
+    "Toys",
+    15
+   ],
+   [
+    null,
+    null,
+    null,
+    null
+   ]
+  ]
+ },
+ {
+  "id": "calendar",
+  "expression": "CALENDAR(DATE(2024, 2, 27), DATE(2024, 3, 2))",
+  "columns": [
+   "[Date]"
+  ],
+  "types": [
+   "DateTime"
+  ],
+  "rows": [
+   [
+    {
+     "date": 45349
+    }
+   ],
+   [
+    {
+     "date": 45350
+    }
+   ],
+   [
+    {
+     "date": 45351
+    }
+   ],
+   [
+    {
+     "date": 45352
+    }
+   ],
+   [
+    {
+     "date": 45353
+    }
+   ]
+  ]
+ },
+ {
+  "id": "calendar-columns",
+  "expression": "ADDCOLUMNS(CALENDAR(DATE(2024, 1, 1), DATE(2024, 1, 3)), \"Y\", YEAR([Date]), \"T\", CALCULATE([Total]))",
+  "columns": [
+   "[Date]",
+   "[Y]",
+   "[T]"
+  ],
+  "types": [
+   "DateTime",
+   "Int64",
+   "Double"
+  ],
+  "rows": [
+   [
+    {
+     "date": 45292
+    },
+    2024,
+    875
+   ],
+   [
+    {
+     "date": 45293
+    },
+    2024,
+    875
+   ],
+   [
+    {
+     "date": 45294
+    },
+    2024,
+    875
+   ]
+  ]
+ },
+ {
+  "id": "row",
+  "expression": "ROW(\"a\", 1, \"b\", \"x\", \"c\", 2.5)",
+  "columns": [
+   "[a]",
+   "[b]",
+   "[c]"
+  ],
+  "types": [
+   "Int64",
+   "String",
+   "Double"
+  ],
+  "rows": [
+   [
+    1,
+    "x",
+    2.5
+   ]
+  ]
+ },
+ {
+  "id": "datatable",
+  "expression": "DATATABLE(\"n\", INTEGER, \"d\", DATETIME, \"c\", CURRENCY, {{1, \"2024-01-02\", 1.5}, {2, \"2024-03-04\", 2}})",
+  "columns": [
+   "[n]",
+   "[d]",
+   "[c]"
+  ],
+  "types": [
+   "Int64",
+   "DateTime",
+   "Decimal"
+  ],
+  "rows": [
+   [
+    1,
+    {
+     "date": 45293
+    },
+    1.5
+   ],
+   [
+    2,
+    {
+     "date": 45355
+    },
+    2
+   ]
+  ]
+ },
+ {
+  "id": "filter-summarize",
+  "expression": "ROW(\"x\", CALCULATE([Total], SUMMARIZE(FILTER(Sales, Sales[Channel] = \"Web\"), Product[Category])))",
+  "columns": [
+   "[x]"
+  ],
+  "types": [
+   "Double"
+  ],
+  "rows": [
+   [
+    825
+   ]
+  ]
+ },
+ {
+  "id": "filter-topn",
+  "expression": "ROW(\"x\", CALCULATE([Total], TOPN(1, VALUES(Product[Product]), [Total])))",
+  "columns": [
+   "[x]"
+  ],
+  "types": [
+   "Double"
+  ],
+  "rows": [
+   [
+    450
+   ]
+  ]
+ },
+ {
+  "id": "iterate-summarize",
+  "expression": "ROW(\"x\", SUMX(SUMMARIZE(Sales, Customer[City], \"T\", [Total]), [T]))",
+  "columns": [
+   "[x]"
+  ],
+  "types": [
+   "Double"
+  ],
+  "rows": [
+   [
+    875
+   ]
+  ]
+ },
+ {
+  "id": "filter-extension-ignored",
+  "expression": "ROW(\"x\", CALCULATE([Total], ADDCOLUMNS(VALUES(Customer[City]), \"z\", 1)))",
+  "columns": [
+   "[x]"
+  ],
+  "types": [
+   "Double"
+  ],
+  "rows": [
+   [
+    875
+   ]
+  ]
+ },
+ {
+  "id": "maxx-topn",
+  "expression": "ROW(\"x\", MAXX(TOPN(1, ADDCOLUMNS(VALUES(Product[Category]), \"T\", [Total]), [T]), [Category]))",
+  "columns": [
+   "[x]"
+  ],
+  "types": [
+   "String"
+  ],
+  "rows": [
+   [
+    "Wheels"
+   ]
+  ]
+ },
+ {
+  "id": "count-crossjoin",
+  "expression": "ROW(\"x\", COUNTROWS(CROSSJOIN(Product, Customer)))",
+  "columns": [
+   "[x]"
+  ],
+  "types": [
+   "Int64"
+  ],
+  "rows": [
+   [
+    12
+   ]
+  ]
+ },
+ {
+  "id": "measure-in-summarizecolumns",
+  "expression": "ROW(\"x\", COUNTROWS(SUMMARIZECOLUMNS(Sales[Channel], \"T\", [Total])))",
+  "columns": [
+   "[x]"
+  ],
+  "types": [
+   "Int64"
+  ],
+  "rows": [
+   [
+    3
+   ]
+  ]
+ },
+ {
+  "id": "nameof-col",
+  "expression": "ROW(\"n\", NAMEOF('Sales'[Amount]))",
+  "columns": [
+   "[n]"
+  ],
+  "types": [
+   "String"
+  ],
+  "rows": [
+   [
+    "'Sales'[Amount]"
+   ]
+  ]
+ },
+ {
+  "id": "nameof-col-unquoted",
+  "expression": "ROW(\"n\", NAMEOF(Sales[Amount]))",
+  "columns": [
+   "[n]"
+  ],
+  "types": [
+   "String"
+  ],
+  "rows": [
+   [
+    "'Sales'[Amount]"
+   ]
+  ]
+ },
+ {
+  "id": "nameof-col-lower",
+  "expression": "ROW(\"n\", NAMEOF(sales[amount]))",
+  "columns": [
+   "[n]"
+  ],
+  "types": [
+   "String"
+  ],
+  "rows": [
+   [
+    "'Sales'[Amount]"
+   ]
+  ]
+ },
+ {
+  "id": "nameof-measure",
+  "expression": "ROW(\"n\", NAMEOF([Total]))",
+  "columns": [
+   "[n]"
+  ],
+  "types": [
+   "String"
+  ],
+  "rows": [
+   [
+    "'Sales'[Total]"
+   ]
+  ]
+ },
+ {
+  "id": "nameof-measure-qualified",
+  "expression": "ROW(\"n\", NAMEOF(Sales[Total]))",
+  "columns": [
+   "[n]"
+  ],
+  "types": [
+   "String"
+  ],
+  "rows": [
+   [
+    "'Sales'[Total]"
+   ]
+  ]
+ },
+ {
+  "id": "nameof-measure-other-table",
+  "expression": "ROW(\"n\", NAMEOF([Avg Price]))",
+  "columns": [
+   "[n]"
+  ],
+  "types": [
+   "String"
+  ],
+  "rows": [
+   [
+    "'Product'[Avg Price]"
+   ]
+  ]
+ },
+ {
+  "id": "nameof-odd-col",
+  "expression": "ROW(\"n\", NAMEOF('Order''s Lines'[Unit]]Price]))",
+  "columns": [
+   "[n]"
+  ],
+  "types": [
+   "String"
+  ],
+  "rows": [
+   [
+    "'Order''s Lines'[Unit]]Price]"
+   ]
+  ]
+ },
+ {
+  "id": "nameof-odd-measure",
+  "expression": "ROW(\"n\", NAMEOF([Rev]]enue]))",
+  "columns": [
+   "[n]"
+  ],
+  "types": [
+   "String"
+  ],
+  "rows": [
+   [
+    "'Order''s Lines'[Rev]]enue]"
+   ]
+  ]
+ },
+ {
+  "id": "nameof-table",
+  "expression": "ROW(\"n\", NAMEOF(Sales))",
+  "columns": [
+   "[n]"
+  ],
+  "types": [
+   "String"
+  ],
+  "rows": [
+   [
+    "'Sales'"
+   ]
+  ]
+ },
+ {
+  "id": "nameof-table-odd",
+  "expression": "ROW(\"n\", NAMEOF('Order''s Lines'))",
+  "columns": [
+   "[n]"
+  ],
+  "types": [
+   "String"
+  ],
+  "rows": [
+   [
+    "'Order''s Lines'"
+   ]
+  ]
+ },
+ {
+  "id": "nameof-date-col",
+  "expression": "ROW(\"n\", NAMEOF('Date'[Date]))",
+  "columns": [
+   "[n]"
+  ],
+  "types": [
+   "String"
+  ],
+  "rows": [
+   [
+    "'Date'[Date]"
+   ]
+  ]
+ },
+ {
+  "id": "nameof-full",
+  "expression": "ROW(\"n\", NAMEOF('Sales'[Amount], FULL))",
+  "columns": [
+   "[n]"
+  ],
+  "types": [
+   "String"
+  ],
+  "rows": [
+   [
+    "'Sales'[Amount]"
+   ]
+  ]
+ },
+ {
+  "id": "nameof-self",
+  "expression": "ROW(\"n\", NAMEOF('Sales'[Amount], SELF))",
+  "columns": [
+   "[n]"
+  ],
+  "types": [
+   "String"
+  ],
+  "rows": [
+   [
+    "[Amount]"
+   ]
+  ]
+ },
+ {
+  "id": "nameof-parent",
+  "expression": "ROW(\"n\", NAMEOF('Sales'[Amount], PARENT))",
+  "columns": [
+   "[n]"
+  ],
+  "types": [
+   "String"
+  ],
+  "rows": [
+   [
+    "'Sales'"
+   ]
+  ]
+ },
+ {
+  "id": "nameof-tablec",
+  "expression": "ROW(\"n\", NAMEOF('Sales'[Amount], TABLE))",
+  "columns": [
+   "[n]"
+  ],
+  "types": [
+   "String"
+  ],
+  "rows": [
+   [
+    "'Sales'"
+   ]
+  ]
+ },
+ {
+  "id": "nameof-columnc",
+  "expression": "ROW(\"n\", NAMEOF('Sales'[Amount], COLUMN))",
+  "columns": [
+   "[n]"
+  ],
+  "types": [
+   "String"
+  ],
+  "rows": [
+   [
+    "[Amount]"
+   ]
+  ]
+ },
+ {
+  "id": "nameof-measurec",
+  "expression": "ROW(\"n\", NAMEOF([Total], MEASURE))",
+  "columns": [
+   "[n]"
+  ],
+  "types": [
+   "String"
+  ],
+  "rows": [
+   [
+    "[Total]"
+   ]
+  ]
+ },
+ {
+  "id": "nameof-measure-self",
+  "expression": "ROW(\"n\", NAMEOF([Total], SELF))",
+  "columns": [
+   "[n]"
+  ],
+  "types": [
+   "String"
+  ],
+  "rows": [
+   [
+    "[Total]"
+   ]
+  ]
+ },
+ {
+  "id": "nameof-measure-table",
+  "expression": "ROW(\"n\", NAMEOF([Total], TABLE))",
+  "columns": [
+   "[n]"
+  ],
+  "types": [
+   "String"
+  ],
+  "rows": [
+   [
+    "'Sales'"
+   ]
+  ]
+ },
+ {
+  "id": "nameof-measure-column",
+  "expression": "ROW(\"n\", NAMEOF([Total], COLUMN))",
+  "error": true
+ },
+ {
+  "id": "nameof-col-measure",
+  "expression": "ROW(\"n\", NAMEOF('Sales'[Amount], MEASURE))",
+  "error": true
+ },
+ {
+  "id": "nameof-odd-self-esc",
+  "expression": "ROW(\"n\", NAMEOF('Order''s Lines'[Unit]]Price], SELF, ESCAPED))",
+  "columns": [
+   "[n]"
+  ],
+  "types": [
+   "String"
+  ],
+  "rows": [
+   [
+    "[Unit]]Price]"
+   ]
+  ]
+ },
+ {
+  "id": "nameof-odd-self-unesc",
+  "expression": "ROW(\"n\", NAMEOF('Order''s Lines'[Unit]]Price], SELF, UNESCAPED))",
+  "columns": [
+   "[n]"
+  ],
+  "types": [
+   "String"
+  ],
+  "rows": [
+   [
+    "Unit]Price"
+   ]
+  ]
+ },
+ {
+  "id": "nameof-odd-full-unesc",
+  "expression": "ROW(\"n\", NAMEOF('Order''s Lines'[Unit]]Price], FULL, UNESCAPED))",
+  "error": true
+ },
+ {
+  "id": "nameof-odd-full-esc",
+  "expression": "ROW(\"n\", NAMEOF('Order''s Lines'[Unit]]Price], FULL, ESCAPED))",
+  "columns": [
+   "[n]"
+  ],
+  "types": [
+   "String"
+  ],
+  "rows": [
+   [
+    "'Order''s Lines'[Unit]]Price]"
+   ]
+  ]
+ },
+ {
+  "id": "nameof-odd-table-unesc",
+  "expression": "ROW(\"n\", NAMEOF('Order''s Lines'[Unit]]Price], TABLE, UNESCAPED))",
+  "columns": [
+   "[n]"
+  ],
+  "types": [
+   "String"
+  ],
+  "rows": [
+   [
+    "Order's Lines"
+   ]
+  ]
+ },
+ {
+  "id": "nameof-odd-table-esc",
+  "expression": "ROW(\"n\", NAMEOF('Order''s Lines'[Unit]]Price], TABLE, ESCAPED))",
+  "columns": [
+   "[n]"
+  ],
+  "types": [
+   "String"
+  ],
+  "rows": [
+   [
+    "'Order''s Lines'"
+   ]
+  ]
+ },
+ {
+  "id": "nameof-odd-parent",
+  "expression": "ROW(\"n\", NAMEOF('Order''s Lines'[Unit]]Price], PARENT))",
+  "columns": [
+   "[n]"
+  ],
+  "types": [
+   "String"
+  ],
+  "rows": [
+   [
+    "'Order''s Lines'"
+   ]
+  ]
+ },
+ {
+  "id": "nameof-odd-measure-unesc",
+  "expression": "ROW(\"n\", NAMEOF([Rev]]enue], FULL, UNESCAPED))",
+  "columns": [
+   "[n]"
+  ],
+  "types": [
+   "String"
+  ],
+  "rows": [
+   [
+    "Order's LinesRev]enue"
+   ]
+  ]
+ },
+ {
+  "id": "nameof-table-self",
+  "expression": "ROW(\"n\", NAMEOF(Sales, SELF))",
+  "columns": [
+   "[n]"
+  ],
+  "types": [
+   "String"
+  ],
+  "rows": [
+   [
+    "'Sales'"
+   ]
+  ]
+ },
+ {
+  "id": "nameof-table-full",
+  "expression": "ROW(\"n\", NAMEOF('Order''s Lines', FULL, UNESCAPED))",
+  "columns": [
+   "[n]"
+  ],
+  "types": [
+   "String"
+  ],
+  "rows": [
+   [
+    "Order's Lines"
+   ]
+  ]
+ },
+ {
+  "id": "nameof-table-parent",
+  "expression": "ROW(\"n\", NAMEOF(Sales, PARENT))",
+  "error": true
+ },
+ {
+  "id": "nameof-variable",
+  "expression": "VAR x = 1 RETURN ROW(\"n\", NAMEOF(x))",
+  "error": true
+ },
+ {
+  "id": "nameof-string",
+  "expression": "ROW(\"n\", NAMEOF(\"Sales\"))",
+  "error": true
+ },
+ {
+  "id": "nameof-expr",
+  "expression": "ROW(\"n\", NAMEOF(SUM(Sales[Amount])))",
+  "error": true
+ },
+ {
+  "id": "nameof-field-param",
+  "expression": "{(\"Amount\", NAMEOF('Sales'[Amount]), 0), (\"Total\", NAMEOF([Total]), 1), (\"Odd\", NAMEOF([Rev]]enue]), 2)}",
+  "columns": [
+   "[Value1]",
+   "[Value2]",
+   "[Value3]"
+  ],
+  "types": [
+   "String",
+   "String",
+   "Int64"
+  ],
+  "rows": [
+   [
+    "Amount",
+    "'Sales'[Amount]",
+    0
+   ],
+   [
+    "Total",
+    "'Sales'[Total]",
+    1
+   ],
+   [
+    "Odd",
+    "'Order''s Lines'[Rev]]enue]",
+    2
+   ]
+  ]
+ },
+ {
+  "id": "nameof-field-param-sel",
+  "expression": "SELECTCOLUMNS({(\"Amount\", NAMEOF('Sales'[Amount]), 0)}, \"P\", [Value1], \"F\", [Value2])",
+  "columns": [
+   "[P]",
+   "[F]"
+  ],
+  "types": [
+   "String",
+   "String"
+  ],
+  "rows": [
+   [
+    "Amount",
+    "'Sales'[Amount]"
+   ]
+  ]
+ },
+ {
+  "id": "nameof-var-col",
+  "expression": "ROW(\"n\", NAMEOF(Sales[Date].[Year]))",
+  "error": true
+ },
+ {
+  "id": "nameof-addcol",
+  "expression": "ADDCOLUMNS(VALUES(Product[Category]), \"n\", NAMEOF(Product[Category]))",
+  "columns": [
+   "Product[Category]",
+   "[n]"
+  ],
+  "types": [
+   "String",
+   "String"
+  ],
+  "rows": [
+   [
+    "Wheels",
+    "'Product'[Category]"
+   ],
+   [
+    "Toys",
+    "'Product'[Category]"
+   ],
+   [
+    null,
+    "'Product'[Category]"
+   ]
+  ]
+ },
+ {
+  "id": "nameof-in-measure-ctx",
+  "expression": "ROW(\"n\", NAMEOF('Product'[Avg Price]))",
+  "columns": [
+   "[n]"
+  ],
+  "types": [
+   "String"
+  ],
+  "rows": [
+   [
+    "'Product'[Avg Price]"
+   ]
+  ]
+ },
+ {
+  "id": "nameof-calc-literal-key",
+  "expression": "ROW(\"n\", NAMEOF('Customer'[Name]))",
+  "columns": [
+   "[n]"
+  ],
+  "types": [
+   "String"
+  ],
+  "rows": [
+   [
+    "'Customer'[Name]"
+   ]
+  ]
+ },
+ {
+  "id": "nameof-m-full-unesc",
+  "expression": "ROW(\"n\", NAMEOF([Total], FULL, UNESCAPED))",
+  "columns": [
+   "[n]"
+  ],
+  "types": [
+   "String"
+  ],
+  "rows": [
+   [
+    "SalesTotal"
+   ]
+  ]
+ },
+ {
+  "id": "nameof-m-measure-unesc",
+  "expression": "ROW(\"n\", NAMEOF([Rev]]enue], MEASURE, UNESCAPED))",
+  "columns": [
+   "[n]"
+  ],
+  "types": [
+   "String"
+  ],
+  "rows": [
+   [
+    "Rev]enue"
+   ]
+  ]
+ },
+ {
+  "id": "nameof-m-self-unesc",
+  "expression": "ROW(\"n\", NAMEOF([Rev]]enue], SELF, UNESCAPED))",
+  "columns": [
+   "[n]"
+  ],
+  "types": [
+   "String"
+  ],
+  "rows": [
+   [
+    "Rev]enue"
+   ]
+  ]
+ },
+ {
+  "id": "nameof-m-table-unesc",
+  "expression": "ROW(\"n\", NAMEOF([Rev]]enue], TABLE, UNESCAPED))",
+  "columns": [
+   "[n]"
+  ],
+  "types": [
+   "String"
+  ],
+  "rows": [
+   [
+    "Order's Lines"
+   ]
+  ]
+ },
+ {
+  "id": "nameof-m-parent",
+  "expression": "ROW(\"n\", NAMEOF([Rev]]enue], PARENT))",
+  "columns": [
+   "[n]"
+  ],
+  "types": [
+   "String"
+  ],
+  "rows": [
+   [
+    "'Order''s Lines'"
+   ]
+  ]
+ },
+ {
+  "id": "nameof-m-parent-unesc",
+  "expression": "ROW(\"n\", NAMEOF([Rev]]enue], PARENT, UNESCAPED))",
+  "columns": [
+   "[n]"
+  ],
+  "types": [
+   "String"
+  ],
+  "rows": [
+   [
+    "Order's Lines"
+   ]
+  ]
+ },
+ {
+  "id": "nameof-m-calendar",
+  "expression": "ROW(\"n\", NAMEOF([Total], CALENDAR))",
+  "error": true
+ },
+ {
+  "id": "nameof-c-column-unesc",
+  "expression": "ROW(\"n\", NAMEOF('Order''s Lines'[Unit]]Price], COLUMN, UNESCAPED))",
+  "columns": [
+   "[n]"
+  ],
+  "types": [
+   "String"
+  ],
+  "rows": [
+   [
+    "Unit]Price"
+   ]
+  ]
+ },
+ {
+  "id": "nameof-c-parent-unesc",
+  "expression": "ROW(\"n\", NAMEOF('Order''s Lines'[Unit]]Price], PARENT, UNESCAPED))",
+  "columns": [
+   "[n]"
+  ],
+  "types": [
+   "String"
+  ],
+  "rows": [
+   [
+    "Order's Lines"
+   ]
+  ]
+ },
+ {
+  "id": "nameof-c-calendar",
+  "expression": "ROW(\"n\", NAMEOF('Sales'[Amount], CALENDAR))",
+  "error": true
+ },
+ {
+  "id": "nameof-t-table",
+  "expression": "ROW(\"n\", NAMEOF('Order''s Lines', TABLE))",
+  "columns": [
+   "[n]"
+  ],
+  "types": [
+   "String"
+  ],
+  "rows": [
+   [
+    "'Order''s Lines'"
+   ]
+  ]
+ },
+ {
+  "id": "nameof-t-table-unesc",
+  "expression": "ROW(\"n\", NAMEOF('Order''s Lines', TABLE, UNESCAPED))",
+  "columns": [
+   "[n]"
+  ],
+  "types": [
+   "String"
+  ],
+  "rows": [
+   [
+    "Order's Lines"
+   ]
+  ]
+ },
+ {
+  "id": "nameof-t-self-unesc",
+  "expression": "ROW(\"n\", NAMEOF('Order''s Lines', SELF, UNESCAPED))",
+  "columns": [
+   "[n]"
+  ],
+  "types": [
+   "String"
+  ],
+  "rows": [
+   [
+    "Order's Lines"
+   ]
+  ]
+ },
+ {
+  "id": "nameof-t-column",
+  "expression": "ROW(\"n\", NAMEOF(Sales, COLUMN))",
+  "error": true
+ },
+ {
+  "id": "nameof-t-measure",
+  "expression": "ROW(\"n\", NAMEOF(Sales, MEASURE))",
+  "error": true
+ },
+ {
+  "id": "nameof-c-unesc-only",
+  "expression": "ROW(\"n\", NAMEOF('Sales'[Amount], , UNESCAPED))",
+  "error": true
+ },
+ {
+  "id": "nameof-m-unesc-only",
+  "expression": "ROW(\"n\", NAMEOF([Total], , UNESCAPED))",
+  "columns": [
+   "[n]"
+  ],
+  "types": [
+   "String"
+  ],
+  "rows": [
+   [
+    "SalesTotal"
+   ]
+  ]
+ },
+ {
+  "id": "nameof-c-lower-kw",
+  "expression": "ROW(\"n\", NAMEOF('Sales'[Amount], self, unescaped))",
+  "columns": [
+   "[n]"
+  ],
+  "types": [
+   "String"
+  ],
+  "rows": [
+   [
+    "Amount"
+   ]
+  ]
+ },
+ {
+  "id": "nameof-unqual-col-rowctx",
+  "expression": "SELECTCOLUMNS(Customer, \"n\", NAMEOF([Name]))",
+  "error": true
+ },
+ {
+  "id": "nameof-plain-table-unquoted-reserved",
+  "expression": "ROW(\"n\", NAMEOF('Date'))",
+  "columns": [
+   "[n]"
+  ],
+  "types": [
+   "String"
+  ],
+  "rows": [
+   [
+    "'Date'"
+   ]
+  ]
+ },
+ {
+  "id": "nameof-simple-table",
+  "expression": "ROW(\"n\", NAMEOF(Product))",
+  "columns": [
+   "[n]"
+  ],
+  "types": [
+   "String"
+  ],
+  "rows": [
+   [
+    "'Product'"
+   ]
+  ]
+ },
+ {
+  "id": "nameof-column-name-plain",
+  "expression": "ROW(\"n\", NAMEOF(Customer[City], SELF, UNESCAPED))",
+  "columns": [
+   "[n]"
+  ],
+  "types": [
+   "String"
+  ],
+  "rows": [
+   [
+    "City"
+   ]
+  ]
+ },
+ {
+  "id": "nameof-str-concat",
+  "expression": "ROW(\"n\", NAMEOF([Total]) & \"!\")",
+  "columns": [
+   "[n]"
+  ],
+  "types": [
+   "String"
+  ],
+  "rows": [
+   [
+    "'Sales'[Total]!"
+   ]
+  ]
+ }
+]

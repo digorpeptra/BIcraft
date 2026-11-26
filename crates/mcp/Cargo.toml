@@ -1,0 +1,27 @@
+[package]
+name = "bicraft-mcp"
+description = "L6: MCP server over the engine (stdio, and Streamable HTTP with authentication)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+bicraft-engine.workspace = true
+bicraft-http.workspace = true
+# Timestamps of the request log and the file listing through the shared calendar (G37)
+bicraft-locale.workspace = true
+bicraft-auth.workspace = true
+bicraft-mem.workspace = true
+bicraft-opc.workspace = true
+bicraft-view.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+bicraft-env.workspace = true
+# locally generated signing keys of the test identity provider (testsupport/idp.rs)
+ring = "0.17"
+# zipped projects built by the file-route tests (symlink entries, ZIP bombs)
+zip.workspace = true
+
+[lints]
+workspace = true

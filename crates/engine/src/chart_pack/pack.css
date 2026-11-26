@@ -1,0 +1,10 @@
+.bicraft-pack {
+    font-family: "Segoe UI", sans-serif;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+.bicraft-pack svg {
+    display: block;
+}

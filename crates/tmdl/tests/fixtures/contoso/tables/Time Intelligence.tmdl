@@ -1,0 +1,28 @@
+table 'Time Intelligence'
+	lineageTag: 0d6b1f7c-0000-4000-8000-000000000030
+
+	calculationGroup
+		precedence: 10
+
+		calculationItem Current = SELECTEDMEASURE()
+
+		/// Year to date.
+		calculationItem YTD = CALCULATE(SELECTEDMEASURE(), DATESYTD(Calendar[Date]))
+
+			formatStringDefinition = "#,0"
+
+	column 'Time Calculation'
+		dataType: string
+		lineageTag: 0d6b1f7c-0000-4000-8000-000000000031
+		summarizeBy: none
+		sourceColumn: Name
+		sortByColumn: Ordinal
+
+	column Ordinal
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: 0d6b1f7c-0000-4000-8000-000000000032
+		summarizeBy: sum
+		sourceColumn: Ordinal
+

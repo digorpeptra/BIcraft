@@ -1,0 +1,49 @@
+{{- if not .Values.persistence.existingClaim }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "bicraft.claimName" . }}
+  labels:
+    {{- include "bicraft.labels" . | nindent 4 }}
+  annotations:
+    {{- if .Values.persistence.keep }}
+    # The workspace's files outlive the release (delete the claim by hand to remove them).
+    helm.sh/resource-policy: keep
+    {{- end }}
+    {{- with .Values.persistence.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  accessModes:
+    {{- toYaml .Values.persistence.accessModes | nindent 4 }}
+  {{- with .Values.persistence.storageClass }}
+  storageClassName: {{ . | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.size }}
+{{- end }}
+{{- $r := .Values.recovery }}
+{{- if and $r.enabled (not $r.persistence.existingClaim) }}
+---
+# The recovery journals of unsaved edits (docs/recovery.md), apart from the workspace's files.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "bicraft.recoveryClaimName" . }}
+  labels:
+    {{- include "bicraft.labels" . | nindent 4 }}
+  {{- if $r.persistence.keep }}
+  annotations:
+    helm.sh/resource-policy: keep
+  {{- end }}
+spec:
+  accessModes:
+    {{- toYaml $r.persistence.accessModes | nindent 4 }}
+  {{- with $r.persistence.storageClass }}
+  storageClassName: {{ . | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ $r.persistence.size }}
+{{- end }}

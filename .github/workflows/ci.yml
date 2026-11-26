@@ -1,0 +1,250 @@
+# CI: the gate of a local `cargo xtask ci` (docs/ci.md), split into jobs that run side by side:
+#
+# - lint (Linux): fmt --check, layers, docs, assets, profiles, clippy -D warnings (`cargo xtask ci lint`);
+# - test (Linux, Windows): the tests with cargo-nextest, then the doctests (`cargo xtask ci test`);
+# - webui (Linux): the wasm32 check of the browser app (`cargo xtask ci webui`);
+# - msrv (Linux): build and test on the `rust-version` of the root Cargo.toml;
+# - deny (Linux): licences, sources, advisories and duplicates of the dependencies (deny.toml,
+#   `cargo xtask deny` locally); a new advisory fails it without any change here.
+#
+# The heavy tests (big-volume variants, long fuzz loops) run nightly instead
+# (.github/workflows/nightly.yml, `cargo xtask heavy`), together with the gate on the latest
+# stable Rust.
+#
+# Tests never need Power BI Desktop or local test data: `BICRAFT_TESTDATA` is unset here, so
+# the real-file tests print a note and skip. The SQLite writer tests use Python's `sqlite3` as an
+# oracle when `python3`/`python` is on PATH (set up below); without it they skip those checks.
+#
+# Caches (Swatinem/rust-cache, compiled dependencies): only pushes to main save them; pull
+# requests restore main's. Each job has its own entry, keyed on the OS, the toolchain, Cargo.lock,
+# the member manifests and a hash of the root Cargo.toml's [profile.*] sections (a profile change
+# starts afresh, a dependency bump in the root manifest does not). The toolchain is pinned below,
+# so a new Rust release does not empty every cache; bump RUST_TOOLCHAIN deliberately.
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# A new push to a pull request cancels its running checks; runs on main always finish (they
+# save the caches).
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  # The toolchain of the lint, test and webui jobs (see the header).
+  RUST_TOOLCHAIN: "1.99.1"
+  # Keep in sync with `rust-version` in the root Cargo.toml.
+  RUST_MSRV: "1.95"
+  # Keep in sync with NEXTEST_VERSION in xtask/src/ci.rs and .config/nextest.toml.
+  NEXTEST: cargo-nextest@0.9.150
+  # Keep in sync with CARGO_DENY_VERSION in xtask/src/deny.rs.
+  CARGO_DENY: cargo-deny@0.20.2
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: "0"
+  CARGO_NET_RETRY: "10"
+  RUST_BACKTRACE: "1"
+  # Bump to start every dependency cache afresh.
+  CACHE_VERSION: v1
+
+jobs:
+  lint:
+    name: lint (fmt, layers, docs, profiles, clippy)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+
+      - name: Install Rust
+        shell: bash
+        run: |
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal --no-self-update \
+            --component clippy --component rustfmt
+          rustup default "$RUST_TOOLCHAIN"
+
+      - name: Cache profile key
+        id: profiles
+        shell: bash
+        run: |
+          key=$(awk '/^\[/{p=($0 ~ /^\[profile[.]/)} p' Cargo.toml | sha256sum | cut -c1-16)
+          echo "key=$key" >> "$GITHUB_OUTPUT"
+
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          prefix-key: ${{ env.CACHE_VERSION }}-rust
+          shared-key: lint-${{ steps.profiles.outputs.key }}
+          save-if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+          cache-on-failure: true
+
+      - name: cargo xtask ci lint
+        run: cargo xtask ci lint
+
+      - name: Lockfile unchanged
+        run: git diff --exit-code -- Cargo.lock
+
+  # Licences, sources, RustSec advisories and duplicate majors of the dependency graph
+  # (deny.toml, `cargo xtask deny` locally). No Rust build: install-action fetches the prebuilt
+  # cargo-deny release, and the advisory database is fetched fresh on each run.
+  deny:
+    name: deny (licences, sources, advisories)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+
+      - uses: taiki-e/install-action@c509219cf42fba86913069efd0ade2458c59337b # v2.90.1
+        with:
+          tool: ${{ env.CARGO_DENY }}
+
+      - name: cargo deny check
+        run: cargo deny --all-features --locked check
+
+  test:
+    name: test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+
+      - name: Install Rust
+        shell: bash
+        run: |
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal --no-self-update
+          rustup default "$RUST_TOOLCHAIN"
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.x"
+
+      # No debug info on Windows: writing PDBs for every test binary is a large share of the
+      # Windows build. A panic still names its file and line; Linux keeps line tables.
+      - name: Windows build settings
+        if: runner.os == 'Windows'
+        shell: bash
+        run: echo "CARGO_PROFILE_DEV_DEBUG=0" >> "$GITHUB_ENV"
+
+      - name: Cache profile key
+        id: profiles
+        shell: bash
+        run: |
+          key=$(awk '/^\[/{p=($0 ~ /^\[profile[.]/)} p' Cargo.toml | sha256sum | cut -c1-16)
+          echo "key=$key" >> "$GITHUB_OUTPUT"
+
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          prefix-key: ${{ env.CACHE_VERSION }}-rust
+          shared-key: test-${{ steps.profiles.outputs.key }}
+          save-if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+          cache-on-failure: true
+
+      - uses: taiki-e/install-action@c509219cf42fba86913069efd0ade2458c59337b # v2.90.1
+        with:
+          tool: ${{ env.NEXTEST }}
+
+      - name: cargo xtask ci test
+        run: cargo xtask ci test
+
+      - name: Test report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: junit-${{ matrix.os }}
+          path: target/nextest/ci/junit.xml
+          if-no-files-found: ignore
+
+  webui:
+    name: webui (wasm32 check)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+
+      - name: Install Rust
+        shell: bash
+        run: |
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal --no-self-update \
+            --target wasm32-unknown-unknown
+          rustup default "$RUST_TOOLCHAIN"
+
+      - name: Cache profile key
+        id: profiles
+        shell: bash
+        run: |
+          key=$(awk '/^\[/{p=($0 ~ /^\[profile[.]/)} p' Cargo.toml | sha256sum | cut -c1-16)
+          echo "key=$key" >> "$GITHUB_OUTPUT"
+
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          prefix-key: ${{ env.CACHE_VERSION }}-rust
+          shared-key: webui-${{ steps.profiles.outputs.key }}
+          save-if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+          cache-on-failure: true
+
+      - name: cargo xtask ci webui
+        run: cargo xtask ci webui
+
+  msrv:
+    name: MSRV (ubuntu-latest)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+
+      - name: Install Rust
+        shell: bash
+        run: |
+          rustup toolchain install "$RUST_MSRV" --profile minimal --no-self-update
+          rustup default "$RUST_MSRV"
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.x"
+
+      - name: Cache profile key
+        id: profiles
+        shell: bash
+        run: |
+          key=$(awk '/^\[/{p=($0 ~ /^\[profile[.]/)} p' Cargo.toml | sha256sum | cut -c1-16)
+          echo "key=$key" >> "$GITHUB_OUTPUT"
+
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          prefix-key: ${{ env.CACHE_VERSION }}-rust
+          shared-key: msrv-${{ steps.profiles.outputs.key }}
+          save-if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+          cache-on-failure: true
+
+      - uses: taiki-e/install-action@c509219cf42fba86913069efd0ade2458c59337b # v2.90.1
+        with:
+          tool: ${{ env.NEXTEST }}
+
+      # fmt and clippy are checked on the pinned stable only: their output changes between
+      # releases. The whole workspace shares one rust-version (1.95, for egui), so the test build
+      # compiles every library, binary, example and test target and is also the MSRV build check.
+      # The heavy tests run nightly, as in the test job.
+      - name: build and test
+        shell: bash
+        run: |
+          filter=$(cargo xtask heavy --filter-out)
+          cargo nextest run --workspace --locked --profile ci --no-tests warn -E "$filter"
+          cargo test --workspace --locked --doc

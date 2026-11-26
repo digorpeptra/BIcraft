@@ -1,0 +1,1 @@
+ROWNUMBER(ALLSELECTED(Product[Product]), ORDERBY(Product[Product]))

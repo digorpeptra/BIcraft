@@ -1,0 +1,11 @@
+[package]
+name = "bicraft-env"
+description = "Foundation (below L0): reads bicraft's environment variables, with the pre-rename names as fallback until 2027-01-31"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+
+[lints]
+workspace = true

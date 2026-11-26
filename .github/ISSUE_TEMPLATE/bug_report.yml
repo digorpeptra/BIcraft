@@ -1,0 +1,79 @@
+name: Bug report
+description: BIcraft did something wrong, crashed, or wrote a file Power BI Desktop refuses.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. Two rules before you start:
+        - **Security problems go to a private advisory** (see SECURITY.md), not here.
+        - **Never attach client files or Power BI files authored by others.** Attach a file you
+          made yourself, as small as you can, or describe the shape of the file instead
+          (tables, columns, visuals, what the measure does).
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what BIcraft did, and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: How to reproduce
+      description: >-
+        The commands, MCP calls or UI steps that show the problem, from the start. For the CLI or
+        MCP, paste the command or the JSON request and its answer.
+      placeholder: |
+        1. bicraft inspect model.pbix
+        2. ...
+    validations:
+      required: true
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Where
+      description: Which part of BIcraft shows the problem.
+      multiple: true
+      options:
+        - CLI (bicraft)
+        - MCP server (bicraft mcp)
+        - Server mode (bicraft serve)
+        - Desktop app
+        - Browser app or live viewer
+        - A file BIcraft wrote (opened in Power BI Desktop)
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: BIcraft version or commit
+      description: The output of `bicraft --version`, or the commit you built.
+    validations:
+      required: true
+  - type: input
+    id: platform
+    attributes:
+      label: Platform
+      placeholder: Windows 11, Ubuntu 24.04, ...
+    validations:
+      required: true
+  - type: input
+    id: desktop
+    attributes:
+      label: Power BI Desktop version
+      description: Only when Desktop is involved (Help > About); formats change between releases.
+  - type: textarea
+    id: logs
+    attributes:
+      label: Output or error messages
+      description: Error text, a panic message or a backtrace. Remove paths and names that identify people or clients.
+      render: text
+  - type: checkboxes
+    id: data
+    attributes:
+      label: Data
+      options:
+        - label: This report and its attachments contain no client data and no Power BI files authored by others.
+          required: true

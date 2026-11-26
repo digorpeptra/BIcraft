@@ -1,0 +1,60 @@
+/// model
+/// description
+model Model
+	culture: en-US
+	collation: Latin1_General_CI_AS
+	defaultPowerBIDataSourceVersion: powerBI_V3
+	discourageImplicitMeasures
+	dataSourceVariablesOverrideBehavior: allow
+	dataSourceDefaultMaxConnections: 5
+	sourceQueryCulture: fr-FR
+	mAttributes: [ a = 1 ]
+	discourageCompositeModels
+	disableAutoExists: 1
+	maxParallelismPerRefresh: 3
+	maxParallelismPerQuery: 2
+	valueFilterBehavior: independent
+	selectionExpressionBehavior: nonVisual
+	metadataAccessPolicy: basic
+	dataAccessOptions
+		legacyRedirects
+		returnErrorValuesAsNull
+
+/// qg
+queryGroup Staging
+
+	annotation QA = 1
+
+queryGroup Staging\Sub
+
+queryGroup Parameters
+
+extendedProperty MEP = m
+
+/// bd
+bindingInfo B1
+	type: dataBindingHint
+	connectionId: conn-1
+
+annotation PBI_QueryOrder = ["Sales Staging","Param"]
+
+annotation __PBI_TimeIntelligenceEnabled = 1
+
+ref table 'Order Lines'
+ref table Product
+ref table LocalDate
+ref table 'Time Intelligence'
+ref table Entity
+ref table Legacy
+ref table Incremental
+ref table 'Fiscal Calendar'
+ref table 'Calc Table'
+
+ref role 'Sales Reader'
+ref role Admins
+
+ref perspective 'Sales View'
+
+ref cultureInfo en-US
+ref cultureInfo fr-FR
+

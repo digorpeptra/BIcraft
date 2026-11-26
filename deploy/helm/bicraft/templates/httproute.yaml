@@ -1,0 +1,33 @@
+{{- if .Values.httpRoute.enabled }}
+{{- $svc := include "bicraft.fullname" . -}}
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ $svc }}
+  labels:
+    {{- include "bicraft.labels" . | nindent 4 }}
+  {{- with .Values.httpRoute.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  parentRefs:
+    {{- toYaml .Values.httpRoute.parentRefs | nindent 4 }}
+  {{- with .Values.httpRoute.hostnames }}
+  hostnames:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: {{ printf "/w/%s/" .Values.workspace.id }}
+        - path:
+            type: PathPrefix
+            value: /.well-known/oauth-protected-resource
+      timeouts:
+        request: {{ .Values.httpRoute.timeout }}
+      backendRefs:
+        - name: {{ $svc }}
+          port: {{ int .Values.service.port }}
+{{- end }}

@@ -1,0 +1,1 @@
+MAXX(TOPN(1, VALUES(Product[Product]), [Total Sales]), Product[Product])

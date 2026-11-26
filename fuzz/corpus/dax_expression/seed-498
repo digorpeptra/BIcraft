@@ -1,0 +1,1 @@
+DIVIDE([Total Sales], CALCULATE([Total Sales], ALLSELECTED(Product[Category])))

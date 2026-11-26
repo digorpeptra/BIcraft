@@ -1,0 +1,6 @@
+Vendored from the npm package powerbi-visuals-api 5.3.0
+(https://registry.npmjs.org/powerbi-visuals-api/-/powerbi-visuals-api-5.3.0.tgz, file
+schema.capabilities.json; source repository https://github.com/microsoft/powerbi-visuals-api),
+under the MIT License in LICENSE. The file is unmodified. Used by the engine's tests only (not
+embedded in the binary): BIcraft's visuals' capabilities.json is validated against it
+(crates/engine/tests/report/visual_runtime_tests.rs).

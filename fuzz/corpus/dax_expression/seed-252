@@ -1,0 +1,1 @@
+AVERAGEX(Sales, DATEDIFF(RELATED(Customer[BirthDate]), Sales[OrderDate], YEAR))

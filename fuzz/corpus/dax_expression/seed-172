@@ -1,0 +1,1 @@
+SUMX(Customer, RELATED(Product[ListPrice]))

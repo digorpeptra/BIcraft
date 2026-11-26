@@ -1,0 +1,311 @@
+{
+  "name": "",
+  "culture": "en-US",
+  "tables": [
+    {
+      "name": "Imp",
+      "is_hidden": false,
+      "columns": [
+        {
+          "name": "RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61",
+          "data_type": "int64",
+          "is_hidden": true,
+          "extra": {
+            "isKey": true,
+            "isNullable": false,
+            "isUnique": true,
+            "type": "rowNumber"
+          }
+        },
+        {
+          "name": "A",
+          "data_type": "int64",
+          "source_column": "A",
+          "is_hidden": false,
+          "annotations": [
+            {
+              "name": "SummarizationSetBy",
+              "value": "Automatic"
+            }
+          ],
+          "extra": {
+            "changedProperties": [
+              {
+                "property": "Name"
+              },
+              {
+                "property": "IsHidden"
+              }
+            ]
+          }
+        },
+        {
+          "name": "B",
+          "data_type": "string",
+          "source_column": "B",
+          "is_hidden": false
+        },
+        {
+          "name": "C",
+          "data_type": "double",
+          "expression": "[A] * 1.5",
+          "is_hidden": false
+        }
+      ],
+      "measures": [],
+      "partitions": [
+        {
+          "name": "Imp-1",
+          "mode": "import",
+          "source_type": "m",
+          "expression": "let\n    Source = #table({\"A\", \"B\"}, {{1, \"x\"}})\nin\n    Source",
+          "extra": {
+            "annotations": [
+              {
+                "name": "PartNote",
+                "value": "p"
+              }
+            ],
+            "description": "m part"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Legacy",
+      "is_hidden": false,
+      "columns": [
+        {
+          "name": "RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61",
+          "data_type": "int64",
+          "is_hidden": true,
+          "extra": {
+            "isKey": true,
+            "isNullable": false,
+            "isUnique": true,
+            "type": "rowNumber"
+          }
+        },
+        {
+          "name": "X",
+          "data_type": "int64",
+          "source_column": "X",
+          "is_hidden": false
+        }
+      ],
+      "measures": [],
+      "partitions": [
+        {
+          "name": "Legacy",
+          "source_type": "query",
+          "extra": {
+            "dataView": "full"
+          },
+          "source_extra": {
+            "dataSource": "LegacyDS",
+            "query": "SELECT 1 AS X"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Inc",
+      "is_hidden": false,
+      "columns": [
+        {
+          "name": "RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61",
+          "data_type": "int64",
+          "is_hidden": true,
+          "extra": {
+            "isKey": true,
+            "isNullable": false,
+            "isUnique": true,
+            "type": "rowNumber"
+          }
+        },
+        {
+          "name": "D",
+          "data_type": "dateTime",
+          "source_column": "D",
+          "is_hidden": false
+        }
+      ],
+      "measures": [],
+      "partitions": [
+        {
+          "name": "2024",
+          "mode": "import",
+          "source_type": "policyRange",
+          "source_extra": {
+            "end": "2025-01-01T00:00:00",
+            "granularity": "year",
+            "refreshBookmark": "bm1",
+            "start": "2024-01-01T00:00:00"
+          }
+        },
+        {
+          "name": "2025Q1",
+          "mode": "import",
+          "source_type": "policyRange",
+          "source_extra": {
+            "end": "2025-04-01T00:00:00",
+            "granularity": "quarter",
+            "start": "2025-01-01T00:00:00"
+          }
+        }
+      ],
+      "extra": {
+        "refreshPolicy": {
+          "policyType": "basic",
+          "rollingWindowGranularity": "year",
+          "rollingWindowPeriods": 2,
+          "incrementalGranularity": "day",
+          "incrementalPeriods": 12,
+          "incrementalPeriodsOffset": -2,
+          "sourceExpression": "let\n    Source = #table({\"D\"}, {}),\n    F = Table.SelectRows(Source, each [D] >= RangeStart and [D] < RangeEnd)\nin\n    F"
+        }
+      }
+    },
+    {
+      "name": "Calc",
+      "is_hidden": false,
+      "columns": [
+        {
+          "name": "RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61",
+          "data_type": "int64",
+          "is_hidden": true,
+          "extra": {
+            "isKey": true,
+            "isNullable": false,
+            "isUnique": true,
+            "type": "rowNumber"
+          }
+        },
+        {
+          "name": "V",
+          "data_type": "int64",
+          "source_column": "[V]",
+          "is_hidden": false,
+          "extra": {
+            "isNameInferred": true,
+            "type": "calculatedTableColumn"
+          }
+        },
+        {
+          "name": "W",
+          "data_type": "int64",
+          "source_column": "[Value]",
+          "is_hidden": false,
+          "extra": {
+            "isDataTypeInferred": true,
+            "type": "calculatedTableColumn"
+          }
+        }
+      ],
+      "measures": [
+        {
+          "name": "M1",
+          "expression": "1",
+          "lineage_tag": "33333333-3333-4333-8333-333333333333",
+          "is_hidden": false,
+          "extra": {
+            "dataCategory": "Uncategorized",
+            "sourceLineageTag": "src"
+          }
+        }
+      ],
+      "partitions": [
+        {
+          "name": "Calc",
+          "source_type": "calculated",
+          "expression": "SELECTCOLUMNS(GENERATESERIES(1, 3), \"V\", [Value], \"Value\", [Value])"
+        }
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "name": "rel1",
+      "from_table": "Imp",
+      "from_column": "A",
+      "to_table": "Calc",
+      "to_column": "V",
+      "is_active": true,
+      "annotations": [
+        {
+          "name": "RelNote",
+          "value": "r"
+        }
+      ]
+    }
+  ],
+  "expressions": [
+    {
+      "name": "RangeStart",
+      "kind": "m",
+      "expression": "#datetime(2024, 1, 1, 0, 0, 0) meta [IsParameterQuery=true, Type=\"DateTime\", IsParameterQueryRequired=true]"
+    },
+    {
+      "name": "RangeEnd",
+      "kind": "m",
+      "expression": "#datetime(2025, 1, 1, 0, 0, 0) meta [IsParameterQuery=true, Type=\"DateTime\", IsParameterQueryRequired=true]",
+      "description": "end"
+    }
+  ],
+  "extra": {
+    "name": "Model",
+    "dataSources": [
+      {
+        "type": "structured",
+        "name": "SQL/srv;db",
+        "description": "structured ds 2",
+        "connectionDetails": {
+          "protocol": "tds",
+          "address": {
+            "server": "srv",
+            "database": "db"
+          },
+          "authentication": null,
+          "query": null
+        },
+        "annotations": [
+          {
+            "name": "DsNote",
+            "value": "ds"
+          },
+          {
+            "name": "Ds2",
+            "value": "x"
+          }
+        ]
+      },
+      {
+        "name": "LegacyDS",
+        "description": "legacy ds",
+        "impersonationMode": "impersonateServiceAccount",
+        "timeout": 60,
+        "maxConnections": 4
+      }
+    ],
+    "defaultPowerBIDataSourceVersion": "powerBI_V3",
+    "functions": [
+      {
+        "name": "DoubleIt",
+        "description": "triples",
+        "expression": "(x) => x * 3",
+        "annotations": [
+          {
+            "name": "FnNote",
+            "value": "f2"
+          }
+        ]
+      },
+      {
+        "name": "AddOne",
+        "expression": "(x) => x + 1",
+        "isHidden": true,
+        "lineageTag": "55555555-5555-4555-8555-555555555555"
+      }
+    ]
+  }
+}

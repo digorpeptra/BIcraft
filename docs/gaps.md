@@ -1,0 +1,96 @@
+# Known gaps
+
+What BIcraft cannot do yet, does slowly, or has not verified, one row per open gap. Each row says
+what is left in one line and links to the full entry in [gaps-open.md](gaps-open.md) (or to the
+note the gap belongs to). Closed gaps, their entries and the full summary table as it stood on
+2026-11-25 are in [history/gaps-done.md](history/gaps-done.md).
+
+**Priority** is the impact on users: **P0** blocks a common workflow; **P1** hurts a common
+workflow or blocks a less common one; **P2** hurts a less common workflow, or is a correctness
+risk not observed yet; **P3** nice to have.
+
+When work lands, update the gap's entry in `gaps-open.md` and its row here; when a gap closes,
+move its entry, whole, to `history/gaps-done.md` and drop its row.
+
+## Open gaps
+
+| # | Priority | Area | Left | Entry |
+|---|---|---|---|---|
+| G8 | P1 | repo, cli | No published binaries; the CI and release workflows have never run (nothing is published by policy) | [entry](gaps-open.md#g8-distribution-m71-workflows-not-run) |
+| G10 | P1 | vertipaq, abf | DirectQuery tables are not executed (visuals say "not evaluated: DirectQuery") | [entry](gaps-open.md#g10-large-model-storage-layouts-have-not-been-seen--fixed) |
+| G12 | P3 | pbixwriter, engine | A thin report against a published model is not pursued (maintainers' decision): Desktop opens BIcraft's `powerbi://` connection as a blank report | [entry](gaps-open.md#g12-thin-pbix-not-yet-opened-against-a-published-model-m32) |
+| G14 | P3 | engine | Date variation names and legacy report measures not tried in Desktop; scatter with one aggregation in two roles and one-to-one single-direction relationships not checked | [entry](gaps-open.md#g14-report-validation-does-not-check-everything) |
+| G16 | P2 | metadata | A few `metadata.sqlitedb` objects stay opaque (secrets kept byte for byte; Direct Lake mapped from TOM only) | [entry](gaps-open.md#g16-metadatasqlitedb-objects-that-are-not-mapped--mostly-fixed) |
+| G17 | P2 | xpress9, abf, metadata, vertipaq | Other Desktop releases and Excel CRC markers not checked | [entry](gaps-open.md#g17-writer-behaviour-desktop-has-not-confirmed--mostly-fixed) |
+| G19 | P2 | dax | Five justified arity deviations in the DAX type vocabulary | [entry](gaps-open.md#g19-gaps-in-the-dax-type-vocabulary--mostly-fixed) |
+| G21 | P2 | data, databricks, engine | Connectors other than Databricks are reported, never run; Databricks not tried against a real workspace; M right/full joins and a few conversions | [entry](gaps-open.md#g21-bicraft-data-evaluates-literals-only-mostly-fixed-2026-10-14) |
+| G22 | P2 | legal | Counsel review and the Patent Map check | [entry](gaps-open.md#g22-patent-and-osp-coverage) |
+| G29 | P2 | engine, view | Highlight by two evaluations, multi-table multi-point supersets, points in matrices, scatter, waterfall and small multiples; `mcp --view` read-only; written `highlight` not compared with Desktop | [entry](gaps-open.md#g29-viewer-interactivity--first-lot-done-aligned-on-the-interaction-oracle) |
+| G30 | P1 | engine | Oracle verdicts for the 2026-11-25 cases (leftovers, calendar-based time intelligence, `FORMAT` suffix, nesting error) | [entry](gaps-open.md#g30-dax-evaluator-coverage--mostly-fixed) |
+| G31 | P1 | engine | Grouped scans at 100 M rows, very high cardinalities, result serialization, data beyond RAM; halving the times | [entry](gaps-open.md#g31-dax-evaluation-speed-on-large-models--fixed-for-the-bench-next-steps-open) |
+| G32 | P1 | engine | Distinct counts under other filters, memory budget at 100 M, aggregations not kept across sessions, no eager build at refresh | [entry](gaps-open.md#g32-report-derived-aggregations--done-for-the-bench-some-cases-left-to-the-fact) |
+| G34 | P2 | engine, render | Desktop's scroll steps, negative bars, axis range, conditional colours, tooltip fields (need Desktop) | [entry](gaps-open.md#g34-decomposition-trees--first-lot-done) |
+| G36 | P2 | mcp, ui, web | An upload over a file a document view edits is refused (409), not merged | [entry](gaps-open.md#g36-browser-document-tabs-as-parallel-views--done) |
+| G38 | P3 | repo | Workspace crates not `publish = false` (`wildcards = "allow"`) | [entry](gaps-open.md#g38-dependencies-and-repository-hygiene-left-after-m115-2026-11-05) |
+| G40 | P2 | engine, mcp, ui | A never-saved model is recovered into an open tab only on the desktop; recovery copies keep no `data_root` or cache file; the listing cannot name the instance holding a journal | [entry](gaps-open.md#g40-auto-recovery-and-autosave--done) |
+| G42 | P2 | dax, engine | The INFO rules and columns not measured in Desktop | [entry](gaps-open.md#g42-report-metadata-as-fields-last-refresh-info-functions--done-not-measured-in-desktop) |
+| G43 | P2 | render | CJK not bundled, monochrome emoji, no per-weight symbols | [entry](gaps-open.md#g43-report-text-glyphs--mostly-fixed) |
+| G41 | P3 | ui, engine | Readers cannot change unlocked filters for their session; inferred relative filter shapes not checked against Desktop | [entry](gaps-open.md#g41-editing-a-visuals-fields-by-hand-m1112-m1113--done) |
+| G45 | P2 | ui, engine | Re-derived columns' order unchecked against Desktop; no folding or format-on-commit; Desktop's error wording not reproduced | [entry](gaps-open.md#g45-editing-dax-in-a-formula-bar-m1114--done) |
+| G46 | P1 | ui, engine, render, data | Parity holes: OAuth sign-in, the privacy firewall, the Power Query editor's remaining tools (G67) | [entry](gaps-open.md#g46-desktop-features-missing-for-parity--reviewed-2026-11-05-rescored-2026-11-18) |
+| G47 | P2 | ui, engine | Icons inside the visual's corner, groups neither sources nor targets, no oracle state for the report setting | [entry](gaps-open.md#g47-editing-interactions-by-hand-m1115--done) |
+| G51 | P1 | engine, render, ui | page.html's drill header icons, cross-report drillthrough, summarized drillthrough fields, the Desktop oracle | [entry](gaps-open.md#g51-reader-drill-drillthrough-and-report-page-tooltips-m1119--done-documented-not-measured) |
+| G48 | P2 | ui, engine | No smart-guides switch, grid drawn over the page, Lock objects not compared with Desktop, pasted images and bookmarks across files, snapping thresholds | [entry](gaps-open.md#g48-canvas-editing-m1116--done) |
+| G50 | P1 | engine, pbix, ui | Desktop opens tables over 2^20 rows since the segment-map fix; RLS and Excel checks left; rows held in memory per table; 16.7 M rows per table | [entry](gaps-open.md#g50-pbix-refresh-from-local-sources-m1118--done-opened-in-desktop-up-to-10-m-rows-a-table) |
+| G52 | P2 | ui, engine, render | List key not seen in a Desktop file, Q&A actions refused by the viewer, some button-state drawing, shapes not checked against Desktop | [entry](gaps-open.md#g52-rich-content-text-boxes-images-buttons-page-format-m1120--done) |
+| G54 | P3 | ui, engine | Desktop's shapes of the whole-visual and Percent fx unchecked; gradient Percent stops, KPI neutral colour | [entry](gaps-open.md#g54-format-visual-pane-in-the-sidebar-m1122--done-desktops-shapes-of-the-newer-fx-unchecked) |
+| G55 | P3 | ui, engine, view | Desktop's drill-in-bookmark shape and button effect defaults unchecked; drill mode, action button effects | [entry](gaps-open.md#g55-bookmarks-and-sync-slicers-panes-m1124-m1125--done-desktops-drill-in-bookmark-shape-and-button-effects-unchecked) |
+| G33 | P3 | render, engine, ui | Measures in Explain by, Expand by for a categorical target, counts, drill into an influencer, the app toggle, a layout comparison | [entry](gaps-open.md#g33-key-influencers-visual--placeholder-and-opt-in-estimate-2026-11-04) |
+| G39 | P3 | ui, mcp, view | No headless `ui.render`; the Firefox test is not in CI | [entry](gaps-open.md#g39-ui-control-channel-m116--done-on-bicraft-serve-too) |
+| G49 | P2 | ui, engine | Measure filters on cards and tables RELATED cannot reach not applied; records' table is the first measure's home; one-shot previews | [entry](gaps-open.md#g49-data-view-query-preview-and-see-records-m1117--done) |
+| G56 | P3 | engine, render | Error bars with a legend or on stacked and combo columns, anomaly explanations, shapes unchecked against Desktop | [entry](gaps-open.md#g56-analytics-beyond-reference-lines-2026-11-18) |
+| G53 | P2 | render, engine, ui | PDF/A and PDF/UA, CFF faces, Desktop's flattened and current-layout data export, export from page.html, a black-box comparison | [entry](gaps-open.md#g53-export-to-pdf-and-of-a-visuals-data-m1121--done-with-print-outline-and-tags-pdfua-left) |
+| G57 | P2 | report, engine | Not compared with a Desktop-saved file; matrix subtotal levels; hierarchy-level rows in the written Scope | [entry](gaps-open.md#g57-show-items-with-no-data-2026-11-18) |
+| G58 | P2 | data, ui | No other database or online connectors in the gallery; Navigator M shapes not compared with Desktop's | [entry](gaps-open.md#g58-get-data-and-the-navigator-2026-11-18) |
+| G60 | P3 | ui, engine | No Optimize tab of its own, no per-visual Refresh, tooltips and formatting not blocked while paused, Apply buttons not shown, nothing compared with Desktop | [entry](gaps-open.md#g60-optimize-ribbon-2026-11-18) |
+| G61 | P2 | ui, engine | Which diagram Desktop treats as the all-tables layout, selection behaviour unchecked; key column, row label and featured table in the Properties pane | [entry](gaps-open.md#g61-model-explorer-and-calculation-groups-in-the-model-view-2026-11-18) |
+| G62 | P3 | engine, ui | Analyze on a data point (explain an increase, find a different distribution): nothing in BIcraft | [entry](gaps-open.md#g62-analyze-insights-on-a-data-point-2026-11-18) |
+| G63 | P3 | engine, ui | Service-side report settings written but not acted on by the viewer; absent-key defaults inferred; some `settings` keys have no parameter | [entry](gaps-open.md#g63-report-settings-left-2026-11-18) |
+| G64 | P2 | engine, render | The PBIX legacy layout writer does not write field parameters; the what-if slicer draws as a list; hierarchies in field parameters | [entry](gaps-open.md#g64-field-and-what-if-parameters-left-2026-11-18) |
+| G65 | P2 | engine | Cross-table secured filters, one-to-one relationships and the blank row not checked against the engine; no signed-in user outside View as | [entry](gaps-open.md#g65-view-as-roles-left-2026-11-18) |
+| G66 | P3 | ui, engine | No render time in the browser; render times only after Refresh visuals; copy-query DAX leaves out some filters; not run in a live browser | [entry](gaps-open.md#g66-performance-analyzer-left-2026-11-18) |
+| G67 | P2 | data, ui | Query groups, Enable load, localized step names, multi-partition reload; generated M not compared with Desktop's | [entry](gaps-open.md#g67-power-query-editor-left-2026-11-18) |
+| G68 | P1 | data, sqlserver | Tested only against a fake TDS server; no Windows or Azure AD authentication; privacy levels not enforced | [entry](gaps-open.md#g68-sql-server-connector-left-2026-11-18) |
+| G69 | P1 | data, webdata, engine | Tested only against a test server; no OAuth sign-in, no privacy firewall, no `Web.Page` or `Xml.Tables`, OData JSON v4 only, no SharePoint lookups | [entry](gaps-open.md#g69-web-odata-and-sharepoint-connectors-left-2026-11-19-2026-11-20) |
+| G70 | P2 | ui | Release build, GPU and OS event loop, the browser shell, the diagram, memory, a baseline and a soak not measured; Power Query preview slow at 1 M rows; the row-by-row fallback (over 20,000 groups) still capped at 2 M rows a table | [entry](gaps-open.md#g70-ui-speed-tests-left-2026-11-19) |
+| G71 | P2 | engine, dax, ui | Not checked against the engine; navigation along `ROWPAGES`; no live preview in the edit window | [entry](gaps-open.md#g71-visual-calculations-left-2026-11-19) |
+| G72 | P2 | ui, engine, pbir | Desktop's grid rounding and canvas growth unobserved; no Auto-create or remove-all; no copy, paste or group on the phone canvas | [entry](gaps-open.md#g72-mobile-layout-view-left-2026-11-19) |
+| G73 | P2 | ui, render, visuals | Built-in themes not opened in Desktop; no Windows contrast-theme detection; no high-contrast option in `bicraft render` and the HTML viewer | summary in [history](history/gaps-done.md#summary-as-of-2026-11-25) |
+| G74 | P3 | xtask, view | HTML viewer only (not the egui app), no export walkthrough, per-machine baselines, Windows only | [entry](gaps-open.md#g74-web-viewer-regression-checks-left-2026-11-19) |
+| G75 | P2 | engine, ui | No design state for a list group listing a blank; no number of bins on dates; no grouping of selected data points | [entry](gaps-open.md#g75-groups-and-bins-left-2026-11-19) |
+| G76 | P2 | engine, ui | BIcraft's own templates, not compared with quick measures Desktop wrote | [entry](gaps-open.md#g76-quick-measures-left-2026-11-19) |
+| G80 | P2 | engine, ui | Desktop's own import dialog not tried; no npm packages, LESS, `.tsx` or type checking; a custom visual's JavaScript is never run in BIcraft | [entry](gaps-open.md#g80-custom-visuals-left-2026-11-19) |
+| G81 | P2 | ui, engine | A PBIX/PBIT keeps the query tabs for the session only; no Data pane, quick queries, Comment or Find and replace | [entry](gaps-open.md#g81-dax-query-view-left-2026-11-20) |
+| G84 | P3 | ui | The Menu key, focus on the canvas's visuals, Alt+Shift+1/9; not run with screen readers or in a browser | [entry](gaps-open.md#g84-app-keyboard-navigation-left-2026-11-20) |
+| G92 | P2 | render, engine, view | Geocoding beyond countries and Natural Earth places, built-in shape maps, online tiles, maps from a URL, not compared with Desktop | [entry](gaps-open.md#g92-map-visuals-left-2026-11-20) |
+| G99 | P3 | render | No scrolling, zoom axis or click to expand; not compared with Desktop's drawing | [entry](gaps-open.md#g99-gantt-visual-2026-11-20) |
+| G100 | P2 | powerpivot, engine | Not pursued (maintainers' decision): Power Pivot is not developed further; connections, cultures and perspectives not read | [entry](gaps-open.md#g100-excel-power-pivot-import-left-2026-11-20) |
+| G101 | P3 | render | Greek, Cyrillic and Vietnamese fall through to Noto Sans; no kerning; no stand-ins for other Office fonts; widths not measured against Desktop | [render.md](render.md) |
+| G102 | P2 | engine, ui | No fix for some reference kinds; not compared with what Desktop flags on opening such a report | [mcp.md](mcp.md) |
+| G103 | P2 | engine | Read from public descriptions only; no Navigator after a `.pbids`; VPAX statistics only in the `file.open` result | [entry](gaps-open.md#g103-more-readers-left-2026-11-20) |
+| G104 | P2 | engine | Some navigation literals, M literal data and DataMashup parts not redacted; not tried on a Desktop-saved PBIX | [entry](gaps-open.md#g104-redact-secrets-left-2026-11-20) |
+| G105 | P2 | render, engine | French names not seen in Desktop; high contrast and landing page unchecked; no stacked bars, sorting, small multiples or second y axis | [entry](gaps-open.md#g105-spec-visual-left-2026-11-23) |
+| G106 | P2 | ui, engine | Desktop UI groups still missing or partial (Power Query Statistics and Parse menus, DAX and TMDL editor tools, Options beyond Report settings); some dialogs not reached | [entry](gaps-open.md#g106-sparklines-and-data-format-2026-11-23) |
+| G107 | P3 | tests | The corpus upload and a clean `fetch`; no entry with a refreshed PBIP cache, DirectQuery, field parameters, bookmarks or a legacy layout | [corpus.md](corpus.md) |
+| G108 | P3 | M | A few M arguments not evaluated; parameter types not checked; 539 `#shared` library functions missing | [dax-oracle.md](dax-oracle.md) |
+| G109 | P2 | render, engine | Org chart drag and images, Venn with four sets or more, calendar week ranges and fiscal years; high contrast not checked in Desktop | [entry](gaps-open.md#g109-chart-pack-part-b-left-2026-11-23) |
+| G110 | P2 | render, engine | Dumbbell 1.3.2.0 (labels that cannot fit left out, inside the plot) not yet seen in Desktop; English and French names only; high contrast not checked in Desktop; no notches, violin or density histogram; bin and value caps | [formats/bicraft-visuals.md](formats/bicraft-visuals.md) |
+| G111 | P3 | engine | Desktop not checked on a report whose package was kept at a newer version; pane icons, now darker and bolder, still soft when Desktop upscales them | [entry](gaps-open.md#g111-bicraft-visuals-built-in-left-2026-11-23) |
+| G112 | P3 | engine, xtask | Not published to the Power BI service or uploaded as an organizational visual; `dist` not run end to end; no Marketplace or Store submission, by decision | [entry](gaps-open.md#g112-bicraft-visuals-outside-bicraft-left-2026-11-24) |
+| G113 | P3 | engine, render | Multi-level paths; node colours (1.3.4.0) for the first twelve nodes only, not yet seen in Desktop; high contrast not seen in Desktop | [entry](gaps-open.md#g113-bicraft-sankey-left-2026-11-24) |
+| G114 | P3 | engine, render | Dark-theme page and containers differ from Desktop; Spec combo legend names; high contrast and reduced motion not seen in Desktop | [entry](gaps-open.md#g114-bicrafts-look-left-2026-11-24) |
+| G115 | P3 | engine, render | Seen in Desktop 2.160 (2026-11-25), high contrast not; R² placement clear of point labels (1.0.1.0) not yet seen in Desktop; no labels in `selected` mode, one trend line, density by count only, rows past 10,000 left out | [formats/chart-pack.md](formats/chart-pack.md) |
+| G116 | P3 | engine, render | Seen in Desktop 2.160 (2026-11-25), high contrast not; stacked series (1.0.2.0) not yet seen in Desktop, no band when stacked, no 100 % stacking; one rule and one threshold, palette-only series colours | [formats/chart-pack.md](formats/chart-pack.md) |
+| G117 | P3 | engine, render | Seen in Desktop 2.160 (2026-11-25); 1.0.1.0's French axis grouping and fall labels not yet seen in Desktop; several measures summed, no breakdown, multi-measure steps select nothing | [entry](gaps-open.md#g117-bicraft-waterfall-left-2026-11-24) |
+| G118 | P3 | engine, render | Seen in Desktop 2.160 (2026-11-25), high contrast not; one value per visual, no threshold ticks or needle on the arc, no sparkline axis | [entry](gaps-open.md#g118-bicraft-gauge--kpi-left-2026-11-24) |
+| G119 | P2 | engine, render | Text cards (font, size, colour, B/I/U, units, decimals) only on the Spec visual (1.5.0.0; drawn in Desktop 2.160.1151.0, pane cards not yet opened there); the 13 other visuals, legend position and axis range in the pane left | [entry](gaps-open.md#g119-bicraft-visuals-format-options-against-the-standard-visuals-2026-11-25) |

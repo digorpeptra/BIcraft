@@ -1,0 +1,51 @@
+/// v1Description
+model Model
+	storageLocation: v2StorageLocation
+	defaultMode: directQuery
+	defaultDataView: sample
+	culture: en-US
+	collation: v4Collation
+	defaultPowerBIDataSourceVersion: powerBI_V3
+	forceUniqueNames
+	discourageImplicitMeasures
+	dataSourceVariablesOverrideBehavior: allow
+	dataSourceDefaultMaxConnections: 3
+	sourceQueryCulture: fr-FR
+	mAttributes: v6MAttributes
+	discourageCompositeModels
+	disableAutoExists: 3
+	maxParallelismPerRefresh: 3
+	maxParallelismPerQuery: 3
+	directLakeBehavior: directLakeOnly
+	valueFilterBehavior: independent
+	selectionExpressionBehavior: visual
+	metadataAccessPolicy: basic
+	defaultDirectLakeIndexingBehavior: explicit
+	defaultMeasure: T.M
+	dataAccessOptions
+		fastCombine
+		legacyRedirects
+		returnErrorValuesAsNull
+	automaticAggregationOptions
+		queryCoverage: 0.5
+		detailTableMinRows: 3
+		aggregationTableMaxRows: 3
+		aggregationTableSizeLimit: 3
+
+/// gd
+queryGroup G
+
+extendedProperty xmodel = xv
+
+/// v8Description
+bindingInfo B
+	type: dataBindingHint
+	connectionId: v7ConnectionId
+
+annotation amodel = av
+
+ref table T
+ref table U
+ref table CG
+ref table CT
+

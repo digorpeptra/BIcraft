@@ -1,0 +1,14 @@
+m_signatures.json (M11.40) is our data: the signatures Power BI Desktop's M engine reports for
+the functions of BIcraft's M catalogue, recorded as BIcraft's own type codes. No Microsoft file,
+documentation text or message is stored here.
+
+  Engine: the M (Power Query) engine of Power BI Desktop 2.159.1231.0 (Store).
+  Recorded: 2026-11-23.
+  Method: BIcraft wrote a PBIX whose Power Query queries (our own M) read, for each catalogue
+  name, its function type through the public M library: #shared (plus #binary, #date,
+  #datetime, #datetimezone, #duration, #table and #time by name, which #shared does not list),
+  Value.Type, Type.FunctionParameters, Type.FunctionRequiredParameters, Type.FunctionReturn,
+  Type.IsNullable and Type.Is against the primitive types; a second query listed every name of
+  #shared with its kind and parameter counts. Desktop opened the file, refreshed it (Home >
+  Refresh) and saved it; BIcraft read the loaded tables back (bicraft dax-query). Desktop was
+  used as a black box: our input, the file it wrote. See docs/dax-oracle.md "M signatures".

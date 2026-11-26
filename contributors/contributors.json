@@ -1,0 +1,35 @@
+{
+  "schema": 1,
+  "repo": "digorpeptra/BIcraft",
+  "branch": "main",
+  "head": "64a7019c4ec2a9183ca77248bc5679a5cbb55985",
+  "head_date": "2026-11-24T22:01:20Z",
+  "commits": 729,
+  "unattributed_commits": 0,
+  "contributors": [
+    {
+      "login": "digorpeptra",
+      "people_entry": false,
+      "github_name": null,
+      "prs": 0,
+      "commits": 729,
+      "lines_added": 1038466,
+      "lines_deleted": 85710,
+      "binary_added": 201,
+      "binary_deleted": 0,
+      "first_commit": "2026-10-13T13:32:40Z",
+      "last_commit": "2026-11-24T22:01:20Z"
+    }
+  ],
+  "models": [
+    {
+      "id": "anthropic/claude",
+      "company": "Anthropic",
+      "model": "Claude",
+      "version": "",
+      "commits": 54,
+      "lines_added": 146273,
+      "lines_deleted": 6202
+    }
+  ]
+}

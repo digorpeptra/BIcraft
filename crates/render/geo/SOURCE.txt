@@ -1,0 +1,12 @@
+ne_110m_admin_0_countries.bin: the country outlines of the renderer's offline maps (crates/render/src/geo.rs),
+made by `cargo xtask geo-bundle SRC` (xtask/src/geo_bundle.rs) from Natural Earth.
+
+Upstream:  Natural Earth, 1:110m Cultural Vectors, Admin 0 - Countries (https://www.naturalearthdata.com/)
+Mirror:    https://github.com/nvkelso/natural-earth-vector, commit ca96624a56bd078437bca8184e78163e5039ad19
+Source:    geojson/ne_110m_admin_0_countries.geojson (838726 bytes)
+           SHA-256 6866c877d39cba9c357620878839b336d569f8c662d3cfab4cb1dbe2d39c977f
+Licence:   public domain (https://www.naturalearthdata.com/about/terms-of-use/)
+Kept:      ISO_A2_EH / ISO_A2, ISO_A3_EH / ISO_A3 (-99 dropped), NAME, NAME_LONG, ADMIN, FORMAL_EN, NAME_FR, LABEL_X / LABEL_Y,
+           the polygons quantized to 0.01 degree, consecutive repeated points dropped
+Output:    177 countries, 287 polygons, 10306 points, 41296 bytes
+           SHA-256 edbc2b34865f6042829015dc101712cdb8c2fc05d485cf3e0592754e9417fe73

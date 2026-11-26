@@ -1,0 +1,1 @@
+FORMAT(TODAY(), "yyyy-mm-dd")

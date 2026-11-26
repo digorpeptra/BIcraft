@@ -1,0 +1,4 @@
+relationship 753bdb78-1f21-4cc7-8f31-89c3f9ba223c
+	fromColumn: Sales.Region
+	toColumn: Regions.Region
+

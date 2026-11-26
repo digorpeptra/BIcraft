@@ -1,0 +1,18 @@
+[package]
+name = "bicraft-opc"
+description = "L0: ZIP/OPC package parts and the text encodings Power BI parts use"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+crc32fast.workspace = true
+flate2.workspace = true
+thiserror.workspace = true
+zip.workspace = true
+
+[dev-dependencies]
+bicraft-env.workspace = true
+
+[lints]
+workspace = true

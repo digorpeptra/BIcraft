@@ -1,0 +1,1 @@
+CLOSINGBALANCEMONTH([Total Sales], 'Date'[Date])

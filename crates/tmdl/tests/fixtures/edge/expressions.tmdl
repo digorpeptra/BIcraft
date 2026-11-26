@@ -1,0 +1,10 @@
+/// ed
+expression E = 1
+	lineageTag: el
+	sourceLineageTag: es
+	queryGroup: G
+
+	extendedProperty E = v
+
+	annotation A = 1
+

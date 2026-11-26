@@ -1,0 +1,1 @@
+COUNTROWS({[Total Sales], [Order Count]})

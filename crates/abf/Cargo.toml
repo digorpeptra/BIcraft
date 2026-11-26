@@ -1,0 +1,15 @@
+[package]
+name = "bicraft-abf"
+description = "L0: Analysis Services backup (ABF) container reader and writer"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+thiserror.workspace = true
+
+[dev-dependencies]
+bicraft-env.workspace = true
+
+[lints]
+workspace = true

@@ -1,0 +1,40 @@
+[package]
+name = "bicraft-cli"
+description = "The bicraft command-line tool"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "bicraft"
+path = "src/main.rs"
+
+[dependencies]
+bicraft-env.workspace = true
+bicraft-engine.workspace = true
+# `clock`: the machine's time zone for M's local clock (jiff's system time zone; docs/formats/data-sources.md)
+bicraft-locale = { workspace = true, features = ["clock"] }
+bicraft-mcp.workspace = true
+bicraft-auth.workspace = true
+bicraft-mem.workspace = true
+bicraft-view.workspace = true
+# The UI control channel's token file (`bicraft view --control`, owner-only).
+bicraft-http.workspace = true
+bicraft-controller.workspace = true
+# The client of `bicraft serve --viewer-control` (`bicraft ui --url https://…`): the blocking
+# HTTPS client crates/auth already uses (rustls, bundled roots), no new crate.
+ureq = { version = "3", default-features = false, features = ["rustls"] }
+serde_json.workspace = true
+# Masked console prompt for the Databricks token of `bicraft refresh` when
+# BICRAFT_DATABRICKS_TOKEN is unset (Apache-2.0; its console calls are the crate's own).
+rpassword = "7"
+# SIGTERM / SIGINT / SIGHUP (Unix) and Ctrl+C, Ctrl+Break, console close (Windows) for the graceful
+# drain of `bicraft serve` (MIT OR Apache-2.0; its platform calls are the crate's own, our crates stay
+# free of unsafe code).
+ctrlc = { version = "3.4", features = ["termination"] }
+
+[build-dependencies]
+bicraft-env.workspace = true
+
+[lints]
+workspace = true

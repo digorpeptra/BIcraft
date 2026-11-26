@@ -1,0 +1,19 @@
+[package]
+name = "bicraft-layout"
+description = "L3: legacy report layout (report.json / Report/Layout) <-> report (from public sources and black-box tests)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+bicraft-report.workspace = true
+serde.workspace = true
+# `raw_value`: the writer keeps the original text of sections and visuals it does not change.
+serde_json = { workspace = true, features = ["raw_value"] }
+thiserror.workspace = true
+
+[dev-dependencies]
+bicraft-env.workspace = true
+
+[lints]
+workspace = true

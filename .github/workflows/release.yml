@@ -1,0 +1,164 @@
+# Release: on a `v*` tag, build the `bicraft` binary for each target, package it with the README,
+# the licenses and the third-party notices, and attach the archives and their SHA-256 sums to a
+# GitHub release for that tag.
+#
+# Archives: bicraft-<tag>-<target>.zip (Windows) or .tar.gz (Linux), each holding one folder
+# bicraft-<tag>-<target>/ with the binary and the documents. SHA256SUMS lists every archive.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to (re)build, e.g. v0.1.0"
+        required: true
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: "0"
+  TAG: ${{ inputs.tag || github.ref_name }}
+
+jobs:
+  build:
+    name: build ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+            archive: zip
+          # The oldest supported Ubuntu runner, so the binary needs a glibc that old distros have.
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-22.04
+            archive: tar.gz
+          # Cross-compiled: bicraft is pure Rust, so only a cross linker is needed.
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-22.04
+            archive: tar.gz
+            cross_linker: aarch64-linux-gnu-gcc
+            cross_packages: gcc-aarch64-linux-gnu
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          ref: ${{ env.TAG }}
+
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable branch, 2026-11-05
+        with:
+          toolchain: stable
+          targets: ${{ matrix.target }}
+
+      - name: Install the cross linker
+        if: matrix.cross_linker
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ${{ matrix.cross_packages }}
+          upper=$(echo '${{ matrix.target }}' | tr 'a-z-' 'A-Z_')
+          echo "CARGO_TARGET_${upper}_LINKER=${{ matrix.cross_linker }}" >> "$GITHUB_ENV"
+
+      # Every release binary embeds the browser app (docs/webui.md): the wasm32 target, the
+      # wasm-bindgen CLI of the version in Cargo.lock, the bundle, then a build that requires it.
+      - name: Browser app bundle
+        run: |
+          rustup target add wasm32-unknown-unknown
+          v=$(grep -A1 '^name = "wasm-bindgen"$' Cargo.lock | sed -n 's/^version = "\(.*\)"$/\1/p')
+          cargo install wasm-bindgen-cli --version "$v" --locked --root "$RUNNER_TEMP/webui-tools"
+          BICRAFT_WEBUI_TOOLS="$RUNNER_TEMP/webui-tools" cargo xtask webui --out "$RUNNER_TEMP/webui"
+          echo "BICRAFT_WEBUI_DIR=$RUNNER_TEMP/webui" >> "$GITHUB_ENV"
+          echo "BICRAFT_REQUIRE_WEBUI=1" >> "$GITHUB_ENV"
+
+      - name: Build
+        env:
+          # Static C runtime: the binary then runs without the Visual C++ redistributable.
+          CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_RUSTFLAGS: "-C target-feature=+crt-static"
+        run: cargo build --profile dist --locked -p bicraft-cli --bin bicraft --target ${{ matrix.target }}
+
+      - name: Check the version against the tag
+        if: ${{ !matrix.cross_linker }}
+        run: |
+          exe=target/${{ matrix.target }}/dist/bicraft
+          [ -f "$exe.exe" ] && exe="$exe.exe"
+          got=$("$exe" --version)
+          want="bicraft ${TAG#v}"
+          echo "$got"
+          # `bicraft X.Y.Z (commit <hash>)`: compare the part before the commit.
+          if [ "${got%% (commit *}" != "$want" ]; then
+            echo "::error::binary reports '$got', tag expects '$want' (bump the workspace version)"
+            exit 1
+          fi
+          if ! "$exe" build-info | grep -q '"embedded":true'; then
+            echo "::error::the binary has no browser app (docs/webui.md)"
+            exit 1
+          fi
+
+      - name: Package
+        id: package
+        run: |
+          name="bicraft-${TAG}-${{ matrix.target }}"
+          mkdir -p "dist/$name"
+          bin=bicraft
+          [ "${{ matrix.archive }}" = zip ] && bin=bicraft.exe
+          cp "target/${{ matrix.target }}/dist/$bin" "dist/$name/"
+          cp README.md LICENSE-MIT LICENSE-APACHE THIRD_PARTY_NOTICES.md "dist/$name/"
+          cp crates/xpress9/LICENSE-MIT-microsoft-xpress9 "dist/$name/"
+          cd dist
+          if [ "${{ matrix.archive }}" = zip ]; then
+            7z a -tzip -mx=9 "$name.zip" "$name" > /dev/null
+            file="$name.zip"
+          else
+            tar -czf "$name.tar.gz" "$name"
+            file="$name.tar.gz"
+          fi
+          sha256sum "$file" > "$file.sha256"
+          cat "$file.sha256"
+          echo "file=$file" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ${{ matrix.target }}
+          path: |
+            dist/${{ steps.package.outputs.file }}
+            dist/${{ steps.package.outputs.file }}.sha256
+          if-no-files-found: error
+
+  release:
+    name: publish release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: SHA256SUMS
+        working-directory: dist
+        run: |
+          cat *.sha256 | sort -k2 > SHA256SUMS
+          sha256sum -c SHA256SUMS
+          cat SHA256SUMS
+
+      - uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
+        with:
+          tag_name: ${{ env.TAG }}
+          name: bicraft ${{ env.TAG }}
+          draft: true
+          prerelease: ${{ contains(env.TAG, '-') }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: |
+            dist/*.zip
+            dist/*.tar.gz
+            dist/*.sha256
+            dist/SHA256SUMS

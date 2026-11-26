@@ -1,0 +1,11 @@
+table 'Calc Table'
+
+	column Value
+		dataType: int64
+		isNameInferred
+		sourceColumn: [Value]
+
+	partition 'Calc Table' = calculated
+		mode: import
+		source = GENERATESERIES(1, 10)
+

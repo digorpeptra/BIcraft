@@ -1,0 +1,1 @@
+CALCULATE([Total Sales], SEARCH("o", Sales[Channel], 1, 0) > 0)

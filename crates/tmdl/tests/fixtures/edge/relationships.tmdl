@@ -1,0 +1,13 @@
+relationship r1
+	isActive: false
+	crossFilteringBehavior: automatic
+	joinOnDateBehavior: datePartOnly
+	relyOnReferentialIntegrity
+	securityFilteringBehavior: none
+	fromCardinality: one
+	toCardinality: many
+	fromColumn: Names.x1
+	toColumn: Case.c
+
+	annotation A = 1
+

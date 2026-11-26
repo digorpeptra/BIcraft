@@ -1,0 +1,24 @@
+BIcraft serves workspace "{{ .Values.workspace.id }}" from {{ include "bicraft.fullname" . }}.
+
+MCP endpoint (Streamable HTTP, revision 2026-07-28):
+{{- if .Values.auth.publicUrl }}
+  {{ trimSuffix "/" .Values.auth.publicUrl }}/w/{{ .Values.workspace.id }}/mcp
+{{- else }}
+  http://{{ include "bicraft.fullname" . }}.{{ .Release.Namespace }}.svc:{{ .Values.service.port }}/w/{{ .Values.workspace.id }}/mcp
+{{- end }}
+Files (upload, download, listing): the same prefix with /files/ instead of /mcp.
+
+From your machine:
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "bicraft.fullname" . }} {{ .Values.service.port }}:{{ .Values.service.port }}
+  then send the header "Host: {{ include "bicraft.fullname" . }}:{{ .Values.service.port }}"
+  (or add 127.0.0.1:{{ .Values.service.port }} to auth.allowedHosts).
+
+Memory: pod limit {{ include "bicraft.podMemoryMiB" . }} MiB = BICRAFT_MEMORY_LIMIT {{ .Values.model.memoryLimitMiB }} MiB + 64 MiB.
+Nothing is saved implicitly on shutdown: save with file.save before upgrades and restarts.
+{{- if .Values.metrics.enabled }}
+
+Metrics (Prometheus text format, no authentication, no model data): port {{ .Values.metrics.port }}, path /metrics
+{{- if .Values.metrics.serviceMonitor.enabled }} (ServiceMonitor {{ include "bicraft.fullname" . }}){{ end }}.
+Grafana dashboard: deploy/grafana/bicraft-dashboard.json in the BIcraft repository.
+{{- end }}
+Logs: {{ .Values.logging.format }} on stderr{{ if eq .Values.logging.format "json" }} (one line per request: no DAX, values, file names or user ids){{ end }}.

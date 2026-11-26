@@ -1,0 +1,1 @@
+AVERAGEX(TOPN(2, Product, [Total Sales]), [Total Sales])

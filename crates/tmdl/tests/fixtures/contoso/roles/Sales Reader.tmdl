@@ -1,0 +1,14 @@
+/// Can read bike sales.
+role 'Sales Reader'
+	modelPermission: read
+
+	tablePermission 'Order Lines' = 'Order Lines'[Qty] > 0
+
+	tablePermission Product =
+			Product[Category] = "Bikes"
+			    || Product[Category] = "Accessories"
+
+	member 'user@contoso.com' = auto
+
+	annotation Owner = Finance
+

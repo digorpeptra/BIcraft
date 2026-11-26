@@ -1,0 +1,1 @@
+VAR Cur = [Total Sales] VAR Prev = [Sales LY] RETURN IF(NOT ISBLANK(Prev), DIVIDE(Cur - Prev, Prev))

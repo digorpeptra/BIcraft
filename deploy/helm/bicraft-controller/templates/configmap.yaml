@@ -1,0 +1,9 @@
+{{- include "bicraft-controller.validate" . -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "bicraft-controller.fullname" . }}
+  labels:
+    {{- include "bicraft-controller.labels" . | nindent 4 }}
+data:
+  config.json: {{ include "bicraft-controller.config" . | quote }}

@@ -1,0 +1,39 @@
+[package]
+name = "bicraft-web"
+description = "The BIcraft app in the browser: the browser shell of the BIcraft UI (bicraft-ui) compiled to WebAssembly, served by bicraft view and bicraft serve (docs/webui.md)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+rust-version.workspace = true
+
+[[bin]]
+name = "bicraft-web"
+path = "src/main.rs"
+
+[lib]
+name = "bicraft_web"
+path = "src/lib.rs"
+
+[dependencies]
+bicraft-ui.workspace = true
+serde_json.workspace = true
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+egui = "0.36"
+# The web runner; `wgpu` brings egui-wgpu's defaults: WebGPU with the WebGL2 fallback (as DeckCraft).
+eframe = { version = "0.36", default-features = false, features = ["default_fonts", "wgpu", "accesskit"] }
+# Pinned: `cargo xtask webui` runs the wasm-bindgen CLI of exactly this version (docs/webui.md).
+wasm-bindgen = "=0.2.129"
+wasm-bindgen-futures = "0.4"
+js-sys = "0.3"
+web-sys = { version = "0.3", features = [
+    "Window", "Document", "Element", "HtmlCanvasElement", "Location", "Navigator",
+    "Request", "RequestInit", "RequestCache", "RequestCredentials", "Headers", "Response",
+    "EventSource", "MessageEvent", "Event", "EventTarget", "KeyboardEvent", "Storage", "Clipboard",
+    "HtmlElement", "HtmlAnchorElement", "HtmlIFrameElement", "Blob", "BlobPropertyBag", "Url",
+    "MediaQueryList", "HtmlInputElement", "File", "FileList", "PageTransitionEvent",
+] }
+
+[lints]
+workspace = true

@@ -1,0 +1,1 @@
+IF(HASONEVALUE(Product[Category]), [Total Sales], BLANK())

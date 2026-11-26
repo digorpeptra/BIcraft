@@ -1,0 +1,113 @@
+{{- if .Values.crd.install }}
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: {{ printf "bicraftworkspaces.%s" .Values.crd.group }}
+  labels:
+    {{- include "bicraft-controller.labels" . | nindent 4 }}
+  {{- if .Values.crd.keep }}
+  annotations:
+    # Uninstalling the release must not delete every workspace with the CRD.
+    helm.sh/resource-policy: keep
+  {{- end }}
+spec:
+  group: {{ .Values.crd.group }}
+  scope: Namespaced
+  names:
+    kind: BicraftWorkspace
+    listKind: BicraftWorkspaceList
+    plural: bicraftworkspaces
+    singular: bicraftworkspace
+    shortNames:
+      - bws
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      subresources:
+        status: {}
+      additionalPrinterColumns:
+        - name: Phase
+          type: string
+          jsonPath: .status.phase
+        - name: Class
+          type: string
+          jsonPath: .status.sizeClass
+        - name: Last activity
+          type: string
+          jsonPath: .status.lastActivity
+        - name: Age
+          type: date
+          jsonPath: .metadata.creationTimestamp
+      schema:
+        openAPIV3Schema:
+          type: object
+          description: A BIcraft workspace, one bicraft serve pod with its volume and route, created by the controller.
+          x-kubernetes-validations:
+            - rule: "size(self.metadata.name) <= 40"
+              message: a workspace name has at most 40 characters
+          properties:
+            spec:
+              type: object
+              properties:
+                sizeClass:
+                  type: string
+                  description: One of the size classes the admin defined (memory, CPU, spill and volume limits).
+                volume:
+                  type: object
+                  properties:
+                    size:
+                      type: string
+                      description: Volume size, a quantity of at most the class maxVolumeSize.
+                    storageClass:
+                      type: string
+                    reclaimPolicy:
+                      type: string
+                      enum: [Retain, Delete]
+                      description: Retain keeps the volume when the workspace is deleted.
+                idleTimeoutSeconds:
+                  type: integer
+                  minimum: 0
+                  description: Scale to zero after this long without a request (0 = never).
+                readers:
+                  type: array
+                  maxItems: 256
+                  description: Subjects with reader access (read-only commands and file downloads).
+                  items:
+                    type: string
+                grants:
+                  type: array
+                  maxItems: 256
+                  description: Subjects with editor access (token:NAME, group:NAME, email:ADDRESS, user:SUB, role:NAME, issuer:URL, *).
+                  items:
+                    type: string
+                egress:
+                  type: array
+                  description: Names of egress profiles the admin defined.
+                  items:
+                    type: string
+                suspend:
+                  type: boolean
+                  description: Keep the workspace at zero replicas.
+            status:
+              type: object
+              properties:
+                phase:
+                  type: string
+                message:
+                  type: string
+                endpoint:
+                  type: string
+                lastActivity:
+                  type: string
+                readyReplicas:
+                  type: integer
+                volumeClaim:
+                  type: string
+                recoveryClaim:
+                  type: string
+                sizeClass:
+                  type: string
+                observedGeneration:
+                  type: integer
+{{- end }}

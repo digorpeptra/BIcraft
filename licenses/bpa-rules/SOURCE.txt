@@ -1,0 +1,6 @@
+Vendored from https://github.com/microsoft/Analysis-Services, file BestPracticeRules/BPARules.json,
+commit 50e8ce5028dd7046e73974ec69cb79af225e41b0 (2026-01-21), under the MIT License in LICENSE
+(the repository's license; the BestPracticeRules folder carries no other terms).
+The file is unmodified (CRLF line endings kept; SHA-256
+ddb9cff4c2a0611a6467e2559d38319d9867381998066473ffa1e11c2d360392). Only the English rule file
+is vendored; the Italian, Japanese and Spanish translations are not. See docs/formats/bpa.md.

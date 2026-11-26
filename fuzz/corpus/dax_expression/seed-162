@@ -1,0 +1,1 @@
+UPPER(LEFT(Product[Product], 3))

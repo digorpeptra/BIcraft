@@ -1,0 +1,1 @@
+RANK(DENSE, ALLSELECTED(Product[Product]), ORDERBY([Total Sales], DESC))

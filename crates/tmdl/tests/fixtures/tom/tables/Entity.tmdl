@@ -1,0 +1,13 @@
+table Entity
+
+	column A
+		dataType: string
+		sourceColumn: A
+
+	partition E = entity
+		mode: directLake
+		source
+			entityName: A
+			schemaName: dbo
+			expressionSource: DL
+

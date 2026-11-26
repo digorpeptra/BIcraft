@@ -1,0 +1,173 @@
+/// v10Description
+table T
+	isHidden
+	showAsVariationsOnly
+	isPrivate
+	alternateSourcePrecedence: 3
+	excludeFromModelRefresh
+	lineageTag: v11LineageTag
+	sourceLineageTag: v12SourceLineageTag
+	systemManaged
+	excludeFromAutomaticAggregations
+	directLakeIndexingBehavior: explicit
+	dataCategory: v9DataCategory
+
+	defaultDetailRowsDefinition = T
+
+	refreshPolicy
+		policyType: basic
+		mode: hybrid
+		rollingWindowGranularity: year
+		rollingWindowPeriods: 3
+		incrementalGranularity: day
+		incrementalPeriods: 3
+		incrementalPeriodsOffset: 3
+		pollingExpression = let y = 1 in y
+		sourceExpression = let x = 1 in x
+
+	/// v31Description
+	measure M = 1
+		formatString: v33FormatString
+		isHidden
+		isSimpleMeasure
+		displayFolder: v34DisplayFolder
+		lineageTag: v36LineageTag
+		sourceLineageTag: v37SourceLineageTag
+		dataCategory: v35DataCategory
+
+		/// v38Description
+		kpi
+			targetDescription: v39TargetDescription
+			targetExpression = v40TargetExpression
+			targetFormatString: v41TargetFormatString
+			statusGraphic: v42StatusGraphic
+			statusDescription: v43StatusDescription
+			statusExpression = v44StatusExpression
+			trendGraphic: v45TrendGraphic
+			trendDescription: v46TrendDescription
+			trendExpression = v47TrendExpression
+
+		detailRowsDefinition = T
+
+		formatStringDefinition = "0"
+
+		extendedProperty xmeasure = xv
+
+		changedProperty = Name
+
+		annotation ameasure = av
+
+	/// v17Description
+	column C
+		dataType: int64
+		isHidden
+		isUnique
+		isKey
+		isNullable: false
+		formatString: v18FormatString
+		isAvailableInMdx: false
+		keepUniqueRows
+		displayOrdinal: 3
+		sourceProviderType: v19SourceProviderType
+		displayFolder: v20DisplayFolder
+		encodingHint: hash
+		lineageTag: v21LineageTag
+		sourceLineageTag: v22SourceLineageTag
+		stringIndexingBehavior: explicit
+		fullTextIndexingBehavior: auto
+		dataCategory: v16DataCategory
+		alignment: left
+		tableDetailPosition: 3
+		isDefaultLabel
+		isDefaultImage
+		summarizeBy: none
+		sourceColumn: v15SourceColumn
+		sortByColumn: S
+
+		alternateOf
+			summarization: sum
+			baseColumn: T.S
+
+		extendedProperty xcol = xv
+
+		changedProperty = Name
+
+		annotation acol = av
+
+	column S
+		dataType: int64
+		sourceColumn: S
+
+	/// v25Description
+	column CC = 1
+		dataType: int64
+		isHidden
+		isUnique
+		isKey
+		isNullable: false
+		formatString: v26FormatString
+		isAvailableInMdx: false
+		keepUniqueRows
+		displayOrdinal: 3
+		sourceProviderType: v27SourceProviderType
+		displayFolder: v28DisplayFolder
+		encodingHint: hash
+		lineageTag: v29LineageTag
+		sourceLineageTag: v30SourceLineageTag
+		stringIndexingBehavior: explicit
+		fullTextIndexingBehavior: auto
+		dataCategory: v24DataCategory
+		alignment: left
+		tableDetailPosition: 3
+		isDefaultLabel
+		isDefaultImage
+		summarizeBy: none
+		expressionContext: userContext
+		sortByColumn: S
+
+	/// v48Description
+	hierarchy H
+		isHidden
+		displayFolder: v49DisplayFolder
+		hideMembers: hideBlankMembers
+		lineageTag: v50LineageTag
+		sourceLineageTag: v51SourceLineageTag
+
+		/// v52Description
+		level L
+			lineageTag: v53LineageTag
+			sourceLineageTag: v54SourceLineageTag
+			column: S
+
+			extendedProperty xlevel = xv
+
+			changedProperty = Name
+
+			annotation alevel = av
+
+		extendedProperty xhier = xv
+
+		changedProperty = Name
+
+		annotation ahier = av
+
+	/// v55Description
+	partition P = m
+		mode: directQuery
+		dataView: sample
+		queryGroup: G
+		source = let x = 1 in x
+
+		/// dd
+		dataCoverageDefinition = TRUE()
+
+		extendedProperty xpart = xv
+
+		annotation apart = av
+
+	extendedProperty xtable = xv
+
+	changedProperty = Name
+
+	annotation atable = av
+

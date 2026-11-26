@@ -1,0 +1,236 @@
+[package]
+name = "bicraft-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2024"
+description = "cargo-fuzz targets for every bicraft reader (M7.3); see docs/fuzzing.md"
+
+[package.metadata]
+cargo-fuzz = true
+
+# Not a member of the root workspace (it is listed in its `exclude`): it needs nightly and
+# libFuzzer, and must not slow down `cargo xtask ci`.
+[workspace]
+members = ["."]
+
+[dependencies]
+libfuzzer-sys = "0.4"
+serde_json = "1"
+bicraft-opc = { path = "../crates/opc" }
+bicraft-xpress9 = { path = "../crates/xpress9" }
+bicraft-xpress8 = { path = "../crates/xpress8" }
+bicraft-powerpivot = { path = "../crates/powerpivot" }
+bicraft-sqlite = { path = "../crates/sqlite" }
+bicraft-abf = { path = "../crates/abf" }
+bicraft-vertipaq = { path = "../crates/vertipaq" }
+bicraft-model = { path = "../crates/model" }
+bicraft-dax = { path = "../crates/dax" }
+bicraft-tmsl = { path = "../crates/tmsl" }
+bicraft-tmdl = { path = "../crates/tmdl" }
+bicraft-metadata = { path = "../crates/metadata" }
+bicraft-pbir = { path = "../crates/pbir" }
+bicraft-layout = { path = "../crates/layout-bb" }
+bicraft-pbix = { path = "../crates/pbix" }
+bicraft-mcp = { path = "../crates/mcp" }
+bicraft-sqlserver = { path = "../crates/sqlserver" }
+bicraft-webdata = { path = "../crates/webdata" }
+bicraft-engine = { path = "../crates/engine" }
+
+[profile.release]
+debug = 1
+
+[[bin]]
+name = "opc_package"
+path = "fuzz_targets/opc_package.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "opc_text"
+path = "fuzz_targets/opc_text.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "pbix_package"
+path = "fuzz_targets/pbix_package.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "pbix_parts"
+path = "fuzz_targets/pbix_parts.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "pbiviz_read"
+path = "fuzz_targets/pbiviz_read.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "xpress9_decompress"
+path = "fuzz_targets/xpress9_decompress.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "xpress9_datamodel"
+path = "fuzz_targets/xpress9_datamodel.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "abf_parse"
+path = "fuzz_targets/abf_parse.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "sqlite_database"
+path = "fuzz_targets/sqlite_database.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "vertipaq_idfmeta"
+path = "fuzz_targets/vertipaq_idfmeta.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "vertipaq_idf"
+path = "fuzz_targets/vertipaq_idf.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "vertipaq_dictionary"
+path = "fuzz_targets/vertipaq_dictionary.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "vertipaq_hidx"
+path = "fuzz_targets/vertipaq_hidx.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "vertipaq_column"
+path = "fuzz_targets/vertipaq_column.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "metadata_sqlitedb"
+path = "fuzz_targets/metadata_sqlitedb.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "metadata_rows"
+path = "fuzz_targets/metadata_rows.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "tmsl_read"
+path = "fuzz_targets/tmsl_read.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "tmdl_read"
+path = "fuzz_targets/tmdl_read.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "pbir_read"
+path = "fuzz_targets/pbir_read.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "layout_read"
+path = "fuzz_targets/layout_read.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "dax_expression"
+path = "fuzz_targets/dax_expression.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "dax_query"
+path = "fuzz_targets/dax_query.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "mcp_handle"
+path = "fuzz_targets/mcp_handle.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "tds_tokens"
+path = "fuzz_targets/tds_tokens.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "odata_payloads"
+path = "fuzz_targets/odata_payloads.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "xpress8_decompress"
+path = "fuzz_targets/xpress8_decompress.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "powerpivot_workbook"
+path = "fuzz_targets/powerpivot_workbook.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "import_readers"
+path = "fuzz_targets/import_readers.rs"
+test = false
+doc = false
+bench = false

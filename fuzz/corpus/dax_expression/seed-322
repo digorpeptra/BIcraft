@@ -1,0 +1,1 @@
+VAR m = MAX(Sales[OrderDate]) RETURN CALCULATE([Total Sales], 'Date'[Date] <= m)

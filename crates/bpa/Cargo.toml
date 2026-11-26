@@ -1,0 +1,19 @@
+[package]
+name = "bicraft-bpa"
+description = "L4: best-practice analysis of a semantic model (BPA rule files: JSON rules with Dynamic LINQ expressions)"
+version.workspace = true
+edition.workspace = true
+license = "(MIT OR Apache-2.0) AND MIT"
+
+[dependencies]
+bicraft-dax.workspace = true
+bicraft-model.workspace = true
+bicraft-pbir.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+bicraft-tmsl.workspace = true
+
+[lints]
+workspace = true

@@ -1,0 +1,1 @@
+SUMX(FILTER(Sales, RELATED(Customer[IsActive])), Sales[Line Amount])

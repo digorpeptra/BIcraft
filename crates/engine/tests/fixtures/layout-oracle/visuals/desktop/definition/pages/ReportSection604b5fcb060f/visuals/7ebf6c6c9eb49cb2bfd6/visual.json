@@ -1,0 +1,57 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.14.0/schema.json",
+  "name": "7ebf6c6c9eb49cb2bfd6",
+  "position": {
+    "x": 920,
+    "y": 200,
+    "z": 11000,
+    "height": 200,
+    "width": 300,
+    "tabOrder": 11000
+  },
+  "visual": {
+    "visualType": "barChart",
+    "autoSelectVisualType": true,
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Sales"
+                    }
+                  },
+                  "Property": "Region"
+                }
+              },
+              "queryRef": "Sales.Region",
+              "nativeQueryRef": "Region",
+              "active": true
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Sales"
+                    }
+                  },
+                  "Property": "Total Qty"
+                }
+              },
+              "queryRef": "Sales.Total Qty",
+              "nativeQueryRef": "Total Qty"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

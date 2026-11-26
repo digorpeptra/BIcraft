@@ -1,0 +1,1 @@
+SUMMARIZECOLUMNS(Product[Category], "Revenue", [Total Sales])

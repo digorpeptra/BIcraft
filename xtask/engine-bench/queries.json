@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "note": "Queries checked on both engines for the same results (docs/benchmarks.md, section \"The DAX engine bench\"). Model measures: xtask/src/engine_bench.rs (MEASURES). Every query has a full ORDER BY, or a single row, so both engines return the rows in the same order. Kinds are the visual each query stands for.",
+  "queries": [
+    {"id": "Q01", "kind": "card", "title": "Total ROW(SUM)", "dax": "EVALUATE ROW(\"CA\", [CA])"},
+    {"id": "Q02", "kind": "card", "title": "Three totals and COUNTROWS", "dax": "EVALUATE ROW(\"CA\", [CA], \"Qte\", [Qte], \"Lignes\", COUNTROWS(Ventes))"},
+    {"id": "Q03", "kind": "bar", "title": "SUMMARIZECOLUMNS by category", "dax": "EVALUATE SUMMARIZECOLUMNS(Produit[Categorie], \"CA\", [CA]) ORDER BY Produit[Categorie]"},
+    {"id": "Q04", "kind": "line", "title": "SUMMARIZECOLUMNS by month (60 months)", "dax": "EVALUATE SUMMARIZECOLUMNS(Calendrier[AnneeMois], \"CA\", [CA], \"Qte\", [Qte]) ORDER BY Calendrier[AnneeMois]"},
+    {"id": "Q05", "kind": "matrix", "title": "Store × category (2,000 cells)", "dax": "EVALUATE SUMMARIZECOLUMNS(Magasin[Magasin], Produit[Categorie], \"CA\", [CA]) ORDER BY Magasin[Magasin], Produit[Categorie]"},
+    {"id": "Q06", "kind": "card", "title": "DISTINCTCOUNT of the customer", "dax": "EVALUATE ROW(\"Clients\", [Nb clients])"},
+    {"id": "Q07", "kind": "bar", "title": "DISTINCTCOUNT of the customer by region", "dax": "EVALUATE SUMMARIZECOLUMNS(Magasin[Region], \"Clients\", [Nb clients]) ORDER BY Magasin[Region]"},
+    {"id": "Q08", "kind": "card", "title": "CALCULATE with a dimension filter", "dax": "EVALUATE ROW(\"CA\", CALCULATE([CA], Produit[Categorie] = \"Cat03\"))"},
+    {"id": "Q09", "kind": "slicer", "title": "TREATAS (Desktop's slicer form)", "dax": "DEFINE VAR __DS0FilterTable = TREATAS({\"Cat01\", \"Cat02\"}, Produit[Categorie]) VAR __DS0FilterTable2 = TREATAS({2024}, Calendrier[Annee]) EVALUATE SUMMARIZECOLUMNS(Magasin[Region], __DS0FilterTable, __DS0FilterTable2, \"CA\", [CA], \"Qte\", [Qte]) ORDER BY Magasin[Region]"},
+    {"id": "Q10", "kind": "line", "title": "Year to date (TOTALYTD) by month of 2024", "dax": "DEFINE VAR __DS0FilterTable = TREATAS({2024}, Calendrier[Annee]) EVALUATE SUMMARIZECOLUMNS(Calendrier[AnneeMois], __DS0FilterTable, \"CA\", [CA], \"CA YTD\", [CA YTD]) ORDER BY Calendrier[AnneeMois]"},
+    {"id": "Q11", "kind": "table", "title": "Last year (SAMEPERIODLASTYEAR) by year", "dax": "EVALUATE SUMMARIZECOLUMNS(Calendrier[Annee], \"CA\", [CA], \"CA N-1\", [CA N-1], \"Var\", [CA Var N-1]) ORDER BY Calendrier[Annee]"},
+    {"id": "Q12", "kind": "bar", "title": "Share of total (DIVIDE, ALL) by category", "dax": "EVALUATE SUMMARIZECOLUMNS(Produit[Categorie], \"CA\", [CA], \"Part\", [Part CA]) ORDER BY Produit[Categorie]"},
+    {"id": "Q13", "kind": "table", "title": "RANKX over the 1,000 products", "dax": "EVALUATE SUMMARIZECOLUMNS(Produit[Produit], \"CA\", [CA], \"Rang\", [Rang produit]) ORDER BY Produit[Produit]"},
+    {"id": "Q14", "kind": "bar", "title": "TOPN 10 products", "dax": "EVALUATE TOPN(10, SUMMARIZECOLUMNS(Produit[Produit], \"CA\", [CA]), [CA], DESC, Produit[Produit], ASC) ORDER BY [CA] DESC, Produit[Produit]"},
+    {"id": "Q15", "kind": "card", "title": "FILTER over the fact (SUMX)", "dax": "EVALUATE ROW(\"CA gros paniers\", SUMX(FILTER(Ventes, Ventes[Quantite] >= 8), Ventes[Montant]))"},
+    {"id": "Q16", "kind": "card", "title": "Row-by-row SUMX with RELATED", "dax": "EVALUATE ROW(\"CA catalogue\", SUMX(Ventes, Ventes[Quantite] * RELATED(Produit[PrixCatalogue])))"},
+    {"id": "Q17", "kind": "table", "title": "Table by customer (high cardinality, Desktop's TOPN 501)", "dax": "EVALUATE TOPN(501, SUMMARIZECOLUMNS(Ventes[ClientKey], \"CA\", [CA]), [CA], DESC, Ventes[ClientKey], ASC) ORDER BY [CA] DESC, Ventes[ClientKey]"},
+    {"id": "Q18", "kind": "card", "title": "Active customers in 2024 (COUNTROWS of a grouping)", "dax": "EVALUATE ROW(\"Clients actifs 2024\", COUNTROWS(CALCULATETABLE(SUMMARIZECOLUMNS(Ventes[ClientKey], \"CA\", [CA]), Calendrier[Annee] = 2024)))"},
+    {"id": "Q19", "kind": "matrix", "title": "Region × year with subtotals (ROLLUPADDISSUBTOTAL)", "dax": "EVALUATE SUMMARIZECOLUMNS(ROLLUPADDISSUBTOTAL(Magasin[Region], \"TotalRegion\"), Calendrier[Annee], \"CA\", [CA]) ORDER BY [TotalRegion] DESC, Magasin[Region], Calendrier[Annee]"},
+    {"id": "Q20", "kind": "card", "title": "AVERAGEX of sales by store", "dax": "EVALUATE ROW(\"CA moyen par magasin\", AVERAGEX(VALUES(Magasin[Magasin]), [CA]))"},
+    {"id": "Q21", "kind": "bar", "title": "Filter on a fact column (KEEPFILTERS) by subcategory", "dax": "DEFINE VAR __DS0FilterTable = FILTER(KEEPFILTERS(VALUES(Ventes[Quantite])), Ventes[Quantite] > 5) EVALUATE SUMMARIZECOLUMNS(Produit[SousCategorie], __DS0FilterTable, \"CA\", [CA]) ORDER BY Produit[SousCategorie]"},
+    {"id": "Q22", "kind": "card", "title": "MIN / MAX of the fact's date", "dax": "EVALUATE ROW(\"Premiere\", MIN(Ventes[Date]), \"Derniere\", MAX(Ventes[Date]))"}
+  ]
+}

@@ -1,0 +1,1 @@
+PRODUCTX(Product, 1 + Product[Weight] / 100)

@@ -1,0 +1,26 @@
+table '2024 Targets'
+	isHidden
+	lineageTag: 0d6b1f7c-0000-4000-8000-000000000040
+
+	column Month
+		formatString: General Date
+		lineageTag: 0d6b1f7c-0000-4000-8000-000000000041
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Month]
+
+	column Target
+		lineageTag: 0d6b1f7c-0000-4000-8000-000000000042
+		summarizeBy: sum
+		isNameInferred
+		sourceColumn: [Target]
+
+	partition '2024 Targets' = calculated
+		mode: import
+		source =
+				DATATABLE (
+				    "Month", DATETIME,
+				    "Target", DOUBLE,
+				    { { "2024-01-01", 1000 } }
+				)
+

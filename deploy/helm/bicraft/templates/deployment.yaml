@@ -1,0 +1,353 @@
+{{- include "bicraft.validate" . -}}
+{{- $podMem := int (include "bicraft.podMemoryMiB" .) -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "bicraft.fullname" . }}
+  labels:
+    {{- include "bicraft.labels" . | nindent 4 }}
+spec:
+  # One session per workspace: never two pods on one volume (ReadWriteOnce, docs/server-mode.md).
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "bicraft.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "bicraft.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      annotations:
+        {{- if or .Values.auth.apiTokens.tokensJson .Values.auth.config.json }}
+        # The tokens file is read at start: a changed Secret restarts the pod.
+        checksum/auth: {{ printf "%s%s" .Values.auth.apiTokens.tokensJson .Values.auth.config.json | sha256sum }}
+        {{- end }}
+        {{- if and .Values.metrics.enabled .Values.metrics.podAnnotations }}
+        # Annotation-based scrapers (the Prometheus Operator uses the ServiceMonitor instead).
+        prometheus.io/scrape: "true"
+        prometheus.io/port: {{ int .Values.metrics.port | quote }}
+        prometheus.io/path: /metrics
+        {{- end }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ include "bicraft.serviceAccountName" . }}
+      # BIcraft never talks to the Kubernetes API.
+      automountServiceAccountToken: false
+      # No <SERVICE>_PORT variables: a Service named bicraft would inject BICRAFT_* names.
+      enableServiceLinks: false
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}
+      # A few seconds above --shutdown-grace: the drain cancels what is left, then exits.
+      terminationGracePeriodSeconds: {{ add (int .Values.server.shutdownGraceSeconds) (int .Values.server.terminationGraceMarginSeconds) }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: {{ int .Values.podSecurityContext.runAsUser }}
+        runAsGroup: {{ int .Values.podSecurityContext.runAsGroup }}
+        fsGroup: {{ int .Values.podSecurityContext.fsGroup }}
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: bicraft
+          image: {{ include "bicraft.image" . | quote }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - --root
+            - {{ .Values.workspace.root | quote }}
+            - --listen
+            - {{ printf "0.0.0.0:%d" (int .Values.server.port) | quote }}
+            - --shutdown-grace
+            - {{ int .Values.server.shutdownGraceSeconds | quote }}
+            - --max-upload-bytes
+            - {{ .Values.server.maxUploadBytes | toString | quote }}
+            {{- if gt (int .Values.server.maxBodyBytes) 0 }}
+            - --max-body-bytes
+            - {{ int .Values.server.maxBodyBytes | quote }}
+            {{- end }}
+            {{- if gt (int .Values.server.queue) 0 }}
+            - --queue
+            - {{ int .Values.server.queue | quote }}
+            {{- end }}
+            {{- if gt (int .Values.server.maxConcurrentReads) 0 }}
+            - --max-concurrent-reads
+            - {{ int .Values.server.maxConcurrentReads | quote }}
+            {{- end }}
+            {{- if gt (int .Values.server.idleTimeoutSeconds) 0 }}
+            - --idle-timeout
+            - {{ int .Values.server.idleTimeoutSeconds | quote }}
+            {{- end }}
+            {{- if gt (int .Values.server.readyMemoryPercent) 0 }}
+            - --ready-memory-percent
+            - {{ int .Values.server.readyMemoryPercent | quote }}
+            {{- end }}
+            {{- with .Values.server.localOffset }}
+            # Power Query's local clock (UTC without it, as in the Power BI service)
+            - --local-offset
+            - {{ . | toString | quote }}
+            {{- end }}
+            {{- if .Values.recovery.enabled }}
+            # journals of unsaved edits, one subfolder per workspace (docs/recovery.md)
+            - --recovery-dir
+            - {{ .Values.recovery.mountPath | quote }}
+            {{- end }}
+            {{- if .Values.recovery.allowAutosave }}
+            - --allow-autosave
+            {{- end }}
+            {{- if .Values.metrics.enabled }}
+            # Prometheus metrics on their own port (no authentication, no model data; docs/kubernetes.md
+            # "Observability"). $(POD_IP) comes from the downward API below.
+            - --metrics-listen
+            - {{ printf "%s:%d" .Values.metrics.host (int .Values.metrics.port) | quote }}
+            {{- if .Values.metrics.workspaceLabel }}
+            - --metrics-workspace-label
+            {{- end }}
+            {{- end }}
+            {{- if not .Values.viewer.enabled }}
+            - --no-viewer
+            {{- else }}
+            # the live viewer at /w/<id>/view/ (docs/kubernetes.md "Viewer"): read-only copies of saved
+            # files for readers, private views per browser page
+            - --viewer-copies
+            - {{ int .Values.viewer.copies | quote }}
+            - --max-viewers
+            - {{ int .Values.viewer.maxViews | quote }}
+            {{- $dv := .Values.viewer.documentViews }}
+            {{- if gt (int $dv.perUser) 0 }}
+            - --max-views-per-user
+            - {{ int $dv.perUser | quote }}
+            {{- end }}
+            {{- if gt (int $dv.perWorkspace) 0 }}
+            - --max-views
+            - {{ int $dv.perWorkspace | quote }}
+            {{- end }}
+            {{- if gt (int $dv.idleSeconds) 0 }}
+            - --view-idle
+            - {{ int $dv.idleSeconds | quote }}
+            {{- end }}
+            {{- if .Values.viewer.control.enabled }}
+            # the UI control channel (token: BICRAFT_VIEWER_CONTROL_TOKEN below)
+            - --viewer-control
+            {{- end }}
+            {{- end }}
+            {{- range .Values.server.allowedOrigins }}
+            - --allow-origin
+            - {{ . | quote }}
+            {{- end }}
+            {{- with .Values.auth.trustedProxy.userHeader }}
+            - --proxy-user-header
+            - {{ . | quote }}
+            {{- end }}
+            {{- with .Values.auth.trustedProxy.emailHeader }}
+            - --proxy-email-header
+            - {{ . | quote }}
+            {{- end }}
+            {{- with .Values.auth.trustedProxy.groupsHeader }}
+            - --proxy-groups-header
+            - {{ . | quote }}
+            {{- end }}
+            {{- range .Values.server.extraArgs }}
+            - {{ . | quote }}
+            {{- end }}
+          env:
+            {{- if .Values.metrics.enabled }}
+            # Declared first: --metrics-listen refers to it.
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            {{- end }}
+            - name: TMPDIR
+              value: /tmp
+            - name: BICRAFT_LOG_FORMAT
+              value: {{ .Values.logging.format | quote }}
+            - name: BICRAFT_SPILL_DIR
+              value: /tmp
+            {{- if gt (int .Values.model.memoryLimitMiB) 0 }}
+            - name: BICRAFT_MEMORY_LIMIT
+              value: {{ printf "%dM" (int .Values.model.memoryLimitMiB) | quote }}
+            {{- end }}
+            {{- if gt (int .Values.model.memoryBudgetMiB) 0 }}
+            - name: BICRAFT_MEMORY_BUDGET
+              value: {{ printf "%dM" (int .Values.model.memoryBudgetMiB) | quote }}
+            {{- end }}
+            - name: BICRAFT_SCAN_THREADS
+              value: {{ include "bicraft.scanThreads" . | quote }}
+            - name: BICRAFT_AGG_THREADS
+              value: {{ include "bicraft.aggThreads" . | quote }}
+            - name: BICRAFT_AGGREGATIONS
+              value: {{ ternary "1" "0" .Values.model.aggregations | quote }}
+            - name: BICRAFT_SERVER_NETWORK
+              value: {{ ternary "1" "0" .Values.databricks.enabled | quote }}
+            - name: BICRAFT_ALLOWED_HOSTS
+              value: {{ include "bicraft.allowedHosts" . | quote }}
+            {{- with .Values.auth.publicUrl }}
+            - name: BICRAFT_PUBLIC_URL
+              value: {{ . | quote }}
+            {{- end }}
+            {{- with .Values.auth.grants }}
+            - name: BICRAFT_AUTH_GRANTS
+              value: {{ join ";" . | quote }}
+            {{- end }}
+            {{- with .Values.auth.readerGrants }}
+            - name: BICRAFT_AUTH_READER_GRANTS
+              value: {{ join ";" . | quote }}
+            {{- end }}
+            {{- with .Values.auth.oidc.issuers }}
+            - name: BICRAFT_OIDC_ISSUERS
+              value: {{ join "," . | quote }}
+            {{- end }}
+            {{- with .Values.auth.oidc.audiences }}
+            - name: BICRAFT_OIDC_AUDIENCES
+              value: {{ join "," . | quote }}
+            {{- end }}
+            {{- with .Values.auth.oidc.scopes }}
+            - name: BICRAFT_OIDC_SCOPES
+              value: {{ join "," . | quote }}
+            {{- end }}
+            {{- with .Values.auth.trustedProxy.cidrs }}
+            - name: BICRAFT_TRUSTED_PROXIES
+              value: {{ join "," . | quote }}
+            {{- end }}
+            {{- if or .Values.auth.apiTokens.existingSecret .Values.auth.apiTokens.tokensJson }}
+            - name: BICRAFT_API_TOKENS_FILE
+              value: /etc/bicraft/tokens/tokens.json
+            {{- end }}
+            {{- if or .Values.auth.config.existingSecret .Values.auth.config.json }}
+            - name: BICRAFT_AUTH_CONFIG
+              value: /etc/bicraft/auth/auth.json
+            {{- end }}
+            {{- if and .Values.viewer.enabled .Values.viewer.control.enabled }}
+            - name: BICRAFT_VIEWER_CONTROL_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.viewer.control.existingSecret }}
+                  key: {{ .Values.viewer.control.key }}
+            {{- end }}
+            {{- if .Values.databricks.enabled }}
+            - name: BICRAFT_DATABRICKS_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.databricks.existingSecret }}
+                  key: {{ .Values.databricks.key }}
+            {{- end }}
+            {{- with .Values.server.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ int .Values.server.port }}
+              protocol: TCP
+            {{- if .Values.metrics.enabled }}
+            - name: metrics
+              containerPort: {{ int .Values.metrics.port }}
+              protocol: TCP
+            {{- end }}
+          # Both probes are answered before the Host check and without authentication, and never
+          # carry model data.
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: {{ .Values.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.liveness.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.liveness.timeoutSeconds }}
+            failureThreshold: {{ .Values.probes.liveness.failureThreshold }}
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            periodSeconds: {{ .Values.probes.readiness.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.readiness.timeoutSeconds }}
+            failureThreshold: {{ .Values.probes.readiness.failureThreshold }}
+          resources:
+            requests:
+              cpu: {{ default (toString (int .Values.model.cpu)) .Values.model.cpuRequest | quote }}
+              {{- if gt $podMem 0 }}
+              memory: {{ printf "%dMi" (ternary (int .Values.model.memoryRequestMiB) $podMem (gt (int .Values.model.memoryRequestMiB) 0)) | quote }}
+              {{- end }}
+            limits:
+              cpu: {{ int .Values.model.cpu | quote }}
+              {{- if gt $podMem 0 }}
+              memory: {{ printf "%dMi" $podMem | quote }}
+              {{- end }}
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            privileged: false
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+          volumeMounts:
+            - name: workspace
+              mountPath: {{ printf "%s/%s" (trimSuffix "/" .Values.workspace.root) .Values.workspace.id | quote }}
+            - name: tmp
+              mountPath: /tmp
+            {{- if .Values.recovery.enabled }}
+            - name: recovery
+              mountPath: {{ .Values.recovery.mountPath | quote }}
+            {{- end }}
+            {{- if or .Values.auth.apiTokens.existingSecret .Values.auth.apiTokens.tokensJson }}
+            - name: tokens
+              mountPath: /etc/bicraft/tokens
+              readOnly: true
+            {{- end }}
+            {{- if or .Values.auth.config.existingSecret .Values.auth.config.json }}
+            - name: auth-config
+              mountPath: /etc/bicraft/auth
+              readOnly: true
+            {{- end }}
+      volumes:
+        - name: workspace
+          persistentVolumeClaim:
+            claimName: {{ include "bicraft.claimName" . }}
+        # Disk-backed (never the Memory medium): spill files must not count against the pod's memory.
+        - name: tmp
+          emptyDir:
+            sizeLimit: {{ .Values.spill.sizeLimit }}
+        {{- if .Values.recovery.enabled }}
+        - name: recovery
+          persistentVolumeClaim:
+            claimName: {{ include "bicraft.recoveryClaimName" . }}
+        {{- end }}
+        {{- if or .Values.auth.apiTokens.existingSecret .Values.auth.apiTokens.tokensJson }}
+        - name: tokens
+          secret:
+            secretName: {{ default (include "bicraft.authSecretName" .) .Values.auth.apiTokens.existingSecret }}
+            items:
+              - key: {{ ternary .Values.auth.apiTokens.key "tokens.json" (ne .Values.auth.apiTokens.existingSecret "") }}
+                path: tokens.json
+        {{- end }}
+        {{- if or .Values.auth.config.existingSecret .Values.auth.config.json }}
+        - name: auth-config
+          secret:
+            secretName: {{ default (include "bicraft.authSecretName" .) .Values.auth.config.existingSecret }}
+            items:
+              - key: {{ ternary .Values.auth.config.key "auth.json" (ne .Values.auth.config.existingSecret "") }}
+                path: auth.json
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

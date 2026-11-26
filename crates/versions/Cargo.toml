@@ -1,0 +1,11 @@
+[package]
+name = "bicraft-versions"
+description = "L0: every versioned format identifier bicraft writes ($schema URLs, file versions, compatibility level), in one table"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+
+[lints]
+workspace = true

@@ -1,0 +1,311 @@
+/// Line one
+/// Line two with trailing space 
+/// 
+/// /// starts like a description
+table 'Order Lines'
+	lineageTag: t-ol
+	dataCategory: Time
+
+	/// Sum.
+	measure 'Sales Amount' = SUM('Order Lines'[Key])
+		formatString: #,0.00
+		isSimpleMeasure
+		displayFolder: Key Figures\Sub
+		lineageTag: m1
+		sourceLineageTag: sm1
+		dataCategory: WebUrl
+
+		/// kpi desc
+		kpi
+			targetDescription: td
+			targetExpression = 100
+			targetFormatString: 0
+			statusGraphic: Shapes
+			statusDescription: sd
+			statusExpression =
+				VAR x = [Sales Amount]
+				RETURN IF(x > 100, 1, -1)
+			trendGraphic: Standard Arrow
+			trendDescription: trd
+			trendExpression = 1
+
+			annotation KA = 1
+
+		detailRowsDefinition = 'Order Lines'
+
+		formatStringDefinition =
+				IF(1, "0",
+				    "0.0")
+
+		extendedProperty PBI_ProTooling =
+				{
+				  "tools": [
+				    "DevMode",
+				    "CalcGroup"
+				  ]
+				}
+
+		extendedProperty S = text value
+
+		extendedProperty J =
+				{
+				  "version": 0,
+				  "a": [
+				    1,
+				    2
+				  ]
+				}
+
+		extendedProperty 'S ML' =
+				a
+				b
+
+		changedProperty = Name
+
+		changedProperty = FormatString
+
+		annotation A = 1
+
+		annotation Empty
+
+		annotation Multi =
+				line1
+				line2
+
+		annotation Json = {"a": 1}
+
+		annotation Lead = ```
+				 lead
+				```
+
+		annotation 'It''s' = x
+
+		annotation Trail = ```
+				x 
+				```
+
+	measure ML =
+			VAR x =
+			    1
+			
+			RETURN
+			    x + 2
+		isHidden
+
+	measure Empty
+
+	measure Fence = ```
+			  lead
+			  more  
+			```
+
+	measure 'Quote''n' = 1
+		formatString: "$"#,0
+
+	measure 'Dot.Name' = 1
+		displayFolder: "  "
+
+	measure 'Eq=Name' = 1 = 1
+
+	measure Hash# =
+			-- comment
+			1
+
+	/// a
+	/// 
+	/// b
+	measure 'Desc ML' = 1
+
+	/// trailing   
+	measure 'Desc trail' = 1
+
+	///   lead
+	measure 'Desc lead' = 1
+
+	measure Typed = 1
+
+	column Key
+		dataType: int64
+		isUnique
+		isKey
+		isNullable: false
+		formatString: 0
+		isAvailableInMdx: false
+		keepUniqueRows
+		displayOrdinal: 3
+		sourceProviderType: int
+		displayFolder: Keys
+		encodingHint: value
+		lineageTag: c1
+		sourceLineageTag: [dbo].[Key]
+		dataCategory: Uncategorized
+		alignment: right
+		tableDetailPosition: 1
+		isDefaultLabel
+		summarizeBy: none
+		sourceColumn: Key
+
+		annotation SummarizationSetBy = User
+
+	/// d
+	/// with CRLF
+	column 'It''s "quoted"'
+		dataType: string
+		formatString: " lead"
+		displayFolder: "trail "
+		sourceColumn: It's "quoted"
+
+	column 2024
+		dataType: string
+		formatString: 1.50
+		displayFolder: 0
+		sourceColumn: 2024
+
+	column table
+		dataType: string
+		formatString: true
+		displayFolder: null
+		sourceColumn: table
+
+	column colon
+		dataType: string
+		formatString: """q"""
+		sourceColumn: colon
+
+	column a:b#c[d]
+		dataType: string
+		sourceColumn: a:b#c[d]
+
+	column 'Ünïcødé ✓'
+		dataType: string
+		sourceColumn: Ünïcødé ✓
+
+	column -dash
+		dataType: string
+		sourceColumn: /slash
+
+	column ' lead space'
+		dataType: string
+		sourceColumn: " lead space"
+
+	column 'trail '
+		dataType: string
+		sourceColumn: "trail "
+
+	column Sort
+		dataType: string
+		sourceColumn: Sort
+		sortByColumn: Key
+
+	column 'Month Name'
+		dataType: string
+		sourceColumn: Month Name
+		sortByColumn: 'It''s "quoted"'
+
+	column 'Calc 1' = 1
+
+	column 'Calc ML' = ```
+			
+			    VAR a = 1
+			    RETURN
+			        a
+			```
+		dataType: int64
+
+	column 'Calc trailing' = ```
+			"x" 
+			```
+		dataType: string
+
+	column 'Calc lead ws' = ```
+			  "x"
+			  & "y"
+			```
+		dataType: string
+
+	column 'Calc nl end' = ```
+			"x"
+			
+			```
+		dataType: string
+
+	column 'Calc fence' = "```" & "a"
+		dataType: string
+
+	column 'Calc crlf' =
+			"a"
+			& "b"
+		dataType: string
+
+	column 'Calc tabs' =
+			IF(TRUE(),
+				"a",
+				"b")
+		dataType: string
+
+	column 'Calc blank lines' =
+			1
+			
+			
+			+ 2
+		dataType: string
+
+	column Alt
+		dataType: int64
+		sourceColumn: Alt
+
+		alternateOf
+			summarization: sum
+			baseColumn: Product.'Product Key'
+
+	/// hd
+	hierarchy 'H 1'
+		isHidden
+		displayFolder: HF
+		hideMembers: hideBlankMembers
+		lineageTag: h1
+		sourceLineageTag: sh1
+
+		/// ld
+		level 'L 1'
+			lineageTag: l1
+			column: Key
+
+		level 'L''2'
+			column: 'It''s "quoted"'
+
+		changedProperty = IsHidden
+
+		annotation HA = 1
+
+	/// pd
+	partition 'Order Lines-1' = m
+		mode: import
+		dataView: full
+		queryGroup: Staging\Sub
+		source =
+				let
+				    Source = #table({"A"}, {{1}}),
+				    #"Changed Type" = Table.TransformColumnTypes(Source, {{"A", Int64.Type}})
+				in
+				    #"Changed Type"
+
+		annotation PA = 1
+
+	partition P2 = m
+		mode: directQuery
+		source = #"Sales Staging"
+
+		/// dcd
+		dataCoverageDefinition = RELATED('Product'[Category]) = "Bikes"
+
+	extendedProperty TE = v
+
+	changedProperty = Name
+
+	annotation PBI_ResultType = Table
+
+	annotation ML =
+			a
+			b
+

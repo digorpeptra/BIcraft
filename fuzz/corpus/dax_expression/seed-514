@@ -1,0 +1,1 @@
+DATEDIFF(MIN(Sales[OrderDate]), MAX(Sales[OrderDate]), DAY)

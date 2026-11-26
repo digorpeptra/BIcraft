@@ -1,0 +1,3 @@
+database 'Contoso Sales'
+	compatibilityLevel: 1601
+

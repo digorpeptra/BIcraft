@@ -1,0 +1,1 @@
+SUMMARIZE(Sales, Product[Category])

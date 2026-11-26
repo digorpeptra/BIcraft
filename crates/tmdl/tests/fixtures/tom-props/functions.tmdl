@@ -1,0 +1,12 @@
+/// v64Description
+function F = () => 1
+	isHidden
+	lineageTag: v66LineageTag
+	sourceLineageTag: v67SourceLineageTag
+
+	extendedProperty xfn = xv
+
+	changedProperty = Name
+
+	annotation afn = av
+

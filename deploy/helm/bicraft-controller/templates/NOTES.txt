@@ -1,0 +1,19 @@
+BIcraft workspace controller {{ .Chart.AppVersion }} in namespace {{ .Release.Namespace }}.
+
+Gateway: http://{{ include "bicraft-controller.fullname" . }}.{{ .Release.Namespace }}.svc:{{ .Values.service.port }}
+{{- with .Values.auth.publicUrl }} (public: {{ . }}){{ end }}
+
+Create a workspace (an admin's credentials):
+  curl -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
+    -d '{"name": "sales", "sizeClass": "{{ .Values.workspaces.defaultClass }}", "grants": ["token:agent"]}' \
+    <gateway>/api/v1/workspaces
+or declare it:
+  kubectl -n {{ .Release.Namespace }} apply -f - <<EOF
+  apiVersion: {{ .Values.crd.group }}/v1alpha1
+  kind: BicraftWorkspace
+  metadata: {name: sales}
+  spec: {sizeClass: {{ .Values.workspaces.defaultClass }}, grants: ["token:agent"]}
+  EOF
+
+Agents then use <gateway>/w/sales/mcp; the first request wakes the workspace.
+  kubectl -n {{ .Release.Namespace }} get bws

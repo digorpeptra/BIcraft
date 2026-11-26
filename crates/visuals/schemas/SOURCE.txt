@@ -1,0 +1,4 @@
+Vendored from https://github.com/microsoft/powerbi-desktop-samples ("Report Theme JSON Schema"
+folder, file reportThemeSchema-2.159.json, the latest published version), commit
+34f78db38030195329a5ce05323251f778772fe1 (2026-10-15), under the MIT License in LICENSE.
+The file is unmodified. See docs/formats/visual-options.md.

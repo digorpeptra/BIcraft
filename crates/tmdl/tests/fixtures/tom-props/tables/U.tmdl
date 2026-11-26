@@ -1,0 +1,19 @@
+table U
+
+	column K
+		dataType: int64
+		sourceColumn: K
+
+		/// vd
+		variation V
+			isDefault
+			relationship: R
+			defaultHierarchy: T.H
+
+			extendedProperty xvar = xv
+
+			annotation avar = av
+
+	partition U = m
+		source = x
+

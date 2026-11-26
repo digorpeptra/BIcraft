@@ -1,0 +1,1 @@
+WEEKNUM('Date'[Date], 2)

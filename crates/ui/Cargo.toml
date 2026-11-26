@@ -1,0 +1,44 @@
+[package]
+name = "bicraft-ui"
+description = "The BIcraft app's UI (egui), shared by the desktop window and the browser page: report pages through bicraft-render, the Model and Validation tabs, fonts, shell capabilities"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+rust-version.workspace = true
+
+[dependencies]
+bicraft-render.workspace = true
+# The Format visual tab's cards are generated from the catalog of visual types and their
+# formatting objects (format_pane.rs), so a card exists only for a type that has the object.
+bicraft-visuals.workspace = true
+# M completion, hover and signature help in the Power Query editor (m_box.rs): the catalogue
+# and the language services the engine's m.complete, m.hover and m.signature also use.
+bicraft-mlang.workspace = true
+# Backstage dates through the shared calendar (already in the build through bicraft-render; G37)
+bicraft-locale.workspace = true
+serde_json.workspace = true
+# The UI toolkit, the version DeckCraft uses (MIT OR Apache-2.0); `default_fonts` brings the
+# fallback faces (Hack, Ubuntu Light, Noto Emoji, emoji icon font; crates/ui/src/fonts.rs).
+egui = { version = "0.36", default-features = false, features = ["default_fonts"] }
+# Screenshots of the control channel encoded as PNG (the encoder bicraft-render already uses; BSD-3-Clause).
+tiny-skia = { version = "0.12", default-features = false, features = ["std", "png-format"] }
+
+[dev-dependencies]
+egui_kittest = "0.36"
+# `BICRAFT_BLESS=1` rewrites the generated command table (registry_tests.rs).
+bicraft-env.workspace = true
+# Tests build real snapshots with an engine session (never a normal dependency: the crate builds
+# for wasm32; xtask/src/layers.rs enforces it).
+bicraft-engine.workspace = true
+# Builds the tests' own tiny `.pbiviz` packages (custom_visuals_ui_tests.rs).
+bicraft-opc.workspace = true
+# The scripted fake TDS server of the SQL Server source tests (get_data_ui_tests.rs).
+bicraft-sqlserver = { workspace = true, features = ["fake-server"] }
+# The test HTTP server of the Web and OData source tests (get_data_ui_tests.rs).
+bicraft-webdata = { workspace = true, features = ["fake-server"] }
+# Reads the cmaps of the app's fonts (every character of the UI has a glyph).
+skrifa = { version = "0.44", default-features = false, features = ["std"] }
+
+[lints]
+workspace = true

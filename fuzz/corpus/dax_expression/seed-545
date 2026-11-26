@@ -1,0 +1,1 @@
+IF(Sales[Discount] > 0, "Discounted", "Full price")

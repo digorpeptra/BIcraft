@@ -1,0 +1,1 @@
+IF(ISINSCOPE(Product[Product]), [Total Sales], [Total Sales] / 2)

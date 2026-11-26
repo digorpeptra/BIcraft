@@ -1,0 +1,264 @@
+{
+ "name": "BicraftTableFunctions",
+ "compatibilityLevel": 1567,
+ "model": {
+  "culture": "en-US",
+  "tables": [
+   {
+    "name": "Product",
+    "columns": [
+     {
+      "type": "calculatedTableColumn",
+      "name": "ProductKey",
+      "dataType": "int64",
+      "isNameInferred": true,
+      "isDataTypeInferred": true,
+      "sourceColumn": "[ProductKey]"
+     },
+     {
+      "type": "calculatedTableColumn",
+      "name": "Product",
+      "dataType": "string",
+      "isNameInferred": true,
+      "isDataTypeInferred": true,
+      "sourceColumn": "[Product]"
+     },
+     {
+      "type": "calculatedTableColumn",
+      "name": "Category",
+      "dataType": "string",
+      "isNameInferred": true,
+      "isDataTypeInferred": true,
+      "sourceColumn": "[Category]"
+     },
+     {
+      "type": "calculatedTableColumn",
+      "name": "Price",
+      "dataType": "decimal",
+      "isNameInferred": true,
+      "isDataTypeInferred": true,
+      "sourceColumn": "[Price]"
+     }
+    ],
+    "partitions": [
+     {
+      "name": "Product",
+      "source": {
+       "type": "calculated",
+       "expression": "DATATABLE(\"ProductKey\", INTEGER, \"Product\", STRING, \"Category\", STRING, \"Price\", CURRENCY, {{1, \"Bike\", \"Wheels\", 100}, {2, \"Ball\", \"Toys\", 10}, {3, \"Car\", \"Wheels\", 250}, {4, \"Kite\", \"Toys\", 15}})"
+      }
+     }
+    ],
+    "measures": [
+     {
+      "name": "Avg Price",
+      "expression": "AVERAGE(Product[Price])"
+     }
+    ]
+   },
+   {
+    "name": "Customer",
+    "columns": [
+     {
+      "type": "calculatedTableColumn",
+      "name": "CustKey",
+      "dataType": "int64",
+      "isNameInferred": true,
+      "isDataTypeInferred": true,
+      "sourceColumn": "[CustKey]"
+     },
+     {
+      "type": "calculatedTableColumn",
+      "name": "Name",
+      "dataType": "string",
+      "isNameInferred": true,
+      "isDataTypeInferred": true,
+      "sourceColumn": "[Name]"
+     },
+     {
+      "type": "calculatedTableColumn",
+      "name": "City",
+      "dataType": "string",
+      "isNameInferred": true,
+      "isDataTypeInferred": true,
+      "sourceColumn": "[City]"
+     }
+    ],
+    "partitions": [
+     {
+      "name": "Customer",
+      "source": {
+       "type": "calculated",
+       "expression": "DATATABLE(\"CustKey\", INTEGER, \"Name\", STRING, \"City\", STRING, {{1, \"Ann\", \"Paris\"}, {2, \"Bob\", \"Lyon\"}, {3, \"Cid\", \"Paris\"}})"
+      }
+     }
+    ]
+   },
+   {
+    "name": "Sales",
+    "columns": [
+     {
+      "type": "calculatedTableColumn",
+      "name": "SalesKey",
+      "dataType": "int64",
+      "isNameInferred": true,
+      "isDataTypeInferred": true,
+      "sourceColumn": "[SalesKey]"
+     },
+     {
+      "type": "calculatedTableColumn",
+      "name": "ProductKey",
+      "dataType": "int64",
+      "isNameInferred": true,
+      "isDataTypeInferred": true,
+      "sourceColumn": "[ProductKey]"
+     },
+     {
+      "type": "calculatedTableColumn",
+      "name": "CustKey",
+      "dataType": "int64",
+      "isNameInferred": true,
+      "isDataTypeInferred": true,
+      "sourceColumn": "[CustKey]"
+     },
+     {
+      "type": "calculatedTableColumn",
+      "name": "Date",
+      "dataType": "dateTime",
+      "isNameInferred": true,
+      "isDataTypeInferred": true,
+      "sourceColumn": "[Date]"
+     },
+     {
+      "type": "calculatedTableColumn",
+      "name": "Qty",
+      "dataType": "int64",
+      "isNameInferred": true,
+      "isDataTypeInferred": true,
+      "sourceColumn": "[Qty]"
+     },
+     {
+      "type": "calculatedTableColumn",
+      "name": "Amount",
+      "dataType": "double",
+      "isNameInferred": true,
+      "isDataTypeInferred": true,
+      "sourceColumn": "[Amount]"
+     },
+     {
+      "type": "calculatedTableColumn",
+      "name": "Channel",
+      "dataType": "string",
+      "isNameInferred": true,
+      "isDataTypeInferred": true,
+      "sourceColumn": "[Channel]"
+     }
+    ],
+    "partitions": [
+     {
+      "name": "Sales",
+      "source": {
+       "type": "calculated",
+       "expression": "DATATABLE(\"SalesKey\", INTEGER, \"ProductKey\", INTEGER, \"CustKey\", INTEGER, \"Date\", DATETIME, \"Qty\", INTEGER, \"Amount\", DOUBLE, \"Channel\", STRING, {{1, 1, 1, \"2023-01-10\", 1, 100, \"Web\"}, {2, 2, 1, \"2023-02-15\", 2, 20, \"Store\"}, {3, 1, 2, \"2023-06-30\", 2, 200, \"Store\"}, {4, 9, 2, \"2023-12-31\", 1, 50, \"App\"}, {5, 1, 3, \"2024-01-05\", 1, 150, \"Web\"}, {6, 2, 3, \"2024-02-29\", 3, 30, \"App\"}, {7, 3, 1, \"2024-03-01\", 1, 300, \"Store\"}, {8, 2, 2, \"2024-07-15\", 4, 40, \"Web\"}, {9, 4, 3, \"2024-07-20\", 2, -15, \"Web\"}})"
+      }
+     }
+    ],
+    "measures": [
+     {
+      "name": "Total",
+      "expression": "SUM(Sales[Amount])"
+     },
+     {
+      "name": "Units",
+      "expression": "SUM(Sales[Qty])"
+     },
+     {
+      "name": "Lines",
+      "expression": "COUNTROWS(Sales)"
+     }
+    ]
+   },
+   {
+    "name": "Date",
+    "columns": [
+     {
+      "type": "calculatedTableColumn",
+      "name": "Date",
+      "dataType": "dateTime",
+      "isNameInferred": true,
+      "isDataTypeInferred": true,
+      "sourceColumn": "[Date]"
+     }
+    ],
+    "partitions": [
+     {
+      "name": "Date",
+      "source": {
+       "type": "calculated",
+       "expression": "CALENDAR(DATE(2023, 1, 1), DATE(2024, 12, 31))"
+      }
+     }
+    ]
+   },
+   {
+    "name": "Order's Lines",
+    "columns": [
+     {
+      "type": "calculatedTableColumn",
+      "name": "Line",
+      "dataType": "int64",
+      "isNameInferred": true,
+      "isDataTypeInferred": true,
+      "sourceColumn": "[Line]"
+     },
+     {
+      "type": "calculatedTableColumn",
+      "name": "Unit]Price",
+      "dataType": "double",
+      "isNameInferred": true,
+      "isDataTypeInferred": true,
+      "sourceColumn": "[Unit]]Price]"
+     }
+    ],
+    "measures": [
+     {
+      "name": "Rev]enue",
+      "expression": "SUM('Order''s Lines'[Unit]]Price])"
+     }
+    ],
+    "partitions": [
+     {
+      "name": "Order's Lines",
+      "source": {
+       "type": "calculated",
+       "expression": "DATATABLE(\"Line\", INTEGER, \"Unit]Price\", DOUBLE, {{1, 2.5}, {2, 4}})"
+      }
+     }
+    ]
+   }
+  ],
+  "relationships": [
+   {
+    "name": "Sales_Product",
+    "fromTable": "Sales",
+    "fromColumn": "ProductKey",
+    "toTable": "Product",
+    "toColumn": "ProductKey"
+   },
+   {
+    "name": "Sales_Customer",
+    "fromTable": "Sales",
+    "fromColumn": "CustKey",
+    "toTable": "Customer",
+    "toColumn": "CustKey"
+   },
+   {
+    "name": "Sales_Date",
+    "fromTable": "Sales",
+    "fromColumn": "Date",
+    "toTable": "Date",
+    "toColumn": "Date"
+   }
+  ]
+ }
+}

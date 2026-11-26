@@ -1,0 +1,209 @@
+{{- include "bicraft-controller.validate" . -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "bicraft-controller.fullname" . }}
+  labels:
+    {{- include "bicraft-controller.labels" . | nindent 4 }}
+spec:
+  # One reconciler and one activity tracker: a single replica (leader election and stateless
+  # gateway replicas are stage 3, docs/kubernetes.md).
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "bicraft-controller.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "bicraft-controller.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      annotations:
+        # The configuration and the tokens are read at start: a change restarts the controller.
+        checksum/config: {{ printf "%s%s%s" (include "bicraft-controller.config" .) .Values.auth.apiTokens.tokensJson .Values.auth.config.json | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ include "bicraft-controller.fullname" . }}
+      # The controller talks to the Kubernetes API with its projected service-account token.
+      automountServiceAccountToken: true
+      enableServiceLinks: false
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}
+      terminationGracePeriodSeconds: {{ add (int .Values.controller.shutdownGraceSeconds) (int .Values.controller.terminationGraceMarginSeconds) }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: {{ int .Values.podSecurityContext.runAsUser }}
+        runAsGroup: {{ int .Values.podSecurityContext.runAsGroup }}
+        fsGroup: {{ int .Values.podSecurityContext.fsGroup }}
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: controller
+          image: {{ include "bicraft-controller.image" . | quote }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          # The image's entry point is `bicraft serve`: the controller is another subcommand.
+          command:
+            - /usr/local/bin/bicraft
+          args:
+            - controller
+            - --config
+            - /etc/bicraft-controller/config.json
+            - --listen
+            - {{ printf "0.0.0.0:%d" (int .Values.controller.port) | quote }}
+            - --interval
+            - {{ int .Values.controller.intervalSeconds | quote }}
+            - --shutdown-grace
+            - {{ int .Values.controller.shutdownGraceSeconds | quote }}
+            {{- range .Values.controller.admins }}
+            - --admin
+            - {{ . | quote }}
+            {{- end }}
+            {{- with .Values.auth.trustedProxy.userHeader }}
+            - --proxy-user-header
+            - {{ . | quote }}
+            {{- end }}
+            {{- with .Values.auth.trustedProxy.emailHeader }}
+            - --proxy-email-header
+            - {{ . | quote }}
+            {{- end }}
+            {{- with .Values.auth.trustedProxy.groupsHeader }}
+            - --proxy-groups-header
+            - {{ . | quote }}
+            {{- end }}
+            {{- range .Values.controller.extraArgs }}
+            - {{ . | quote }}
+            {{- end }}
+          env:
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: BICRAFT_ALLOWED_HOSTS
+              value: {{ include "bicraft-controller.allowedHosts" . | quote }}
+            {{- with .Values.auth.publicUrl }}
+            - name: BICRAFT_PUBLIC_URL
+              value: {{ . | quote }}
+            {{- end }}
+            {{- with .Values.auth.grants }}
+            - name: BICRAFT_AUTH_GRANTS
+              value: {{ join ";" . | quote }}
+            {{- end }}
+            {{- with .Values.auth.readerGrants }}
+            - name: BICRAFT_AUTH_READER_GRANTS
+              value: {{ join ";" . | quote }}
+            {{- end }}
+            {{- with .Values.auth.oidc.issuers }}
+            - name: BICRAFT_OIDC_ISSUERS
+              value: {{ join "," . | quote }}
+            {{- end }}
+            {{- with .Values.auth.oidc.audiences }}
+            - name: BICRAFT_OIDC_AUDIENCES
+              value: {{ join "," . | quote }}
+            {{- end }}
+            {{- with .Values.auth.oidc.scopes }}
+            - name: BICRAFT_OIDC_SCOPES
+              value: {{ join "," . | quote }}
+            {{- end }}
+            {{- with .Values.auth.trustedProxy.cidrs }}
+            - name: BICRAFT_TRUSTED_PROXIES
+              value: {{ join "," . | quote }}
+            {{- end }}
+            {{- if or .Values.auth.apiTokens.existingSecret .Values.auth.apiTokens.tokensJson }}
+            - name: BICRAFT_API_TOKENS_FILE
+              value: /etc/bicraft/tokens/tokens.json
+            {{- end }}
+            {{- if or .Values.auth.config.existingSecret .Values.auth.config.json }}
+            - name: BICRAFT_AUTH_CONFIG
+              value: /etc/bicraft/auth/auth.json
+            {{- end }}
+            {{- with .Values.controller.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ int .Values.controller.port }}
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: {{ .Values.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.liveness.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.liveness.timeoutSeconds }}
+            failureThreshold: {{ .Values.probes.liveness.failureThreshold }}
+          # Ready once a reconciliation pass has reached the Kubernetes API.
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            periodSeconds: {{ .Values.probes.readiness.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.readiness.timeoutSeconds }}
+            failureThreshold: {{ .Values.probes.readiness.failureThreshold }}
+          resources:
+            {{- toYaml .Values.controller.resources | nindent 12 }}
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            privileged: false
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+          volumeMounts:
+            - name: config
+              mountPath: /etc/bicraft-controller
+              readOnly: true
+            {{- if or .Values.auth.apiTokens.existingSecret .Values.auth.apiTokens.tokensJson }}
+            - name: tokens
+              mountPath: /etc/bicraft/tokens
+              readOnly: true
+            {{- end }}
+            {{- if or .Values.auth.config.existingSecret .Values.auth.config.json }}
+            - name: auth-config
+              mountPath: /etc/bicraft/auth
+              readOnly: true
+            {{- end }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "bicraft-controller.fullname" . }}
+        {{- if or .Values.auth.apiTokens.existingSecret .Values.auth.apiTokens.tokensJson }}
+        - name: tokens
+          secret:
+            secretName: {{ default (include "bicraft-controller.authSecretName" .) .Values.auth.apiTokens.existingSecret }}
+            items:
+              - key: {{ ternary .Values.auth.apiTokens.key "tokens.json" (ne .Values.auth.apiTokens.existingSecret "") }}
+                path: tokens.json
+        {{- end }}
+        {{- if or .Values.auth.config.existingSecret .Values.auth.config.json }}
+        - name: auth-config
+          secret:
+            secretName: {{ default (include "bicraft-controller.authSecretName" .) .Values.auth.config.existingSecret }}
+            items:
+              - key: {{ ternary .Values.auth.config.key "auth.json" (ne .Values.auth.config.existingSecret "") }}
+                path: auth.json
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

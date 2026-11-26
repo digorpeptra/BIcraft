@@ -1,0 +1,1 @@
+EVALUATE SELECTCOLUMNS(Sales, "k", Sales[SalesKey]) ORDER BY [k]

@@ -1,0 +1,17 @@
+Test certificates of the fake TDS server (src/fake.rs, feature `fake-server`), generated for
+BIcraft with OpenSSL on 2026-11-18. They secure nothing: the key is public on purpose.
+
+- ca.pem: a self-signed test CA ("bicraft test CA", EC P-256, 100 years).
+- server.pem / server.key: a certificate for localhost and 127.0.0.1 signed by that CA
+  (serverAuth, 100 years), and its PKCS#8 key.
+
+Commands:
+  openssl ecparam -name prime256v1 -genkey -noout -out ca.key
+  openssl req -x509 -new -key ca.key -sha256 -days 36500 -subj "/CN=bicraft test CA" \
+    -addext "basicConstraints=critical,CA:TRUE" -addext "keyUsage=critical,keyCertSign,cRLSign" -out ca.pem
+  openssl ecparam -name prime256v1 -genkey -noout | openssl pkcs8 -topk8 -nocrypt -out server.key
+  openssl req -new -key server.key -subj "/CN=localhost" -out server.csr
+  openssl x509 -req -in server.csr -CA ca.pem -CAkey ca.key -CAcreateserial -days 36500 -sha256 \
+    -extfile ext.cnf -out server.pem
+  (ext.cnf: CA:FALSE, digitalSignature, serverAuth, subjectAltName localhost and 127.0.0.1)
+The CA key was deleted.

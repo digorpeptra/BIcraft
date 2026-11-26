@@ -1,0 +1,11 @@
+[package]
+name = "bicraft-mem"
+description = "Foundation (below L0): the process-wide memory limit (BICRAFT_MEMORY_LIMIT): reservations of BIcraft's big allocations, eviction, fair shares between queries"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+
+[lints]
+workspace = true

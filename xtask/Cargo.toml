@@ -1,0 +1,63 @@
+[package]
+name = "xtask"
+version = "0.0.0"
+edition.workspace = true
+publish = false
+
+[dependencies]
+bicraft-env.workspace = true
+# The engine bench's calendar (engine_bench.rs) through the shared calendar (G37)
+bicraft-locale.workspace = true
+serde_json.workspace = true
+# Release archives of `cargo xtask dist` (already in the tree through bicraft-opc).
+zip.workspace = true
+flate2.workspace = true
+bicraft-versions.workspace = true
+# HTTP client of `cargo xtask schema-watch` (rustls). Optional so that `cargo xtask ci` and the
+# other commands build without it; schema-watch re-runs xtask with `--features net`.
+ureq = { version = "3", optional = true, default-features = false, features = ["rustls"] }
+# PNG input/output of `render-compare` (already in the tree through bicraft-render).
+# YAML parser of `cargo xtask deploy check` (the Kubernetes manifests and the Helm chart). Pure
+# Rust, no unsafe in its parser, MIT OR Apache-2.0; two small new crates (arraydeque, hashlink).
+yaml-rust2 = { version = "0.13", default-features = false }
+tiny-skia = { version = "0.12", default-features = false, features = ["std", "png-format"] }
+# In-process benchmarks (`cargo xtask bench` re-runs xtask in release with `--features bench`).
+# Optional so the other xtask commands do not have to build the whole workspace first.
+bicraft-data = { workspace = true, optional = true }
+bicraft-dax = { workspace = true, optional = true }
+bicraft-engine = { workspace = true, optional = true }
+bicraft-model = { workspace = true, optional = true }
+bicraft-opc = { workspace = true, optional = true }
+bicraft-pbir = { workspace = true, optional = true }
+bicraft-pbix = { workspace = true, optional = true }
+bicraft-sqlite = { workspace = true, optional = true }
+bicraft-tmdl = { workspace = true, optional = true }
+bicraft-tmsl = { workspace = true, optional = true }
+bicraft-vertipaq = { workspace = true, optional = true }
+bicraft-xpress9 = { workspace = true, optional = true }
+
+[dev-dependencies]
+# The render oracle test renders the local reference reports (rcmp/oracle.rs).
+bicraft-engine.workspace = true
+# The decomposition tree oracle test checks the renderer's layout (oracles/decomp_tests.rs).
+bicraft-render.workspace = true
+
+[features]
+net = ["dep:ureq"]
+bench = [
+    "dep:bicraft-data",
+    "dep:bicraft-dax",
+    "dep:bicraft-engine",
+    "dep:bicraft-model",
+    "dep:bicraft-opc",
+    "dep:bicraft-pbir",
+    "dep:bicraft-pbix",
+    "dep:bicraft-sqlite",
+    "dep:bicraft-tmdl",
+    "dep:bicraft-tmsl",
+    "dep:bicraft-vertipaq",
+    "dep:bicraft-xpress9",
+]
+
+[lints]
+workspace = true

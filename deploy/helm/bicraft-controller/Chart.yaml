@@ -1,0 +1,22 @@
+apiVersion: v2
+name: bicraft-controller
+description: >-
+  BIcraft's workspace controller: a BicraftWorkspace custom resource and `bicraft controller`,
+  which creates each workspace's pod, volume, Service and NetworkPolicy, routes agents to it through
+  its gateway (same authentication as `bicraft serve`), wakes it on the first request and scales it
+  to zero when idle.
+type: application
+# The chart's own version; bump it on every change of the chart.
+version: 0.1.0
+# The bicraft version the default image tag points to (`cargo xtask deploy check` keeps it equal to
+# the workspace version).
+appVersion: "0.1.0"
+kubeVersion: ">=1.27.0-0"
+keywords:
+  - power-bi
+  - mcp
+  - dax
+  - agents
+  - controller
+annotations:
+  docs: docs/kubernetes.md

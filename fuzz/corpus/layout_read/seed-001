@@ -1,0 +1,1 @@
+{"config":"{}","layoutOptimization":0,"sections":[{"name":"ReportSection","displayName":"Page 1","width":1280,"height":720,"displayOption":1,"visualContainers":[{"x":1,"y":2,"z":0,"width":10,"height":10,"config":"{\"name\":\"v\",\"singleVisual\":{\"visualType\":\"card\",\"projections\":{\"Values\":[{\"queryRef\":\"Sum(T.C)\"}]}}}","filters":"[]"}],"config":"{}","filters":"[]"}]}

@@ -1,0 +1,22 @@
+[package]
+name = "bicraft-metadata"
+description = "L3: Analysis Services metadata.sqlitedb (TMSCHEMA tables) <-> semantic model"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+bicraft-locale.workspace = true
+bicraft-model.workspace = true
+bicraft-sqlite.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+bicraft-env.workspace = true
+bicraft-abf.workspace = true
+bicraft-opc.workspace = true
+bicraft-xpress9.workspace = true
+
+[lints]
+workspace = true

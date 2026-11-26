@@ -1,0 +1,3173 @@
+{
+ "version": 1,
+ "generator": "cargo xtask oracle-gen decomp (xtask/src/oracles/decomp.rs)",
+ "desktop": "2.159.1231.0",
+ "ui_culture": "fr-FR",
+ "recorded": "2026-11-04T15:30:55.4629244+00:00",
+ "trees": [
+  {
+   "page": "D01",
+   "found": true,
+   "levels": [
+    {
+     "x": 25.0,
+     "up": false,
+     "down": false,
+     "field": null,
+     "subtitle": null,
+     "ai": false,
+     "nodes": [
+      {
+       "label": "Total",
+       "value": 593333.0,
+       "value_text": "593\u00a0333",
+       "on_path": false,
+       "y": 201.2,
+       "bar": 130.0
+      }
+     ]
+    }
+   ],
+   "scroll_down": 0,
+   "scroll_up": 0,
+   "links": [],
+   "bar_width": 130.0
+  },
+  {
+   "page": "D02",
+   "found": true,
+   "levels": [
+    {
+     "x": 25.0,
+     "up": false,
+     "down": false,
+     "field": null,
+     "subtitle": null,
+     "ai": false,
+     "nodes": [
+      {
+       "label": "Total",
+       "value": 593333.0,
+       "value_text": "593\u00a0333",
+       "on_path": true,
+       "y": 201.2,
+       "bar": 130.0
+      }
+     ]
+    },
+    {
+     "x": 205.0,
+     "up": false,
+     "down": true,
+     "field": "Region",
+     "subtitle": null,
+     "ai": false,
+     "nodes": [
+      {
+       "label": "Central",
+       "value": 41223.0,
+       "value_text": "41\u00a0223",
+       "on_path": false,
+       "y": 112.2,
+       "bar": 28.1
+      },
+      {
+       "label": "East",
+       "value": 119903.0,
+       "value_text": "119\u00a0903",
+       "on_path": false,
+       "y": 171.5,
+       "bar": 81.7
+      },
+      {
+       "label": "North",
+       "value": 168401.0,
+       "value_text": "168\u00a0401",
+       "on_path": false,
+       "y": 230.8,
+       "bar": 114.8
+      },
+      {
+       "label": "South",
+       "value": 190743.0,
+       "value_text": "190\u00a0743",
+       "on_path": false,
+       "y": 290.2,
+       "bar": 130.0
+      }
+     ]
+    }
+   ],
+   "scroll_down": 1,
+   "scroll_up": 0,
+   "links": [
+    {
+     "d": "M129,206.16666650772095 C154.5,206.16666650772095 154.5,117.16666555404663 180,117.16666555404663",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M129,206.16666650772095 C154.5,206.16666650772095 154.5,176.49999952316284 180,176.49999952316284",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M129,206.16666650772095 C154.5,206.16666650772095 154.5,235.83333349227905 180,235.83333349227905",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M129,206.16666650772095 C154.5,206.16666650772095 154.5,295.16666746139526 180,295.16666746139526",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    }
+   ],
+   "bar_width": 130.0
+  },
+  {
+   "page": "D03",
+   "found": true,
+   "levels": [
+    {
+     "x": 25.0,
+     "up": false,
+     "down": false,
+     "field": null,
+     "subtitle": null,
+     "ai": false,
+     "nodes": [
+      {
+       "label": "Total",
+       "value": 593333.0,
+       "value_text": "593\u00a0333",
+       "on_path": true,
+       "y": 201.2,
+       "bar": 130.0
+      }
+     ]
+    },
+    {
+     "x": 205.0,
+     "up": true,
+     "down": false,
+     "field": "Region",
+     "subtitle": "South",
+     "ai": false,
+     "nodes": [
+      {
+       "label": "East",
+       "value": 119903.0,
+       "value_text": "119\u00a0903",
+       "on_path": false,
+       "y": 112.2,
+       "bar": 81.7
+      },
+      {
+       "label": "North",
+       "value": 168401.0,
+       "value_text": "168\u00a0401",
+       "on_path": false,
+       "y": 171.5,
+       "bar": 114.8
+      },
+      {
+       "label": "South",
+       "value": 190743.0,
+       "value_text": "190\u00a0743",
+       "on_path": true,
+       "y": 230.8,
+       "bar": 130.0
+      },
+      {
+       "label": "West",
+       "value": 73063.0,
+       "value_text": "73\u00a0063",
+       "on_path": false,
+       "y": 290.2,
+       "bar": 49.8
+      }
+     ]
+    },
+    {
+     "x": 385.0,
+     "up": false,
+     "down": false,
+     "field": "Category",
+     "subtitle": null,
+     "ai": false,
+     "nodes": [
+      {
+       "label": "Accessories",
+       "value": 116115.0,
+       "value_text": "116\u00a0115",
+       "on_path": false,
+       "y": 171.5,
+       "bar": 130.0
+      },
+      {
+       "label": "Bikes",
+       "value": 29047.0,
+       "value_text": "29\u00a0047",
+       "on_path": false,
+       "y": 230.8,
+       "bar": 32.5
+      },
+      {
+       "label": "Clothing",
+       "value": 45581.0,
+       "value_text": "45\u00a0581",
+       "on_path": false,
+       "y": 290.2,
+       "bar": 51.0
+      }
+     ]
+    }
+   ],
+   "scroll_down": 0,
+   "scroll_up": 1,
+   "links": [
+    {
+     "d": "M129,206.16666650772095 C154.5,206.16666650772095 154.5,117.16666555404663 180,117.16666555404663",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M129,206.16666650772095 C154.5,206.16666650772095 154.5,176.49999952316284 180,176.49999952316284",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M129,206.16666650772095 C154.5,206.16666650772095 154.5,235.83333349227905 180,235.83333349227905",
+     "stroke": "rgb(1, 184, 170)",
+     "width": "1.5px"
+    },
+    {
+     "d": "M129,206.16666650772095 C154.5,206.16666650772095 154.5,295.16666746139526 180,295.16666746139526",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M309,235.83333349227905 C334.5,235.83333349227905 334.5,176.49999952316284 360,176.49999952316284",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M309,235.83333349227905 C334.5,235.83333349227905 334.5,235.83333349227905 360,235.83333349227905",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M309,235.83333349227905 C334.5,235.83333349227905 334.5,295.16666746139526 360,295.16666746139526",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    }
+   ],
+   "bar_width": 130.0
+  },
+  {
+   "page": "D04",
+   "found": true,
+   "levels": [
+    {
+     "x": 25.0,
+     "up": false,
+     "down": false,
+     "field": null,
+     "subtitle": null,
+     "ai": false,
+     "nodes": [
+      {
+       "label": "Total",
+       "value": 593333.0,
+       "value_text": "593\u00a0333",
+       "on_path": true,
+       "y": 201.2,
+       "bar": 130.0
+      }
+     ]
+    },
+    {
+     "x": 205.0,
+     "up": false,
+     "down": true,
+     "field": "Region",
+     "subtitle": "East",
+     "ai": false,
+     "nodes": [
+      {
+       "label": "Central",
+       "value": 41223.0,
+       "value_text": "41\u00a0223",
+       "on_path": false,
+       "y": 112.2,
+       "bar": 28.1
+      },
+      {
+       "label": "East",
+       "value": 119903.0,
+       "value_text": "119\u00a0903",
+       "on_path": true,
+       "y": 171.5,
+       "bar": 81.7
+      },
+      {
+       "label": "North",
+       "value": 168401.0,
+       "value_text": "168\u00a0401",
+       "on_path": false,
+       "y": 230.8,
+       "bar": 114.8
+      },
+      {
+       "label": "South",
+       "value": 190743.0,
+       "value_text": "190\u00a0743",
+       "on_path": false,
+       "y": 290.2,
+       "bar": 130.0
+      }
+     ]
+    },
+    {
+     "x": 385.0,
+     "up": false,
+     "down": false,
+     "field": "Channel",
+     "subtitle": null,
+     "ai": true,
+     "nodes": [
+      {
+       "label": "Online",
+       "value": 53504.0,
+       "value_text": "53\u00a0504",
+       "on_path": false,
+       "y": 141.8,
+       "bar": 104.8
+      },
+      {
+       "label": "Store",
+       "value": 66399.0,
+       "value_text": "66\u00a0399",
+       "on_path": true,
+       "y": 201.2,
+       "bar": 130.0
+      }
+     ]
+    }
+   ],
+   "scroll_down": 1,
+   "scroll_up": 0,
+   "links": [
+    {
+     "d": "M129,206.16666650772095 C154.5,206.16666650772095 154.5,117.16666555404663 180,117.16666555404663",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M129,206.16666650772095 C154.5,206.16666650772095 154.5,176.49999952316284 180,176.49999952316284",
+     "stroke": "rgb(1, 184, 170)",
+     "width": "1.5px"
+    },
+    {
+     "d": "M129,206.16666650772095 C154.5,206.16666650772095 154.5,235.83333349227905 180,235.83333349227905",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M129,206.16666650772095 C154.5,206.16666650772095 154.5,295.16666746139526 180,295.16666746139526",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M309,176.49999952316284 C334.5,176.49999952316284 334.5,146.83333253860474 360,146.83333253860474",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M309,176.49999952316284 C334.5,176.49999952316284 334.5,206.16666650772095 360,206.16666650772095",
+     "stroke": "rgb(1, 184, 170)",
+     "width": "1.5px"
+    }
+   ],
+   "bar_width": 130.0
+  },
+  {
+   "page": "D05",
+   "found": true,
+   "levels": [
+    {
+     "x": 25.0,
+     "up": false,
+     "down": false,
+     "field": null,
+     "subtitle": null,
+     "ai": false,
+     "nodes": [
+      {
+       "label": "Total",
+       "value": 593333.0,
+       "value_text": "593\u00a0333",
+       "on_path": true,
+       "y": 201.2,
+       "bar": 130.0
+      }
+     ]
+    },
+    {
+     "x": 205.0,
+     "up": true,
+     "down": true,
+     "field": "Product",
+     "subtitle": null,
+     "ai": true,
+     "nodes": [
+      {
+       "label": "P07",
+       "value": 45418.0,
+       "value_text": "45\u00a0418",
+       "on_path": false,
+       "y": 112.2,
+       "bar": 110.9
+      },
+      {
+       "label": "P08",
+       "value": 34970.0,
+       "value_text": "34\u00a0970",
+       "on_path": false,
+       "y": 171.5,
+       "bar": 85.4
+      },
+      {
+       "label": "P09",
+       "value": 31925.0,
+       "value_text": "31\u00a0925",
+       "on_path": true,
+       "y": 230.8,
+       "bar": 77.9
+      },
+      {
+       "label": "P10",
+       "value": 45367.0,
+       "value_text": "45\u00a0367",
+       "on_path": false,
+       "y": 290.2,
+       "bar": 110.8
+      }
+     ]
+    }
+   ],
+   "scroll_down": 1,
+   "scroll_up": 1,
+   "links": [
+    {
+     "d": "M129,206.16666650772095 C154.5,206.16666650772095 154.5,117.16666555404663 180,117.16666555404663",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M129,206.16666650772095 C154.5,206.16666650772095 154.5,176.49999952316284 180,176.49999952316284",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M129,206.16666650772095 C154.5,206.16666650772095 154.5,235.83333349227905 180,235.83333349227905",
+     "stroke": "rgb(1, 184, 170)",
+     "width": "1.5px"
+    },
+    {
+     "d": "M129,206.16666650772095 C154.5,206.16666650772095 154.5,295.16666746139526 180,295.16666746139526",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    }
+   ],
+   "bar_width": 130.0
+  },
+  {
+   "page": "D06",
+   "found": true,
+   "levels": [
+    {
+     "x": 25.0,
+     "up": false,
+     "down": false,
+     "field": null,
+     "subtitle": null,
+     "ai": false,
+     "nodes": [
+      {
+       "label": "Total",
+       "value": 593333.0,
+       "value_text": "593\u00a0333",
+       "on_path": true,
+       "y": 201.2,
+       "bar": 130.0
+      }
+     ]
+    },
+    {
+     "x": 205.0,
+     "up": true,
+     "down": false,
+     "field": "Region",
+     "subtitle": "West",
+     "ai": false,
+     "nodes": [
+      {
+       "label": "East",
+       "value": 119903.0,
+       "value_text": "119\u00a0903",
+       "on_path": false,
+       "y": 112.2,
+       "bar": 81.7
+      },
+      {
+       "label": "North",
+       "value": 168401.0,
+       "value_text": "168\u00a0401",
+       "on_path": false,
+       "y": 171.5,
+       "bar": 114.8
+      },
+      {
+       "label": "South",
+       "value": 190743.0,
+       "value_text": "190\u00a0743",
+       "on_path": false,
+       "y": 230.8,
+       "bar": 130.0
+      },
+      {
+       "label": "West",
+       "value": 73063.0,
+       "value_text": "73\u00a0063",
+       "on_path": true,
+       "y": 290.2,
+       "bar": 49.8
+      }
+     ]
+    },
+    {
+     "x": 385.0,
+     "up": false,
+     "down": false,
+     "field": "Channel",
+     "subtitle": null,
+     "ai": false,
+     "nodes": [
+      {
+       "label": "Online",
+       "value": 32244.0,
+       "value_text": "32\u00a0244",
+       "on_path": false,
+       "y": 230.8,
+       "bar": 102.7
+      },
+      {
+       "label": "Store",
+       "value": 40819.0,
+       "value_text": "40\u00a0819",
+       "on_path": false,
+       "y": 290.2,
+       "bar": 130.0
+      }
+     ]
+    }
+   ],
+   "scroll_down": 0,
+   "scroll_up": 1,
+   "links": [
+    {
+     "d": "M129,206.16666650772095 C154.5,206.16666650772095 154.5,117.16666555404663 180,117.16666555404663",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M129,206.16666650772095 C154.5,206.16666650772095 154.5,176.49999952316284 180,176.49999952316284",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M129,206.16666650772095 C154.5,206.16666650772095 154.5,235.83333349227905 180,235.83333349227905",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M129,206.16666650772095 C154.5,206.16666650772095 154.5,295.16666746139526 180,295.16666746139526",
+     "stroke": "rgb(1, 184, 170)",
+     "width": "1.5px"
+    },
+    {
+     "d": "M309,295.16666746139526 C334.5,295.16666746139526 334.5,235.83333349227905 360,235.83333349227905",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M309,295.16666746139526 C334.5,295.16666746139526 334.5,295.16666746139526 360,295.16666746139526",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    }
+   ],
+   "bar_width": 130.0
+  },
+  {
+   "page": "D07",
+   "found": true,
+   "levels": [
+    {
+     "x": 25.0,
+     "up": false,
+     "down": false,
+     "field": null,
+     "subtitle": null,
+     "ai": false,
+     "nodes": [
+      {
+       "label": "Total",
+       "value": 593333.0,
+       "value_text": "593\u00a0333",
+       "on_path": true,
+       "y": 201.2,
+       "bar": 130.0
+      }
+     ]
+    },
+    {
+     "x": 205.0,
+     "up": false,
+     "down": true,
+     "field": "Region",
+     "subtitle": "North",
+     "ai": false,
+     "nodes": [
+      {
+       "label": "South",
+       "value": 190743.0,
+       "value_text": "190\u00a0743",
+       "on_path": false,
+       "y": 112.2,
+       "bar": 130.0
+      },
+      {
+       "label": "North",
+       "value": 168401.0,
+       "value_text": "168\u00a0401",
+       "on_path": true,
+       "y": 171.5,
+       "bar": 114.8
+      },
+      {
+       "label": "East",
+       "value": 119903.0,
+       "value_text": "119\u00a0903",
+       "on_path": false,
+       "y": 230.8,
+       "bar": 81.7
+      },
+      {
+       "label": "West",
+       "value": 73063.0,
+       "value_text": "73\u00a0063",
+       "on_path": false,
+       "y": 290.2,
+       "bar": 49.8
+      }
+     ]
+    },
+    {
+     "x": 385.0,
+     "up": false,
+     "down": false,
+     "field": "Category",
+     "subtitle": null,
+     "ai": false,
+     "nodes": [
+      {
+       "label": "Accessories",
+       "value": 76747.0,
+       "value_text": "76\u00a0747",
+       "on_path": false,
+       "y": 112.2,
+       "bar": 130.0
+      },
+      {
+       "label": "Clothing",
+       "value": 56255.0,
+       "value_text": "56\u00a0255",
+       "on_path": false,
+       "y": 171.5,
+       "bar": 95.3
+      },
+      {
+       "label": "Bikes",
+       "value": 35399.0,
+       "value_text": "35\u00a0399",
+       "on_path": false,
+       "y": 230.8,
+       "bar": 60.0
+      }
+     ]
+    }
+   ],
+   "scroll_down": 1,
+   "scroll_up": 0,
+   "links": [
+    {
+     "d": "M129,206.16666650772095 C154.5,206.16666650772095 154.5,117.16666555404663 180,117.16666555404663",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M129,206.16666650772095 C154.5,206.16666650772095 154.5,176.49999952316284 180,176.49999952316284",
+     "stroke": "rgb(1, 184, 170)",
+     "width": "1.5px"
+    },
+    {
+     "d": "M129,206.16666650772095 C154.5,206.16666650772095 154.5,235.83333349227905 180,235.83333349227905",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M129,206.16666650772095 C154.5,206.16666650772095 154.5,295.16666746139526 180,295.16666746139526",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M309,176.49999952316284 C334.5,176.49999952316284 334.5,117.16666555404663 360,117.16666555404663",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M309,176.49999952316284 C334.5,176.49999952316284 334.5,176.49999952316284 360,176.49999952316284",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M309,176.49999952316284 C334.5,176.49999952316284 334.5,235.83333349227905 360,235.83333349227905",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    }
+   ],
+   "bar_width": 130.0
+  },
+  {
+   "page": "D08",
+   "found": true,
+   "levels": [
+    {
+     "x": 25.0,
+     "up": false,
+     "down": false,
+     "field": null,
+     "subtitle": null,
+     "ai": false,
+     "nodes": [
+      {
+       "label": "Margin %",
+       "value": 0.465,
+       "value_text": "46,5%",
+       "on_path": true,
+       "y": 201.2,
+       "bar": 130.0
+      }
+     ]
+    },
+    {
+     "x": 205.0,
+     "up": false,
+     "down": false,
+     "field": "Segment",
+     "subtitle": {
+      "blank": true
+     },
+     "ai": false,
+     "nodes": [
+      {
+       "label": null,
+       "value": 0.454,
+       "value_text": "45,4%",
+       "on_path": true,
+       "y": 141.8,
+       "bar": 123.6
+      },
+      {
+       "label": "Corporate",
+       "value": 0.466,
+       "value_text": "46,6%",
+       "on_path": false,
+       "y": 201.2,
+       "bar": 126.9
+      },
+      {
+       "label": "Retail",
+       "value": 0.47700000000000004,
+       "value_text": "47,7%",
+       "on_path": false,
+       "y": 260.5,
+       "bar": 130.0
+      }
+     ]
+    },
+    {
+     "x": 385.0,
+     "up": true,
+     "down": true,
+     "field": "Product",
+     "subtitle": null,
+     "ai": false,
+     "nodes": [
+      {
+       "label": "P06",
+       "value": 0.47200000000000003,
+       "value_text": "47,2%",
+       "on_path": false,
+       "y": 112.2,
+       "bar": 109.8
+      },
+      {
+       "label": "P07",
+       "value": 0.423,
+       "value_text": "42,3%",
+       "on_path": false,
+       "y": 171.5,
+       "bar": 98.2
+      },
+      {
+       "label": "P08",
+       "value": 0.35200000000000004,
+       "value_text": "35,2%",
+       "on_path": false,
+       "y": 230.8,
+       "bar": 81.9
+      },
+      {
+       "label": "P09",
+       "value": 0.48100000000000004,
+       "value_text": "48,1%",
+       "on_path": false,
+       "y": 290.2,
+       "bar": 111.8
+      }
+     ]
+    }
+   ],
+   "scroll_down": 1,
+   "scroll_up": 1,
+   "links": [
+    {
+     "d": "M129,206.16666650772095 C154.5,206.16666650772095 154.5,146.83333253860474 180,146.83333253860474",
+     "stroke": "rgb(1, 184, 170)",
+     "width": "1.5px"
+    },
+    {
+     "d": "M129,206.16666650772095 C154.5,206.16666650772095 154.5,206.16666650772095 180,206.16666650772095",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M129,206.16666650772095 C154.5,206.16666650772095 154.5,265.50000047683716 180,265.50000047683716",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M309,146.83333253860474 C334.5,146.83333253860474 334.5,117.16666555404663 360,117.16666555404663",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M309,146.83333253860474 C334.5,146.83333253860474 334.5,176.49999952316284 360,176.49999952316284",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M309,146.83333253860474 C334.5,146.83333253860474 334.5,235.83333349227905 360,235.83333349227905",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M309,146.83333253860474 C334.5,146.83333253860474 334.5,295.16666746139526 360,295.16666746139526",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    }
+   ],
+   "bar_width": 130.0
+  },
+  {
+   "page": "D09",
+   "found": true,
+   "levels": [
+    {
+     "x": 25.0,
+     "up": false,
+     "down": false,
+     "field": null,
+     "subtitle": null,
+     "ai": false,
+     "nodes": [
+      {
+       "label": "Total",
+       "value": 131260.0,
+       "value_text": "131\u00a0260",
+       "on_path": true,
+       "y": 201.2,
+       "bar": 130.0
+      }
+     ]
+    },
+    {
+     "x": 205.0,
+     "up": true,
+     "down": false,
+     "field": "Region",
+     "subtitle": "South",
+     "ai": false,
+     "nodes": [
+      {
+       "label": "East",
+       "value": 30252.0,
+       "value_text": "30\u00a0252",
+       "on_path": false,
+       "y": 112.2,
+       "bar": 98.5
+      },
+      {
+       "label": "North",
+       "value": 39938.0,
+       "value_text": "39\u00a0938",
+       "on_path": false,
+       "y": 171.5,
+       "bar": 130.0
+      },
+      {
+       "label": "South",
+       "value": 32686.0,
+       "value_text": "32\u00a0686",
+       "on_path": true,
+       "y": 230.8,
+       "bar": 106.4
+      },
+      {
+       "label": "West",
+       "value": 17818.0,
+       "value_text": "17\u00a0818",
+       "on_path": false,
+       "y": 290.2,
+       "bar": 58.0
+      }
+     ]
+    },
+    {
+     "x": 385.0,
+     "up": false,
+     "down": false,
+     "field": "Category",
+     "subtitle": null,
+     "ai": false,
+     "nodes": [
+      {
+       "label": "Bikes",
+       "value": 12704.0,
+       "value_text": "12\u00a0704",
+       "on_path": false,
+       "y": 201.2,
+       "bar": 82.7
+      },
+      {
+       "label": "Clothing",
+       "value": 19982.0,
+       "value_text": "19\u00a0982",
+       "on_path": false,
+       "y": 260.5,
+       "bar": 130.0
+      }
+     ]
+    }
+   ],
+   "scroll_down": 0,
+   "scroll_up": 1,
+   "links": [
+    {
+     "d": "M129,206.16666650772095 C154.5,206.16666650772095 154.5,117.16666555404663 180,117.16666555404663",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M129,206.16666650772095 C154.5,206.16666650772095 154.5,176.49999952316284 180,176.49999952316284",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M129,206.16666650772095 C154.5,206.16666650772095 154.5,235.83333349227905 180,235.83333349227905",
+     "stroke": "rgb(1, 184, 170)",
+     "width": "1.5px"
+    },
+    {
+     "d": "M129,206.16666650772095 C154.5,206.16666650772095 154.5,295.16666746139526 180,295.16666746139526",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M309,235.83333349227905 C334.5,235.83333349227905 334.5,206.16666650772095 360,206.16666650772095",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M309,235.83333349227905 C334.5,235.83333349227905 334.5,265.50000047683716 360,265.50000047683716",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    }
+   ],
+   "bar_width": 130.0
+  },
+  {
+   "page": "D10",
+   "found": true,
+   "levels": [
+    {
+     "x": 25.0,
+     "up": false,
+     "down": false,
+     "field": null,
+     "subtitle": null,
+     "ai": false,
+     "nodes": [
+      {
+       "label": "Total",
+       "value": 593333.0,
+       "value_text": "593\u00a0333",
+       "on_path": true,
+       "y": 351.2,
+       "bar": 130.0
+      }
+     ]
+    },
+    {
+     "x": 241.0,
+     "up": false,
+     "down": false,
+     "field": "Region",
+     "subtitle": "East",
+     "ai": false,
+     "nodes": [
+      {
+       "label": "Central",
+       "value": 41223.0,
+       "value_text": "41\u00a0223",
+       "on_path": false,
+       "y": 208.8,
+       "bar": 28.1
+      },
+      {
+       "label": "East",
+       "value": 119903.0,
+       "value_text": "119\u00a0903",
+       "on_path": true,
+       "y": 280.0,
+       "bar": 81.7
+      },
+      {
+       "label": "North",
+       "value": 168401.0,
+       "value_text": "168\u00a0401",
+       "on_path": false,
+       "y": 351.2,
+       "bar": 114.8
+      },
+      {
+       "label": "South",
+       "value": 190743.0,
+       "value_text": "190\u00a0743",
+       "on_path": false,
+       "y": 422.4,
+       "bar": 130.0
+      },
+      {
+       "label": "West",
+       "value": 73063.0,
+       "value_text": "73\u00a0063",
+       "on_path": false,
+       "y": 493.6,
+       "bar": 49.8
+      }
+     ]
+    },
+    {
+     "x": 457.0,
+     "up": false,
+     "down": false,
+     "field": "Category",
+     "subtitle": null,
+     "ai": false,
+     "nodes": [
+      {
+       "label": "Accessories",
+       "value": 52483.0,
+       "value_text": "52\u00a0483",
+       "on_path": false,
+       "y": 208.8,
+       "bar": 130.0
+      },
+      {
+       "label": "Bikes",
+       "value": 27513.0,
+       "value_text": "27\u00a0513",
+       "on_path": false,
+       "y": 280.0,
+       "bar": 68.1
+      },
+      {
+       "label": "Clothing",
+       "value": 39907.0,
+       "value_text": "39\u00a0907",
+       "on_path": false,
+       "y": 351.2,
+       "bar": 98.8
+      }
+     ]
+    }
+   ],
+   "scroll_down": 0,
+   "scroll_up": 0,
+   "links": [
+    {
+     "d": "M129,356.16666650772095 C172.5,356.16666650772095 172.5,213.76666498184204 216,213.76666498184204",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M129,356.16666650772095 C172.5,356.16666650772095 172.5,284.9666657447815 216,284.9666657447815",
+     "stroke": "rgb(1, 184, 170)",
+     "width": "1.5px"
+    },
+    {
+     "d": "M129,356.16666650772095 C172.5,356.16666650772095 172.5,356.16666650772095 216,356.16666650772095",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M129,356.16666650772095 C172.5,356.16666650772095 172.5,427.3666672706604 216,427.3666672706604",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M129,356.16666650772095 C172.5,356.16666650772095 172.5,498.56666803359985 216,498.56666803359985",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M345,284.9666657447815 C388.5,284.9666657447815 388.5,213.76666498184204 432,213.76666498184204",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M345,284.9666657447815 C388.5,284.9666657447815 388.5,284.9666657447815 432,284.9666657447815",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M345,284.9666657447815 C388.5,284.9666657447815 388.5,356.16666650772095 432,356.16666650772095",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    }
+   ],
+   "bar_width": 130.0
+  },
+  {
+   "page": "D11",
+   "found": true,
+   "levels": [
+    {
+     "x": 25.0,
+     "up": false,
+     "down": false,
+     "field": null,
+     "subtitle": null,
+     "ai": false,
+     "nodes": [
+      {
+       "label": "Total",
+       "value": 593300.0,
+       "value_text": "593,3K",
+       "on_path": true,
+       "y": 201.2,
+       "bar": 130.0
+      }
+     ]
+    },
+    {
+     "x": 187.0,
+     "up": false,
+     "down": false,
+     "field": "Region",
+     "subtitle": "North",
+     "ai": false,
+     "nodes": [
+      {
+       "label": "Central",
+       "value": 41200.0,
+       "value_text": "41,2K",
+       "on_path": false,
+       "y": 106.2,
+       "bar": 9.0
+      },
+      {
+       "label": "East",
+       "value": 119900.0,
+       "value_text": "119,9K",
+       "on_path": false,
+       "y": 153.7,
+       "bar": 26.3
+      },
+      {
+       "label": "North",
+       "value": 168400.0,
+       "value_text": "168,4K",
+       "on_path": true,
+       "y": 201.2,
+       "bar": 36.9
+      },
+      {
+       "label": "South",
+       "value": 190700.0,
+       "value_text": "190,7K",
+       "on_path": false,
+       "y": 248.6,
+       "bar": 41.8
+      },
+      {
+       "label": "West",
+       "value": 73100.0,
+       "value_text": "73,1K",
+       "on_path": false,
+       "y": 296.1,
+       "bar": 16.0
+      }
+     ]
+    },
+    {
+     "x": 349.0,
+     "up": false,
+     "down": false,
+     "field": "Channel",
+     "subtitle": null,
+     "ai": false,
+     "nodes": [
+      {
+       "label": "Online",
+       "value": 73300.0,
+       "value_text": "73,3K",
+       "on_path": false,
+       "y": 177.4,
+       "bar": 56.6
+      },
+      {
+       "label": "Store",
+       "value": 95100.0,
+       "value_text": "95,1K",
+       "on_path": false,
+       "y": 224.9,
+       "bar": 73.4
+      }
+     ]
+    }
+   ],
+   "scroll_down": 0,
+   "scroll_up": 0,
+   "links": [
+    {
+     "d": "M129,206.16666650772095 C129,206.16666650772095 145.5,111.23333215713501 162,111.23333215713501",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M129,206.16666650772095 C129,206.16666650772095 145.5,158.69999933242798 162,158.69999933242798",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M129,206.16666650772095 C129,206.16666650772095 145.5,206.16666650772095 162,206.16666650772095",
+     "stroke": "rgb(1, 184, 170)",
+     "width": "1.5px"
+    },
+    {
+     "d": "M129,206.16666650772095 C129,206.16666650772095 145.5,253.63333368301392 162,253.63333368301392",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M129,206.16666650772095 C129,206.16666650772095 145.5,301.1000008583069 162,301.1000008583069",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M291,206.16666650772095 C291,206.16666650772095 307.5,182.43333292007446 324,182.43333292007446",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M291,206.16666650772095 C291,206.16666650772095 307.5,229.90000009536743 324,229.90000009536743",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    }
+   ],
+   "bar_width": 130.0
+  },
+  {
+   "page": "D12",
+   "found": true,
+   "levels": [
+    {
+     "x": 25.0,
+     "up": false,
+     "down": false,
+     "field": null,
+     "subtitle": null,
+     "ai": false,
+     "nodes": [
+      {
+       "label": "Total",
+       "value": 593333.0,
+       "value_text": "593\u00a0333",
+       "on_path": true,
+       "y": 201.2,
+       "bar": 130.0
+      }
+     ]
+    },
+    {
+     "x": 205.0,
+     "up": true,
+     "down": false,
+     "field": "Region",
+     "subtitle": "South",
+     "ai": false,
+     "nodes": [
+      {
+       "label": "East",
+       "value": 119903.0,
+       "value_text": "119\u00a0903",
+       "on_path": false,
+       "y": 112.2,
+       "bar": 81.7
+      },
+      {
+       "label": "North",
+       "value": 168401.0,
+       "value_text": "168\u00a0401",
+       "on_path": false,
+       "y": 171.5,
+       "bar": 114.8
+      },
+      {
+       "label": "South",
+       "value": 190743.0,
+       "value_text": "190\u00a0743",
+       "on_path": true,
+       "y": 230.8,
+       "bar": 130.0
+      },
+      {
+       "label": "West",
+       "value": 73063.0,
+       "value_text": "73\u00a0063",
+       "on_path": false,
+       "y": 290.2,
+       "bar": 49.8
+      }
+     ]
+    },
+    {
+     "x": 385.0,
+     "up": true,
+     "down": false,
+     "field": "Product",
+     "subtitle": null,
+     "ai": true,
+     "nodes": [
+      {
+       "label": "P10",
+       "value": 8672.0,
+       "value_text": "8\u00a0672",
+       "on_path": false,
+       "y": 112.2,
+       "bar": 43.0
+      },
+      {
+       "label": "P11",
+       "value": 22382.0,
+       "value_text": "22\u00a0382",
+       "on_path": false,
+       "y": 171.5,
+       "bar": 110.9
+      },
+      {
+       "label": "P12",
+       "value": 26248.0,
+       "value_text": "26\u00a0248",
+       "on_path": true,
+       "y": 230.8,
+       "bar": 130.0
+      },
+      {
+       "label": "P13",
+       "value": 6643.0,
+       "value_text": "6\u00a0643",
+       "on_path": false,
+       "y": 290.2,
+       "bar": 32.9
+      }
+     ]
+    }
+   ],
+   "scroll_down": 0,
+   "scroll_up": 2,
+   "links": [
+    {
+     "d": "M129,206.16666650772095 C154.5,206.16666650772095 154.5,117.16666555404663 180,117.16666555404663",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M129,206.16666650772095 C154.5,206.16666650772095 154.5,176.49999952316284 180,176.49999952316284",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M129,206.16666650772095 C154.5,206.16666650772095 154.5,235.83333349227905 180,235.83333349227905",
+     "stroke": "rgb(1, 184, 170)",
+     "width": "1.5px"
+    },
+    {
+     "d": "M129,206.16666650772095 C154.5,206.16666650772095 154.5,295.16666746139526 180,295.16666746139526",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M309,235.83333349227905 C334.5,235.83333349227905 334.5,117.16666555404663 360,117.16666555404663",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M309,235.83333349227905 C334.5,235.83333349227905 334.5,176.49999952316284 360,176.49999952316284",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M309,235.83333349227905 C334.5,235.83333349227905 334.5,235.83333349227905 360,235.83333349227905",
+     "stroke": "rgb(1, 184, 170)",
+     "width": "1.5px"
+    },
+    {
+     "d": "M309,235.83333349227905 C334.5,235.83333349227905 334.5,295.16666746139526 360,295.16666746139526",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    }
+   ],
+   "bar_width": 130.0
+  },
+  {
+   "page": "D13",
+   "found": true,
+   "levels": [
+    {
+     "x": 25.0,
+     "up": false,
+     "down": false,
+     "field": null,
+     "subtitle": null,
+     "ai": false,
+     "nodes": [
+      {
+       "label": "Total",
+       "value": 593333.0,
+       "value_text": "593\u00a0333",
+       "on_path": true,
+       "y": 201.2,
+       "bar": 130.0
+      }
+     ]
+    },
+    {
+     "x": 205.0,
+     "up": false,
+     "down": false,
+     "field": "Channel",
+     "subtitle": "Store",
+     "ai": true,
+     "nodes": [
+      {
+       "label": "Online",
+       "value": 264338.0,
+       "value_text": "264\u00a0338",
+       "on_path": false,
+       "y": 171.5,
+       "bar": 104.5
+      },
+      {
+       "label": "Store",
+       "value": 328995.0,
+       "value_text": "328\u00a0995",
+       "on_path": true,
+       "y": 230.8,
+       "bar": 130.0
+      }
+     ]
+    },
+    {
+     "x": 385.0,
+     "up": false,
+     "down": false,
+     "field": "Category",
+     "subtitle": null,
+     "ai": true,
+     "nodes": [
+      {
+       "label": "Accessories",
+       "value": 162791.0,
+       "value_text": "162\u00a0791",
+       "on_path": true,
+       "y": 171.5,
+       "bar": 130.0
+      },
+      {
+       "label": "Bikes",
+       "value": 65539.0,
+       "value_text": "65\u00a0539",
+       "on_path": false,
+       "y": 230.8,
+       "bar": 52.3
+      },
+      {
+       "label": "Clothing",
+       "value": 100665.0,
+       "value_text": "100\u00a0665",
+       "on_path": false,
+       "y": 290.2,
+       "bar": 80.4
+      }
+     ]
+    }
+   ],
+   "scroll_down": 0,
+   "scroll_up": 0,
+   "links": [
+    {
+     "d": "M129,206.16666650772095 C154.5,206.16666650772095 154.5,176.49999952316284 180,176.49999952316284",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M129,206.16666650772095 C154.5,206.16666650772095 154.5,235.83333349227905 180,235.83333349227905",
+     "stroke": "rgb(1, 184, 170)",
+     "width": "1.5px"
+    },
+    {
+     "d": "M309,235.83333349227905 C334.5,235.83333349227905 334.5,176.49999952316284 360,176.49999952316284",
+     "stroke": "rgb(1, 184, 170)",
+     "width": "1.5px"
+    },
+    {
+     "d": "M309,235.83333349227905 C334.5,235.83333349227905 334.5,235.83333349227905 360,235.83333349227905",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M309,235.83333349227905 C334.5,235.83333349227905 334.5,295.16666746139526 360,295.16666746139526",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    }
+   ],
+   "bar_width": 130.0
+  },
+  {
+   "page": "D14",
+   "found": true,
+   "levels": [
+    {
+     "x": 25.0,
+     "up": false,
+     "down": false,
+     "field": null,
+     "subtitle": null,
+     "ai": false,
+     "nodes": [
+      {
+       "label": "Total",
+       "value": 593333.0,
+       "value_text": "593\u00a0333",
+       "on_path": true,
+       "y": 201.2,
+       "bar": 130.0
+      }
+     ]
+    },
+    {
+     "x": 205.0,
+     "up": false,
+     "down": true,
+     "field": "Region",
+     "subtitle": "East",
+     "ai": false,
+     "nodes": [
+      {
+       "label": "Central",
+       "value": 41223.0,
+       "value_text": "41\u00a0223",
+       "on_path": false,
+       "y": 112.2,
+       "bar": 28.1
+      },
+      {
+       "label": "East",
+       "value": 119903.0,
+       "value_text": "119\u00a0903",
+       "on_path": true,
+       "y": 171.5,
+       "bar": 81.7
+      },
+      {
+       "label": "North",
+       "value": 168401.0,
+       "value_text": "168\u00a0401",
+       "on_path": false,
+       "y": 230.8,
+       "bar": 114.8
+      },
+      {
+       "label": "South",
+       "value": 190743.0,
+       "value_text": "190\u00a0743",
+       "on_path": false,
+       "y": 290.2,
+       "bar": 130.0
+      }
+     ]
+    },
+    {
+     "x": 385.0,
+     "up": false,
+     "down": false,
+     "field": "Segment",
+     "subtitle": {
+      "blank": true
+     },
+     "ai": false,
+     "nodes": [
+      {
+       "label": null,
+       "value": 50417.0,
+       "value_text": "50\u00a0417",
+       "on_path": true,
+       "y": 112.2,
+       "bar": 130.0
+      },
+      {
+       "label": "Corporate",
+       "value": 35271.0,
+       "value_text": "35\u00a0271",
+       "on_path": false,
+       "y": 171.5,
+       "bar": 90.9
+      },
+      {
+       "label": "Retail",
+       "value": 34215.0,
+       "value_text": "34\u00a0215",
+       "on_path": false,
+       "y": 230.8,
+       "bar": 88.2
+      }
+     ]
+    },
+    {
+     "x": 565.0,
+     "up": false,
+     "down": true,
+     "field": "Product",
+     "subtitle": null,
+     "ai": false,
+     "nodes": [
+      {
+       "label": "P00",
+       "value": 6733.0,
+       "value_text": "6\u00a0733",
+       "on_path": false,
+       "y": 112.2,
+       "bar": 76.3
+      },
+      {
+       "label": "P01",
+       "value": 7646.0,
+       "value_text": "7\u00a0646",
+       "on_path": false,
+       "y": 171.5,
+       "bar": 86.7
+      },
+      {
+       "label": "P02",
+       "value": 9099.0,
+       "value_text": "9\u00a0099",
+       "on_path": false,
+       "y": 230.8,
+       "bar": 103.2
+      },
+      {
+       "label": "P03",
+       "value": 9472.0,
+       "value_text": "9\u00a0472",
+       "on_path": false,
+       "y": 290.2,
+       "bar": 107.4
+      }
+     ]
+    }
+   ],
+   "scroll_down": 2,
+   "scroll_up": 0,
+   "links": [
+    {
+     "d": "M129,206.16666650772095 C154.5,206.16666650772095 154.5,117.16666555404663 180,117.16666555404663",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M129,206.16666650772095 C154.5,206.16666650772095 154.5,176.49999952316284 180,176.49999952316284",
+     "stroke": "rgb(1, 184, 170)",
+     "width": "1.5px"
+    },
+    {
+     "d": "M129,206.16666650772095 C154.5,206.16666650772095 154.5,235.83333349227905 180,235.83333349227905",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M129,206.16666650772095 C154.5,206.16666650772095 154.5,295.16666746139526 180,295.16666746139526",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M309,176.49999952316284 C334.5,176.49999952316284 334.5,117.16666555404663 360,117.16666555404663",
+     "stroke": "rgb(1, 184, 170)",
+     "width": "1.5px"
+    },
+    {
+     "d": "M309,176.49999952316284 C334.5,176.49999952316284 334.5,176.49999952316284 360,176.49999952316284",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M309,176.49999952316284 C334.5,176.49999952316284 334.5,235.83333349227905 360,235.83333349227905",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M489,117.16666555404663 C514.5,117.16666555404663 514.5,117.16666555404663 540,117.16666555404663",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M489,117.16666555404663 C514.5,117.16666555404663 514.5,176.49999952316284 540,176.49999952316284",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M489,117.16666555404663 C514.5,117.16666555404663 514.5,235.83333349227905 540,235.83333349227905",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M489,117.16666555404663 C514.5,117.16666555404663 514.5,295.16666746139526 540,295.16666746139526",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    }
+   ],
+   "bar_width": 130.0
+  },
+  {
+   "page": "D15",
+   "found": true,
+   "levels": [
+    {
+     "x": 25.0,
+     "up": false,
+     "down": false,
+     "field": null,
+     "subtitle": null,
+     "ai": false,
+     "nodes": [
+      {
+       "label": "Total",
+       "value": 593333.0,
+       "value_text": "593\u00a0333",
+       "on_path": true,
+       "y": 201.2,
+       "bar": 130.0
+      }
+     ]
+    },
+    {
+     "x": 205.0,
+     "up": false,
+     "down": false,
+     "field": "Segment",
+     "subtitle": {
+      "blank": true
+     },
+     "ai": false,
+     "nodes": [
+      {
+       "label": null,
+       "value": 210995.0,
+       "value_text": "210\u00a0995",
+       "on_path": true,
+       "y": 141.8,
+       "bar": 130.0
+      },
+      {
+       "label": "Corporate",
+       "value": 192899.0,
+       "value_text": "192\u00a0899",
+       "on_path": false,
+       "y": 201.2,
+       "bar": 118.9
+      },
+      {
+       "label": "Retail",
+       "value": 189439.0,
+       "value_text": "189\u00a0439",
+       "on_path": false,
+       "y": 260.5,
+       "bar": 116.7
+      }
+     ]
+    },
+    {
+     "x": 385.0,
+     "up": true,
+     "down": true,
+     "field": "Product",
+     "subtitle": null,
+     "ai": false,
+     "nodes": [
+      {
+       "label": "P06",
+       "value": 17611.0,
+       "value_text": "17\u00a0611",
+       "on_path": false,
+       "y": 112.2,
+       "bar": 100.3
+      },
+      {
+       "label": "P07",
+       "value": 8048.0,
+       "value_text": "8\u00a0048",
+       "on_path": false,
+       "y": 171.5,
+       "bar": 45.8
+      },
+      {
+       "label": "P08",
+       "value": 10234.0,
+       "value_text": "10\u00a0234",
+       "on_path": false,
+       "y": 230.8,
+       "bar": 58.3
+      },
+      {
+       "label": "P09",
+       "value": 11700.0,
+       "value_text": "11\u00a0700",
+       "on_path": false,
+       "y": 290.2,
+       "bar": 66.6
+      }
+     ]
+    }
+   ],
+   "scroll_down": 1,
+   "scroll_up": 1,
+   "links": [
+    {
+     "d": "M129,206.16666650772095 C154.5,206.16666650772095 154.5,146.83333253860474 180,146.83333253860474",
+     "stroke": "rgb(1, 184, 170)",
+     "width": "1.5px"
+    },
+    {
+     "d": "M129,206.16666650772095 C154.5,206.16666650772095 154.5,206.16666650772095 180,206.16666650772095",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M129,206.16666650772095 C154.5,206.16666650772095 154.5,265.50000047683716 180,265.50000047683716",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M309,146.83333253860474 C334.5,146.83333253860474 334.5,117.16666555404663 360,117.16666555404663",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M309,146.83333253860474 C334.5,146.83333253860474 334.5,176.49999952316284 360,176.49999952316284",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M309,146.83333253860474 C334.5,146.83333253860474 334.5,235.83333349227905 360,235.83333349227905",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M309,146.83333253860474 C334.5,146.83333253860474 334.5,295.16666746139526 360,295.16666746139526",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    }
+   ],
+   "bar_width": 130.0
+  },
+  {
+   "page": "D16",
+   "found": true,
+   "levels": [
+    {
+     "x": 25.0,
+     "up": false,
+     "down": false,
+     "field": null,
+     "subtitle": null,
+     "ai": false,
+     "nodes": [
+      {
+       "label": "Margin %",
+       "value": 0.465,
+       "value_text": "46,5%",
+       "on_path": true,
+       "y": 201.2,
+       "bar": 130.0
+      }
+     ]
+    },
+    {
+     "x": 205.0,
+     "up": false,
+     "down": false,
+     "field": "Segment",
+     "subtitle": {
+      "blank": true
+     },
+     "ai": false,
+     "nodes": [
+      {
+       "label": null,
+       "value": 0.454,
+       "value_text": "45,4%",
+       "on_path": true,
+       "y": 141.8,
+       "bar": 123.6
+      },
+      {
+       "label": "Corporate",
+       "value": 0.466,
+       "value_text": "46,6%",
+       "on_path": false,
+       "y": 201.2,
+       "bar": 126.9
+      },
+      {
+       "label": "Retail",
+       "value": 0.47700000000000004,
+       "value_text": "47,7%",
+       "on_path": false,
+       "y": 260.5,
+       "bar": 130.0
+      }
+     ]
+    },
+    {
+     "x": 385.0,
+     "up": true,
+     "down": true,
+     "field": "Product",
+     "subtitle": null,
+     "ai": false,
+     "nodes": [
+      {
+       "label": "P06",
+       "value": 0.47200000000000003,
+       "value_text": "47,2%",
+       "on_path": false,
+       "y": 112.2,
+       "bar": 109.8
+      },
+      {
+       "label": "P07",
+       "value": 0.423,
+       "value_text": "42,3%",
+       "on_path": false,
+       "y": 171.5,
+       "bar": 98.2
+      },
+      {
+       "label": "P08",
+       "value": 0.35200000000000004,
+       "value_text": "35,2%",
+       "on_path": false,
+       "y": 230.8,
+       "bar": 81.9
+      },
+      {
+       "label": "P09",
+       "value": 0.48100000000000004,
+       "value_text": "48,1%",
+       "on_path": false,
+       "y": 290.2,
+       "bar": 111.8
+      }
+     ]
+    }
+   ],
+   "scroll_down": 1,
+   "scroll_up": 1,
+   "links": [
+    {
+     "d": "M129,206.16666650772095 C154.5,206.16666650772095 154.5,146.83333253860474 180,146.83333253860474",
+     "stroke": "rgb(1, 184, 170)",
+     "width": "1.5px"
+    },
+    {
+     "d": "M129,206.16666650772095 C154.5,206.16666650772095 154.5,206.16666650772095 180,206.16666650772095",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M129,206.16666650772095 C154.5,206.16666650772095 154.5,265.50000047683716 180,265.50000047683716",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M309,146.83333253860474 C334.5,146.83333253860474 334.5,117.16666555404663 360,117.16666555404663",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M309,146.83333253860474 C334.5,146.83333253860474 334.5,176.49999952316284 360,176.49999952316284",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M309,146.83333253860474 C334.5,146.83333253860474 334.5,235.83333349227905 360,235.83333349227905",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M309,146.83333253860474 C334.5,146.83333253860474 334.5,295.16666746139526 360,295.16666746139526",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    }
+   ],
+   "bar_width": 130.0
+  },
+  {
+   "page": "D17",
+   "found": true,
+   "levels": [
+    {
+     "x": 25.0,
+     "up": false,
+     "down": false,
+     "field": null,
+     "subtitle": null,
+     "ai": false,
+     "nodes": [
+      {
+       "label": "Total",
+       "value": 593333.0,
+       "value_text": "593\u00a0333",
+       "on_path": true,
+       "y": 201.2,
+       "bar": 130.0
+      }
+     ]
+    },
+    {
+     "x": 205.0,
+     "up": false,
+     "down": false,
+     "field": "Segment",
+     "subtitle": "Retail",
+     "ai": false,
+     "nodes": [
+      {
+       "label": null,
+       "value": 210995.0,
+       "value_text": "210\u00a0995",
+       "on_path": false,
+       "y": 141.8,
+       "bar": 130.0
+      },
+      {
+       "label": "Corporate",
+       "value": 192899.0,
+       "value_text": "192\u00a0899",
+       "on_path": false,
+       "y": 201.2,
+       "bar": 118.9
+      },
+      {
+       "label": "Retail",
+       "value": 189439.0,
+       "value_text": "189\u00a0439",
+       "on_path": true,
+       "y": 260.5,
+       "bar": 116.7
+      }
+     ]
+    },
+    {
+     "x": 385.0,
+     "up": true,
+     "down": true,
+     "field": "Product",
+     "subtitle": null,
+     "ai": false,
+     "nodes": [
+      {
+       "label": "P06",
+       "value": 16167.0,
+       "value_text": "16\u00a0167",
+       "on_path": false,
+       "y": 112.2,
+       "bar": 95.3
+      },
+      {
+       "label": "P07",
+       "value": 14930.0,
+       "value_text": "14\u00a0930",
+       "on_path": false,
+       "y": 171.5,
+       "bar": 88.0
+      },
+      {
+       "label": "P08",
+       "value": 19336.0,
+       "value_text": "19\u00a0336",
+       "on_path": false,
+       "y": 230.8,
+       "bar": 114.0
+      },
+      {
+       "label": "P09",
+       "value": 13419.0,
+       "value_text": "13\u00a0419",
+       "on_path": false,
+       "y": 290.2,
+       "bar": 79.1
+      }
+     ]
+    }
+   ],
+   "scroll_down": 1,
+   "scroll_up": 1,
+   "links": [
+    {
+     "d": "M129,206.16666650772095 C154.5,206.16666650772095 154.5,146.83333253860474 180,146.83333253860474",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M129,206.16666650772095 C154.5,206.16666650772095 154.5,206.16666650772095 180,206.16666650772095",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M129,206.16666650772095 C154.5,206.16666650772095 154.5,265.50000047683716 180,265.50000047683716",
+     "stroke": "rgb(1, 184, 170)",
+     "width": "1.5px"
+    },
+    {
+     "d": "M309,265.50000047683716 C334.5,265.50000047683716 334.5,117.16666555404663 360,117.16666555404663",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M309,265.50000047683716 C334.5,265.50000047683716 334.5,176.49999952316284 360,176.49999952316284",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M309,265.50000047683716 C334.5,265.50000047683716 334.5,235.83333349227905 360,235.83333349227905",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M309,265.50000047683716 C334.5,265.50000047683716 334.5,295.16666746139526 360,295.16666746139526",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    }
+   ],
+   "bar_width": 130.0
+  },
+  {
+   "page": "D18",
+   "found": true,
+   "levels": [
+    {
+     "x": 25.0,
+     "up": false,
+     "down": false,
+     "field": null,
+     "subtitle": null,
+     "ai": false,
+     "nodes": [
+      {
+       "label": "Total",
+       "value": 593333.0,
+       "value_text": "593\u00a0333",
+       "on_path": true,
+       "y": 165.7,
+       "bar": 130.0
+      }
+     ]
+    },
+    {
+     "x": 205.0,
+     "up": false,
+     "down": true,
+     "field": "Region",
+     "subtitle": "East",
+     "ai": false,
+     "nodes": [
+      {
+       "label": "Central",
+       "value": 41223.0,
+       "value_text": "41\u00a0223",
+       "on_path": false,
+       "y": 106.3,
+       "bar": 28.1
+      },
+      {
+       "label": "East",
+       "value": 119903.0,
+       "value_text": "119\u00a0903",
+       "on_path": true,
+       "y": 165.7,
+       "bar": 81.7
+      },
+      {
+       "label": "North",
+       "value": 168401.0,
+       "value_text": "168\u00a0401",
+       "on_path": false,
+       "y": 225.0,
+       "bar": 114.8
+      }
+     ]
+    },
+    {
+     "x": 385.0,
+     "up": false,
+     "down": false,
+     "field": "Category",
+     "subtitle": null,
+     "ai": false,
+     "nodes": [
+      {
+       "label": "Accessories",
+       "value": 52483.0,
+       "value_text": "52\u00a0483",
+       "on_path": false,
+       "y": 106.3,
+       "bar": 130.0
+      },
+      {
+       "label": "Bikes",
+       "value": 27513.0,
+       "value_text": "27\u00a0513",
+       "on_path": false,
+       "y": 165.7,
+       "bar": 68.1
+      },
+      {
+       "label": "Clothing",
+       "value": 39907.0,
+       "value_text": "39\u00a0907",
+       "on_path": false,
+       "y": 225.0,
+       "bar": 98.8
+      }
+     ]
+    }
+   ],
+   "scroll_down": 1,
+   "scroll_up": 0,
+   "links": [
+    {
+     "d": "M129,170.66666793823242 C154.5,170.66666793823242 154.5,111.33333396911621 180,111.33333396911621",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M129,170.66666793823242 C154.5,170.66666793823242 154.5,170.66666793823242 180,170.66666793823242",
+     "stroke": "rgb(1, 184, 170)",
+     "width": "1.5px"
+    },
+    {
+     "d": "M129,170.66666793823242 C154.5,170.66666793823242 154.5,230.00000190734863 180,230.00000190734863",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M309,170.66666793823242 C334.5,170.66666793823242 334.5,111.33333396911621 360,111.33333396911621",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M309,170.66666793823242 C334.5,170.66666793823242 334.5,170.66666793823242 360,170.66666793823242",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M309,170.66666793823242 C334.5,170.66666793823242 334.5,230.00000190734863 360,230.00000190734863",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    }
+   ],
+   "bar_width": 130.0
+  },
+  {
+   "page": "D19",
+   "found": true,
+   "levels": [
+    {
+     "x": 25.0,
+     "up": false,
+     "down": false,
+     "field": null,
+     "subtitle": null,
+     "ai": false,
+     "nodes": [
+      {
+       "label": "Total",
+       "value": 593333.0,
+       "value_text": "593\u00a0333",
+       "on_path": true,
+       "y": 351.2,
+       "bar": 130.0
+      }
+     ]
+    },
+    {
+     "x": 205.0,
+     "up": true,
+     "down": true,
+     "field": "Product",
+     "subtitle": null,
+     "ai": false,
+     "nodes": [
+      {
+       "label": "P01",
+       "value": 51919.0,
+       "value_text": "51\u00a0919",
+       "on_path": false,
+       "y": 113.8,
+       "bar": 126.7
+      },
+      {
+       "label": "P02",
+       "value": 48924.0,
+       "value_text": "48\u00a0924",
+       "on_path": false,
+       "y": 173.2,
+       "bar": 119.4
+      },
+      {
+       "label": "P03",
+       "value": 32478.0,
+       "value_text": "32\u00a0478",
+       "on_path": false,
+       "y": 232.5,
+       "bar": 79.3
+      },
+      {
+       "label": "P04",
+       "value": 39756.0,
+       "value_text": "39\u00a0756",
+       "on_path": false,
+       "y": 291.8,
+       "bar": 97.1
+      },
+      {
+       "label": "P05",
+       "value": 40827.0,
+       "value_text": "40\u00a0827",
+       "on_path": false,
+       "y": 351.2,
+       "bar": 99.7
+      },
+      {
+       "label": "P06",
+       "value": 53252.0,
+       "value_text": "53\u00a0252",
+       "on_path": false,
+       "y": 410.5,
+       "bar": 130.0
+      },
+      {
+       "label": "P07",
+       "value": 45418.0,
+       "value_text": "45\u00a0418",
+       "on_path": false,
+       "y": 469.8,
+       "bar": 110.9
+      },
+      {
+       "label": "P08",
+       "value": 34970.0,
+       "value_text": "34\u00a0970",
+       "on_path": false,
+       "y": 529.2,
+       "bar": 85.4
+      },
+      {
+       "label": "P09",
+       "value": 31925.0,
+       "value_text": "31\u00a0925",
+       "on_path": false,
+       "y": 588.5,
+       "bar": 77.9
+      }
+     ]
+    }
+   ],
+   "scroll_down": 1,
+   "scroll_up": 1,
+   "links": [
+    {
+     "d": "M129,356.16666650772095 C154.5,356.16666650772095 154.5,118.8333306312561 180,118.8333306312561",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M129,356.16666650772095 C154.5,356.16666650772095 154.5,178.16666460037231 180,178.16666460037231",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M129,356.16666650772095 C154.5,356.16666650772095 154.5,237.49999856948853 180,237.49999856948853",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M129,356.16666650772095 C154.5,356.16666650772095 154.5,296.83333253860474 180,296.83333253860474",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M129,356.16666650772095 C154.5,356.16666650772095 154.5,356.16666650772095 180,356.16666650772095",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M129,356.16666650772095 C154.5,356.16666650772095 154.5,415.50000047683716 180,415.50000047683716",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M129,356.16666650772095 C154.5,356.16666650772095 154.5,474.83333444595337 180,474.83333444595337",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M129,356.16666650772095 C154.5,356.16666650772095 154.5,534.1666684150696 180,534.1666684150696",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M129,356.16666650772095 C154.5,356.16666650772095 154.5,593.5000023841858 180,593.5000023841858",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    }
+   ],
+   "bar_width": 130.0
+  },
+  {
+   "page": "D20",
+   "found": true,
+   "levels": [
+    {
+     "x": 25.0,
+     "up": false,
+     "down": false,
+     "field": null,
+     "subtitle": null,
+     "ai": false,
+     "nodes": [
+      {
+       "label": "Total",
+       "value": 593333.0,
+       "value_text": "593\u00a0333",
+       "on_path": true,
+       "y": 351.2,
+       "bar": 130.0
+      }
+     ]
+    },
+    {
+     "x": 187.0,
+     "up": false,
+     "down": true,
+     "field": "Product",
+     "subtitle": null,
+     "ai": false,
+     "nodes": [
+      {
+       "label": "P00",
+       "value": 37000.0,
+       "value_text": "37\u00a0000",
+       "on_path": false,
+       "y": 90.1,
+       "bar": 90.3
+      },
+      {
+       "label": "P01",
+       "value": 51919.0,
+       "value_text": "51\u00a0919",
+       "on_path": false,
+       "y": 137.6,
+       "bar": 126.7
+      },
+      {
+       "label": "P02",
+       "value": 48924.0,
+       "value_text": "48\u00a0924",
+       "on_path": false,
+       "y": 185.0,
+       "bar": 119.4
+      },
+      {
+       "label": "P03",
+       "value": 32478.0,
+       "value_text": "32\u00a0478",
+       "on_path": false,
+       "y": 232.5,
+       "bar": 79.3
+      },
+      {
+       "label": "P04",
+       "value": 39756.0,
+       "value_text": "39\u00a0756",
+       "on_path": false,
+       "y": 280.0,
+       "bar": 97.1
+      },
+      {
+       "label": "P05",
+       "value": 40827.0,
+       "value_text": "40\u00a0827",
+       "on_path": false,
+       "y": 327.4,
+       "bar": 99.7
+      },
+      {
+       "label": "P06",
+       "value": 53252.0,
+       "value_text": "53\u00a0252",
+       "on_path": false,
+       "y": 374.9,
+       "bar": 130.0
+      },
+      {
+       "label": "P07",
+       "value": 45418.0,
+       "value_text": "45\u00a0418",
+       "on_path": false,
+       "y": 422.4,
+       "bar": 110.9
+      },
+      {
+       "label": "P08",
+       "value": 34970.0,
+       "value_text": "34\u00a0970",
+       "on_path": false,
+       "y": 469.8,
+       "bar": 85.4
+      },
+      {
+       "label": "P09",
+       "value": 31925.0,
+       "value_text": "31\u00a0925",
+       "on_path": false,
+       "y": 517.3,
+       "bar": 77.9
+      },
+      {
+       "label": "P10",
+       "value": 45367.0,
+       "value_text": "45\u00a0367",
+       "on_path": false,
+       "y": 564.8,
+       "bar": 110.8
+      },
+      {
+       "label": "P11",
+       "value": 44266.0,
+       "value_text": "44\u00a0266",
+       "on_path": false,
+       "y": 612.2,
+       "bar": 108.1
+      }
+     ]
+    }
+   ],
+   "scroll_down": 1,
+   "scroll_up": 0,
+   "links": [
+    {
+     "d": "M129,356.16666650772095 C145.5,356.16666650772095 145.5,95.09999704360962 162,95.09999704360962",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M129,356.16666650772095 C145.5,356.16666650772095 145.5,142.5666642189026 162,142.5666642189026",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M129,356.16666650772095 C145.5,356.16666650772095 145.5,190.03333139419556 162,190.03333139419556",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M129,356.16666650772095 C145.5,356.16666650772095 145.5,237.49999856948853 162,237.49999856948853",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M129,356.16666650772095 C145.5,356.16666650772095 145.5,284.9666657447815 162,284.9666657447815",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M129,356.16666650772095 C145.5,356.16666650772095 145.5,332.43333292007446 162,332.43333292007446",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M129,356.16666650772095 C145.5,356.16666650772095 145.5,379.90000009536743 162,379.90000009536743",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M129,356.16666650772095 C145.5,356.16666650772095 145.5,427.3666672706604 162,427.3666672706604",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M129,356.16666650772095 C145.5,356.16666650772095 145.5,474.83333444595337 162,474.83333444595337",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M129,356.16666650772095 C145.5,356.16666650772095 145.5,522.3000016212463 162,522.3000016212463",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M129,356.16666650772095 C145.5,356.16666650772095 145.5,569.7666687965393 162,569.7666687965393",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M129,356.16666650772095 C145.5,356.16666650772095 145.5,617.2333359718323 162,617.2333359718323",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    }
+   ],
+   "bar_width": 130.0
+  },
+  {
+   "page": "D21",
+   "found": true,
+   "levels": [
+    {
+     "x": 25.0,
+     "up": false,
+     "down": false,
+     "field": null,
+     "subtitle": null,
+     "ai": false,
+     "nodes": [
+      {
+       "label": "Total",
+       "value": 593333.0,
+       "value_text": "593\u00a0333",
+       "on_path": true,
+       "y": 201.2,
+       "bar": 130.0
+      }
+     ]
+    },
+    {
+     "x": 205.0,
+     "up": true,
+     "down": false,
+     "field": "Region",
+     "subtitle": "South",
+     "ai": false,
+     "nodes": [
+      {
+       "label": "East",
+       "value": 119903.0,
+       "value_text": "119\u00a0903",
+       "on_path": false,
+       "y": 112.2,
+       "bar": 81.7
+      },
+      {
+       "label": "North",
+       "value": 168401.0,
+       "value_text": "168\u00a0401",
+       "on_path": false,
+       "y": 171.5,
+       "bar": 114.8
+      },
+      {
+       "label": "South",
+       "value": 190743.0,
+       "value_text": "190\u00a0743",
+       "on_path": true,
+       "y": 230.8,
+       "bar": 130.0
+      },
+      {
+       "label": "West",
+       "value": 73063.0,
+       "value_text": "73\u00a0063",
+       "on_path": false,
+       "y": 290.2,
+       "bar": 49.8
+      }
+     ]
+    },
+    {
+     "x": 385.0,
+     "up": false,
+     "down": false,
+     "field": "Category",
+     "subtitle": "Accessories",
+     "ai": false,
+     "nodes": [
+      {
+       "label": "Accessories",
+       "value": 116115.0,
+       "value_text": "116\u00a0115",
+       "on_path": true,
+       "y": 171.5,
+       "bar": 130.0
+      },
+      {
+       "label": "Bikes",
+       "value": 29047.0,
+       "value_text": "29\u00a0047",
+       "on_path": false,
+       "y": 230.8,
+       "bar": 32.5
+      },
+      {
+       "label": "Clothing",
+       "value": 45581.0,
+       "value_text": "45\u00a0581",
+       "on_path": false,
+       "y": 290.2,
+       "bar": 51.0
+      }
+     ]
+    },
+    {
+     "x": 565.0,
+     "up": false,
+     "down": false,
+     "field": "Channel",
+     "subtitle": null,
+     "ai": false,
+     "nodes": [
+      {
+       "label": "Online",
+       "value": 54078.0,
+       "value_text": "54\u00a0078",
+       "on_path": false,
+       "y": 141.8,
+       "bar": 113.3
+      },
+      {
+       "label": "Store",
+       "value": 62037.0,
+       "value_text": "62\u00a0037",
+       "on_path": false,
+       "y": 201.2,
+       "bar": 130.0
+      }
+     ]
+    }
+   ],
+   "scroll_down": 0,
+   "scroll_up": 1,
+   "links": [
+    {
+     "d": "M129,206.16666650772095 C154.5,206.16666650772095 154.5,117.16666555404663 180,117.16666555404663",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M129,206.16666650772095 C154.5,206.16666650772095 154.5,176.49999952316284 180,176.49999952316284",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M129,206.16666650772095 C154.5,206.16666650772095 154.5,235.83333349227905 180,235.83333349227905",
+     "stroke": "rgb(1, 184, 170)",
+     "width": "1.5px"
+    },
+    {
+     "d": "M129,206.16666650772095 C154.5,206.16666650772095 154.5,295.16666746139526 180,295.16666746139526",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M309,235.83333349227905 C334.5,235.83333349227905 334.5,176.49999952316284 360,176.49999952316284",
+     "stroke": "rgb(1, 184, 170)",
+     "width": "1.5px"
+    },
+    {
+     "d": "M309,235.83333349227905 C334.5,235.83333349227905 334.5,235.83333349227905 360,235.83333349227905",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M309,235.83333349227905 C334.5,235.83333349227905 334.5,295.16666746139526 360,295.16666746139526",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M489,176.49999952316284 C514.5,176.49999952316284 514.5,146.83333253860474 540,146.83333253860474",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M489,176.49999952316284 C514.5,176.49999952316284 514.5,206.16666650772095 540,206.16666650772095",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    }
+   ],
+   "bar_width": 130.0
+  },
+  {
+   "page": "D22",
+   "found": true,
+   "levels": [
+    {
+     "x": 25.0,
+     "up": false,
+     "down": false,
+     "field": null,
+     "subtitle": null,
+     "ai": false,
+     "nodes": [
+      {
+       "label": "Total",
+       "value": 593333.0,
+       "value_text": "593\u00a0333",
+       "on_path": true,
+       "y": 251.2,
+       "bar": 130.0
+      }
+     ]
+    },
+    {
+     "x": 205.0,
+     "up": true,
+     "down": true,
+     "field": "Product",
+     "subtitle": null,
+     "ai": false,
+     "nodes": [
+      {
+       "label": "P04",
+       "value": 39756.0,
+       "value_text": "39\u00a0756",
+       "on_path": false,
+       "y": 102.8,
+       "bar": 97.1
+      },
+      {
+       "label": "P05",
+       "value": 40827.0,
+       "value_text": "40\u00a0827",
+       "on_path": false,
+       "y": 162.2,
+       "bar": 99.7
+      },
+      {
+       "label": "P06",
+       "value": 53252.0,
+       "value_text": "53\u00a0252",
+       "on_path": false,
+       "y": 221.5,
+       "bar": 130.0
+      },
+      {
+       "label": "P07",
+       "value": 45418.0,
+       "value_text": "45\u00a0418",
+       "on_path": false,
+       "y": 280.8,
+       "bar": 110.9
+      },
+      {
+       "label": "P08",
+       "value": 34970.0,
+       "value_text": "34\u00a0970",
+       "on_path": false,
+       "y": 340.2,
+       "bar": 85.4
+      },
+      {
+       "label": "P09",
+       "value": 31925.0,
+       "value_text": "31\u00a0925",
+       "on_path": false,
+       "y": 399.5,
+       "bar": 77.9
+      }
+     ]
+    }
+   ],
+   "scroll_down": 1,
+   "scroll_up": 1,
+   "links": [
+    {
+     "d": "M129,256.16666650772095 C154.5,256.16666650772095 154.5,107.83333158493042 180,107.83333158493042",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M129,256.16666650772095 C154.5,256.16666650772095 154.5,167.16666555404663 180,167.16666555404663",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M129,256.16666650772095 C154.5,256.16666650772095 154.5,226.49999952316284 180,226.49999952316284",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M129,256.16666650772095 C154.5,256.16666650772095 154.5,285.83333349227905 180,285.83333349227905",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M129,256.16666650772095 C154.5,256.16666650772095 154.5,345.16666746139526 180,345.16666746139526",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M129,256.16666650772095 C154.5,256.16666650772095 154.5,404.5000014305115 180,404.5000014305115",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    }
+   ],
+   "bar_width": 130.0
+  },
+  {
+   "page": "D23",
+   "found": true,
+   "levels": [
+    {
+     "x": 25.0,
+     "up": false,
+     "down": false,
+     "field": null,
+     "subtitle": null,
+     "ai": false,
+     "nodes": [
+      {
+       "label": "Total",
+       "value": 593333.0,
+       "value_text": "593\u00a0333",
+       "on_path": true,
+       "y": 251.2,
+       "bar": 130.0
+      }
+     ]
+    },
+    {
+     "x": 205.0,
+     "up": true,
+     "down": true,
+     "field": "Product",
+     "subtitle": "P06",
+     "ai": false,
+     "nodes": [
+      {
+       "label": "P03",
+       "value": 32478.0,
+       "value_text": "32\u00a0478",
+       "on_path": false,
+       "y": 102.8,
+       "bar": 79.3
+      },
+      {
+       "label": "P04",
+       "value": 39756.0,
+       "value_text": "39\u00a0756",
+       "on_path": false,
+       "y": 162.2,
+       "bar": 97.1
+      },
+      {
+       "label": "P05",
+       "value": 40827.0,
+       "value_text": "40\u00a0827",
+       "on_path": false,
+       "y": 221.5,
+       "bar": 99.7
+      },
+      {
+       "label": "P06",
+       "value": 53252.0,
+       "value_text": "53\u00a0252",
+       "on_path": true,
+       "y": 280.8,
+       "bar": 130.0
+      },
+      {
+       "label": "P07",
+       "value": 45418.0,
+       "value_text": "45\u00a0418",
+       "on_path": false,
+       "y": 340.2,
+       "bar": 110.9
+      },
+      {
+       "label": "P08",
+       "value": 34970.0,
+       "value_text": "34\u00a0970",
+       "on_path": false,
+       "y": 399.5,
+       "bar": 85.4
+      }
+     ]
+    },
+    {
+     "x": 385.0,
+     "up": false,
+     "down": false,
+     "field": "Region",
+     "subtitle": null,
+     "ai": false,
+     "nodes": [
+      {
+       "label": "Central",
+       "value": 4571.0,
+       "value_text": "4\u00a0571",
+       "on_path": false,
+       "y": 162.2,
+       "bar": 28.2
+      },
+      {
+       "label": "East",
+       "value": 6429.0,
+       "value_text": "6\u00a0429",
+       "on_path": false,
+       "y": 221.5,
+       "bar": 39.6
+      },
+      {
+       "label": "North",
+       "value": 21104.0,
+       "value_text": "21\u00a0104",
+       "on_path": false,
+       "y": 280.8,
+       "bar": 130.0
+      },
+      {
+       "label": "South",
+       "value": 18026.0,
+       "value_text": "18\u00a0026",
+       "on_path": false,
+       "y": 340.2,
+       "bar": 111.0
+      },
+      {
+       "label": "West",
+       "value": 3122.0,
+       "value_text": "3\u00a0122",
+       "on_path": false,
+       "y": 399.5,
+       "bar": 19.2
+      }
+     ]
+    }
+   ],
+   "scroll_down": 1,
+   "scroll_up": 1,
+   "links": [
+    {
+     "d": "M129,256.16666650772095 C154.5,256.16666650772095 154.5,107.83333158493042 180,107.83333158493042",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M129,256.16666650772095 C154.5,256.16666650772095 154.5,167.16666555404663 180,167.16666555404663",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M129,256.16666650772095 C154.5,256.16666650772095 154.5,226.49999952316284 180,226.49999952316284",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M129,256.16666650772095 C154.5,256.16666650772095 154.5,285.83333349227905 180,285.83333349227905",
+     "stroke": "rgb(1, 184, 170)",
+     "width": "1.5px"
+    },
+    {
+     "d": "M129,256.16666650772095 C154.5,256.16666650772095 154.5,345.16666746139526 180,345.16666746139526",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M129,256.16666650772095 C154.5,256.16666650772095 154.5,404.5000014305115 180,404.5000014305115",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M309,285.83333349227905 C334.5,285.83333349227905 334.5,167.16666555404663 360,167.16666555404663",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M309,285.83333349227905 C334.5,285.83333349227905 334.5,226.49999952316284 360,226.49999952316284",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M309,285.83333349227905 C334.5,285.83333349227905 334.5,285.83333349227905 360,285.83333349227905",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M309,285.83333349227905 C334.5,285.83333349227905 334.5,345.16666746139526 360,345.16666746139526",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    },
+    {
+     "d": "M309,285.83333349227905 C334.5,285.83333349227905 334.5,404.5000014305115 360,404.5000014305115",
+     "stroke": "rgb(239, 239, 239)",
+     "width": "1px"
+    }
+   ],
+   "bar_width": 130.0
+  }
+ ]
+}

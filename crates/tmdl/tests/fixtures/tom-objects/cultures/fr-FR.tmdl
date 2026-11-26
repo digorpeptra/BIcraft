@@ -1,0 +1,23 @@
+cultureInfo fr-FR
+	translations
+		model Model
+			caption: Modele
+			table Sales
+				caption: Ventes
+				description: Table des ventes
+				column Amount
+					caption: Montant
+					displayFolder: Dossier
+				measure Total
+					caption: Total FR
+				hierarchy Geo
+					caption: Geo FR
+					level Region
+						caption: Region FR
+			perspective Lite
+				caption: Leger
+
+	extendedProperty CultureExt = e-CultureExt
+
+	annotation CultureNote = cu
+

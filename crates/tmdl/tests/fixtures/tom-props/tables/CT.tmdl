@@ -1,0 +1,42 @@
+table CT
+
+	/// v70Description
+	column X
+		dataType: int64
+		isHidden
+		isUnique
+		isKey
+		isNullable: false
+		formatString: v71FormatString
+		isAvailableInMdx: false
+		keepUniqueRows
+		displayOrdinal: 3
+		sourceProviderType: v72SourceProviderType
+		displayFolder: v73DisplayFolder
+		encodingHint: hash
+		lineageTag: v74LineageTag
+		sourceLineageTag: v75SourceLineageTag
+		stringIndexingBehavior: explicit
+		fullTextIndexingBehavior: auto
+		dataCategory: v69DataCategory
+		alignment: left
+		tableDetailPosition: 3
+		isDefaultLabel
+		isDefaultImage
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: v68SourceColumn
+		sortByColumn: Y
+
+		relatedColumnDetails
+			groupByColumn: Y
+
+	column Y
+		dataType: string
+		isHidden
+		isNameInferred
+		sourceColumn: [Y]
+
+	partition CT = calculated
+		source = T
+

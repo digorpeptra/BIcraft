@@ -1,0 +1,16 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/reportExtension/1.0.0/schema.json",
+  "name": "extension",
+  "entities": [
+    {
+      "name": "Sales",
+      "measures": [
+        {
+          "name": "Report Margin",
+          "dataType": "Double",
+          "expression": "[Total Sales] * 0.1"
+        }
+      ]
+    }
+  ]
+}

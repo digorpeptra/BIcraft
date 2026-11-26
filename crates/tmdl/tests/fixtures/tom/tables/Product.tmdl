@@ -1,0 +1,75 @@
+table Product
+	isHidden
+	showAsVariationsOnly
+	isPrivate
+	alternateSourcePrecedence: 2
+	excludeFromModelRefresh
+	lineageTag: t-p
+	sourceLineageTag: [dbo].[Product]
+	systemManaged
+	excludeFromAutomaticAggregations
+
+	defaultDetailRowsDefinition = SELECTCOLUMNS(Product, "K", Product[Product Key])
+
+	refreshPolicy
+		policyType: basic
+		mode: hybrid
+		rollingWindowGranularity: year
+		rollingWindowPeriods: 3
+		incrementalGranularity: day
+		incrementalPeriods: 10
+		incrementalPeriodsOffset: -1
+		pollingExpression = 1
+		sourceExpression =
+			let
+			    x = 1
+			in
+			    x
+
+	measure Count = COUNTROWS(Product)
+
+	column 'Product Key'
+		dataType: int64
+		sourceColumn: Product Key
+
+	column Category
+		dataType: string
+		stringIndexingBehavior: full
+		sourceColumn: Category
+
+	column Date
+		dataType: dateTime
+		sourceColumn: Date
+
+		/// vd
+		variation Variation
+			isDefault
+			relationship: 'rel date'
+			defaultHierarchy: LocalDate.'Date Hierarchy'
+
+			annotation VA = 1
+
+	column Bin
+		dataType: binary
+		sourceColumn: Bin
+
+	column Dec
+		dataType: decimal
+		sourceColumn: Dec
+
+	column Bool
+		dataType: boolean
+		sourceColumn: Bool
+
+	column Dbl
+		dataType: double
+		sourceColumn: Dbl
+
+	partition Product = m
+		mode: import
+		source =
+				let
+				    x = 1
+				in
+				    x
+

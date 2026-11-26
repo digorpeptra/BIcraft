@@ -1,0 +1,47 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/powerbi-desktop-samples/main/Report%20Theme%20JSON%20Schema/reportThemeSchema-2.157.json",
+  "name": "BIcraft Ember",
+  "dataColors": [
+    "#C62828",
+    "#C24E00",
+    "#8E3B1F",
+    "#946C00",
+    "#AD1457",
+    "#7B3F00",
+    "#D2421A",
+    "#6D4C41"
+  ],
+  "foreground": "#3A1F1A",
+  "foregroundNeutralSecondary": "#6A4A42",
+  "background": "#FFFFFF",
+  "tableAccent": "#C62828",
+  "good": "#2E7D32",
+  "neutral": "#946C00",
+  "bad": "#C62828",
+  "maximum": "#C62828",
+  "center": "#946C00",
+  "minimum": "#6D4C41",
+  "hyperlink": "#A23B00",
+  "textClasses": {
+    "title": {
+      "fontFace": "Segoe UI Semibold",
+      "fontSize": 12,
+      "color": "#3A1F1A"
+    },
+    "label": {
+      "fontFace": "Segoe UI",
+      "fontSize": 10,
+      "color": "#3A1F1A"
+    },
+    "callout": {
+      "fontFace": "Segoe UI Light",
+      "fontSize": 32,
+      "color": "#3A1F1A"
+    },
+    "header": {
+      "fontFace": "Segoe UI Semibold",
+      "fontSize": 12,
+      "color": "#3A1F1A"
+    }
+  }
+}

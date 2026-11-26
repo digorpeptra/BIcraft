@@ -1,0 +1,16 @@
+expression E0 = 1
+
+/// v59Description
+expression E = 1
+	mAttributes: meta [IsParameterQuery=true]
+	lineageTag: v61LineageTag
+	sourceLineageTag: v62SourceLineageTag
+	remoteParameterName: v63RemoteParameterName
+	queryGroup: G
+	parameterValuesColumn: U.K
+	expressionSource: E0
+
+	extendedProperty xexpr = xv
+
+	annotation aexpr = av
+

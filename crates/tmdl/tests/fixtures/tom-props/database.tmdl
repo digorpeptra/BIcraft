@@ -1,0 +1,4 @@
+database DB
+	compatibilityLevel: 1000000
+	storageLocation: v2StorageLocation
+

@@ -1,0 +1,9 @@
+* text=auto eol=lf
+*.pbix binary
+*.pbit binary
+*.xlsx binary
+*.abf binary
+*.ttf binary
+*.bin binary
+*.png binary
+crates/bpa/rules/BPARules.json -text

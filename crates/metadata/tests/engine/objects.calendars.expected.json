@@ -1,0 +1,687 @@
+{
+  "name": "",
+  "culture": "en-US",
+  "tables": [
+    {
+      "name": "Sales",
+      "description": "Sales table",
+      "lineage_tag": "11111111-1111-4111-8111-111111111111",
+      "is_hidden": false,
+      "columns": [
+        {
+          "name": "RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61",
+          "data_type": "int64",
+          "is_hidden": true,
+          "extra": {
+            "type": "rowNumber",
+            "isUnique": true,
+            "isKey": true,
+            "isNullable": false
+          }
+        },
+        {
+          "name": "Id",
+          "data_type": "int64",
+          "source_column": "[Id]",
+          "is_hidden": false,
+          "annotations": [
+            {
+              "name": "ColNote",
+              "value": "c1"
+            }
+          ],
+          "extra": {
+            "type": "calculatedTableColumn",
+            "isNameInferred": true,
+            "isDataTypeInferred": true,
+            "extendedProperties": [
+              {
+                "name": "ColStr",
+                "value": "s"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Amount",
+          "data_type": "double",
+          "source_column": "[Amount]",
+          "is_hidden": false,
+          "extra": {
+            "type": "calculatedTableColumn",
+            "isNameInferred": true,
+            "isDataTypeInferred": true
+          }
+        },
+        {
+          "name": "Region",
+          "data_type": "string",
+          "source_column": "[Region]",
+          "is_hidden": false,
+          "extra": {
+            "type": "calculatedTableColumn",
+            "isNameInferred": true,
+            "isDataTypeInferred": true
+          }
+        },
+        {
+          "name": "City",
+          "data_type": "string",
+          "source_column": "[City]",
+          "is_hidden": false,
+          "extra": {
+            "type": "calculatedTableColumn",
+            "isNameInferred": true,
+            "isDataTypeInferred": true
+          }
+        },
+        {
+          "name": "Double",
+          "data_type": "double",
+          "expression": "Sales[Amount] * 2",
+          "display_folder": "Calc",
+          "is_hidden": false,
+          "extra": {
+            "isDataTypeInferred": true
+          }
+        }
+      ],
+      "measures": [
+        {
+          "name": "Total",
+          "expression": "SUM(Sales[Amount])",
+          "format_string": "0.00",
+          "is_hidden": false,
+          "annotations": [
+            {
+              "name": "MeasureNote",
+              "value": "me1"
+            }
+          ],
+          "extra": {
+            "kpi": {
+              "description": "kpi desc",
+              "targetDescription": "target desc",
+              "targetExpression": "100",
+              "targetFormatString": "0",
+              "statusGraphic": "Three Circles Colored",
+              "statusDescription": "status desc",
+              "statusExpression": "IF([Total] > 10, 1, -1)",
+              "trendGraphic": "Standard Arrow",
+              "trendDescription": "trend desc",
+              "trendExpression": "1",
+              "annotations": [
+                {
+                  "name": "KpiNote",
+                  "value": "k1"
+                }
+              ],
+              "extendedProperties": [
+                {
+                  "name": "KpiExt",
+                  "value": "e-KpiExt"
+                },
+                {
+                  "type": "json",
+                  "name": "KpiJson",
+                  "value": {
+                    "list": [
+                      1,
+                      2
+                    ]
+                  }
+                }
+              ]
+            },
+            "detailRowsDefinition": {
+              "expression": "SELECTCOLUMNS(Sales, \"Amount\", Sales[Amount])"
+            },
+            "changedProperties": [
+              {
+                "property": "Name"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Dyn",
+          "expression": "SUM(Sales[Amount])",
+          "display_folder": "Folder",
+          "is_hidden": false,
+          "extra": {
+            "formatStringDefinition": {
+              "expression": "\"0.0\""
+            }
+          }
+        }
+      ],
+      "partitions": [
+        {
+          "name": "Sales",
+          "source_type": "calculated",
+          "expression": "DATATABLE(\"Id\", INTEGER, \"Amount\", DOUBLE, \"Region\", STRING, \"City\", STRING, {{1, 10.5, \"North\", \"Oslo\"}, {2, 20, \"South\", \"Rome\"}})"
+        }
+      ],
+      "annotations": [
+        {
+          "name": "TableNote",
+          "value": "t1"
+        }
+      ],
+      "extra": {
+        "defaultDetailRowsDefinition": {
+          "expression": "SELECTCOLUMNS(Sales, \"Id\", Sales[Id])"
+        },
+        "hierarchies": [
+          {
+            "name": "Geo",
+            "description": "geo",
+            "displayFolder": "H",
+            "hideMembers": "hideBlankMembers",
+            "levels": [
+              {
+                "name": "Region",
+                "ordinal": 0,
+                "column": "Region",
+                "annotations": [
+                  {
+                    "name": "LevelNote",
+                    "value": "l1"
+                  }
+                ],
+                "extendedProperties": [
+                  {
+                    "name": "LevelExt",
+                    "value": "e-LevelExt"
+                  }
+                ]
+              },
+              {
+                "name": "City",
+                "ordinal": 1,
+                "column": "City"
+              }
+            ],
+            "annotations": [
+              {
+                "name": "HierNote",
+                "value": "h1"
+              }
+            ],
+            "extendedProperties": [
+              {
+                "name": "HierExt",
+                "value": "e-HierExt"
+              }
+            ]
+          }
+        ],
+        "calendars": [
+          {
+            "name": "Cal",
+            "description": "cal 2",
+            "lineageTag": "44444444-4444-4444-8444-444444444444",
+            "calendarColumnGroups": [
+              {
+                "timeUnit": "year",
+                "primaryColumn": "Amount"
+              },
+              {
+                "timeUnit": "month",
+                "primaryColumn": "Region",
+                "associatedColumns": [
+                  "City",
+                  "Id"
+                ]
+              },
+              {
+                "columns": [
+                  "Double"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "Second",
+            "calendarColumnGroups": [
+              {
+                "timeUnit": "month",
+                "primaryColumn": "Region"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "Time Calc",
+      "is_hidden": false,
+      "columns": [
+        {
+          "name": "RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61",
+          "data_type": "int64",
+          "is_hidden": true,
+          "extra": {
+            "type": "rowNumber",
+            "isUnique": true,
+            "isKey": true,
+            "isNullable": false
+          }
+        },
+        {
+          "name": "Item",
+          "data_type": "string",
+          "source_column": "Name",
+          "sort_by_column": "Ordinal",
+          "is_hidden": false
+        },
+        {
+          "name": "Ordinal",
+          "data_type": "int64",
+          "source_column": "Ordinal",
+          "is_hidden": true
+        }
+      ],
+      "measures": [],
+      "partitions": [
+        {
+          "name": "Time Calc",
+          "source_type": "calculationGroup"
+        }
+      ],
+      "extra": {
+        "calculationGroup": {
+          "description": "cg desc",
+          "precedence": 10,
+          "multipleOrEmptySelectionExpression": {
+            "description": "multi",
+            "expression": "SELECTEDMEASURE()",
+            "formatStringDefinition": {
+              "expression": "\"#\""
+            }
+          },
+          "noSelectionExpression": {
+            "description": "none",
+            "expression": "SELECTEDMEASURE() + 0"
+          },
+          "calculationItems": [
+            {
+              "name": "Current",
+              "description": "cur",
+              "expression": "SELECTEDMEASURE()",
+              "ordinal": 0
+            },
+            {
+              "name": "Double",
+              "expression": "SELECTEDMEASURE() * 2",
+              "ordinal": 1,
+              "formatStringDefinition": {
+                "expression": "\"0.00\""
+              }
+            }
+          ],
+          "annotations": [
+            {
+              "name": "CgNote",
+              "value": "cg1"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Param",
+      "is_hidden": false,
+      "columns": [
+        {
+          "name": "RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61",
+          "data_type": "int64",
+          "is_hidden": true,
+          "extra": {
+            "type": "rowNumber",
+            "isUnique": true,
+            "isKey": true,
+            "isNullable": false
+          }
+        },
+        {
+          "name": "Param",
+          "data_type": "string",
+          "source_column": "[Value1]",
+          "is_hidden": false,
+          "extra": {
+            "type": "calculatedTableColumn",
+            "isDataTypeInferred": true,
+            "relatedColumnDetails": {
+              "groupByColumns": [
+                {
+                  "groupingColumn": "Param Fields"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Param Fields",
+          "data_type": "string",
+          "source_column": "[Value2]",
+          "sort_by_column": "Param Order",
+          "is_hidden": true,
+          "extra": {
+            "type": "calculatedTableColumn",
+            "isDataTypeInferred": true,
+            "extendedProperties": [
+              {
+                "type": "json",
+                "name": "ParameterMetadata",
+                "value": {
+                  "version": 3,
+                  "kind": 2
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "Param Order",
+          "data_type": "int64",
+          "source_column": "[Value3]",
+          "is_hidden": true,
+          "extra": {
+            "type": "calculatedTableColumn",
+            "isDataTypeInferred": true
+          }
+        }
+      ],
+      "measures": [],
+      "partitions": [
+        {
+          "name": "Param",
+          "source_type": "calculated",
+          "expression": "{(\"Total\", NAMEOF('Sales'[Total]), 0), (\"Dyn\", NAMEOF('Sales'[Dyn]), 1)}"
+        }
+      ]
+    }
+  ],
+  "relationships": [],
+  "expressions": [
+    {
+      "name": "Threshold",
+      "kind": "m",
+      "expression": "10 meta [IsParameterQuery=true, Type=\"Number\", IsParameterQueryRequired=true]",
+      "lineage_tag": "22222222-2222-4222-8222-222222222222",
+      "annotations": [
+        {
+          "name": "ExprNote",
+          "value": "e"
+        }
+      ],
+      "extra": {
+        "queryGroup": "Params",
+        "mAttributes": "[X = 1]",
+        "extendedProperties": [
+          {
+            "name": "ExprExt",
+            "value": "e-ExprExt"
+          }
+        ]
+      }
+    }
+  ],
+  "roles": [
+    {
+      "name": "Reader",
+      "model_permission": "read",
+      "table_permissions": [
+        {
+          "table": "Sales",
+          "filter_expression": "Sales[Region] = \"North\"",
+          "extra": {
+            "columnPermissions": [
+              {
+                "name": "City",
+                "metadataPermission": "none",
+                "annotations": [
+                  {
+                    "name": "ColPermNote",
+                    "value": "v-ColPermNote"
+                  },
+                  {
+                    "name": "Cp2",
+                    "value": "q"
+                  }
+                ]
+              }
+            ],
+            "annotations": [
+              {
+                "name": "TpNote",
+                "value": "tp"
+              }
+            ],
+            "extendedProperties": [
+              {
+                "name": "TpExt",
+                "value": "e-TpExt"
+              }
+            ]
+          }
+        },
+        {
+          "table": "Param",
+          "extra": {
+            "metadataPermission": "none"
+          }
+        }
+      ],
+      "annotations": [
+        {
+          "name": "RoleNote",
+          "value": "r1"
+        }
+      ],
+      "extra": {
+        "description": "role desc",
+        "members": [
+          {
+            "memberName": "Tout le monde",
+            "memberId": "S-1-1-0",
+            "annotations": [
+              {
+                "name": "MemberNote",
+                "value": "mv2"
+              }
+            ]
+          },
+          {
+            "memberName": "AUTORITE NT\\Système",
+            "memberId": "S-1-5-18"
+          }
+        ],
+        "extendedProperties": [
+          {
+            "name": "RoleExt",
+            "value": "e-RoleExt"
+          }
+        ]
+      }
+    }
+  ],
+  "annotations": [
+    {
+      "name": "ModelNote",
+      "value": "m1"
+    }
+  ],
+  "extra": {
+    "name": "Model",
+    "discourageImplicitMeasures": true,
+    "defaultPowerBIDataSourceVersion": "powerBI_V3",
+    "mAttributes": "[Version = 1]",
+    "cultures": [
+      {
+        "name": "en-US",
+        "linguisticMetadata": {
+          "content": {
+            "Version": "1.0.0",
+            "Language": "en-US"
+          },
+          "contentType": "json",
+          "annotations": [
+            {
+              "name": "LmNote",
+              "value": "v-LmNote"
+            },
+            {
+              "name": "Lm2",
+              "value": "z"
+            }
+          ]
+        }
+      },
+      {
+        "name": "fr-FR",
+        "translations": {
+          "model": {
+            "name": "Model",
+            "translatedCaption": "Modele",
+            "tables": [
+              {
+                "name": "Sales",
+                "translatedCaption": "Ventes",
+                "translatedDescription": "Table des ventes",
+                "columns": [
+                  {
+                    "name": "Amount",
+                    "translatedCaption": "Montant",
+                    "translatedDisplayFolder": "Dossier"
+                  }
+                ],
+                "measures": [
+                  {
+                    "name": "Total",
+                    "translatedCaption": "Total FR"
+                  }
+                ],
+                "hierarchies": [
+                  {
+                    "name": "Geo",
+                    "translatedCaption": "Geo FR",
+                    "levels": [
+                      {
+                        "name": "Region",
+                        "translatedCaption": "Region FR"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "perspectives": [
+              {
+                "name": "Lite",
+                "translatedCaption": "Leger"
+              }
+            ]
+          }
+        },
+        "annotations": [
+          {
+            "name": "CultureNote",
+            "value": "cu"
+          }
+        ],
+        "extendedProperties": [
+          {
+            "name": "CultureExt",
+            "value": "e-CultureExt"
+          }
+        ]
+      }
+    ],
+    "perspectives": [
+      {
+        "name": "Lite",
+        "description": "persp",
+        "tables": [
+          {
+            "name": "Sales",
+            "columns": [
+              {
+                "name": "Amount"
+              },
+              {
+                "name": "Region",
+                "annotations": [
+                  {
+                    "name": "PcNote",
+                    "value": "pc"
+                  }
+                ]
+              }
+            ],
+            "hierarchies": [
+              {
+                "name": "Geo"
+              }
+            ],
+            "measures": [
+              {
+                "name": "Total",
+                "annotations": [
+                  {
+                    "name": "PmNote",
+                    "value": "v-PmNote"
+                  }
+                ]
+              }
+            ],
+            "annotations": [
+              {
+                "name": "PtNote",
+                "value": "pt"
+              }
+            ]
+          },
+          {
+            "name": "Param",
+            "includeAll": true
+          }
+        ],
+        "annotations": [
+          {
+            "name": "PerspNote",
+            "value": "p1"
+          }
+        ],
+        "extendedProperties": [
+          {
+            "name": "PerspExt",
+            "value": "pe2"
+          }
+        ]
+      }
+    ],
+    "queryGroups": [
+      {
+        "folder": "Params",
+        "description": "qg",
+        "annotations": [
+          {
+            "name": "QgNote",
+            "value": "q"
+          }
+        ]
+      }
+    ],
+    "extendedProperties": [
+      {
+        "type": "json",
+        "name": "ModelJson",
+        "value": {
+          "a": 1
+        }
+      }
+    ]
+  }
+}

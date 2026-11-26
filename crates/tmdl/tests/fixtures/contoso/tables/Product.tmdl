@@ -1,0 +1,49 @@
+/// Products.
+table Product
+	lineageTag: 0d6b1f7c-0000-4000-8000-000000000020
+
+	column 'Product Key'
+		dataType: int64
+		isHidden
+		isKey
+		formatString: 0
+		lineageTag: 0d6b1f7c-0000-4000-8000-000000000021
+		summarizeBy: none
+		sourceColumn: ProductKey
+
+	/// Display name.
+	column 'Product Name'
+		dataType: string
+		lineageTag: 0d6b1f7c-0000-4000-8000-000000000022
+		summarizeBy: none
+		sourceColumn: Name
+
+	column Category
+		dataType: string
+		displayFolder: Attributes
+		lineageTag: 0d6b1f7c-0000-4000-8000-000000000023
+		dataCategory: Uncategorized
+		summarizeBy: none
+		sourceColumn: Category
+
+	hierarchy 'Product Hierarchy'
+		isHidden
+		lineageTag: 0d6b1f7c-0000-4000-8000-000000000024
+
+		level Category
+			lineageTag: 0d6b1f7c-0000-4000-8000-000000000025
+			column: Category
+
+		level Product
+			lineageTag: 0d6b1f7c-0000-4000-8000-000000000026
+			column: 'Product Name'
+
+	partition Product-1a2b = m
+		mode: import
+		source =
+				let
+				    Source = Sql.Database(#"Server Name", "Contoso"),
+				    Products = Source{[Schema="dbo",Item="Product"]}[Data]
+				in
+				    Products
+

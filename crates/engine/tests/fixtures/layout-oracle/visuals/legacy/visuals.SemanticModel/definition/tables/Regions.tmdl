@@ -1,0 +1,34 @@
+table Regions
+	lineageTag: e91d085c-93b4-4a55-9e9d-09ee36dc7174
+
+	column Region
+		dataType: string
+		lineageTag: b54fd359-10a3-4fa6-a447-c9457ee1911e
+		summarizeBy: none
+		sourceColumn: Region
+
+		annotation SummarizationSetBy = Automatic
+
+	column Manager
+		dataType: string
+		lineageTag: 88d688e8-7b6d-4da0-bc06-92715380883e
+		summarizeBy: none
+		sourceColumn: Manager
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Regions = m
+		mode: import
+		source =
+				let
+				    Source = #table(type table [#"Region" = text, #"Manager" = text], {
+				        {"North", "Manager 0"},
+				        {"South", "Manager 1"},
+				        {"East", "Manager 2"},
+				        {"West", "Manager 3"}
+				    })
+				in
+				    Source
+
+	annotation PBI_ResultType = Table
+

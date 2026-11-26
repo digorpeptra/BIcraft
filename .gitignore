@@ -1,0 +1,13 @@
+/target
+# Power BI local-only project state
+.pbi/
+*.pbix
+*.pbit
+*.abf
+!crates/**/tests/vectors/**
+*~
+/plan/
+/dist
+/log
+/target-*/
+/.claude/

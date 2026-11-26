@@ -1,0 +1,23 @@
+cultureInfo de-DE
+	translations
+		model Model
+			caption: MC
+			description: MD
+			table T
+				caption: TC
+				description: TD
+				column Name
+					caption: NC
+					description: ND
+					displayFolder: NF
+				hierarchy H
+					caption: HC
+					level L1
+						caption: L1C
+			perspective P
+				caption: PC
+			expression E
+				caption: EC
+
+	annotation A = 1
+

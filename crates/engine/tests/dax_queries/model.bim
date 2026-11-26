@@ -1,0 +1,348 @@
+{
+ "name": "BicraftDaxQueries",
+ "compatibilityLevel": 1567,
+ "model": {
+  "culture": "en-US",
+  "tables": [
+   {
+    "name": "Product",
+    "columns": [
+     {
+      "type": "calculatedTableColumn",
+      "name": "ProductKey",
+      "dataType": "int64",
+      "isNameInferred": true,
+      "isDataTypeInferred": true,
+      "sourceColumn": "[ProductKey]"
+     },
+     {
+      "type": "calculatedTableColumn",
+      "name": "Product",
+      "dataType": "string",
+      "isNameInferred": true,
+      "isDataTypeInferred": true,
+      "sourceColumn": "[Product]"
+     },
+     {
+      "type": "calculatedTableColumn",
+      "name": "Category",
+      "dataType": "string",
+      "isNameInferred": true,
+      "isDataTypeInferred": true,
+      "sourceColumn": "[Category]"
+     },
+     {
+      "type": "calculatedTableColumn",
+      "name": "Price",
+      "dataType": "decimal",
+      "isNameInferred": true,
+      "isDataTypeInferred": true,
+      "sourceColumn": "[Price]"
+     }
+    ],
+    "partitions": [
+     {
+      "name": "Product",
+      "source": {
+       "type": "calculated",
+       "expression": "DATATABLE(\"ProductKey\", INTEGER, \"Product\", STRING, \"Category\", STRING, \"Price\", CURRENCY, {{1, \"Bike\", \"Wheels\", 100}, {2, \"Ball\", \"Toys\", 10}, {3, \"Car\", \"Wheels\", 250}, {4, \"Kite\", \"Toys\", 15}, {5, \"Helmet\", \"Gear\", 45.5}, {6, \"Gloves\", \"Gear\", 12.25}})"
+      }
+     }
+    ],
+    "measures": [
+     {
+      "name": "Avg Price",
+      "expression": "AVERAGE(Product[Price])"
+     },
+     {
+      "name": "Product Count",
+      "expression": "COUNTROWS(Product)"
+     }
+    ]
+   },
+   {
+    "name": "Customer",
+    "columns": [
+     {
+      "type": "calculatedTableColumn",
+      "name": "CustKey",
+      "dataType": "int64",
+      "isNameInferred": true,
+      "isDataTypeInferred": true,
+      "sourceColumn": "[CustKey]"
+     },
+     {
+      "type": "calculatedTableColumn",
+      "name": "Name",
+      "dataType": "string",
+      "isNameInferred": true,
+      "isDataTypeInferred": true,
+      "sourceColumn": "[Name]"
+     },
+     {
+      "type": "calculatedTableColumn",
+      "name": "City",
+      "dataType": "string",
+      "isNameInferred": true,
+      "isDataTypeInferred": true,
+      "sourceColumn": "[City]"
+     },
+     {
+      "type": "calculatedTableColumn",
+      "name": "Segment",
+      "dataType": "string",
+      "isNameInferred": true,
+      "isDataTypeInferred": true,
+      "sourceColumn": "[Segment]"
+     }
+    ],
+    "partitions": [
+     {
+      "name": "Customer",
+      "source": {
+       "type": "calculated",
+       "expression": "DATATABLE(\"CustKey\", INTEGER, \"Name\", STRING, \"City\", STRING, \"Segment\", STRING, {{1, \"Ann\", \"Paris\", \"Retail\"}, {2, \"Bob\", \"Lyon\", \"Retail\"}, {3, \"Cid\", \"Paris\", \"Pro\"}, {4, \"Dee\", \"Nice\", \"Pro\"}, {5, \"Eve\", \"Lyon\", \"Retail\"}})"
+      }
+     }
+    ],
+    "measures": [
+     {
+      "name": "Customer Count",
+      "expression": "COUNTROWS(Customer)"
+     }
+    ]
+   },
+   {
+    "name": "Date",
+    "columns": [
+     {
+      "type": "calculatedTableColumn",
+      "name": "Date",
+      "dataType": "dateTime",
+      "isNameInferred": true,
+      "isDataTypeInferred": true,
+      "sourceColumn": "[Date]",
+      "isKey": true
+     },
+     {
+      "type": "calculatedTableColumn",
+      "name": "Year",
+      "dataType": "int64",
+      "isNameInferred": true,
+      "isDataTypeInferred": true,
+      "sourceColumn": "[Year]"
+     },
+     {
+      "type": "calculatedTableColumn",
+      "name": "Month",
+      "dataType": "int64",
+      "isNameInferred": true,
+      "isDataTypeInferred": true,
+      "sourceColumn": "[Month]"
+     },
+     {
+      "type": "calculatedTableColumn",
+      "name": "Quarter",
+      "dataType": "int64",
+      "isNameInferred": true,
+      "isDataTypeInferred": true,
+      "sourceColumn": "[Quarter]"
+     }
+    ],
+    "partitions": [
+     {
+      "name": "Date",
+      "source": {
+       "type": "calculated",
+       "expression": "ADDCOLUMNS(CALENDAR(DATE(2023, 1, 1), DATE(2024, 12, 31)), \"Year\", YEAR([Date]), \"Month\", MONTH([Date]), \"Quarter\", QUARTER([Date]))"
+      }
+     }
+    ],
+    "dataCategory": "Time"
+   },
+   {
+    "name": "Sales",
+    "columns": [
+     {
+      "type": "calculatedTableColumn",
+      "name": "SalesKey",
+      "dataType": "int64",
+      "isNameInferred": true,
+      "isDataTypeInferred": true,
+      "sourceColumn": "[SalesKey]"
+     },
+     {
+      "type": "calculatedTableColumn",
+      "name": "ProductKey",
+      "dataType": "int64",
+      "isNameInferred": true,
+      "isDataTypeInferred": true,
+      "sourceColumn": "[ProductKey]"
+     },
+     {
+      "type": "calculatedTableColumn",
+      "name": "CustKey",
+      "dataType": "int64",
+      "isNameInferred": true,
+      "isDataTypeInferred": true,
+      "sourceColumn": "[CustKey]"
+     },
+     {
+      "type": "calculatedTableColumn",
+      "name": "Date",
+      "dataType": "dateTime",
+      "isNameInferred": true,
+      "isDataTypeInferred": true,
+      "sourceColumn": "[Date]"
+     },
+     {
+      "type": "calculatedTableColumn",
+      "name": "Qty",
+      "dataType": "int64",
+      "isNameInferred": true,
+      "isDataTypeInferred": true,
+      "sourceColumn": "[Qty]"
+     },
+     {
+      "type": "calculatedTableColumn",
+      "name": "Amount",
+      "dataType": "double",
+      "isNameInferred": true,
+      "isDataTypeInferred": true,
+      "sourceColumn": "[Amount]"
+     },
+     {
+      "type": "calculatedTableColumn",
+      "name": "Channel",
+      "dataType": "string",
+      "isNameInferred": true,
+      "isDataTypeInferred": true,
+      "sourceColumn": "[Channel]"
+     }
+    ],
+    "partitions": [
+     {
+      "name": "Sales",
+      "source": {
+       "type": "calculated",
+       "expression": "SELECTCOLUMNS(GENERATESERIES(1, 600), \"SalesKey\", [Value], \"ProductKey\", MOD([Value] * 5, 7) + 1, \"CustKey\", MOD([Value], 6) + 1, \"Date\", DATE(2023, 1, 1) + MOD([Value] * 37, 731), \"Qty\", MOD([Value], 5) + 1, \"Amount\", MOD([Value] * 13, 97) * 1.5 + 10, \"Channel\", SWITCH(MOD([Value], 3), 0, \"Web\", 1, \"Store\", \"App\"))"
+      }
+     }
+    ],
+    "measures": [
+     {
+      "name": "Total Sales",
+      "expression": "SUM(Sales[Amount])"
+     },
+     {
+      "name": "Units",
+      "expression": "SUM(Sales[Qty])"
+     },
+     {
+      "name": "Lines",
+      "expression": "COUNTROWS(Sales)"
+     },
+     {
+      "name": "Customers",
+      "expression": "DISTINCTCOUNT(Sales[CustKey])"
+     },
+     {
+      "name": "Sales LY",
+      "expression": "CALCULATE([Total Sales], SAMEPERIODLASTYEAR('Date'[Date]))"
+     },
+     {
+      "name": "Sales YTD",
+      "expression": "TOTALYTD([Total Sales], 'Date'[Date])"
+     },
+     {
+      "name": "Sales YoY %",
+      "expression": "DIVIDE([Total Sales] - [Sales LY], [Sales LY])"
+     },
+     {
+      "name": "Web Sales",
+      "expression": "CALCULATE([Total Sales], Sales[Channel] = \"Web\")"
+     },
+     {
+      "name": "Share of All",
+      "expression": "DIVIDE([Total Sales], CALCULATE([Total Sales], ALL(Sales)))"
+     },
+     {
+      "name": "Revenue",
+      "expression": "SUMX(Sales, Sales[Qty] * RELATED(Product[Price]))"
+     }
+    ]
+   },
+   {
+    "name": "Targets",
+    "columns": [
+     {
+      "type": "calculatedTableColumn",
+      "name": "Year",
+      "dataType": "int64",
+      "isNameInferred": true,
+      "isDataTypeInferred": true,
+      "sourceColumn": "[Year]"
+     },
+     {
+      "type": "calculatedTableColumn",
+      "name": "Category",
+      "dataType": "string",
+      "isNameInferred": true,
+      "isDataTypeInferred": true,
+      "sourceColumn": "[Category]"
+     },
+     {
+      "type": "calculatedTableColumn",
+      "name": "Target",
+      "dataType": "double",
+      "isNameInferred": true,
+      "isDataTypeInferred": true,
+      "sourceColumn": "[Target]"
+     }
+    ],
+    "partitions": [
+     {
+      "name": "Targets",
+      "source": {
+       "type": "calculated",
+       "expression": "DATATABLE(\"Year\", INTEGER, \"Category\", STRING, \"Target\", DOUBLE, {{2023, \"Wheels\", 9000}, {2023, \"Toys\", 4000}, {2023, \"Gear\", 5000}, {2024, \"Wheels\", 10000}, {2024, \"Toys\", 4500}, {2024, \"Gear\", 6000}})"
+      }
+     }
+    ],
+    "measures": [
+     {
+      "name": "Total Target",
+      "expression": "SUM(Targets[Target])"
+     },
+     {
+      "name": "Target In Context",
+      "expression": "CALCULATE(SUM(Targets[Target]), TREATAS(VALUES('Date'[Year]), Targets[Year]), TREATAS(VALUES(Product[Category]), Targets[Category]))"
+     }
+    ]
+   }
+  ],
+  "relationships": [
+   {
+    "name": "Sales_Product",
+    "fromTable": "Sales",
+    "fromColumn": "ProductKey",
+    "toTable": "Product",
+    "toColumn": "ProductKey"
+   },
+   {
+    "name": "Sales_Customer",
+    "fromTable": "Sales",
+    "fromColumn": "CustKey",
+    "toTable": "Customer",
+    "toColumn": "CustKey"
+   },
+   {
+    "name": "Sales_Date",
+    "fromTable": "Sales",
+    "fromColumn": "Date",
+    "toTable": "Date",
+    "toColumn": "Date"
+   }
+  ]
+ }
+}

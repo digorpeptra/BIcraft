@@ -1,0 +1,1 @@
+AVERAGEX(VALUES('Date'[Month]), [Total Sales])

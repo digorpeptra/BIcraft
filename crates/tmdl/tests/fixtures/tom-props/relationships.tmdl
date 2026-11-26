@@ -1,0 +1,17 @@
+relationship R
+	isActive: false
+	crossFilteringBehavior: bothDirections
+	joinOnDateBehavior: datePartOnly
+	relyOnReferentialIntegrity
+	securityFilteringBehavior: bothDirections
+	fromCardinality: one
+	toCardinality: many
+	fromColumn: T.S
+	toColumn: U.K
+
+	extendedProperty xrel = xv
+
+	changedProperty = Name
+
+	annotation arel = av
+

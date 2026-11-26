@@ -1,0 +1,1 @@
+SUBSTITUTE(SELECTEDVALUE(Customer[Name]), "a", "A")

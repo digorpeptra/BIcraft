@@ -1,0 +1,2507 @@
+[
+ {
+  "id": "cg-rows",
+  "query": "EVALUATE 'Time Calc'",
+  "ordered": false
+ },
+ {
+  "id": "cg-by-item",
+  "query": "EVALUATE SUMMARIZECOLUMNS('Time Calc'[Period], \"v\", [Total Sales])",
+  "ordered": false
+ },
+ {
+  "id": "cg-by-year-item",
+  "query": "EVALUATE SUMMARIZECOLUMNS('Date'[Year], 'Time Calc'[Period], \"v\", [Total Sales], \"u\", [Units])",
+  "ordered": false
+ },
+ {
+  "id": "cg-calc-ytd",
+  "query": "EVALUATE ROW(\"v\", CALCULATE([Total Sales], 'Time Calc'[Period] = \"YTD\", 'Date'[Year] = 2024))",
+  "ordered": false
+ },
+ {
+  "id": "cg-nested",
+  "query": "EVALUATE ROW(\"v\", CALCULATE([Sales YoY %], 'Time Calc'[Period] = \"PY\"), \"w\", CALCULATE([Share of All], 'Time Calc'[Period] = \"Double\"))",
+  "ordered": false
+ },
+ {
+  "id": "cg-multi",
+  "query": "EVALUATE ROW(\"v\", CALCULATE([Total Sales], 'Time Calc'[Period] IN {\"YTD\", \"PY\"}))",
+  "ordered": false
+ },
+ {
+  "id": "cg-expr-not-measure",
+  "query": "EVALUATE ROW(\"v\", CALCULATE(SUM(Sales[Amount]), 'Time Calc'[Period] = \"Double\"))",
+  "ordered": false
+ },
+ {
+  "id": "cg-fmt-item",
+  "query": "EVALUATE ROW(\"v\", CALCULATE([Static Fmt], 'Time Calc'[Period] = \"Fmt\"), \"d\", CALCULATE([Dyn], 'Time Calc'[Period] = \"Fmt\"), \"n\", CALCULATE([Total Sales], 'Time Calc'[Period] = \"Fmt\"))",
+  "ordered": false
+ },
+ {
+  "id": "cg-name",
+  "query": "EVALUATE SUMMARIZECOLUMNS('Time Calc'[Period], FILTER(VALUES('Time Calc'[Period]), 'Time Calc'[Period] IN {\"Name\", \"IsSel\"}), \"a\", [Total Sales], \"b\", [Units], \"c\", [Lines])",
+  "ordered": false
+ },
+ {
+  "id": "cg-selmeasure-outside",
+  "query": "EVALUATE ROW(\"v\", SELECTEDMEASURE())",
+  "ordered": false
+ },
+ {
+  "id": "cg-dynfs-ref",
+  "query": "EVALUATE ROW(\"f\", 'Sales'[_Dyn FormatString])",
+  "ordered": false
+ },
+ {
+  "id": "cg-dynfs-ref2",
+  "query": "EVALUATE ROW(\"f\", [_Dyn FormatString])",
+  "ordered": false
+ },
+ {
+  "id": "cg-format-nofmt",
+  "query": "EVALUATE ROW(\"f\", FORMAT([Dyn], \"\"), \"g\", FORMAT(1234.5, \"\"))",
+  "ordered": false
+ },
+ {
+  "id": "cg-ordinal",
+  "query": "EVALUATE SUMMARIZECOLUMNS('Time Calc'[Ordinal], 'Time Calc'[Period])",
+  "ordered": false
+ },
+ {
+  "id": "cg-countrows",
+  "query": "EVALUATE ROW(\"n\", COUNTROWS('Time Calc'), \"s\", SELECTEDVALUE('Time Calc'[Period]))",
+  "ordered": false
+ },
+ {
+  "id": "cg-in-iterator",
+  "query": "EVALUATE ROW(\"v\", CALCULATE(SUMX(VALUES('Date'[Year]), [Total Sales]), 'Time Calc'[Period] = \"Double\"))",
+  "ordered": false
+ },
+ {
+  "id": "cg-item-measure-var",
+  "query": "EVALUATE ROW(\"v\", CALCULATE(VAR x = [Total Sales] RETURN x, 'Time Calc'[Period] = \"Double\"))",
+  "ordered": false
+ },
+ {
+  "id": "cg-item-ctx-total",
+  "query": "EVALUATE ROW(\"v\", CALCULATE([Total Sales] + [Units], 'Time Calc'[Period] = \"Double\"))",
+  "ordered": false
+ },
+ {
+  "id": "cg-nested-ref",
+  "query": "EVALUATE ROW(\"v\", CALCULATE([TS Plus One], 'Time Calc'[Period] = \"Double\"))",
+  "ordered": false
+ },
+ {
+  "id": "cg-item-refs-measure",
+  "query": "EVALUATE ROW(\"v\", CALCULATE([Total Sales], 'Time Calc'[Period] = \"PlusUnits\"))",
+  "ordered": false
+ },
+ {
+  "id": "cg-item-ref-self",
+  "query": "EVALUATE ROW(\"v\", CALCULATE([Total Sales], 'Time Calc'[Period] = \"Ref Self\"))",
+  "ordered": false
+ },
+ {
+  "id": "cg-remove-in-measure",
+  "query": "EVALUATE ROW(\"v\", CALCULATE([No Item], 'Time Calc'[Period] = \"Double\"))",
+  "ordered": false
+ },
+ {
+  "id": "cg-two-groups-a",
+  "query": "EVALUATE ROW(\"v\", CALCULATE([Total Sales], 'Time Calc'[Period] = \"Double\", 'Scale'[Scale] = \"Add Ten\"))",
+  "ordered": false
+ },
+ {
+  "id": "cg-two-groups-b",
+  "query": "EVALUATE ROW(\"v\", CALCULATE([Total Sales], 'Time Calc'[Period] = \"YoY %\", 'Scale'[Scale] = \"Add Ten\"))",
+  "ordered": false
+ },
+ {
+  "id": "cg-two-groups-c",
+  "query": "EVALUATE SUMMARIZECOLUMNS('Scale'[Scale], 'Time Calc'[Period], FILTER(VALUES('Time Calc'[Period]), 'Time Calc'[Period] IN {\"Current\", \"Double\", \"Fmt\"}), \"v\", [Static Fmt], \"f\", [_Static Fmt FormatString])",
+  "ordered": false
+ },
+ {
+  "id": "cg-fs-under-item",
+  "query": "EVALUATE SUMMARIZECOLUMNS('Time Calc'[Period], \"v\", [Dyn], \"f\", [_Dyn FormatString], \"g\", [_Dyn Self FormatString], \"h\", [Dyn Self])",
+  "ordered": false
+ },
+ {
+  "id": "cg-fs-static-ref",
+  "query": "EVALUATE ROW(\"f\", [_Static Fmt FormatString])",
+  "ordered": false
+ },
+ {
+  "id": "cg-fs-none-ref",
+  "query": "EVALUATE ROW(\"f\", [_Total Sales FormatString])",
+  "ordered": false
+ },
+ {
+  "id": "cg-fs-dynself",
+  "query": "EVALUATE SUMMARIZECOLUMNS('Date'[Year], \"v\", [Dyn Self], \"f\", [_Dyn Self FormatString])",
+  "ordered": false
+ },
+ {
+  "id": "cg-ordinal-filter",
+  "query": "EVALUATE ROW(\"v\", CALCULATE([Total Sales], 'Time Calc'[Ordinal] = 7))",
+  "ordered": false
+ },
+ {
+  "id": "cg-treatas",
+  "query": "EVALUATE ROW(\"v\", CALCULATE([Total Sales], TREATAS({\"Double\"}, 'Time Calc'[Period])))",
+  "ordered": false
+ },
+ {
+  "id": "cg-rollup",
+  "query": "EVALUATE SUMMARIZECOLUMNS(ROLLUPADDISSUBTOTAL('Time Calc'[Period], \"T\"), FILTER(VALUES('Time Calc'[Period]), 'Time Calc'[Period] IN {\"Current\", \"Double\"}), \"v\", [Total Sales])",
+  "ordered": false
+ },
+ {
+  "id": "cg-selvalue-in-measure",
+  "query": "EVALUATE SUMMARIZECOLUMNS('Time Calc'[Period], FILTER(VALUES('Time Calc'[Period]), 'Time Calc'[Period] IN {\"Current\", \"Double\"}), \"s\", SELECTEDVALUE('Time Calc'[Period]), \"v\", [Total Sales])",
+  "ordered": false
+ },
+ {
+  "id": "cg-keepfilters",
+  "query": "EVALUATE ROW(\"v\", CALCULATE(CALCULATE([Total Sales], KEEPFILTERS('Time Calc'[Period] = \"Double\")), 'Time Calc'[Period] IN {\"Double\", \"YTD\"}))",
+  "ordered": false
+ },
+ {
+  "id": "cg-item-in-filter-measure",
+  "query": "EVALUATE ROW(\"v\", CALCULATE([Total Sales], 'Time Calc'[Period] = \"Double\", 'Date'[Year] = 2023), \"w\", CALCULATE(COUNTROWS(Sales), 'Time Calc'[Period] = \"Double\"))",
+  "ordered": false
+ },
+ {
+  "id": "cg-measure-in-filter-arg",
+  "query": "EVALUATE ROW(\"v\", CALCULATE(CALCULATE([Units], FILTER(VALUES('Date'[Year]), [Total Sales] > 24500)), 'Time Calc'[Period] = \"Double\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-pi",
+  "query": "EVALUATE ROW(\"v\", PI())",
+  "ordered": false
+ },
+ {
+  "id": "fn-sin",
+  "query": "EVALUATE ROW(\"v\", SIN(1))",
+  "ordered": false
+ },
+ {
+  "id": "fn-cos",
+  "query": "EVALUATE ROW(\"v\", COS(1))",
+  "ordered": false
+ },
+ {
+  "id": "fn-tan",
+  "query": "EVALUATE ROW(\"v\", TAN(1))",
+  "ordered": false
+ },
+ {
+  "id": "fn-asin",
+  "query": "EVALUATE ROW(\"v\", ASIN(0.5))",
+  "ordered": false
+ },
+ {
+  "id": "fn-acos",
+  "query": "EVALUATE ROW(\"v\", ACOS(0.5))",
+  "ordered": false
+ },
+ {
+  "id": "fn-atan",
+  "query": "EVALUATE ROW(\"v\", ATAN(1))",
+  "ordered": false
+ },
+ {
+  "id": "fn-sinh",
+  "query": "EVALUATE ROW(\"v\", SINH(1))",
+  "ordered": false
+ },
+ {
+  "id": "fn-cosh",
+  "query": "EVALUATE ROW(\"v\", COSH(1))",
+  "ordered": false
+ },
+ {
+  "id": "fn-tanh",
+  "query": "EVALUATE ROW(\"v\", TANH(0.5))",
+  "ordered": false
+ },
+ {
+  "id": "fn-asinh",
+  "query": "EVALUATE ROW(\"v\", ASINH(1))",
+  "ordered": false
+ },
+ {
+  "id": "fn-acosh",
+  "query": "EVALUATE ROW(\"v\", ACOSH(2))",
+  "ordered": false
+ },
+ {
+  "id": "fn-atanh",
+  "query": "EVALUATE ROW(\"v\", ATANH(0.5))",
+  "ordered": false
+ },
+ {
+  "id": "fn-cot",
+  "query": "EVALUATE ROW(\"v\", COT(1))",
+  "ordered": false
+ },
+ {
+  "id": "fn-coth",
+  "query": "EVALUATE ROW(\"v\", COTH(1))",
+  "ordered": false
+ },
+ {
+  "id": "fn-degrees",
+  "query": "EVALUATE ROW(\"v\", DEGREES(PI()))",
+  "ordered": false
+ },
+ {
+  "id": "fn-radians",
+  "query": "EVALUATE ROW(\"v\", RADIANS(180))",
+  "ordered": false
+ },
+ {
+  "id": "fn-ceiling",
+  "query": "EVALUATE ROW(\"v\", CEILING(2.31, 0.5))",
+  "ordered": false
+ },
+ {
+  "id": "fn-ceiling-neg",
+  "query": "EVALUATE ROW(\"v\", CEILING(-2.31, 1))",
+  "ordered": false
+ },
+ {
+  "id": "fn-floor",
+  "query": "EVALUATE ROW(\"v\", FLOOR(2.71, 0.5))",
+  "ordered": false
+ },
+ {
+  "id": "fn-floor-neg",
+  "query": "EVALUATE ROW(\"v\", FLOOR(-2.71, 1))",
+  "ordered": false
+ },
+ {
+  "id": "fn-mround",
+  "query": "EVALUATE ROW(\"v\", MROUND(10.3, 3))",
+  "ordered": false
+ },
+ {
+  "id": "fn-isoceiling",
+  "query": "EVALUATE ROW(\"v\", ISO.CEILING(-4.3, 2))",
+  "ordered": false
+ },
+ {
+  "id": "fn-quotient",
+  "query": "EVALUATE ROW(\"v\", QUOTIENT(17, 5))",
+  "ordered": false
+ },
+ {
+  "id": "fn-even",
+  "query": "EVALUATE ROW(\"v\", EVEN(3.2))",
+  "ordered": false
+ },
+ {
+  "id": "fn-odd",
+  "query": "EVALUATE ROW(\"v\", ODD(2.1))",
+  "ordered": false
+ },
+ {
+  "id": "fn-fact",
+  "query": "EVALUATE ROW(\"v\", FACT(5))",
+  "ordered": false
+ },
+ {
+  "id": "fn-combin",
+  "query": "EVALUATE ROW(\"v\", COMBIN(8, 3))",
+  "ordered": false
+ },
+ {
+  "id": "fn-combina",
+  "query": "EVALUATE ROW(\"v\", COMBINA(4, 3))",
+  "ordered": false
+ },
+ {
+  "id": "fn-permut",
+  "query": "EVALUATE ROW(\"v\", PERMUT(6, 2))",
+  "ordered": false
+ },
+ {
+  "id": "fn-gcd",
+  "query": "EVALUATE ROW(\"v\", GCD(24, 36))",
+  "ordered": false
+ },
+ {
+  "id": "fn-lcm",
+  "query": "EVALUATE ROW(\"v\", LCM(4, 6))",
+  "ordered": false
+ },
+ {
+  "id": "fn-log10",
+  "query": "EVALUATE ROW(\"v\", LOG10(1000))",
+  "ordered": false
+ },
+ {
+  "id": "fn-log-base",
+  "query": "EVALUATE ROW(\"v\", LOG(8, 2))",
+  "ordered": false
+ },
+ {
+  "id": "fn-ln",
+  "query": "EVALUATE ROW(\"v\", LN(10))",
+  "ordered": false
+ },
+ {
+  "id": "fn-exp",
+  "query": "EVALUATE ROW(\"v\", EXP(2))",
+  "ordered": false
+ },
+ {
+  "id": "fn-power",
+  "query": "EVALUATE ROW(\"v\", POWER(2, 10))",
+  "ordered": false
+ },
+ {
+  "id": "fn-sqrt",
+  "query": "EVALUATE ROW(\"v\", SQRT(2))",
+  "ordered": false
+ },
+ {
+  "id": "fn-sqrtpi",
+  "query": "EVALUATE ROW(\"v\", SQRTPI(2))",
+  "ordered": false
+ },
+ {
+  "id": "fn-mod-neg",
+  "query": "EVALUATE ROW(\"v\", MOD(-7, 3))",
+  "ordered": false
+ },
+ {
+  "id": "fn-trunc",
+  "query": "EVALUATE ROW(\"v\", TRUNC(-3.7))",
+  "ordered": false
+ },
+ {
+  "id": "fn-trunc-digits",
+  "query": "EVALUATE ROW(\"v\", TRUNC(3.14159, 2))",
+  "ordered": false
+ },
+ {
+  "id": "fn-rounddown",
+  "query": "EVALUATE ROW(\"v\", ROUNDDOWN(-3.14159, 1))",
+  "ordered": false
+ },
+ {
+  "id": "fn-roundup",
+  "query": "EVALUATE ROW(\"v\", ROUNDUP(3.14159, 2))",
+  "ordered": false
+ },
+ {
+  "id": "fn-round-neg",
+  "query": "EVALUATE ROW(\"v\", ROUND(1234.5, -2))",
+  "ordered": false
+ },
+ {
+  "id": "fn-round-half",
+  "query": "EVALUATE ROW(\"v\", ROUND(2.5, 0))",
+  "ordered": false
+ },
+ {
+  "id": "fn-round-half-neg",
+  "query": "EVALUATE ROW(\"v\", ROUND(-2.5, 0))",
+  "ordered": false
+ },
+ {
+  "id": "fn-fixed",
+  "query": "EVALUATE ROW(\"v\", FIXED(1234.567, 1))",
+  "ordered": false
+ },
+ {
+  "id": "fn-fixed-nocomma",
+  "query": "EVALUATE ROW(\"v\", FIXED(1234.567, 1, TRUE()))",
+  "ordered": false
+ },
+ {
+  "id": "fn-sign",
+  "query": "EVALUATE ROW(\"v\", SIGN(-3))",
+  "ordered": false
+ },
+ {
+  "id": "fn-int-neg",
+  "query": "EVALUATE ROW(\"v\", INT(-3.5))",
+  "ordered": false
+ },
+ {
+  "id": "fn-convert-int",
+  "query": "EVALUATE ROW(\"v\", CONVERT(3.7, INTEGER))",
+  "ordered": false
+ },
+ {
+  "id": "fn-convert-str",
+  "query": "EVALUATE ROW(\"v\", CONVERT(12.5, STRING))",
+  "ordered": false
+ },
+ {
+  "id": "fn-convert-dbl",
+  "query": "EVALUATE ROW(\"v\", CONVERT(\"12.5\", DOUBLE))",
+  "ordered": false
+ },
+ {
+  "id": "fn-convert-cur",
+  "query": "EVALUATE ROW(\"v\", CONVERT(1.23456, CURRENCY))",
+  "ordered": false
+ },
+ {
+  "id": "fn-convert-bool",
+  "query": "EVALUATE ROW(\"v\", CONVERT(1, BOOLEAN))",
+  "ordered": false
+ },
+ {
+  "id": "fn-convert-date",
+  "query": "EVALUATE ROW(\"v\", CONVERT(45000, DATETIME))",
+  "ordered": false
+ },
+ {
+  "id": "fn-currency-text",
+  "query": "EVALUATE ROW(\"v\", CURRENCY(\"12.34567\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-value",
+  "query": "EVALUATE ROW(\"v\", VALUE(\"12.5\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-abs-blank",
+  "query": "EVALUATE ROW(\"v\", ABS(BLANK()))",
+  "ordered": false
+ },
+ {
+  "id": "fn-isnumber",
+  "query": "EVALUATE ROW(\"v\", ISNUMBER(1))",
+  "ordered": false
+ },
+ {
+  "id": "fn-isnumber-text",
+  "query": "EVALUATE ROW(\"v\", ISNUMBER(\"1\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-istext",
+  "query": "EVALUATE ROW(\"v\", ISTEXT(\"a\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-isnontext",
+  "query": "EVALUATE ROW(\"v\", ISNONTEXT(1))",
+  "ordered": false
+ },
+ {
+  "id": "fn-islogical",
+  "query": "EVALUATE ROW(\"v\", ISLOGICAL(TRUE()))",
+  "ordered": false
+ },
+ {
+  "id": "fn-iserror",
+  "query": "EVALUATE ROW(\"v\", ISERROR(1/0))",
+  "ordered": false
+ },
+ {
+  "id": "fn-iserror-conv",
+  "query": "EVALUATE ROW(\"v\", ISERROR(VALUE(\"x\")))",
+  "ordered": false
+ },
+ {
+  "id": "fn-iferror",
+  "query": "EVALUATE ROW(\"v\", IFERROR(VALUE(\"x\"), -1))",
+  "ordered": false
+ },
+ {
+  "id": "fn-iferror-ok",
+  "query": "EVALUATE ROW(\"v\", IFERROR(3, -1))",
+  "ordered": false
+ },
+ {
+  "id": "fn-iseven",
+  "query": "EVALUATE ROW(\"v\", ISEVEN(4))",
+  "ordered": false
+ },
+ {
+  "id": "fn-isodd",
+  "query": "EVALUATE ROW(\"v\", ISODD(4))",
+  "ordered": false
+ },
+ {
+  "id": "fn-and-op",
+  "query": "EVALUATE ROW(\"v\", TRUE() && FALSE())",
+  "ordered": false
+ },
+ {
+  "id": "fn-or-op",
+  "query": "EVALUATE ROW(\"v\", TRUE() || FALSE())",
+  "ordered": false
+ },
+ {
+  "id": "fn-if-eager",
+  "query": "EVALUATE ROW(\"v\", IF.EAGER(1 > 0, \"y\", \"n\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-switch-true",
+  "query": "EVALUATE ROW(\"v\", SWITCH(TRUE(), 1 > 2, \"a\", 2 > 1, \"b\", \"c\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-coalesce-blank",
+  "query": "EVALUATE ROW(\"v\", COALESCE(BLANK(), BLANK()))",
+  "ordered": false
+ },
+ {
+  "id": "fn-blank-plus",
+  "query": "EVALUATE ROW(\"v\", BLANK() + 1)",
+  "ordered": false
+ },
+ {
+  "id": "fn-blank-concat",
+  "query": "EVALUATE ROW(\"v\", BLANK() & \"a\")",
+  "ordered": false
+ },
+ {
+  "id": "fn-blank-eq",
+  "query": "EVALUATE ROW(\"v\", BLANK() = 0)",
+  "ordered": false
+ },
+ {
+  "id": "fn-blank-eqq",
+  "query": "EVALUATE ROW(\"v\", BLANK() == 0)",
+  "ordered": false
+ },
+ {
+  "id": "fn-blank-times",
+  "query": "EVALUATE ROW(\"v\", BLANK() * 2)",
+  "ordered": false
+ },
+ {
+  "id": "fn-blank-div",
+  "query": "EVALUATE ROW(\"v\", DIVIDE(BLANK(), 2))",
+  "ordered": false
+ },
+ {
+  "id": "fn-div-zero",
+  "query": "EVALUATE ROW(\"v\", 1 / 0)",
+  "ordered": false
+ },
+ {
+  "id": "fn-div-zero-neg",
+  "query": "EVALUATE ROW(\"v\", -1 / 0)",
+  "ordered": false
+ },
+ {
+  "id": "fn-zero-div-zero",
+  "query": "EVALUATE ROW(\"v\", 0 / 0)",
+  "ordered": false
+ },
+ {
+  "id": "fn-div-zero-blank",
+  "query": "EVALUATE ROW(\"v\", DIVIDE(1, 0))",
+  "ordered": false
+ },
+ {
+  "id": "fn-pow-op",
+  "query": "EVALUATE ROW(\"v\", 2 ^ 0.5)",
+  "ordered": false
+ },
+ {
+  "id": "fn-neg-pow",
+  "query": "EVALUATE ROW(\"v\", -2 ^ 2)",
+  "ordered": false
+ },
+ {
+  "id": "fn-concat-num",
+  "query": "EVALUATE ROW(\"v\", 1 & 2)",
+  "ordered": false
+ },
+ {
+  "id": "fn-text-num-add",
+  "query": "EVALUATE ROW(\"v\", \"3\" + 4)",
+  "ordered": false
+ },
+ {
+  "id": "fn-date-add",
+  "query": "EVALUATE ROW(\"v\", DATE(2024, 1, 31) + 1)",
+  "ordered": false
+ },
+ {
+  "id": "fn-date-sub",
+  "query": "EVALUATE ROW(\"v\", DATE(2024, 3, 1) - DATE(2024, 2, 1))",
+  "ordered": false
+ },
+ {
+  "id": "fn-date-mult",
+  "query": "EVALUATE ROW(\"v\", DATE(2024, 1, 1) * 1)",
+  "ordered": false
+ },
+ {
+  "id": "fn-time",
+  "query": "EVALUATE ROW(\"v\", TIME(13, 30, 15))",
+  "ordered": false
+ },
+ {
+  "id": "fn-time-overflow",
+  "query": "EVALUATE ROW(\"v\", TIME(25, 0, 0))",
+  "ordered": false
+ },
+ {
+  "id": "fn-timevalue",
+  "query": "EVALUATE ROW(\"v\", TIMEVALUE(\"14:30\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-datevalue",
+  "query": "EVALUATE ROW(\"v\", DATEVALUE(\"2024-02-29\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-datetime-add",
+  "query": "EVALUATE ROW(\"v\", DATE(2024, 1, 1) + TIME(6, 0, 0))",
+  "ordered": false
+ },
+ {
+  "id": "fn-hour",
+  "query": "EVALUATE ROW(\"v\", HOUR(TIME(13, 30, 15)))",
+  "ordered": false
+ },
+ {
+  "id": "fn-minute",
+  "query": "EVALUATE ROW(\"v\", MINUTE(TIME(13, 30, 15)))",
+  "ordered": false
+ },
+ {
+  "id": "fn-second",
+  "query": "EVALUATE ROW(\"v\", SECOND(TIME(13, 30, 15)))",
+  "ordered": false
+ },
+ {
+  "id": "fn-weekday1",
+  "query": "EVALUATE ROW(\"v\", WEEKDAY(DATE(2024, 6, 2)))",
+  "ordered": false
+ },
+ {
+  "id": "fn-weekday2",
+  "query": "EVALUATE ROW(\"v\", WEEKDAY(DATE(2024, 6, 2), 2))",
+  "ordered": false
+ },
+ {
+  "id": "fn-weekday3",
+  "query": "EVALUATE ROW(\"v\", WEEKDAY(DATE(2024, 6, 2), 3))",
+  "ordered": false
+ },
+ {
+  "id": "fn-weeknum21",
+  "query": "EVALUATE ROW(\"v\", WEEKNUM(DATE(2024, 12, 30), 21))",
+  "ordered": false
+ },
+ {
+  "id": "fn-weeknum2",
+  "query": "EVALUATE ROW(\"v\", WEEKNUM(DATE(2024, 12, 30), 2))",
+  "ordered": false
+ },
+ {
+  "id": "fn-yearfrac",
+  "query": "EVALUATE ROW(\"v\", YEARFRAC(DATE(2024, 1, 1), DATE(2024, 7, 1)))",
+  "ordered": false
+ },
+ {
+  "id": "fn-yearfrac1",
+  "query": "EVALUATE ROW(\"v\", YEARFRAC(DATE(2024, 1, 1), DATE(2024, 7, 1), 1))",
+  "ordered": false
+ },
+ {
+  "id": "fn-networkdays",
+  "query": "EVALUATE ROW(\"v\", NETWORKDAYS(DATE(2024, 1, 1), DATE(2024, 1, 31)))",
+  "ordered": false
+ },
+ {
+  "id": "fn-networkdays-hol",
+  "query": "EVALUATE ROW(\"v\", NETWORKDAYS(DATE(2024, 1, 1), DATE(2024, 1, 31), 1, {DATE(2024, 1, 1)}))",
+  "ordered": false
+ },
+ {
+  "id": "fn-edate-end",
+  "query": "EVALUATE ROW(\"v\", EDATE(DATE(2024, 1, 31), 1))",
+  "ordered": false
+ },
+ {
+  "id": "fn-eomonth-neg",
+  "query": "EVALUATE ROW(\"v\", EOMONTH(DATE(2024, 3, 15), -1))",
+  "ordered": false
+ },
+ {
+  "id": "fn-datediff-week",
+  "query": "EVALUATE ROW(\"v\", DATEDIFF(DATE(2024, 1, 1), DATE(2024, 3, 1), WEEK))",
+  "ordered": false
+ },
+ {
+  "id": "fn-datediff-sec",
+  "query": "EVALUATE ROW(\"v\", DATEDIFF(DATE(2024, 1, 1), DATE(2024, 1, 2), SECOND))",
+  "ordered": false
+ },
+ {
+  "id": "fn-date-from-text",
+  "query": "EVALUATE ROW(\"v\", \"2024-01-15\" + 0)",
+  "ordered": false
+ },
+ {
+  "id": "fn-year-text",
+  "query": "EVALUATE ROW(\"v\", YEAR(\"2024-03-05\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-date-large-month",
+  "query": "EVALUATE ROW(\"v\", DATE(2024, 14, 1))",
+  "ordered": false
+ },
+ {
+  "id": "fn-date-zero-day",
+  "query": "EVALUATE ROW(\"v\", DATE(2024, 3, 0))",
+  "ordered": false
+ },
+ {
+  "id": "fn-date-twodigit",
+  "query": "EVALUATE ROW(\"v\", DATE(24, 1, 1))",
+  "ordered": false
+ },
+ {
+  "id": "fn-concatenate",
+  "query": "EVALUATE ROW(\"v\", CONCATENATE(\"a\", \"b\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-left",
+  "query": "EVALUATE ROW(\"v\", LEFT(\"Bonjour\", 3))",
+  "ordered": false
+ },
+ {
+  "id": "fn-right",
+  "query": "EVALUATE ROW(\"v\", RIGHT(\"Bonjour\", 3))",
+  "ordered": false
+ },
+ {
+  "id": "fn-mid",
+  "query": "EVALUATE ROW(\"v\", MID(\"Bonjour\", 2, 3))",
+  "ordered": false
+ },
+ {
+  "id": "fn-len",
+  "query": "EVALUATE ROW(\"v\", LEN(\"Été\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-upper",
+  "query": "EVALUATE ROW(\"v\", UPPER(\"été\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-lower",
+  "query": "EVALUATE ROW(\"v\", LOWER(\"ÉTÉ\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-proper",
+  "query": "EVALUATE ROW(\"v\", PROPER(\"hello world\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-trim",
+  "query": "EVALUATE ROW(\"v\", TRIM(\"  a   b  \"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-rept",
+  "query": "EVALUATE ROW(\"v\", REPT(\"ab\", 3))",
+  "ordered": false
+ },
+ {
+  "id": "fn-substitute",
+  "query": "EVALUATE ROW(\"v\", SUBSTITUTE(\"aaa\", \"a\", \"b\", 2))",
+  "ordered": false
+ },
+ {
+  "id": "fn-replace",
+  "query": "EVALUATE ROW(\"v\", REPLACE(\"abcdef\", 2, 3, \"X\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-search",
+  "query": "EVALUATE ROW(\"v\", SEARCH(\"N\", \"Bonjour\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-search-wild",
+  "query": "EVALUATE ROW(\"v\", SEARCH(\"o?j\", \"Bonjour\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-find",
+  "query": "EVALUATE ROW(\"v\", FIND(\"o\", \"Bonjour\", 3))",
+  "ordered": false
+ },
+ {
+  "id": "fn-find-missing",
+  "query": "EVALUATE ROW(\"v\", FIND(\"z\", \"Bonjour\", 1, -1))",
+  "ordered": false
+ },
+ {
+  "id": "fn-exact",
+  "query": "EVALUATE ROW(\"v\", EXACT(\"a\", \"A\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-unichar",
+  "query": "EVALUATE ROW(\"v\", UNICHAR(9650))",
+  "ordered": false
+ },
+ {
+  "id": "fn-unicode",
+  "query": "EVALUATE ROW(\"v\", UNICODE(\"é\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-containsstring",
+  "query": "EVALUATE ROW(\"v\", CONTAINSSTRING(\"Bonjour\", \"JOUR\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-containsstringexact",
+  "query": "EVALUATE ROW(\"v\", CONTAINSSTRINGEXACT(\"Bonjour\", \"JOUR\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-format-num",
+  "query": "EVALUATE ROW(\"v\", FORMAT(1234.567, \"#,0.00\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-format-pct",
+  "query": "EVALUATE ROW(\"v\", FORMAT(0.1234, \"0.0 %\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-format-sci",
+  "query": "EVALUATE ROW(\"v\", FORMAT(1234.567, \"0.00E+00\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-format-neg",
+  "query": "EVALUATE ROW(\"v\", FORMAT(-5, \"#,0;(#,0)\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-format-zero",
+  "query": "EVALUATE ROW(\"v\", FORMAT(0, \"#,0;(#,0);\"\"zero\"\"\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-format-scale",
+  "query": "EVALUATE ROW(\"v\", FORMAT(1234567, \"#,0,.0\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-format-date",
+  "query": "EVALUATE ROW(\"v\", FORMAT(DATE(2024, 3, 5), \"dddd d mmmm yyyy\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-format-date-short",
+  "query": "EVALUATE ROW(\"v\", FORMAT(DATE(2024, 3, 5), \"Short Date\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-format-date-long",
+  "query": "EVALUATE ROW(\"v\", FORMAT(DATE(2024, 3, 5), \"Long Date\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-format-time",
+  "query": "EVALUATE ROW(\"v\", FORMAT(TIME(13, 5, 9), \"hh:nn:ss AM/PM\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-format-general",
+  "query": "EVALUATE ROW(\"v\", FORMAT(1234.5, \"General Number\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-format-currency",
+  "query": "EVALUATE ROW(\"v\", FORMAT(1234.5, \"Currency\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-format-percent-named",
+  "query": "EVALUATE ROW(\"v\", FORMAT(0.25, \"Percent\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-format-fixed",
+  "query": "EVALUATE ROW(\"v\", FORMAT(1234.5, \"Fixed\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-format-standard",
+  "query": "EVALUATE ROW(\"v\", FORMAT(1234.5, \"Standard\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-format-yesno",
+  "query": "EVALUATE ROW(\"v\", FORMAT(1, \"Yes/No\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-format-blank",
+  "query": "EVALUATE ROW(\"v\", FORMAT(BLANK(), \"#,0\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-format-text",
+  "query": "EVALUATE ROW(\"v\", FORMAT(\"abc\", \">\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-format-fr",
+  "query": "EVALUATE ROW(\"v\", FORMAT(1234.567, \"#,0.00\", \"fr-FR\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-format-fr-date",
+  "query": "EVALUATE ROW(\"v\", FORMAT(DATE(2024, 3, 5), \"dddd d mmmm yyyy\", \"fr-FR\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-format-fr-pct",
+  "query": "EVALUATE ROW(\"v\", FORMAT(0.1234, \"0.0 %\", \"fr-FR\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-format-fr-currency",
+  "query": "EVALUATE ROW(\"v\", FORMAT(1234.5, \"Currency\", \"fr-FR\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-format-fr-short",
+  "query": "EVALUATE ROW(\"v\", FORMAT(DATE(2024, 3, 5), \"Short Date\", \"fr-FR\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-format-fr-long",
+  "query": "EVALUATE ROW(\"v\", FORMAT(DATE(2024, 3, 5), \"Long Date\", \"fr-FR\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-format-fr-mmm",
+  "query": "EVALUATE ROW(\"v\", FORMAT(DATE(2024, 3, 5), \"mmm\", \"fr-FR\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-format-fr-scale",
+  "query": "EVALUATE ROW(\"v\", FORMAT(1234567, \"#,0,.0 k€\", \"fr-FR\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-format-fr-general",
+  "query": "EVALUATE ROW(\"v\", FORMAT(1234.5, \"General Number\", \"fr-FR\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-format-fr-standard",
+  "query": "EVALUATE ROW(\"v\", FORMAT(1234.5, \"Standard\", \"fr-FR\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-format-fr-signed",
+  "query": "EVALUATE ROW(\"v\", FORMAT(-0.0567, \"+0.0 %;-0.0 %;0.0 %\", \"fr-FR\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-format-fr-md",
+  "query": "EVALUATE ROW(\"v\", FORMAT(1234567890, \"#,0,,,.0\"\" Md€\"\"\", \"fr-FR\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-format-de",
+  "query": "EVALUATE ROW(\"v\", FORMAT(1234.567, \"#,0.00\", \"de-DE\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-format-cur-value",
+  "query": "EVALUATE ROW(\"v\", FORMAT(CURRENCY(1234.5), \"#,0.00 €\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-lookupvalue",
+  "query": "EVALUATE ROW(\"v\", LOOKUPVALUE(Product[Product], Product[ProductKey], 3))",
+  "ordered": false
+ },
+ {
+  "id": "fn-lookupvalue-alt",
+  "query": "EVALUATE ROW(\"v\", LOOKUPVALUE(Product[Product], Product[ProductKey], 99, \"none\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-lookupvalue-two",
+  "query": "EVALUATE ROW(\"v\", LOOKUPVALUE(Customer[Name], Customer[City], \"Nice\", Customer[Segment], \"Pro\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-lookupvalue-multi",
+  "query": "EVALUATE ROW(\"v\", LOOKUPVALUE(Customer[Name], Customer[City], \"Paris\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-containsrow",
+  "query": "EVALUATE ROW(\"v\", CONTAINSROW(VALUES(Product[Category]), \"Toys\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-contains",
+  "query": "EVALUATE ROW(\"v\", CONTAINS(Product, Product[Category], \"Toys\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-in-op",
+  "query": "EVALUATE ROW(\"v\", \"Toys\" IN VALUES(Product[Category]))",
+  "ordered": false
+ },
+ {
+  "id": "fn-hasonefilter",
+  "query": "EVALUATE ROW(\"v\", HASONEFILTER(Product[Category]))",
+  "ordered": false
+ },
+ {
+  "id": "fn-iscrossfiltered",
+  "query": "EVALUATE ROW(\"v\", ISCROSSFILTERED(Product[Category]))",
+  "ordered": false
+ },
+ {
+  "id": "fn-selectedvalue-def",
+  "query": "EVALUATE ROW(\"v\", SELECTEDVALUE(Product[Category], \"many\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-firstnonblankvalue",
+  "query": "EVALUATE ROW(\"v\", FIRSTNONBLANKVALUE('Date'[Date], [Total Sales]))",
+  "ordered": false
+ },
+ {
+  "id": "fn-lastnonblankvalue",
+  "query": "EVALUATE ROW(\"v\", LASTNONBLANKVALUE('Date'[Date], [Total Sales]))",
+  "ordered": false
+ },
+ {
+  "id": "fn-firstnonblank",
+  "query": "EVALUATE ROW(\"v\", FIRSTNONBLANK('Date'[Date], [Total Sales]))",
+  "ordered": false
+ },
+ {
+  "id": "fn-lastnonblank",
+  "query": "EVALUATE ROW(\"v\", LASTNONBLANK('Date'[Date], [Total Sales]))",
+  "ordered": false
+ },
+ {
+  "id": "fn-openingbalanceyear",
+  "query": "EVALUATE ROW(\"v\", CALCULATE(OPENINGBALANCEYEAR([Total Sales], 'Date'[Date]), 'Date'[Year] = 2024))",
+  "ordered": false
+ },
+ {
+  "id": "fn-closingbalanceyear",
+  "query": "EVALUATE ROW(\"v\", CALCULATE(CLOSINGBALANCEYEAR([Total Sales], 'Date'[Date]), 'Date'[Year] = 2024))",
+  "ordered": false
+ },
+ {
+  "id": "fn-closingbalancemonth",
+  "query": "EVALUATE ROW(\"v\", CALCULATE(CLOSINGBALANCEMONTH([Total Sales], 'Date'[Date]), 'Date'[Year] = 2024, 'Date'[Month] = 3))",
+  "ordered": false
+ },
+ {
+  "id": "fn-openingbalancemonth",
+  "query": "EVALUATE ROW(\"v\", CALCULATE(OPENINGBALANCEMONTH([Total Sales], 'Date'[Date]), 'Date'[Year] = 2024, 'Date'[Month] = 3))",
+  "ordered": false
+ },
+ {
+  "id": "fn-closingbalancequarter",
+  "query": "EVALUATE ROW(\"v\", CALCULATE(CLOSINGBALANCEQUARTER([Total Sales], 'Date'[Date]), 'Date'[Year] = 2024, 'Date'[Quarter] = 2))",
+  "ordered": false
+ },
+ {
+  "id": "fn-openingbalancequarter",
+  "query": "EVALUATE ROW(\"v\", CALCULATE(OPENINGBALANCEQUARTER([Total Sales], 'Date'[Date]), 'Date'[Year] = 2024, 'Date'[Quarter] = 2))",
+  "ordered": false
+ },
+ {
+  "id": "fn-startofyear",
+  "query": "EVALUATE ROW(\"v\", CALCULATE(MAXX(STARTOFYEAR('Date'[Date]), [Date]), 'Date'[Year] = 2024))",
+  "ordered": false
+ },
+ {
+  "id": "fn-datesqtd",
+  "query": "EVALUATE ROW(\"v\", CALCULATE(CALCULATE([Total Sales], DATESQTD('Date'[Date])), 'Date'[Year] = 2024, 'Date'[Month] = 5))",
+  "ordered": false
+ },
+ {
+  "id": "fn-totalqtd",
+  "query": "EVALUATE ROW(\"v\", CALCULATE(TOTALQTD([Total Sales], 'Date'[Date]), 'Date'[Year] = 2024, 'Date'[Month] = 5))",
+  "ordered": false
+ },
+ {
+  "id": "fn-datesinperiod-day",
+  "query": "EVALUATE ROW(\"v\", CALCULATE([Total Sales], DATESINPERIOD('Date'[Date], DATE(2024, 3, 31), -10, DAY)))",
+  "ordered": false
+ },
+ {
+  "id": "fn-dateadd-quarter",
+  "query": "EVALUATE ROW(\"v\", CALCULATE(CALCULATE([Total Sales], DATEADD('Date'[Date], -1, QUARTER)), 'Date'[Year] = 2024, 'Date'[Quarter] = 1))",
+  "ordered": false
+ },
+ {
+  "id": "fn-parallelperiod-year",
+  "query": "EVALUATE ROW(\"v\", CALCULATE(CALCULATE([Total Sales], PARALLELPERIOD('Date'[Date], -1, YEAR)), 'Date'[Year] = 2024, 'Date'[Month] = 3))",
+  "ordered": false
+ },
+ {
+  "id": "fn-nextyear",
+  "query": "EVALUATE ROW(\"v\", CALCULATE(CALCULATE([Total Sales], NEXTYEAR('Date'[Date])), 'Date'[Year] = 2023))",
+  "ordered": false
+ },
+ {
+  "id": "fn-productx",
+  "query": "EVALUATE ROW(\"v\", PRODUCTX(FILTER(Product, Product[ProductKey] <= 3), Product[ProductKey]))",
+  "ordered": false
+ },
+ {
+  "id": "fn-product",
+  "query": "EVALUATE ROW(\"v\", PRODUCT(Product[ProductKey]))",
+  "ordered": false
+ },
+ {
+  "id": "fn-maxa",
+  "query": "EVALUATE ROW(\"v\", MAXA(Sales[Qty]))",
+  "ordered": false
+ },
+ {
+  "id": "fn-mina",
+  "query": "EVALUATE ROW(\"v\", MINA(Sales[Qty]))",
+  "ordered": false
+ },
+ {
+  "id": "fn-averagea",
+  "query": "EVALUATE ROW(\"v\", AVERAGEA(Sales[Qty]))",
+  "ordered": false
+ },
+ {
+  "id": "fn-countax",
+  "query": "EVALUATE ROW(\"v\", COUNTAX(Sales, Sales[Channel]))",
+  "ordered": false
+ },
+ {
+  "id": "fn-countx",
+  "query": "EVALUATE ROW(\"v\", COUNTX(Sales, Sales[Qty]))",
+  "ordered": false
+ },
+ {
+  "id": "fn-medianx",
+  "query": "EVALUATE ROW(\"v\", MEDIANX(Sales, Sales[Amount]))",
+  "ordered": false
+ },
+ {
+  "id": "fn-percentile-inc",
+  "query": "EVALUATE ROW(\"v\", PERCENTILE.INC(Sales[Amount], 0.9))",
+  "ordered": false
+ },
+ {
+  "id": "fn-percentile-exc",
+  "query": "EVALUATE ROW(\"v\", PERCENTILE.EXC(Sales[Amount], 0.9))",
+  "ordered": false
+ },
+ {
+  "id": "fn-percentilex-inc",
+  "query": "EVALUATE ROW(\"v\", PERCENTILEX.INC(Sales, Sales[Amount], 0.25))",
+  "ordered": false
+ },
+ {
+  "id": "fn-percentilex-exc",
+  "query": "EVALUATE ROW(\"v\", PERCENTILEX.EXC(Sales, Sales[Amount], 0.25))",
+  "ordered": false
+ },
+ {
+  "id": "fn-geomean",
+  "query": "EVALUATE ROW(\"v\", GEOMEAN(Sales[Qty]))",
+  "ordered": false
+ },
+ {
+  "id": "fn-geomeanx",
+  "query": "EVALUATE ROW(\"v\", GEOMEANX(Sales, Sales[Qty]))",
+  "ordered": false
+ },
+ {
+  "id": "fn-stdevx-s",
+  "query": "EVALUATE ROW(\"v\", STDEVX.S(Sales, Sales[Amount]))",
+  "ordered": false
+ },
+ {
+  "id": "fn-stdevx-p",
+  "query": "EVALUATE ROW(\"v\", STDEVX.P(Sales, Sales[Amount]))",
+  "ordered": false
+ },
+ {
+  "id": "fn-varx-s",
+  "query": "EVALUATE ROW(\"v\", VARX.S(Sales, Sales[Amount]))",
+  "ordered": false
+ },
+ {
+  "id": "fn-varx-p",
+  "query": "EVALUATE ROW(\"v\", VARX.P(Sales, Sales[Amount]))",
+  "ordered": false
+ },
+ {
+  "id": "fn-averagex-blank",
+  "query": "EVALUATE ROW(\"v\", AVERAGEX(Product, IF(Product[ProductKey] > 3, Product[Price])))",
+  "ordered": false
+ },
+ {
+  "id": "fn-rank-eq",
+  "query": "EVALUATE ROW(\"v\", RANK.EQ(250, Product[Price]))",
+  "ordered": false
+ },
+ {
+  "id": "fn-rankx-desc",
+  "query": "EVALUATE ROW(\"v\", RANKX(ALL(Product), [Avg Price], 45.5, DESC, DENSE))",
+  "ordered": false
+ },
+ {
+  "id": "fn-rank-window",
+  "query": "EVALUATE ROW(\"v\", CALCULATE(MAXX(Product, RANK(DENSE, ALL(Product), ORDERBY(Product[Price], DESC))), Product[ProductKey] = 5))",
+  "ordered": false
+ },
+ {
+  "id": "fn-rownumber",
+  "query": "EVALUATE ROW(\"v\", CALCULATE(MAXX(Product, ROWNUMBER(ALL(Product), ORDERBY(Product[Price], ASC))), Product[ProductKey] = 5))",
+  "ordered": false
+ },
+ {
+  "id": "fn-offset",
+  "query": "EVALUATE ROW(\"v\", CALCULATE(MAXX(OFFSET(-1, ALL(Product), ORDERBY(Product[ProductKey])), Product[Product]), Product[ProductKey] = 3))",
+  "ordered": false
+ },
+ {
+  "id": "fn-index",
+  "query": "EVALUATE ROW(\"v\", MAXX(INDEX(1, ALL(Product), ORDERBY(Product[Price], DESC)), Product[Product]))",
+  "ordered": false
+ },
+ {
+  "id": "fn-window",
+  "query": "EVALUATE ROW(\"v\", SUMX(WINDOW(1, ABS, 3, ABS, ALL(Product), ORDERBY(Product[ProductKey])), Product[Price]))",
+  "ordered": false
+ },
+ {
+  "id": "fn-window-rel",
+  "query": "EVALUATE ROW(\"v\", CALCULATE(SUMX(WINDOW(-1, REL, 0, REL, ALL(Product), ORDERBY(Product[ProductKey])), Product[Price]), Product[ProductKey] = 3))",
+  "ordered": false
+ },
+ {
+  "id": "fn-countrows-filters",
+  "query": "EVALUATE ROW(\"v\", COUNTROWS(FILTERS(Product[Category])))",
+  "ordered": false
+ },
+ {
+  "id": "fn-pathitem",
+  "query": "EVALUATE ROW(\"v\", PATHITEM(\"1|2|3\", 2))",
+  "ordered": false
+ },
+ {
+  "id": "fn-pathitem-int",
+  "query": "EVALUATE ROW(\"v\", PATHITEM(\"1|2|3\", 2, INTEGER))",
+  "ordered": false
+ },
+ {
+  "id": "fn-pathitemreverse",
+  "query": "EVALUATE ROW(\"v\", PATHITEMREVERSE(\"1|2|3\", 1))",
+  "ordered": false
+ },
+ {
+  "id": "fn-pathlength",
+  "query": "EVALUATE ROW(\"v\", PATHLENGTH(\"1|2|3\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-pathcontains",
+  "query": "EVALUATE ROW(\"v\", PATHCONTAINS(\"1|2|3\", \"2\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-combinevalues",
+  "query": "EVALUATE ROW(\"v\", COMBINEVALUES(\"-\", \"a\", 1))",
+  "ordered": false
+ },
+ {
+  "id": "fn-concatenatex-order",
+  "query": "EVALUATE ROW(\"v\", CONCATENATEX(Product, Product[Product], \", \", Product[Price], DESC))",
+  "ordered": false
+ },
+ {
+  "id": "fn-distinctcount-noblank",
+  "query": "EVALUATE ROW(\"v\", DISTINCTCOUNTNOBLANK(Sales[ProductKey]))",
+  "ordered": false
+ },
+ {
+  "id": "fn-countblank",
+  "query": "EVALUATE ROW(\"v\", COUNTBLANK(Sales[Channel]))",
+  "ordered": false
+ },
+ {
+  "id": "fn-isinscope",
+  "query": "EVALUATE ROW(\"v\", ISINSCOPE(Product[Category]))",
+  "ordered": false
+ },
+ {
+  "id": "fn-isempty",
+  "query": "EVALUATE ROW(\"v\", ISEMPTY(FILTER(Product, Product[Price] > 1000)))",
+  "ordered": false
+ },
+ {
+  "id": "fn-iferror-blank",
+  "query": "EVALUATE ROW(\"v\", IFERROR(BLANK(), 1))",
+  "ordered": false
+ },
+ {
+  "id": "fn-error-fn",
+  "query": "EVALUATE ROW(\"v\", IFERROR(ERROR(\"boom\"), \"caught\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-bitand",
+  "query": "EVALUATE ROW(\"v\", BITAND(12, 10))",
+  "ordered": false
+ },
+ {
+  "id": "fn-bitor",
+  "query": "EVALUATE ROW(\"v\", BITOR(12, 10))",
+  "ordered": false
+ },
+ {
+  "id": "fn-bitxor",
+  "query": "EVALUATE ROW(\"v\", BITXOR(12, 10))",
+  "ordered": false
+ },
+ {
+  "id": "fn-bitlshift",
+  "query": "EVALUATE ROW(\"v\", BITLSHIFT(1, 4))",
+  "ordered": false
+ },
+ {
+  "id": "fn-bitrshift",
+  "query": "EVALUATE ROW(\"v\", BITRSHIFT(16, 2))",
+  "ordered": false
+ },
+ {
+  "id": "fn-int-big",
+  "query": "EVALUATE ROW(\"v\", INT(1E15 + 0.5))",
+  "ordered": false
+ },
+ {
+  "id": "fn-sumx-related",
+  "query": "EVALUATE ROW(\"v\", SUMX(Sales, RELATED(Product[Price]) * Sales[Qty]))",
+  "ordered": false
+ },
+ {
+  "id": "fn-relatedtable",
+  "query": "EVALUATE ROW(\"v\", SUMX(Product, COUNTROWS(RELATEDTABLE(Sales))))",
+  "ordered": false
+ },
+ {
+  "id": "fn-calculatetable-count",
+  "query": "EVALUATE ROW(\"v\", COUNTROWS(CALCULATETABLE(Sales, Sales[Channel] = \"Web\")))",
+  "ordered": false
+ },
+ {
+  "id": "fn-crossfilter-none",
+  "query": "EVALUATE ROW(\"v\", CALCULATE([Total Sales], CROSSFILTER(Sales[ProductKey], Product[ProductKey], NONE)))",
+  "ordered": false
+ },
+ {
+  "id": "fn-allexcept",
+  "query": "EVALUATE ROW(\"v\", CALCULATE([Total Sales], ALLEXCEPT(Sales, Sales[Channel])))",
+  "ordered": false
+ },
+ {
+  "id": "fn-summarize-count",
+  "query": "EVALUATE ROW(\"v\", COUNTROWS(SUMMARIZE(Sales, Sales[Channel], Product[Category])))",
+  "ordered": false
+ },
+ {
+  "id": "fn-addmissingitems",
+  "query": "EVALUATE ROW(\"v\", COUNTROWS(ADDMISSINGITEMS(Product[Category], SUMMARIZECOLUMNS(Product[Category], \"v\", [Total Sales]), Product[Category])))",
+  "ordered": false
+ },
+ {
+  "id": "fn-groupby",
+  "query": "EVALUATE ROW(\"v\", COUNTROWS(GROUPBY(Sales, Sales[Channel], \"m\", SUMX(CURRENTGROUP(), Sales[Qty]))))",
+  "ordered": false
+ },
+ {
+  "id": "fn-naturalinnerjoin",
+  "query": "EVALUATE ROW(\"v\", COUNTROWS(NATURALINNERJOIN(Sales, Product)))",
+  "ordered": false
+ },
+ {
+  "id": "fn-naturalleftouterjoin",
+  "query": "EVALUATE ROW(\"v\", COUNTROWS(NATURALLEFTOUTERJOIN(Product, Sales)))",
+  "ordered": false
+ },
+ {
+  "id": "fn-substitutewithindex",
+  "query": "EVALUATE ROW(\"v\", COUNTROWS(SUBSTITUTEWITHINDEX(Product, \"i\", VALUES(Product[Category]), Product[Category], ASC)))",
+  "ordered": false
+ },
+ {
+  "id": "fn-sample",
+  "query": "EVALUATE ROW(\"v\", COUNTROWS(SAMPLE(3, Product, Product[ProductKey])))",
+  "ordered": false
+ },
+ {
+  "id": "fn-topnskip",
+  "query": "EVALUATE ROW(\"v\", COUNTROWS(TOPNSKIP(2, 1, Product, Product[Price])))",
+  "ordered": false
+ },
+ {
+  "id": "fn-datatable-count",
+  "query": "EVALUATE ROW(\"v\", COUNTROWS(DATATABLE(\"a\", INTEGER, {{1}, {2}})))",
+  "ordered": false
+ },
+ {
+  "id": "fn-rollupaddissubtotal",
+  "query": "EVALUATE ROW(\"v\", COUNTROWS(SUMMARIZECOLUMNS(ROLLUPADDISSUBTOTAL(Product[Category], \"t\"), \"v\", [Total Sales])))",
+  "ordered": false
+ },
+ {
+  "id": "fn-crossjoin",
+  "query": "EVALUATE ROW(\"v\", COUNTROWS(CROSSJOIN(VALUES(Product[Category]), VALUES(Sales[Channel]))))",
+  "ordered": false
+ },
+ {
+  "id": "fn-except",
+  "query": "EVALUATE ROW(\"v\", COUNTROWS(EXCEPT(VALUES(Sales[ProductKey]), VALUES(Product[ProductKey]))))",
+  "ordered": false
+ },
+ {
+  "id": "fn-row-count",
+  "query": "EVALUATE ROW(\"v\", COUNTROWS(ROW(\"a\", 1, \"b\", 2)))",
+  "ordered": false
+ },
+ {
+  "id": "fn-selectcolumns",
+  "query": "EVALUATE ROW(\"v\", COUNTROWS(SELECTCOLUMNS(Product, \"p\", Product[Price] * 2)))",
+  "ordered": false
+ },
+ {
+  "id": "fn-treatas-count",
+  "query": "EVALUATE ROW(\"v\", CALCULATE([Total Sales], TREATAS({\"Toys\", \"Gear\"}, Product[Category])))",
+  "ordered": false
+ },
+ {
+  "id": "fn-keepfilters-in",
+  "query": "EVALUATE ROW(\"v\", CALCULATE([Total Sales], KEEPFILTERS(Product[Category] IN {\"Toys\"})))",
+  "ordered": false
+ },
+ {
+  "id": "fn-not-in",
+  "query": "EVALUATE ROW(\"v\", CALCULATE([Total Sales], NOT Product[Category] IN {\"Toys\"}))",
+  "ordered": false
+ },
+ {
+  "id": "fn-generate-series-lookup",
+  "query": "EVALUATE ROW(\"v\", SUMX(GENERATESERIES(1, 3), LOOKUPVALUE(Product[Price], Product[ProductKey], [Value])))",
+  "ordered": false
+ },
+ {
+  "id": "fn-filter-noline",
+  "query": "EVALUATE ROW(\"v\", COUNTROWS(FILTER(GENERATE(CALENDAR(DATE(2024, 1, 1), DATE(2024, 1, 5)), GENERATESERIES(1, 3)), [Value] <= 2)))",
+  "ordered": false
+ },
+ {
+  "id": "fn-in-literal",
+  "query": "EVALUATE ROW(\"v\", IF(3 IN {1, 2, 3}, \"y\", \"n\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-sin-calc",
+  "query": "EVALUATE ROW(\"v\", ROUND(1 + 0.45 * SIN(2 * PI() * (3 - 3) / 12), 4))",
+  "ordered": false
+ },
+ {
+  "id": "fn-date-day32",
+  "query": "EVALUATE ROW(\"v\", DATE(2024, 1, 32))",
+  "ordered": false
+ },
+ {
+  "id": "fn-date-day-neg",
+  "query": "EVALUATE ROW(\"v\", DATE(2024, 3, -1))",
+  "ordered": false
+ },
+ {
+  "id": "fn-date-month0",
+  "query": "EVALUATE ROW(\"v\", DATE(2024, 0, 15))",
+  "ordered": false
+ },
+ {
+  "id": "fn-date-month-neg",
+  "query": "EVALUATE ROW(\"v\", DATE(2024, -2, 15))",
+  "ordered": false
+ },
+ {
+  "id": "fn-date-year1899",
+  "query": "EVALUATE ROW(\"v\", DATE(1899, 12, 31))",
+  "ordered": false
+ },
+ {
+  "id": "fn-date-year1900",
+  "query": "EVALUATE ROW(\"v\", DATE(1900, 1, 1))",
+  "ordered": false
+ },
+ {
+  "id": "fn-date-year0",
+  "query": "EVALUATE ROW(\"v\", DATE(0, 1, 1))",
+  "ordered": false
+ },
+ {
+  "id": "fn-date-year-neg",
+  "query": "EVALUATE ROW(\"v\", DATE(-1, 1, 1))",
+  "ordered": false
+ },
+ {
+  "id": "fn-date-year10000",
+  "query": "EVALUATE ROW(\"v\", DATE(10000, 1, 1))",
+  "ordered": false
+ },
+ {
+  "id": "fn-date-frac",
+  "query": "EVALUATE ROW(\"v\", DATE(2024.7, 2.9, 3.9))",
+  "ordered": false
+ },
+ {
+  "id": "fn-date-blank",
+  "query": "EVALUATE ROW(\"v\", DATE(BLANK(), 1, 1))",
+  "ordered": false
+ },
+ {
+  "id": "fn-date-day0-jan",
+  "query": "EVALUATE ROW(\"v\", DATE(2024, 1, 0))",
+  "ordered": false
+ },
+ {
+  "id": "fn-sin-blank",
+  "query": "EVALUATE ROW(\"v\", SIN(BLANK()))",
+  "ordered": false
+ },
+ {
+  "id": "fn-exp-blank",
+  "query": "EVALUATE ROW(\"v\", EXP(BLANK()))",
+  "ordered": false
+ },
+ {
+  "id": "fn-ln-blank",
+  "query": "EVALUATE ROW(\"v\", LN(BLANK()))",
+  "ordered": false
+ },
+ {
+  "id": "fn-fact-blank",
+  "query": "EVALUATE ROW(\"v\", FACT(BLANK()))",
+  "ordered": false
+ },
+ {
+  "id": "fn-ceiling-blank",
+  "query": "EVALUATE ROW(\"v\", CEILING(BLANK(), 1))",
+  "ordered": false
+ },
+ {
+  "id": "fn-even-neg",
+  "query": "EVALUATE ROW(\"v\", EVEN(-1.5))",
+  "ordered": false
+ },
+ {
+  "id": "fn-odd-zero",
+  "query": "EVALUATE ROW(\"v\", ODD(0))",
+  "ordered": false
+ },
+ {
+  "id": "fn-odd-neg",
+  "query": "EVALUATE ROW(\"v\", ODD(-2))",
+  "ordered": false
+ },
+ {
+  "id": "fn-even-int",
+  "query": "EVALUATE ROW(\"v\", EVEN(3))",
+  "ordered": false
+ },
+ {
+  "id": "fn-asin-out",
+  "query": "EVALUATE ROW(\"v\", ASIN(2))",
+  "ordered": false
+ },
+ {
+  "id": "fn-acosh-out",
+  "query": "EVALUATE ROW(\"v\", ACOSH(0.5))",
+  "ordered": false
+ },
+ {
+  "id": "fn-log-neg",
+  "query": "EVALUATE ROW(\"v\", LOG(-1))",
+  "ordered": false
+ },
+ {
+  "id": "fn-fact-neg",
+  "query": "EVALUATE ROW(\"v\", FACT(-1))",
+  "ordered": false
+ },
+ {
+  "id": "fn-fact-frac",
+  "query": "EVALUATE ROW(\"v\", FACT(5.9))",
+  "ordered": false
+ },
+ {
+  "id": "fn-combin-bad",
+  "query": "EVALUATE ROW(\"v\", COMBIN(3, 5))",
+  "ordered": false
+ },
+ {
+  "id": "fn-gcd-frac",
+  "query": "EVALUATE ROW(\"v\", GCD(24.9, 36.2))",
+  "ordered": false
+ },
+ {
+  "id": "fn-lcm-zero",
+  "query": "EVALUATE ROW(\"v\", LCM(0, 5))",
+  "ordered": false
+ },
+ {
+  "id": "fn-ceiling-zero",
+  "query": "EVALUATE ROW(\"v\", CEILING(5, 0))",
+  "ordered": false
+ },
+ {
+  "id": "fn-ceiling-mixed",
+  "query": "EVALUATE ROW(\"v\", CEILING(2.5, -1))",
+  "ordered": false
+ },
+ {
+  "id": "fn-ceiling-negneg",
+  "query": "EVALUATE ROW(\"v\", CEILING(-2.5, -2))",
+  "ordered": false
+ },
+ {
+  "id": "fn-floor-negneg",
+  "query": "EVALUATE ROW(\"v\", FLOOR(-2.5, -2))",
+  "ordered": false
+ },
+ {
+  "id": "fn-floor-mixed",
+  "query": "EVALUATE ROW(\"v\", FLOOR(-2.5, 2))",
+  "ordered": false
+ },
+ {
+  "id": "fn-mround-mixed",
+  "query": "EVALUATE ROW(\"v\", MROUND(5, -2))",
+  "ordered": false
+ },
+ {
+  "id": "fn-mround-half",
+  "query": "EVALUATE ROW(\"v\", MROUND(7.5, 5))",
+  "ordered": false
+ },
+ {
+  "id": "fn-isoceiling-one",
+  "query": "EVALUATE ROW(\"v\", ISO.CEILING(4.3))",
+  "ordered": false
+ },
+ {
+  "id": "fn-isoceiling-neg-sig",
+  "query": "EVALUATE ROW(\"v\", ISO.CEILING(4.3, -2))",
+  "ordered": false
+ },
+ {
+  "id": "fn-quotient-neg",
+  "query": "EVALUATE ROW(\"v\", QUOTIENT(-17, 5))",
+  "ordered": false
+ },
+ {
+  "id": "fn-bitlshift-neg",
+  "query": "EVALUATE ROW(\"v\", BITLSHIFT(16, -2))",
+  "ordered": false
+ },
+ {
+  "id": "fn-bitand-frac",
+  "query": "EVALUATE ROW(\"v\", BITAND(12.9, 10))",
+  "ordered": false
+ },
+ {
+  "id": "fn-iseven-frac",
+  "query": "EVALUATE ROW(\"v\", ISEVEN(3.9))",
+  "ordered": false
+ },
+ {
+  "id": "fn-isnumber-date",
+  "query": "EVALUATE ROW(\"v\", ISNUMBER(DATE(2024, 1, 1)))",
+  "ordered": false
+ },
+ {
+  "id": "fn-isnumber-blank",
+  "query": "EVALUATE ROW(\"v\", ISNUMBER(BLANK()))",
+  "ordered": false
+ },
+ {
+  "id": "fn-istext-blank",
+  "query": "EVALUATE ROW(\"v\", ISTEXT(BLANK()))",
+  "ordered": false
+ },
+ {
+  "id": "fn-isnontext-blank",
+  "query": "EVALUATE ROW(\"v\", ISNONTEXT(BLANK()))",
+  "ordered": false
+ },
+ {
+  "id": "fn-islogical-num",
+  "query": "EVALUATE ROW(\"v\", ISLOGICAL(1))",
+  "ordered": false
+ },
+ {
+  "id": "fn-iferror-divcur",
+  "query": "EVALUATE ROW(\"v\", IFERROR(CURRENCY(1) / 0, 7))",
+  "ordered": false
+ },
+ {
+  "id": "fn-iferror-type",
+  "query": "EVALUATE ROW(\"v\", IFERROR(1, \"x\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-iferror-mixed",
+  "query": "EVALUATE ROW(\"v\", IFERROR(VALUE(\"x\"), \"fallback\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-iserror-ok",
+  "query": "EVALUATE ROW(\"v\", ISERROR(1))",
+  "ordered": false
+ },
+ {
+  "id": "fn-convert-int-half",
+  "query": "EVALUATE ROW(\"v\", CONVERT(2.5, INTEGER))",
+  "ordered": false
+ },
+ {
+  "id": "fn-convert-int-neg-half",
+  "query": "EVALUATE ROW(\"v\", CONVERT(-2.5, INTEGER))",
+  "ordered": false
+ },
+ {
+  "id": "fn-convert-int-text",
+  "query": "EVALUATE ROW(\"v\", CONVERT(\"12\", INTEGER))",
+  "ordered": false
+ },
+ {
+  "id": "fn-convert-blank",
+  "query": "EVALUATE ROW(\"v\", CONVERT(BLANK(), INTEGER))",
+  "ordered": false
+ },
+ {
+  "id": "fn-convert-date-text",
+  "query": "EVALUATE ROW(\"v\", CONVERT(\"2024-03-05\", DATETIME))",
+  "ordered": false
+ },
+ {
+  "id": "fn-convert-bool-text",
+  "query": "EVALUATE ROW(\"v\", CONVERT(\"TRUE\", BOOLEAN))",
+  "ordered": false
+ },
+ {
+  "id": "fn-convert-str-date",
+  "query": "EVALUATE ROW(\"v\", CONVERT(DATE(2024, 3, 5), STRING))",
+  "ordered": false
+ },
+ {
+  "id": "fn-convert-str-bool",
+  "query": "EVALUATE ROW(\"v\", CONVERT(TRUE(), STRING))",
+  "ordered": false
+ },
+ {
+  "id": "fn-convert-dbl-date",
+  "query": "EVALUATE ROW(\"v\", CONVERT(DATE(2024, 3, 5), DOUBLE))",
+  "ordered": false
+ },
+ {
+  "id": "fn-time-neg",
+  "query": "EVALUATE ROW(\"v\", TIME(-1, 0, 0))",
+  "ordered": false
+ },
+ {
+  "id": "fn-time-minutes",
+  "query": "EVALUATE ROW(\"v\", TIME(0, 90, 0))",
+  "ordered": false
+ },
+ {
+  "id": "fn-time-seconds",
+  "query": "EVALUATE ROW(\"v\", TIME(0, 0, 3700))",
+  "ordered": false
+ },
+ {
+  "id": "fn-time-blank",
+  "query": "EVALUATE ROW(\"v\", TIME(BLANK(), 30, 0))",
+  "ordered": false
+ },
+ {
+  "id": "fn-time-frac",
+  "query": "EVALUATE ROW(\"v\", TIME(1.9, 30.9, 0))",
+  "ordered": false
+ },
+ {
+  "id": "fn-timevalue-pm",
+  "query": "EVALUATE ROW(\"v\", TIMEVALUE(\"2:30 PM\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-timevalue-sec",
+  "query": "EVALUATE ROW(\"v\", TIMEVALUE(\"14:30:45\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-timevalue-date",
+  "query": "EVALUATE ROW(\"v\", TIMEVALUE(\"2024-03-05 14:30\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-datevalue-us",
+  "query": "EVALUATE ROW(\"v\", DATEVALUE(\"3/5/2024\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-datevalue-time",
+  "query": "EVALUATE ROW(\"v\", DATEVALUE(\"2024-03-05 14:30\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-datevalue-text",
+  "query": "EVALUATE ROW(\"v\", DATEVALUE(\"March 5, 2024\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-yearfrac0",
+  "query": "EVALUATE ROW(\"v\", YEARFRAC(DATE(2024, 1, 31), DATE(2024, 3, 31)))",
+  "ordered": false
+ },
+ {
+  "id": "fn-yearfrac1-multi",
+  "query": "EVALUATE ROW(\"v\", YEARFRAC(DATE(2023, 3, 1), DATE(2025, 6, 15), 1))",
+  "ordered": false
+ },
+ {
+  "id": "fn-yearfrac1-leap",
+  "query": "EVALUATE ROW(\"v\", YEARFRAC(DATE(2023, 12, 1), DATE(2024, 3, 1), 1))",
+  "ordered": false
+ },
+ {
+  "id": "fn-yearfrac2",
+  "query": "EVALUATE ROW(\"v\", YEARFRAC(DATE(2024, 1, 1), DATE(2024, 12, 31), 2))",
+  "ordered": false
+ },
+ {
+  "id": "fn-yearfrac3",
+  "query": "EVALUATE ROW(\"v\", YEARFRAC(DATE(2024, 1, 1), DATE(2024, 12, 31), 3))",
+  "ordered": false
+ },
+ {
+  "id": "fn-yearfrac4",
+  "query": "EVALUATE ROW(\"v\", YEARFRAC(DATE(2024, 1, 31), DATE(2024, 3, 31), 4))",
+  "ordered": false
+ },
+ {
+  "id": "fn-yearfrac-rev",
+  "query": "EVALUATE ROW(\"v\", YEARFRAC(DATE(2024, 7, 1), DATE(2024, 1, 1)))",
+  "ordered": false
+ },
+ {
+  "id": "fn-yearfrac0-feb",
+  "query": "EVALUATE ROW(\"v\", YEARFRAC(DATE(2024, 2, 29), DATE(2025, 2, 28)))",
+  "ordered": false
+ },
+ {
+  "id": "fn-networkdays-rev",
+  "query": "EVALUATE ROW(\"v\", NETWORKDAYS(DATE(2024, 1, 31), DATE(2024, 1, 1)))",
+  "ordered": false
+ },
+ {
+  "id": "fn-networkdays-code7",
+  "query": "EVALUATE ROW(\"v\", NETWORKDAYS(DATE(2024, 1, 1), DATE(2024, 1, 31), 7))",
+  "ordered": false
+ },
+ {
+  "id": "fn-networkdays-code11",
+  "query": "EVALUATE ROW(\"v\", NETWORKDAYS(DATE(2024, 1, 1), DATE(2024, 1, 31), 11))",
+  "ordered": false
+ },
+ {
+  "id": "fn-networkdays-code17",
+  "query": "EVALUATE ROW(\"v\", NETWORKDAYS(DATE(2024, 1, 1), DATE(2024, 1, 31), 17))",
+  "ordered": false
+ },
+ {
+  "id": "fn-fixed-neg-dec",
+  "query": "EVALUATE ROW(\"v\", FIXED(1234.567, -2))",
+  "ordered": false
+ },
+ {
+  "id": "fn-fixed-default",
+  "query": "EVALUATE ROW(\"v\", FIXED(1234.5))",
+  "ordered": false
+ },
+ {
+  "id": "fn-fixed-half",
+  "query": "EVALUATE ROW(\"v\", FIXED(2.5, 0))",
+  "ordered": false
+ },
+ {
+  "id": "fn-pathitem-out",
+  "query": "EVALUATE ROW(\"v\", PATHITEM(\"1|2|3\", 5))",
+  "ordered": false
+ },
+ {
+  "id": "fn-pathitem-zero",
+  "query": "EVALUATE ROW(\"v\", PATHITEM(\"1|2|3\", 0))",
+  "ordered": false
+ },
+ {
+  "id": "fn-pathitem-type1",
+  "query": "EVALUATE ROW(\"v\", PATHITEM(\"1|2|3\", 2, 1))",
+  "ordered": false
+ },
+ {
+  "id": "fn-pathlength-empty",
+  "query": "EVALUATE ROW(\"v\", PATHLENGTH(\"\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-combinevalues-blank",
+  "query": "EVALUATE ROW(\"v\", COMBINEVALUES(\"-\", BLANK(), 1))",
+  "ordered": false
+ },
+ {
+  "id": "fn-sign-blank",
+  "query": "EVALUATE ROW(\"v\", SIGN(BLANK()))",
+  "ordered": false
+ },
+ {
+  "id": "fn-sign-dbl",
+  "query": "EVALUATE ROW(\"v\", SIGN(-2.5))",
+  "ordered": false
+ },
+ {
+  "id": "fn-degrees-int",
+  "query": "EVALUATE ROW(\"v\", DEGREES(1))",
+  "ordered": false
+ },
+ {
+  "id": "fn-power-int",
+  "query": "EVALUATE ROW(\"v\", POWER(2, 3))",
+  "ordered": false
+ },
+ {
+  "id": "fn-sqrt-int",
+  "query": "EVALUATE ROW(\"v\", SQRT(4))",
+  "ordered": false
+ },
+ {
+  "id": "fn-round-int",
+  "query": "EVALUATE ROW(\"v\", ROUND(5, 0))",
+  "ordered": false
+ },
+ {
+  "id": "fn-int-type",
+  "query": "EVALUATE ROW(\"v\", INT(5.5))",
+  "ordered": false
+ },
+ {
+  "id": "fn-trunc-int",
+  "query": "EVALUATE ROW(\"v\", TRUNC(5))",
+  "ordered": false
+ },
+ {
+  "id": "fn-abs-int",
+  "query": "EVALUATE ROW(\"v\", ABS(-5))",
+  "ordered": false
+ },
+ {
+  "id": "fn-abs-dbl",
+  "query": "EVALUATE ROW(\"v\", ABS(-5.5))",
+  "ordered": false
+ },
+ {
+  "id": "fn-mod-dbl",
+  "query": "EVALUATE ROW(\"v\", MOD(7.5, 2))",
+  "ordered": false
+ },
+ {
+  "id": "fn-min-int",
+  "query": "EVALUATE ROW(\"v\", MIN(1, 2))",
+  "ordered": false
+ },
+ {
+  "id": "fn-max-mixed",
+  "query": "EVALUATE ROW(\"v\", MAX(1, 2.5))",
+  "ordered": false
+ },
+ {
+  "id": "fn-date-sub-type",
+  "query": "EVALUATE ROW(\"v\", DATE(2024, 3, 1) - DATE(2024, 2, 1) + 0)",
+  "ordered": false
+ },
+ {
+  "id": "fn-date-diff-int",
+  "query": "EVALUATE ROW(\"v\", INT(DATE(2024, 3, 1) - DATE(2024, 2, 1)))",
+  "ordered": false
+ },
+ {
+  "id": "fn-today-minus",
+  "query": "EVALUATE ROW(\"v\", INT(TODAY() - DATE(2026, 10, 1)))",
+  "ordered": false
+ },
+ {
+  "id": "fn-text-dmy",
+  "query": "EVALUATE ROW(\"v\", \"05/03/2024\" + 0)",
+  "ordered": false
+ },
+ {
+  "id": "fn-text-month-name",
+  "query": "EVALUATE ROW(\"v\", \"March 5, 2024\" + 0)",
+  "ordered": false
+ },
+ {
+  "id": "fn-blank-minus-date",
+  "query": "EVALUATE ROW(\"v\", BLANK() - DATE(2024, 1, 1))",
+  "ordered": false
+ },
+ {
+  "id": "fn-neg-date",
+  "query": "EVALUATE ROW(\"v\", -DATE(2024, 1, 1))",
+  "ordered": false
+ },
+ {
+  "id": "fn-ln-zero",
+  "query": "EVALUATE ROW(\"v\", LN(0))",
+  "ordered": false
+ },
+ {
+  "id": "fn-log-zero",
+  "query": "EVALUATE ROW(\"v\", LOG(0))",
+  "ordered": false
+ },
+ {
+  "id": "fn-exp-big",
+  "query": "EVALUATE ROW(\"v\", EXP(1000))",
+  "ordered": false
+ },
+ {
+  "id": "fn-cos-blank",
+  "query": "EVALUATE ROW(\"v\", COS(BLANK()))",
+  "ordered": false
+ },
+ {
+  "id": "fn-tan-blank",
+  "query": "EVALUATE ROW(\"v\", TAN(BLANK()))",
+  "ordered": false
+ },
+ {
+  "id": "fn-acos-blank",
+  "query": "EVALUATE ROW(\"v\", ACOS(BLANK()))",
+  "ordered": false
+ },
+ {
+  "id": "fn-degrees-blank",
+  "query": "EVALUATE ROW(\"v\", DEGREES(BLANK()))",
+  "ordered": false
+ },
+ {
+  "id": "fn-sqrtpi-blank",
+  "query": "EVALUATE ROW(\"v\", SQRTPI(BLANK()))",
+  "ordered": false
+ },
+ {
+  "id": "fn-log10-blank",
+  "query": "EVALUATE ROW(\"v\", LOG10(BLANK()))",
+  "ordered": false
+ },
+ {
+  "id": "fn-quotient-blank",
+  "query": "EVALUATE ROW(\"v\", QUOTIENT(BLANK(), 5))",
+  "ordered": false
+ },
+ {
+  "id": "fn-even-blank",
+  "query": "EVALUATE ROW(\"v\", EVEN(BLANK()))",
+  "ordered": false
+ },
+ {
+  "id": "fn-odd-blank",
+  "query": "EVALUATE ROW(\"v\", ODD(BLANK()))",
+  "ordered": false
+ },
+ {
+  "id": "fn-mround-blank",
+  "query": "EVALUATE ROW(\"v\", MROUND(BLANK(), 3))",
+  "ordered": false
+ },
+ {
+  "id": "fn-floor-blank",
+  "query": "EVALUATE ROW(\"v\", FLOOR(BLANK(), 2))",
+  "ordered": false
+ },
+ {
+  "id": "fn-gcd-blank",
+  "query": "EVALUATE ROW(\"v\", GCD(BLANK(), 4))",
+  "ordered": false
+ },
+ {
+  "id": "fn-combin-frac",
+  "query": "EVALUATE ROW(\"v\", COMBIN(8.6, 3.6))",
+  "ordered": false
+ },
+ {
+  "id": "fn-permut-frac",
+  "query": "EVALUATE ROW(\"v\", PERMUT(6.7, 2.2))",
+  "ordered": false
+ },
+ {
+  "id": "fn-power-blank",
+  "query": "EVALUATE ROW(\"v\", POWER(BLANK(), 2))",
+  "ordered": false
+ },
+ {
+  "id": "fn-num-minus-date",
+  "query": "EVALUATE ROW(\"v\", 5 - DATE(2024, 1, 1))",
+  "ordered": false
+ },
+ {
+  "id": "fn-num-plus-date",
+  "query": "EVALUATE ROW(\"v\", 5 + DATE(2024, 1, 1))",
+  "ordered": false
+ },
+ {
+  "id": "fn-blank-plus-date",
+  "query": "EVALUATE ROW(\"v\", BLANK() + DATE(2024, 1, 1))",
+  "ordered": false
+ },
+ {
+  "id": "fn-date-plus-blank",
+  "query": "EVALUATE ROW(\"v\", DATE(2024, 1, 1) + BLANK())",
+  "ordered": false
+ },
+ {
+  "id": "fn-date-minus-blank",
+  "query": "EVALUATE ROW(\"v\", DATE(2024, 1, 1) - BLANK())",
+  "ordered": false
+ },
+ {
+  "id": "fn-date-concat",
+  "query": "EVALUATE ROW(\"v\", DATE(2024, 3, 5) & \"\")",
+  "ordered": false
+ },
+ {
+  "id": "fn-datetime-concat",
+  "query": "EVALUATE ROW(\"v\", DATE(2024, 3, 5) + TIME(14, 30, 0) & \"\")",
+  "ordered": false
+ },
+ {
+  "id": "fn-bool-concat",
+  "query": "EVALUATE ROW(\"v\", TRUE() & \"\")",
+  "ordered": false
+ },
+ {
+  "id": "fn-num-concat",
+  "query": "EVALUATE ROW(\"v\", 1.5 & \"\")",
+  "ordered": false
+ },
+ {
+  "id": "fn-cur-concat",
+  "query": "EVALUATE ROW(\"v\", CURRENCY(1.5) & \"\")",
+  "ordered": false
+ },
+ {
+  "id": "fn-big-concat",
+  "query": "EVALUATE ROW(\"v\", 1E20 & \"\")",
+  "ordered": false
+ },
+ {
+  "id": "fn-small-concat",
+  "query": "EVALUATE ROW(\"v\", 0.000001 & \"\")",
+  "ordered": false
+ },
+ {
+  "id": "fn-concatenate-date",
+  "query": "EVALUATE ROW(\"v\", CONCATENATE(DATE(2024, 3, 5), \"\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-date-y50",
+  "query": "EVALUATE ROW(\"v\", DATE(50, 1, 1))",
+  "ordered": false
+ },
+ {
+  "id": "fn-date-y29",
+  "query": "EVALUATE ROW(\"v\", DATE(29, 1, 1))",
+  "ordered": false
+ },
+ {
+  "id": "fn-date-y30",
+  "query": "EVALUATE ROW(\"v\", DATE(30, 1, 1))",
+  "ordered": false
+ },
+ {
+  "id": "fn-date-y99",
+  "query": "EVALUATE ROW(\"v\", DATE(99, 1, 1))",
+  "ordered": false
+ },
+ {
+  "id": "fn-date-y100",
+  "query": "EVALUATE ROW(\"v\", DATE(100, 1, 1))",
+  "ordered": false
+ },
+ {
+  "id": "fn-date-y1000",
+  "query": "EVALUATE ROW(\"v\", DATE(1000, 1, 1))",
+  "ordered": false
+ },
+ {
+  "id": "fn-date-y-neg5",
+  "query": "EVALUATE ROW(\"v\", DATE(-5, 1, 1))",
+  "ordered": false
+ },
+ {
+  "id": "fn-date-half",
+  "query": "EVALUATE ROW(\"v\", DATE(2024, 2.5, 1.5))",
+  "ordered": false
+ },
+ {
+  "id": "fn-date-neghalf",
+  "query": "EVALUATE ROW(\"v\", DATE(2024, 3, -0.5))",
+  "ordered": false
+ },
+ {
+  "id": "fn-time-half",
+  "query": "EVALUATE ROW(\"v\", TIME(1, 0.5, 0))",
+  "ordered": false
+ },
+ {
+  "id": "fn-text-month-only",
+  "query": "EVALUATE ROW(\"v\", \"March 2024\" + 0)",
+  "ordered": false
+ },
+ {
+  "id": "fn-text-fr",
+  "query": "EVALUATE ROW(\"v\", \"5 mars 2024\" + 0)",
+  "ordered": false
+ },
+ {
+  "id": "fn-text-time",
+  "query": "EVALUATE ROW(\"v\", \"14:30\" + 0)",
+  "ordered": false
+ },
+ {
+  "id": "fn-datevalue-iso-t",
+  "query": "EVALUATE ROW(\"v\", DATEVALUE(\"2024-03-05T10:00:00\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-value-date",
+  "query": "EVALUATE ROW(\"v\", VALUE(\"2024-03-05\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-year-us",
+  "query": "EVALUATE ROW(\"v\", YEAR(\"3/5/2024\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-month-us",
+  "query": "EVALUATE ROW(\"v\", MONTH(\"3/5/2024\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-pathlength-blank",
+  "query": "EVALUATE ROW(\"v\", PATHLENGTH(BLANK()))",
+  "ordered": false
+ },
+ {
+  "id": "fn-trunc-int-digits",
+  "query": "EVALUATE ROW(\"v\", TRUNC(5, 1))",
+  "ordered": false
+ },
+ {
+  "id": "fn-round-int-digits",
+  "query": "EVALUATE ROW(\"v\", ROUND(5, 2))",
+  "ordered": false
+ },
+ {
+  "id": "fn-roundup-int",
+  "query": "EVALUATE ROW(\"v\", ROUNDUP(5, 0))",
+  "ordered": false
+ },
+ {
+  "id": "fn-max-int-dbl",
+  "query": "EVALUATE ROW(\"v\", MAX(1.5, 2))",
+  "ordered": false
+ },
+ {
+  "id": "fn-min-cur-int",
+  "query": "EVALUATE ROW(\"v\", MIN(CURRENCY(1.5), 2))",
+  "ordered": false
+ },
+ {
+  "id": "fn-iferror-cur-dbl",
+  "query": "EVALUATE ROW(\"v\", IFERROR(CURRENCY(1), 2.5))",
+  "ordered": false
+ },
+ {
+  "id": "fn-ceiling-cur",
+  "query": "EVALUATE ROW(\"v\", CEILING(CURRENCY(2.345), 0.01))",
+  "ordered": false
+ },
+ {
+  "id": "fn-ceiling-cur-sig",
+  "query": "EVALUATE ROW(\"v\", CEILING(2.345, CURRENCY(0.01)))",
+  "ordered": false
+ },
+ {
+  "id": "fn-c-1e-5",
+  "query": "EVALUATE ROW(\"v\", 0.00001 & \"\")",
+  "ordered": false
+ },
+ {
+  "id": "fn-c-1e-8",
+  "query": "EVALUATE ROW(\"v\", 0.00000001 & \"\")",
+  "ordered": false
+ },
+ {
+  "id": "fn-c-1e-12",
+  "query": "EVALUATE ROW(\"v\", 1E-12 & \"\")",
+  "ordered": false
+ },
+ {
+  "id": "fn-c-big15",
+  "query": "EVALUATE ROW(\"v\", 123456789012345.6 & \"\")",
+  "ordered": false
+ },
+ {
+  "id": "fn-c-big16",
+  "query": "EVALUATE ROW(\"v\", 1234567890123456 & \"\")",
+  "ordered": false
+ },
+ {
+  "id": "fn-c-third",
+  "query": "EVALUATE ROW(\"v\", 1/3 & \"\")",
+  "ordered": false
+ },
+ {
+  "id": "fn-c-neg",
+  "query": "EVALUATE ROW(\"v\", -0.5 & \"\")",
+  "ordered": false
+ },
+ {
+  "id": "fn-c-time",
+  "query": "EVALUATE ROW(\"v\", TIME(14, 30, 0) & \"\")",
+  "ordered": false
+ },
+ {
+  "id": "fn-c-midnight",
+  "query": "EVALUATE ROW(\"v\", DATE(2024, 3, 5) + TIME(0, 0, 1) & \"\")",
+  "ordered": false
+ },
+ {
+  "id": "fn-c-date-zero",
+  "query": "EVALUATE ROW(\"v\", DATE(1899, 12, 30) & \"\")",
+  "ordered": false
+ },
+ {
+  "id": "fn-c-cur",
+  "query": "EVALUATE ROW(\"v\", CURRENCY(1234.5678) & \"\")",
+  "ordered": false
+ },
+ {
+  "id": "fn-c-false",
+  "query": "EVALUATE ROW(\"v\", FALSE() & \"\")",
+  "ordered": false
+ },
+ {
+  "id": "fn-c-inf",
+  "query": "EVALUATE ROW(\"v\", 1/0 & \"\")",
+  "ordered": false
+ },
+ {
+  "id": "fn-tc-bool-text",
+  "query": "EVALUATE ROW(\"v\", COUNTROWS(FILTER({TRUE(), \"a\"}, [Value] = \"TRUE\")))",
+  "ordered": false
+ },
+ {
+  "id": "fn-tc-bool-text2",
+  "query": "EVALUATE ROW(\"v\", COUNTROWS(FILTER({TRUE(), \"a\"}, [Value] = \"True\")))",
+  "ordered": false
+ },
+ {
+  "id": "fn-tc-date-text",
+  "query": "EVALUATE ROW(\"v\", MAXX({DATE(2024, 3, 5), \"a\"}, IF([Value] <> \"a\", [Value])))",
+  "ordered": false
+ },
+ {
+  "id": "fn-upper-date",
+  "query": "EVALUATE ROW(\"v\", UPPER(DATE(2024, 3, 5)))",
+  "ordered": false
+ },
+ {
+  "id": "fn-len-date",
+  "query": "EVALUATE ROW(\"v\", LEN(DATE(2024, 3, 5)))",
+  "ordered": false
+ },
+ {
+  "id": "fn-left-num",
+  "query": "EVALUATE ROW(\"v\", LEFT(1234.5, 3))",
+  "ordered": false
+ },
+ {
+  "id": "fn-format-general-date",
+  "query": "EVALUATE ROW(\"v\", FORMAT(DATE(2024, 3, 5) + TIME(14, 30, 0), \"General Date\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-format-date-time-only",
+  "query": "EVALUATE ROW(\"v\", FORMAT(TIME(14, 30, 0), \"General Date\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-switch-date",
+  "query": "EVALUATE ROW(\"v\", SWITCH(DATE(2024, 3, 5), DATE(2024, 3, 5), \"y\", \"n\"))",
+  "ordered": false
+ },
+ {
+  "id": "fn-concat-x-dates",
+  "query": "EVALUATE ROW(\"v\", CONCATENATEX({DATE(2024, 3, 5), DATE(2024, 3, 6)}, [Value], \",\"))",
+  "ordered": false
+ },
+ {
+  "id": "clock-relations",
+  "query": "EVALUATE ROW(\"t\", INT(NOW()) = TODAY(), \"u\", INT(UTCNOW()) = UTCTODAY(), \"d\", ABS(NOW() - UTCNOW()) < 1)",
+  "ordered": false
+ },
+ {
+  "id": "fn-lookupvalue-filtered",
+  "query": "EVALUATE ROW(\"v\", CALCULATE(LOOKUPVALUE(Product[Product], Product[ProductKey], 3), Product[Category] = \"Toys\"))",
+  "ordered": false
+ }
+]

@@ -1,0 +1,14 @@
+[package]
+name = "bicraft-visuals"
+description = "L1: catalog of Power BI visual types and their formatting objects/properties (types, enums, ranges, defaults)"
+version.workspace = true
+edition.workspace = true
+license = "(MIT OR Apache-2.0) AND MIT"
+
+[dependencies]
+bicraft-versions.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+[lints]
+workspace = true

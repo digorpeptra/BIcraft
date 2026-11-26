@@ -1,0 +1,1 @@
+SUMX(Sales, VAR q = Sales[Quantity] RETURN q * 2)

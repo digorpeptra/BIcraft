@@ -1,0 +1,37 @@
+table 'Time Intelligence'
+
+	/// cgd
+	calculationGroup
+		precedence: 10
+
+		/// m
+		multipleOrEmptySelectionExpression = 1
+
+			formatStringDefinition = "0"
+
+		noSelectionExpression = SELECTEDMEASURE()
+
+		calculationItem YTD =
+				CALCULATE(
+				    SELECTEDMEASURE(),
+				    DATESYTD('LocalDate'[Date])
+				)
+
+			formatStringDefinition = "#,0"
+
+		calculationItem 'Out of order' = 1
+
+		/// cur
+		calculationItem Current = SELECTEDMEASURE()
+
+		annotation CGA = 1
+
+	column Name
+		dataType: string
+		sourceColumn: Name
+		sortByColumn: Ordinal
+
+	column Ordinal
+		dataType: int64
+		sourceColumn: Ordinal
+

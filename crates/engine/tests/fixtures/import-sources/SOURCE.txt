@@ -1,0 +1,12 @@
+Tiny synthetic files written by hand for the M11.36 readers (crates/engine/src/readers.rs),
+following the public layouts in docs/formats/import-sources.md. No tool produced them and they
+hold no client or Microsoft content; host names use the reserved .example domain.
+
+- sales.pbids: a Power BI data source file (one tds connection).
+- queries.pq: a section document (two loaded queries, a function, a parameter).
+- single.m: one M expression.
+- dataflow/mashup.pq and dataflow/queryMetadata.json: a Dataflow Gen2 definition's two parts.
+- model.json: a CDM model.json of a dataflow (two entities, a relationship, the pbi:mashup
+  document).
+
+The .vpax and .pqt fixtures are ZIPs the tests build in memory.

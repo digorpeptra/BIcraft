@@ -1,0 +1,1 @@
+LOOKUPVALUE(Product[Category], Product[ProductKey], Sales[ProductKey])

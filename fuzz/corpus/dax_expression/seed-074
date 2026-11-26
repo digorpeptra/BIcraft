@@ -1,0 +1,1 @@
+COALESCE(BLANK(), 1)

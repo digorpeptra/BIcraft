@@ -1,0 +1,29 @@
+# The workspace "main": its files (models, saved copies, uploads in flight).
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: bicraft-main
+  labels:
+    app.kubernetes.io/name: bicraft
+    bicraft.dev/workspace: main
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+---
+# The recovery journals of unsaved edits (--recovery-dir, docs/recovery.md), apart from the files.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: bicraft-main-recovery
+  labels:
+    app.kubernetes.io/name: bicraft
+    bicraft.dev/workspace: main
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi

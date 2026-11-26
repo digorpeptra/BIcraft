@@ -1,0 +1,1 @@
+COUNTROWS(SUMMARIZE(Sales, Sales[Channel], "Q", SUM(Sales[Quantity])))

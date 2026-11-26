@@ -1,0 +1,117 @@
+/// Fact table of order lines.
+/// One row per line.
+table 'Order Lines'
+	lineageTag: 0d6b1f7c-0000-4000-8000-000000000001
+
+	/// Sum of the line amounts.
+	measure 'Sales Amount' = SUMX('Order Lines', 'Order Lines'[Qty] * 'Order Lines'[Unit Price])
+		formatString: #,0.00
+		displayFolder: Key Figures
+		lineageTag: 11111111-2222-4333-8444-555555555551
+
+		kpi
+			targetExpression = 1000
+			statusGraphic: Traffic Light - Single
+			statusExpression =
+				VAR x = [Sales Amount]
+				RETURN IF(x > 1000, 1, -1)
+
+	measure 'Sales (LY)' =
+			
+			VAR ly =
+			    CALCULATE ( [Sales Amount], SAMEPERIODLASTYEAR ( Calendar[Date] ) )
+			
+			RETURN
+			    ly
+		formatString: 0.0
+		isHidden
+		lineageTag: 11111111-2222-4333-8444-555555555552
+
+	measure 'Margin %' = DIVIDE([Sales Amount] - [Sales (LY)], [Sales Amount])
+		lineageTag: 11111111-2222-4333-8444-555555555553
+
+		formatStringDefinition = IF([Sales Amount] > 1000, "0.0%", "0.00%")
+
+		annotation PBI_FormatHint = {"isPercentage":true}
+
+	measure 'Owner''s Cut' = [Sales Amount] * 0.1
+		displayFolder: Key Figures\Shares
+		lineageTag: 11111111-2222-4333-8444-555555555554
+
+		detailRowsDefinition = SELECTCOLUMNS('Order Lines', "Qty", 'Order Lines'[Qty])
+
+	measure Fenced =
+			1 +
+			
+			        2
+		lineageTag: 11111111-2222-4333-8444-555555555555
+
+	column 'Order Key'
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: 0d6b1f7c-0000-4000-8000-000000000002
+		summarizeBy: none
+		sourceColumn: OrderKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column Qty
+		dataType: int64
+		formatString: #,0
+		lineageTag: 0d6b1f7c-0000-4000-8000-000000000003
+		summarizeBy: sum
+		sourceColumn: Qty
+
+	column 'Unit Price'
+		dataType: decimal
+		formatString: \$#,0.00;(\$#,0.00);\$#,0.00
+		displayFolder: Pricing
+		lineageTag: 0d6b1f7c-0000-4000-8000-000000000004
+		summarizeBy: none
+		sourceColumn: Unit Price
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-US"}
+
+	column 'Order Date'
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: 0d6b1f7c-0000-4000-8000-000000000005
+		summarizeBy: none
+		sourceColumn: OrderDate
+
+		variation Variation
+			isDefault
+			relationship: 3f1c0b2e-0000-4000-8000-00000000000a
+			defaultHierarchy: Calendar.'Calendar Hierarchy'
+
+	column 'Product Key'
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: 0d6b1f7c-0000-4000-8000-000000000006
+		summarizeBy: none
+		sourceColumn: ProductKey
+
+	column 'Line Total' = ```
+			
+			    VAR q = 'Order Lines'[Qty]
+			    RETURN
+			        q * 'Order Lines'[Unit Price]
+			```
+		formatString: #,0.00
+		lineageTag: 0d6b1f7c-0000-4000-8000-000000000007
+		summarizeBy: sum
+
+	partition 'Order Lines' = m
+		mode: import
+		queryGroup: Staging
+		source =
+				let
+				    Source = #"Sales Staging",
+				    Typed = Table.TransformColumnTypes(Source, {{"Qty", Int64.Type}})
+				in
+				    Typed
+
+	annotation PBI_ResultType = Table
+

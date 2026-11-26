@@ -1,0 +1,9 @@
+dataSource SQLsrvdb
+	connectionDetails
+		protocol: tds
+		address
+			server: srv
+			database: db
+	credential
+		authenticationKind: ServiceAccount
+

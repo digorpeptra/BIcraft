@@ -1,0 +1,15 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/bookmarksMetadata/1.0.0/schema.json",
+  "items": [
+    {
+      "name": "Bookmark0000000000001"
+    },
+    {
+      "name": "Bookmark0000000000g01",
+      "displayName": "Views",
+      "children": [
+        "Bookmark0000000000002"
+      ]
+    }
+  ]
+}

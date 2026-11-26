@@ -1,0 +1,18 @@
+relationship 3f1c0b2e-0000-4000-8000-00000000000a
+	fromColumn: 'Order Lines'.'Order Date'
+	toColumn: Calendar.Date
+
+relationship 3f1c0b2e-0000-4000-8000-00000000000b
+	crossFilteringBehavior: bothDirections
+	relyOnReferentialIntegrity
+	securityFilteringBehavior: bothDirections
+	fromColumn: 'Order Lines'.'Product Key'
+	toColumn: Product.'Product Key'
+
+relationship 3f1c0b2e-0000-4000-8000-00000000000c
+	isActive: false
+	joinOnDateBehavior: datePartOnly
+	toCardinality: many
+	fromColumn: '2024 Targets'.Month
+	toColumn: Calendar.Date
+

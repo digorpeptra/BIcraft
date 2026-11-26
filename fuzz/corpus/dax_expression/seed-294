@@ -1,0 +1,1 @@
+COUNTROWS(DATATABLE("k", INTEGER, "v", STRING, {{1, "a"}, {2, "b"}}))

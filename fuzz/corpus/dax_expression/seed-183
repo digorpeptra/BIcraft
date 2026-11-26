@@ -1,0 +1,1 @@
+COUNTROWS(FILTER(Sales, Sales[Quantity] > EARLIER(Sales[Quantity], 2)))

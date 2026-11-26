@@ -1,0 +1,17 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.14.0/schema.json",
+  "name": "b746ad405822c9c6122e",
+  "position": {
+    "x": 20,
+    "y": 30,
+    "z": 1000,
+    "height": 300,
+    "width": 300,
+    "tabOrder": 1000
+  },
+  "visualGroup": {
+    "displayName": "Inner",
+    "groupMode": "ScrollMode"
+  },
+  "parentGroupName": "7b8bdeb828afbf3059da"
+}

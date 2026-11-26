@@ -1,0 +1,1 @@
+Sales[Line Amount] / CALCULATE(SUM(Sales[Line Amount]), ALLEXCEPT(Sales, Sales[CustomerKey]))

@@ -1,0 +1,251 @@
+{
+ "name": "sources",
+ "compatibilityLevel": 1702,
+ "model": {
+  "culture": "en-US",
+  "defaultPowerBIDataSourceVersion": "powerBI_V3",
+  "dataSources": [
+   {
+    "type": "structured",
+    "name": "SQL/srv;db",
+    "description": "structured ds",
+    "connectionDetails": {
+     "protocol": "tds",
+     "address": {
+      "server": "srv",
+      "database": "db"
+     },
+     "authentication": null,
+     "query": null
+    },
+    "credential": {
+     "AuthenticationKind": "ServiceAccount",
+     "kind": "SQL",
+     "path": "srv;db",
+     "EncryptConnection": true
+    },
+    "annotations": [
+     {
+      "name": "DsNote",
+      "value": "ds"
+     }
+    ]
+   },
+   {
+    "type": "provider",
+    "name": "LegacyDS",
+    "description": "legacy ds",
+    "connectionString": "Provider=SQLNCLI11;Data Source=srv;Initial Catalog=db;Integrated Security=SSPI",
+    "impersonationMode": "impersonateServiceAccount",
+    "timeout": 120
+   }
+  ],
+  "tables": [
+   {
+    "name": "Imp",
+    "columns": [
+     {
+      "name": "A",
+      "dataType": "int64",
+      "sourceColumn": "A",
+      "annotations": [
+       {
+        "name": "SummarizationSetBy",
+        "value": "Automatic"
+       }
+      ],
+      "changedProperties": [
+       {
+        "property": "Name"
+       }
+      ]
+     },
+     {
+      "name": "B",
+      "dataType": "string",
+      "sourceColumn": "B",
+      "isDataTypeInferred": false
+     },
+     {
+      "name": "C",
+      "dataType": "double",
+      "expression": "[A] * 1.5",
+      "type": "calculated",
+      "isDataTypeInferred": false
+     }
+    ],
+    "partitions": [
+     {
+      "name": "Imp-1",
+      "mode": "import",
+      "description": "m part",
+      "source": {
+       "type": "m",
+       "expression": "let\n    Source = #table({\"A\", \"B\"}, {{1, \"x\"}})\nin\n    Source"
+      },
+      "annotations": [
+       {
+        "name": "PartNote",
+        "value": "p"
+       }
+      ]
+     }
+    ],
+    "changedProperties": [
+     {
+      "property": "Name"
+     }
+    ]
+   },
+   {
+    "name": "Legacy",
+    "columns": [
+     {
+      "name": "X",
+      "dataType": "int64",
+      "sourceColumn": "X"
+     }
+    ],
+    "partitions": [
+     {
+      "name": "Legacy",
+      "dataView": "full",
+      "source": {
+       "type": "query",
+       "query": "SELECT 1 AS X",
+       "dataSource": "LegacyDS"
+      }
+     }
+    ]
+   },
+   {
+    "name": "Inc",
+    "columns": [
+     {
+      "name": "D",
+      "dataType": "dateTime",
+      "sourceColumn": "D"
+     }
+    ],
+    "refreshPolicy": {
+     "policyType": "basic",
+     "rollingWindowGranularity": "year",
+     "rollingWindowPeriods": 2,
+     "incrementalGranularity": "day",
+     "incrementalPeriods": 10,
+     "incrementalPeriodsOffset": -1,
+     "pollingExpression": "let x = 1 in x",
+     "sourceExpression": "let\n    Source = #table({\"D\"}, {}),\n    F = Table.SelectRows(Source, each [D] >= RangeStart and [D] < RangeEnd)\nin\n    F"
+    },
+    "partitions": [
+     {
+      "name": "2024",
+      "mode": "import",
+      "source": {
+       "type": "policyRange",
+       "refreshBookmark": "bm1",
+       "start": "2024-01-01T00:00:00",
+       "end": "2025-01-01T00:00:00",
+       "granularity": "year"
+      }
+     },
+     {
+      "name": "2025Q1",
+      "mode": "import",
+      "source": {
+       "type": "policyRange",
+       "start": "2025-01-01T00:00:00",
+       "end": "2025-04-01T00:00:00",
+       "granularity": "quarter"
+      }
+     }
+    ]
+   },
+   {
+    "name": "Calc",
+    "columns": [
+     {
+      "type": "calculatedTableColumn",
+      "name": "V",
+      "dataType": "int64",
+      "isNameInferred": true,
+      "isDataTypeInferred": false,
+      "sourceColumn": "[V]"
+     },
+     {
+      "type": "calculatedTableColumn",
+      "name": "W",
+      "dataType": "int64",
+      "isNameInferred": false,
+      "isDataTypeInferred": true,
+      "sourceColumn": "[Value]"
+     }
+    ],
+    "partitions": [
+     {
+      "name": "Calc",
+      "source": {
+       "type": "calculated",
+       "expression": "SELECTCOLUMNS(GENERATESERIES(1, 3), \"V\", [Value], \"Value\", [Value])"
+      }
+     }
+    ],
+    "measures": [
+     {
+      "name": "M1",
+      "expression": "1",
+      "lineageTag": "33333333-3333-4333-8333-333333333333",
+      "sourceLineageTag": "src",
+      "dataCategory": "Uncategorized",
+      "changedProperties": [
+       {
+        "property": "FormatString"
+       }
+      ]
+     }
+    ]
+   }
+  ],
+  "relationships": [
+   {
+    "name": "rel1",
+    "fromTable": "Imp",
+    "fromColumn": "A",
+    "toTable": "Calc",
+    "toColumn": "V",
+    "annotations": [
+     {
+      "name": "RelNote",
+      "value": "r"
+     }
+    ]
+   }
+  ],
+  "expressions": [
+   {
+    "name": "RangeStart",
+    "kind": "m",
+    "expression": "#datetime(2024, 1, 1, 0, 0, 0) meta [IsParameterQuery=true, Type=\"DateTime\", IsParameterQueryRequired=true]"
+   },
+   {
+    "name": "RangeEnd",
+    "kind": "m",
+    "expression": "#datetime(2025, 1, 1, 0, 0, 0) meta [IsParameterQuery=true, Type=\"DateTime\", IsParameterQueryRequired=true]",
+    "description": "end"
+   }
+  ],
+  "functions": [
+   {
+    "name": "DoubleIt",
+    "expression": "(x) => x * 2",
+    "description": "doubles",
+    "annotations": [
+     {
+      "name": "FnNote",
+      "value": "f"
+     }
+    ]
+   }
+  ]
+ }
+}

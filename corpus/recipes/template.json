@@ -1,0 +1,19 @@
+[
+  {"command": "model.new", "params": {"name": "Template"}},
+  {"command": "table.enter_data", "params": {"name": "Budget",
+    "columns": [{"name": "Team", "type": "text"}, {"name": "Quarter", "type": "text"},
+                {"name": "Budget", "type": "number"}, {"name": "Actual", "type": "number"}],
+    "rows": [["Alpha", "Q1", 1000, 950], ["Alpha", "Q2", 1100, 1180], ["Beta", "Q1", 800, 790],
+             ["Beta", "Q2", 850, 900]]}},
+  {"command": "measure.add", "params": {"table": "Budget", "name": "Variance",
+    "expression": "SUM(Budget[Actual]) - SUM(Budget[Budget])", "format_string": "#,0"}},
+  {"command": "measure.add", "params": {"table": "Budget", "name": "Variance %",
+    "expression": "DIVIDE([Variance], SUM(Budget[Budget]))", "format_string": "0.0%"}},
+  {"command": "report.new", "params": {}},
+  {"command": "page.rename", "params": {"page": "Page 1", "display_name": "Budget"}},
+  {"command": "visual.add", "params": {"page": "Budget", "visual_type": "tableEx",
+    "x": 40, "y": 40, "width": 500, "height": 300,
+    "fields": [{"role": "Values", "field": "Budget[Team]"}, {"role": "Values", "field": "Budget[Quarter]"},
+               {"role": "Values", "field": "[Variance]"}, {"role": "Values", "field": "[Variance %]"}]}},
+  {"command": "file.save_as", "params": {"path": "template.pbit"}}
+]

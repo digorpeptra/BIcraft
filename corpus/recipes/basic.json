@@ -1,0 +1,23 @@
+[
+  {"command": "model.new", "params": {"name": "Basic"}},
+  {"command": "table.enter_data", "params": {"name": "Sales",
+    "columns": [{"name": "Region", "type": "text"}, {"name": "Product", "type": "text"},
+                {"name": "Amount", "type": "number"}, {"name": "Qty", "type": "whole"}],
+    "rows": [["North", "Apples", 120.5, 10], ["North", "Pears", 80, 4], ["South", "Apples", 200, 16],
+             ["South", "Plums", 45.25, 3], ["East", "Pears", 99.9, 7], ["East", "Plums", 150, 12],
+             ["West", "Apples", 60, 5], ["West", "Pears", 30.75, 2]]}},
+  {"command": "measure.add", "params": {"table": "Sales", "name": "Total Amount",
+    "expression": "SUM(Sales[Amount])", "format_string": "#,0.00"}},
+  {"command": "measure.add", "params": {"table": "Sales", "name": "Total Qty",
+    "expression": "SUM(Sales[Qty])", "format_string": "#,0"}},
+  {"command": "measure.add", "params": {"table": "Sales", "name": "Avg Price",
+    "expression": "DIVIDE([Total Amount], [Total Qty])", "format_string": "#,0.00"}},
+  {"command": "report.new", "params": {}},
+  {"command": "page.rename", "params": {"page": "Page 1", "display_name": "Overview"}},
+  {"command": "visual.add", "params": {"page": "Overview", "visual_type": "card",
+    "x": 40, "y": 40, "width": 300, "height": 160, "fields": [{"role": "Values", "field": "[Total Amount]"}]}},
+  {"command": "visual.add", "params": {"page": "Overview", "visual_type": "clusteredColumnChart",
+    "x": 380, "y": 40, "width": 600, "height": 360,
+    "fields": [{"role": "Category", "field": "Sales[Region]"}, {"role": "Y", "field": "[Total Amount]"}]}},
+  {"command": "file.save_as", "params": {"path": "basic.pbix"}}
+]

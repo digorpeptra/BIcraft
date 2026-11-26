@@ -1,0 +1,19 @@
+expression 'Server Name' = "localhost" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=true]
+	lineageTag: 0d6b1f7c-0000-4000-8000-000000000060
+	queryGroup: Parameters
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Text
+
+/// Raw lines before cleanup.
+expression 'Sales Staging' =
+		let
+		    Source = Csv.Document(File.Contents("C:\data\lines.csv"))
+		in
+		    Source
+	lineageTag: 0d6b1f7c-0000-4000-8000-000000000061
+	queryGroup: Staging
+
+	annotation PBI_ResultType = Table
+

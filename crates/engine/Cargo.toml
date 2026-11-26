@@ -1,0 +1,61 @@
+[package]
+name = "bicraft-engine"
+description = "L5: session and commands; the single API the CLI and MCP server both drive"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+bicraft-env.workspace = true
+bicraft-mem.workspace = true
+bicraft-versions.workspace = true
+bicraft-abf.workspace = true
+bicraft-bpa.workspace = true
+bicraft-data.workspace = true
+bicraft-mlang.workspace = true
+bicraft-databricks.workspace = true
+bicraft-sqlserver.workspace = true
+bicraft-webdata.workspace = true
+bicraft-dax.workspace = true
+bicraft-diff.workspace = true
+bicraft-layout.workspace = true
+bicraft-locale.workspace = true
+bicraft-model.workspace = true
+bicraft-opc.workspace = true
+bicraft-pbip.workspace = true
+bicraft-pbir.workspace = true
+bicraft-pbix.workspace = true
+bicraft-pbixwriter.workspace = true
+bicraft-powerpivot.workspace = true
+bicraft-render.workspace = true
+bicraft-report.workspace = true
+bicraft-visuals.workspace = true
+bicraft-sqlite.workspace = true
+bicraft-tmdl.workspace = true
+bicraft-tmsl.workspace = true
+bicraft-vertipaq.workspace = true
+bicraft-scan.workspace = true
+bicraft-xpress9.workspace = true
+# visual.build / visual.pack: a custom visual's TypeScript compiled and bundled with swc
+bicraft-tsbuild.workspace = true
+serde.workspace = true
+# visual.scaffold draws the project's icon (the PNG encoder bicraft-render already uses)
+tiny-skia = { version = "0.12", default-features = false, features = ["std", "png-format"] }
+serde_json.workspace = true
+# `project.test` test files (bicraft.tests.yaml); event-level use only (citest_yaml.rs)
+yaml-rust2 = { version = "0.13", default-features = false }
+# file.redact checks that no redacted string survives in the written bytes (substring search)
+memchr = "2.8"
+
+[dev-dependencies]
+# JUnit structure checks of `project.test` (already in the tree through usvg)
+roxmltree = "0.21"
+# the scripted TDS server of the SQL Server connector tests
+bicraft-sqlserver = { workspace = true, features = ["fake-server"] }
+# the test HTTP server of the Web and OData connector tests
+bicraft-webdata = { workspace = true, features = ["fake-server"] }
+# SHA-256 of the corpus files (tests/corpus.rs; already in the tree through rustls)
+ring = "0.17"
+
+[lints]
+workspace = true

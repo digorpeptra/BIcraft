@@ -1,0 +1,1 @@
+<edmx:Edmx><edmx:DataServices><Schema Namespace="N" Alias="a"><EntityType Name="T" BaseType="a.T"><Property Name="P" Type="a.T"/></EntityType><TypeDefinition Name="D" UnderlyingType="a.D"/><EntityContainer><EntitySet Name="S" EntityType="a.T"/></EntityContainer></Schema></edmx:DataServices></edmx:Edmx>

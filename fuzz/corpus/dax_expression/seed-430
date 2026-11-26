@@ -1,0 +1,1 @@
+MOVINGAVERAGE([Total Sales], 3)

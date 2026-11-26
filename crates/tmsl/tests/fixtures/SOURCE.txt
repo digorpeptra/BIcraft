@@ -1,0 +1,21 @@
+desktop-sorted.bim
+  The model.bim Power BI Desktop 2.160.1151.0 (Store edition, fr-FR UI) wrote on 2026-11-25
+  when it saved a PBIP project. The project was BIcraft's own synthetic model: the interaction
+  oracle's star model (testsupport/interaction_oracle/model.bim) plus a Calendar hierarchy and a
+  Readers role, written with the keys of every JSON object in reverse order. Desktop opened the
+  project, its ribbon's Save button was invoked through UI Automation, and its TMDL upgrade
+  prompt was answered "do not upgrade", so the project kept a model.bim. Desktop raised the
+  compatibility level and added lineage tags and annotations; the file is stored unchanged
+  except for its line endings (Desktop wrote CRLF, .gitattributes stores LF).
+
+tom-props.bim
+  TOM's JsonSerializer output for the "every property set" model of the maintainers'
+  development oracles (docs/formats/tmdl.md "Property order").
+
+tom-props.pbip.bim
+  tom-props.bim with every object's keys sorted by the rule observed in desktop-sorted.bim
+  (`name` first, then ordinal order, at every depth; arrays unchanged). It was not itself saved
+  by Desktop: Desktop no longer opens that compatibility-level-1000000 model as a project.
+
+sales.bim
+  A synthetic model written for BIcraft's tests.

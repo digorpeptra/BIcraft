@@ -1,0 +1,1 @@
+RELATED(Product[Category]) & "/" & RELATED(Customer[Segment])

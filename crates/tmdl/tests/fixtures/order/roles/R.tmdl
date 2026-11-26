@@ -1,0 +1,10 @@
+role R
+	modelPermission: read
+
+	member 'a@b.com' = group
+	member 'b@b.com' = auto
+
+	extendedProperty E = v
+
+	annotation A = 1
+

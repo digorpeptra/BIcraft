@@ -1,0 +1,1 @@
+DEFINE VAR x = 1 VAR x = 2 EVALUATE ROW("x", x)

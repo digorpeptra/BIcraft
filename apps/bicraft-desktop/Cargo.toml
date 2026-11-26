@@ -1,0 +1,73 @@
+[package]
+name = "bicraft-desktop"
+description = "The BIcraft desktop app: the native shell (egui/wgpu, no web engine) of the BIcraft UI, for local files and BIcraft servers"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[[bin]]
+name = "bicraft-desktop"
+path = "src/main.rs"
+
+[lib]
+name = "bicraft_desktop"
+path = "src/lib.rs"
+
+[dependencies]
+bicraft-env.workspace = true
+# The UI control channel: the token, its comparison and the token file (`--control`, src/control.rs).
+bicraft-http.workspace = true
+bicraft-ui.workspace = true
+serde_json.workspace = true
+# The window: egui/eframe with the wgpu backend, the versions DeckCraft uses (MIT OR Apache-2.0).
+eframe = { version = "0.36", default-features = false, features = ["default_fonts", "wgpu", "accesskit", "links", "wayland", "x11"] }
+egui = "0.36"
+# The OS language for the UI (MIT OR Apache-2.0; its platform calls are the crate's own).
+sys-locale = "0.3"
+
+# Local files: an engine session on a worker thread.
+bicraft-engine.workspace = true
+# `clock`: the machine's time zone for M's local clock (jiff's system time zone; docs/formats/data-sources.md)
+bicraft-locale = { workspace = true, features = ["clock"] }
+# Remote mode: a blocking HTTPS client (rustls with the bundled Mozilla roots), as crates/auth.
+ureq = { version = "3", default-features = false, features = ["rustls"] }
+# Native file dialogs (MIT; on Linux through the XDG desktop portal).
+rfd = "0.17"
+# The Paste button reads the OS clipboard (MIT OR Apache-2.0; already egui-winit's clipboard).
+arboard = { version = "3.6", default-features = false }
+
+[target.'cfg(windows)'.dependencies]
+# `--register` / `--unregister`: per-user (HKCU) entries (MIT OR Apache-2.0, safe API).
+windows-registry = "0.6"
+
+[dev-dependencies]
+egui_kittest = "0.36"
+bicraft-render.workspace = true
+bicraft-mcp.workspace = true
+bicraft-auth.workspace = true
+# Builds the screenshot tests' own tiny `.pbiviz` package (pbiviz_shots.rs); the open speed
+# test (open_speed_tests.rs) also takes a file apart with it and the next four, stage by stage.
+bicraft-opc.workspace = true
+bicraft-pbix.workspace = true
+bicraft-xpress9.workspace = true
+bicraft-abf.workspace = true
+bicraft-metadata.workspace = true
+tiny-skia = { version = "0.12", default-features = false, features = ["std", "png-format"] }
+
+[build-dependencies]
+bicraft-env.workspace = true
+# The app icon, drawn from assets/logo/bicraft-icon.svg at build time (PNG for the window, ICO
+# for the executable on Windows).
+resvg = { version = "0.48", default-features = false }
+tiny-skia = { version = "0.12", default-features = false, features = ["std", "png-format"] }
+# Embeds the icon and version information in bicraft-desktop.exe (Windows targets only).
+winresource = "0.1"
+
+[features]
+# UI tests that draw with wgpu and save PNG screenshots (needs a GPU or a software adapter):
+# `cargo test -p bicraft-desktop --features gpu-tests`.
+gpu-tests = ["egui_kittest/wgpu"]
+
+[lints]
+workspace = true

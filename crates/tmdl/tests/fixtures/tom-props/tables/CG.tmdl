@@ -1,0 +1,26 @@
+table CG
+
+	/// v56Description
+	calculationGroup
+		precedence: 3
+
+		/// md
+		multipleOrEmptySelectionExpression = BLANK()
+
+			formatStringDefinition = "0"
+
+		noSelectionExpression = BLANK()
+
+		/// v57Description
+		calculationItem I = SELECTEDMEASURE()
+
+			formatStringDefinition = "0"
+
+		annotation acg = av
+
+	column Name
+		dataType: string
+		sourceColumn: Name
+
+	partition CG = calculationGroup
+

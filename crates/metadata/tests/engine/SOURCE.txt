@@ -1,0 +1,54 @@
+Engine-verified metadata fixtures (G16)
+========================================
+
+What: for each case, the metadata.sqlitedb that the Analysis Services engine wrote for one of OUR
+OWN synthetic TMSL models, bicraft's reading of it, and the request / result of metadata-only
+edits written by bicraft and loaded back by the engine. No Microsoft asset and no client data:
+every model, name and value is invented for these tests.
+
+Engine: Microsoft's Analysis Services engine 17.0.87.18, as shipped with Power BI Desktop
+2.158.1304.0 (Store), in Desktop's own workspace configuration. The files were produced by that
+engine from our own synthetic models during development, with the maintainers' development
+oracles (kept outside this repository). Recorded 2026-10-14 on Windows, machine locale fr-FR.
+
+How (see docs/formats/metadata-sqlitedb.md "Engine oracle"):
+  1. createOrReplace the database from <case>.bim, refresh (calculate);
+  2. Server.ImageSave (public AMO API): the XPress9 DataModel stream a PBIX holds; its
+     metadata.sqlitedb, extracted with bicraft-xpress9 / bicraft-abf, is <case>.sqlitedb;
+  3. TOM JsonSerializer scripts the database; that model (read with bicraft-tmsl, after the
+     documented normalizations) equals bicraft's reading of <case>.sqlitedb, stored as
+     <case>.model.json (SemanticModel JSON);
+  4. for each edit of `cargo xtask metadata-edit` (xtask/src/oracles/metadata_edits.rs; the
+     recording used its byte-identical Python predecessor): the edited model is
+     <case>.<edit>.request.json; bicraft wrote it with write_sqlitedb_at (clock
+     134000000000000000), re-packed and re-compressed the image, the engine loaded it
+     (Server.ImageLoad) and scripted it, and that model equals bicraft's reading of the written
+     file, stored as <case>.<edit>.expected.json.
+
+Cases:
+  objects     objects.bim (cultures, translations, perspectives, calculation group, KPI, roles,
+              calendars, field parameter, annotations and extended properties)
+  sources     sources.bim (data sources, query / M / policy-range partitions, refresh policy,
+              function, changed properties)
+  properties  properties.bim (model and column properties, alternateOf, entity partition,
+              data coverage definition)
+  variations  crates/dax/tests/oracle/model.bim (auto date/time variation)
+  preview     preview.bim, compatibility level 1000000 (sets and perspective sets, binding
+              infos, analytics AI metadata, excluded artifacts, metadata access policy, Direct
+              Lake indexing behaviors, a DirectQuery entity partition over a shared expression).
+              Recorded 2026-10-14 on a local engine instance.
+
+Notes:
+  - Role members are Windows principals given by well-known SID (S-1-1-0, S-1-5-18, S-1-5-32-544,
+    S-1-5-32-545); the engine resolved their names in the machine's language ("Tout le monde",
+    "AUTORITE NT\Système"), which is what the fixtures hold.
+  - Data-source secrets (connection strings, passwords, credentials) are fake values, and the
+    engine stored them encrypted with its private instance key, which no longer exists.
+  - sources.sqlitedb is from the first recording; a later run (2026-10-14, case `sources`)
+    checked that the engine still decrypts the secrets of a file bicraft rewrote.
+  - Regeneration uses the maintainers' development oracles (not in this repository;
+    BICRAFT_ORACLES_DIR points to them); it rewrites every file here except the .bim models and
+    this note.
+  - 2026-10-28: the project name inside the Provenance annotation value of the preview case was
+    changed in place, with the same byte length, in preview.bim, preview.sqlitedb and the preview
+    JSON files; nothing else in the recorded files changed.

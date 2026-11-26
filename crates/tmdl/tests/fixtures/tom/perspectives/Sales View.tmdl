@@ -1,0 +1,18 @@
+/// pd
+perspective 'Sales View'
+
+	perspectiveTable 'Order Lines'
+
+		perspectiveMeasure 'Sales Amount'
+
+		perspectiveColumn Key
+
+		perspectiveHierarchy 'H 1'
+
+		annotation PTA = 1
+
+	perspectiveTable Product
+		includeAll
+
+	annotation PA = 1
+

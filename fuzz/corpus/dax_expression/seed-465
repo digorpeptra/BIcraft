@@ -1,0 +1,1 @@
+EXCEPT(VALUES(Customer[City]), {"Lyon"})

@@ -1,0 +1,20 @@
+[package]
+name = "bicraft-controller"
+description = "L6: the workspace controller of a Kubernetes deployment (BicraftWorkspace reconciler, gateway with wake on request and idle scale to zero, admin API)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+bicraft-auth.workspace = true
+bicraft-http.workspace = true
+# RFC 3339 timestamps of the status (spec.rs) through the shared calendar (G37)
+bicraft-locale.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+# Blocking HTTPS client for the Kubernetes API, configured like crates/auth and crates/databricks:
+# rustls (ring), no async runtime, no OpenSSL, static on musl. Already in the build: no new crate.
+ureq = { version = "3", default-features = false, features = ["rustls"] }
+
+[lints]
+workspace = true

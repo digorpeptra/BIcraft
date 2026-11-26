@@ -1,0 +1,6 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security problem privately
+    url: https://github.com/digorpeptra/BIcraft/security/advisories/new
+    about: >-
+      Vulnerabilities go to a private security advisory, never to a public issue (SECURITY.md).

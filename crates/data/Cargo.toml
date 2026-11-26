@@ -1,0 +1,25 @@
+[package]
+name = "bicraft-data"
+description = "L2: typed table data from sources (CSV, a sandboxed Power Query M evaluator, DAX DATATABLE, existing VertiPaq columns)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+bicraft-locale.workspace = true
+bicraft-mem.workspace = true
+bicraft-model.workspace = true
+bicraft-opc.workspace = true
+bicraft-vertipaq.workspace = true
+# Raw DEFLATE for Desktop's "Enter data" tables (`Binary.Decompress`); already in the
+# dependency tree through `zip`/`flate2`.
+miniz_oxide = "0.9"
+# the Power Query editor's step settings (`m::transform_parse`), as `query.apply_step` takes
+# them; already in the dependency tree through `bicraft-model`
+serde_json.workspace = true
+# the M catalogue of the language services, checked against the evaluator (tests_library.rs)
+bicraft-mlang.workspace = true
+thiserror.workspace = true
+
+[lints]
+workspace = true

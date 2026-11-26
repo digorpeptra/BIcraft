@@ -1,0 +1,405 @@
+table Names
+	isHidden
+	showAsVariationsOnly
+	isPrivate
+	alternateSourcePrecedence: 2
+	excludeFromModelRefresh
+	lineageTag: lt
+	sourceLineageTag: slt
+	dataCategory: Time
+
+	defaultDetailRowsDefinition = Names
+
+	measure lead = ```
+			 lead
+			```
+
+	measure trail = ```
+			trail  
+			```
+
+	measure both = ```
+			  both  
+			```
+
+	measure common = ```
+			  x
+			  y
+			```
+
+	measure commonTab = ```
+				x
+				y
+			```
+
+	measure firstIndented = ```
+			  x
+			y
+			```
+
+	measure trailNl = ```
+			x
+			
+			```
+
+	measure trailNl2 = ```
+			x
+			
+			
+			```
+
+	measure trailSpaceLine = ```
+			x  
+			y
+			```
+
+	measure fenceIn = x```y
+
+	measure fenceLine =
+			a
+			```
+			b
+
+	measure tabIn = a	b
+
+	measure empty
+
+	measure crlf =
+			a
+			b
+
+	measure wsLine = ```
+			a
+			   
+			b
+			```
+
+	measure leadNl =
+			
+			a
+
+	measure slashes =
+			a
+			/// b
+			// c
+
+	measure eqs = = 1
+
+	measure all = 1
+		formatString: 0
+		isHidden
+		isSimpleMeasure
+		displayFolder: D
+		lineageTag: l
+		sourceLineageTag: s
+		dataCategory: WebUrl
+
+		extendedProperty E = v
+
+		annotation A = 1
+
+	/// a
+	/// 
+	/// b
+	/// 
+	measure descs = 1
+
+	///  lead and trail 
+	measure descs2 = 1
+
+	measure v1 = 1
+		displayFolder: " lead"
+
+	measure v2 = 1
+		displayFolder: "trail "
+
+	measure v3 = 1
+		displayFolder: """q"""
+
+	measure v4 = 1
+		displayFolder: a"b
+
+	measure v6 = 1
+		displayFolder: #x // y
+
+	measure v7 = 1
+		displayFolder: a: b = c
+
+	measure v8 = 1
+		displayFolder: 'x'
+
+	measure v10 = 1
+		displayFolder: true
+
+	measure v11 = 1
+		displayFolder: a	b
+
+	measure an = 1
+
+		annotation multi =
+				a
+				b
+
+		annotation lead = ```
+				 a
+				```
+
+		annotation empty
+
+		annotation trail = ```
+				a 
+				```
+
+		annotation q = "a"
+
+		annotation common = ```
+				  a
+				  b
+				```
+
+	column a-b
+		dataType: string
+		sourceColumn: a
+
+	column a_b
+		dataType: string
+		sourceColumn: a
+
+	column a@b
+		dataType: string
+		sourceColumn: a
+
+	column a#b
+		dataType: string
+		sourceColumn: a
+
+	column a(b)
+		dataType: string
+		sourceColumn: a
+
+	column é
+		dataType: string
+		sourceColumn: a
+
+	column a/b
+		dataType: string
+		sourceColumn: a
+
+	column a\b
+		dataType: string
+		sourceColumn: a
+
+	column a:b
+		dataType: string
+		sourceColumn: a
+
+	column 'a=b'
+		dataType: string
+		sourceColumn: a
+
+	column 'a''b'
+		dataType: string
+		sourceColumn: a
+
+	column a"b
+		dataType: string
+		sourceColumn: a
+
+	column 1a
+		dataType: string
+		sourceColumn: a
+
+	column 2024
+		dataType: string
+		sourceColumn: a
+
+	column _a
+		dataType: string
+		sourceColumn: a
+
+	column table
+		dataType: string
+		sourceColumn: a
+
+	column Measure
+		dataType: string
+		sourceColumn: a
+
+	column true
+		dataType: string
+		sourceColumn: a
+
+	column ref
+		dataType: string
+		sourceColumn: a
+
+	column a$b
+		dataType: string
+		sourceColumn: a
+
+	column a%b
+		dataType: string
+		sourceColumn: a
+
+	column a&b
+		dataType: string
+		sourceColumn: a
+
+	column a[b]
+		dataType: string
+		sourceColumn: a
+
+	column a{b}
+		dataType: string
+		sourceColumn: a
+
+	column a,b
+		dataType: string
+		sourceColumn: a
+
+	column a;b
+		dataType: string
+		sourceColumn: a
+
+	column a+b
+		dataType: string
+		sourceColumn: a
+
+	column a!b
+		dataType: string
+		sourceColumn: a
+
+	column a?b
+		dataType: string
+		sourceColumn: a
+
+	column a<b
+		dataType: string
+		sourceColumn: a
+
+	column a|b
+		dataType: string
+		sourceColumn: a
+
+	column a~b
+		dataType: string
+		sourceColumn: a
+
+	column a`b
+		dataType: string
+		sourceColumn: a
+
+	column a*b
+		dataType: string
+		sourceColumn: a
+
+	column a^b
+		dataType: string
+		sourceColumn: a
+
+	column 'a	b'
+		dataType: string
+		sourceColumn: a
+
+	column -a
+		dataType: string
+		sourceColumn: a
+
+	column 'a.b'
+		dataType: string
+		sourceColumn: a
+
+	column 日本
+		dataType: string
+		sourceColumn: a
+
+	column a/
+		dataType: string
+		sourceColumn: a
+
+	column 'a b'
+		dataType: string
+		sourceColumn: a
+
+	column x1
+		dataType: string
+		sourceColumn: a
+
+	column 'x.1'
+		dataType: string
+		sourceColumn: a
+
+	/// d
+	column Q
+		dataType: string
+		isHidden
+		isUnique
+		isKey
+		isNullable: false
+		formatString: 0;-0;0
+		isAvailableInMdx: false
+		keepUniqueRows
+		displayOrdinal: 3
+		sourceProviderType: nvarchar
+		displayFolder: F
+		encodingHint: value
+		lineageTag: l
+		sourceLineageTag: s
+		dataCategory: City
+		alignment: right
+		tableDetailPosition: 1
+		isDefaultLabel
+		isDefaultImage
+		summarizeBy: count
+		sourceColumn: a
+		sortByColumn: x1
+
+		extendedProperty E = v
+
+		annotation A = 1
+
+	/// hd
+	hierarchy H
+		isHidden
+		displayFolder: HF
+		hideMembers: hideBlankMembers
+		lineageTag: hl
+		sourceLineageTag: hs
+
+		/// ld
+		level L
+			lineageTag: ll
+			sourceLineageTag: ls
+			column: x1
+
+			annotation A = 1
+
+		annotation A = 1
+
+	/// pd
+	partition P = m
+		mode: directQuery
+		dataView: sample
+		queryGroup: G
+		source = 1
+
+		annotation A = 1
+
+	partition Q = query
+		source
+			query = SELECT 1
+			dataSource: SQLsrvdb
+
+	extendedProperty Ext =
+			{
+			  "a": 1,
+			  "b": [
+			    true,
+			    null
+			  ]
+			}
+
+	extendedProperty Str = hello
+
+	annotation A = 1
+

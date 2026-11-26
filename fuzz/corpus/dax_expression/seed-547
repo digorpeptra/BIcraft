@@ -1,0 +1,1 @@
+FORMAT(Sales[OrderDate], "yyyy-mm")

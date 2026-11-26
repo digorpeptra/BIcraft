@@ -1,0 +1,26 @@
+table Incremental
+
+	refreshPolicy
+		policyType: basic
+		rollingWindowGranularity: year
+		rollingWindowPeriods: 2
+		incrementalGranularity: day
+		incrementalPeriods: 3
+		sourceExpression =
+			let
+			    x = 1
+			in
+			    x
+
+	column A
+		dataType: dateTime
+		sourceColumn: A
+
+	partition 2024 = policyRange
+		mode: import
+		source
+			start: 2024-01-01
+			end: 2025-01-01
+			granularity: year
+			refreshBookmark: bm
+

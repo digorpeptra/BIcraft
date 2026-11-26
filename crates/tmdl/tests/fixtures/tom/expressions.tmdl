@@ -1,0 +1,28 @@
+/// staging query
+expression 'Sales Staging' =
+		let
+		    Source = #table({"A"}, {{1}}),
+		    #"Changed Type" = Table.TransformColumnTypes(Source, {{"A", Int64.Type}})
+		in
+		    #"Changed Type"
+	lineageTag: e1
+	queryGroup: Staging
+
+	annotation PBI_ResultType = Table
+
+expression Param = "x" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=true]
+	remoteParameterName: RP
+	queryGroup: Parameters
+	parameterValuesColumn: Product.Category
+
+expression DL =
+		let
+		    d = Sql.Database("s", "d")
+		in
+		    d
+	mAttributes: [ Source = 1 ]
+	sourceLineageTag: se
+
+expression 'DL Copy' = 1
+	expressionSource: DL
+

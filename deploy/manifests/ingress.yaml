@@ -1,0 +1,40 @@
+# Optional: expose the workspace through an ingress controller with TLS. Edit the host (and add it to
+# BICRAFT_ALLOWED_HOSTS in deployment.yaml, or set BICRAFT_PUBLIC_URL), then add this file to
+# kustomization.yaml. The annotations are ingress-nginx's: streamed bodies up to the upload cap, no
+# response buffering (SSE), timeouts above the longest DAX query (600 s). Other controllers have
+# their own equivalents.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: bicraft
+  labels:
+    app.kubernetes.io/name: bicraft
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "4g"
+    nginx.ingress.kubernetes.io/proxy-request-buffering: "off"
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "660"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "660"
+spec:
+  tls:
+    - hosts:
+        - bicraft.example.com
+      secretName: bicraft-tls
+  rules:
+    - host: bicraft.example.com
+      http:
+        paths:
+          - path: /w/main/
+            pathType: Prefix
+            backend:
+              service:
+                name: bicraft
+                port:
+                  number: 7878
+          - path: /.well-known/oauth-protected-resource
+            pathType: Prefix
+            backend:
+              service:
+                name: bicraft
+                port:
+                  number: 7878

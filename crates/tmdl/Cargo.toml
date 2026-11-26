@@ -1,0 +1,17 @@
+[package]
+name = "bicraft-tmdl"
+description = "L3: TMDL (Tabular Model Definition Language) <-> semantic model"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+bicraft-model.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+bicraft-env.workspace = true
+
+[lints]
+workspace = true

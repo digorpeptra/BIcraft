@@ -1,0 +1,28 @@
+/// persp
+perspective Lite
+
+	perspectiveTable Sales
+
+		perspectiveMeasure Total
+
+			annotation PmNote = v-PmNote
+
+		perspectiveColumn Amount
+
+		perspectiveColumn Region
+
+			annotation PcNote = pc
+
+		perspectiveHierarchy Geo
+
+			annotation PhNote = v-PhNote
+
+		annotation PtNote = pt
+
+	perspectiveTable Param
+		includeAll
+
+	extendedProperty PerspExt = e-PerspExt
+
+	annotation PerspNote = p1
+

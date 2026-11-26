@@ -1,0 +1,1 @@
+IF(CONTAINS(Product, Product[Category], "Office"), 1, 0)

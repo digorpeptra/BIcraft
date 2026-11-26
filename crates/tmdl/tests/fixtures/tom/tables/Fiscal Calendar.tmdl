@@ -1,0 +1,46 @@
+table 'Fiscal Calendar'
+
+	column Date
+		dataType: dateTime
+		sourceColumn: Date
+
+	column Year
+		dataType: int64
+		sourceColumn: Year
+
+	column Month
+		dataType: string
+		sourceColumn: Month
+
+	column 'Month No'
+		dataType: int64
+		sourceColumn: Month No
+
+	column 'Week Day'
+		dataType: string
+		sourceColumn: Week Day
+
+	partition 'Fiscal Calendar' = m
+		mode: import
+		source =
+				let
+				    x = 1
+				in
+				    x
+
+	/// fiscal calendar
+	calendar Fiscal
+		lineageTag: cal1
+
+		calendarColumnGroup = year
+			primaryColumn: Year
+
+		calendarColumnGroup = monthOfYear
+			primaryColumn: 'Month No'
+			associatedColumn: Month
+			associatedColumn: 'Week Day'
+
+		calendarColumnGroup
+			column: Date
+			column: 'Week Day'
+

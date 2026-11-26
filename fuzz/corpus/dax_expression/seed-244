@@ -1,0 +1,1 @@
+SUMX(GENERATESERIES(1, 5), [Value] * 2)

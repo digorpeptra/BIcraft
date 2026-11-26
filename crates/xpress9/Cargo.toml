@@ -1,0 +1,16 @@
+[package]
+name = "bicraft-xpress9"
+description = "L0: XPress9 codec (pure-Rust port of Microsoft's MIT-licensed XPress9) and the PBIX DataModel framing"
+version.workspace = true
+edition.workspace = true
+# The Microsoft-derived codec is MIT only (see THIRD_PARTY_NOTICES.md and docs/interoperability.md).
+license = "MIT"
+
+[dependencies]
+thiserror.workspace = true
+
+[dev-dependencies]
+bicraft-env.workspace = true
+
+[lints]
+workspace = true

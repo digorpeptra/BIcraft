@@ -1,0 +1,20 @@
+table LocalDate
+	isHidden
+	showAsVariationsOnly
+
+	column Date
+		isNameInferred
+		sourceColumn: [Date]
+
+	column Year = YEAR([Date])
+		dataType: int64
+
+	hierarchy 'Date Hierarchy'
+
+		level Year
+			column: Year
+
+	partition LocalDate = calculated
+		mode: import
+		source = CALENDAR(DATE(2020,1,1), DATE(2020,12,31))
+

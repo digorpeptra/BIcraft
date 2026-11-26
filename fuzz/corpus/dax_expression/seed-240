@@ -1,0 +1,1 @@
+SUMX(VALUES(Sales[Channel]), Sales[Quantity])

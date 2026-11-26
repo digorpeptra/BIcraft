@@ -1,0 +1,22 @@
+[package]
+name = "bicraft-pbip"
+description = "L4: PBIP project folders (<Name>.pbip, <Name>.SemanticModel/, <Name>.Report/)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+bicraft-versions.workspace = true
+bicraft-layout.workspace = true
+bicraft-model.workspace = true
+bicraft-opc.workspace = true
+bicraft-pbir.workspace = true
+bicraft-report.workspace = true
+bicraft-tmsl.workspace = true
+bicraft-tmdl.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+
+[lints]
+workspace = true

@@ -1,0 +1,9 @@
+expression Threshold = 10 meta [IsParameterQuery=true, Type="Number", IsParameterQueryRequired=true]
+	mAttributes: [X = 1]
+	lineageTag: 22222222-2222-4222-8222-222222222222
+	queryGroup: Params
+
+	extendedProperty ExprExt = e-ExprExt
+
+	annotation ExprNote = e
+

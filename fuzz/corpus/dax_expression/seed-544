@@ -1,0 +1,1 @@
+CALCULATE([Customer Count], CROSSFILTER(Sales[CustomerKey], Customer[CustomerKey], BOTH), Sales[Channel] = "Web")

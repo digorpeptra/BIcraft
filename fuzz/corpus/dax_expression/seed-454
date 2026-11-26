@@ -1,0 +1,1 @@
+SELECTCOLUMNS(Customer, Customer[Name])

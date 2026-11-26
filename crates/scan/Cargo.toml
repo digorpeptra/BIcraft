@@ -1,0 +1,14 @@
+[package]
+name = "bicraft-scan"
+description = "L0: storage engine kernels: parallel filtered and grouped scans over dictionary codes"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+bicraft-env.workspace = true
+bicraft-mem.workspace = true
+rayon-core.workspace = true
+
+[lints]
+workspace = true

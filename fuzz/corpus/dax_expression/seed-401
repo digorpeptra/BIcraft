@@ -1,0 +1,1 @@
+IF(1 IN VALUES(Sales[Quantity]), 1, 0)

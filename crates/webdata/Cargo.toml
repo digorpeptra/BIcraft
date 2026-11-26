@@ -1,0 +1,29 @@
+[package]
+name = "bicraft-webdata"
+description = "L3: the Web and OData connectors of bicraft's Power Query evaluator (Web.Contents and OData.Feed over HTTP(S)), run only when explicitly allowed"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[features]
+# A scripted HTTP server on 127.0.0.1 for the tests of this crate, the engine and the UI (src/fake.rs).
+fake-server = []
+
+[dependencies]
+bicraft-data.workspace = true
+serde_json.workspace = true
+# Blocking HTTP(S) client with rustls (ring) and the bundled Mozilla roots, the configuration
+# bicraft-databricks already uses: no async runtime, no OpenSSL. Licences: MIT/Apache-2.0 (ureq),
+# Apache-2.0/ISC/MIT (rustls), Apache-2.0 AND ISC (ring), CDLA-Permissive-2.0 (webpki-roots);
+# THIRD_PARTY_NOTICES.md.
+ureq = { version = "3", default-features = false, features = ["rustls"] }
+# OData $metadata (CSDL XML), read-only, no DTD; MIT OR Apache-2.0, already in the tree through usvg.
+roxmltree = "0.21"
+
+[dev-dependencies]
+bicraft-webdata = { path = ".", features = ["fake-server"] }
+# the fuzz smoke test's environment switches (docs/fuzzing.md)
+bicraft-env.workspace = true
+
+[lints]
+workspace = true

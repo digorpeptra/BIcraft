@@ -1,0 +1,9 @@
+{
+  "formatVersion": "202502",
+  "name": "Catalog flow",
+  "documentLocale": "fr-FR",
+  "queriesMetadata": {
+    "Products": { "queryId": "00000000-0000-0000-0000-000000000001", "queryName": "Products", "loadEnabled": true },
+    "Helper": { "queryId": "00000000-0000-0000-0000-000000000002", "queryName": "Helper", "loadEnabled": false }
+  }
+}

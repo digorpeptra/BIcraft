@@ -1,0 +1,1 @@
+VAR t = FILTER(Sales, Sales[Quantity] > 1) RETURN SUMX(t, t[Quantity])

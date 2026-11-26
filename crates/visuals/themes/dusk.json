@@ -1,0 +1,87 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/powerbi-desktop-samples/main/Report%20Theme%20JSON%20Schema/reportThemeSchema-2.157.json",
+  "name": "BIcraft Dusk",
+  "dataColors": [
+    "#7FB2FF",
+    "#FFB454",
+    "#5CD6B8",
+    "#FF8A8A",
+    "#C9A0FF",
+    "#E6D25C",
+    "#62C7F0",
+    "#F29AC8"
+  ],
+  "foreground": "#F0F2F7",
+  "foregroundNeutralSecondary": "#C3C8D6",
+  "background": "#1E2130",
+  "tableAccent": "#7FB2FF",
+  "good": "#5CD6B8",
+  "neutral": "#E6D25C",
+  "bad": "#FF8A8A",
+  "maximum": "#5CD6B8",
+  "center": "#E6D25C",
+  "minimum": "#FF8A8A",
+  "hyperlink": "#9CC4FF",
+  "textClasses": {
+    "title": {
+      "fontFace": "Segoe UI Semibold",
+      "fontSize": 12,
+      "color": "#F0F2F7"
+    },
+    "label": {
+      "fontFace": "Segoe UI",
+      "fontSize": 10,
+      "color": "#F0F2F7"
+    },
+    "callout": {
+      "fontFace": "Segoe UI Light",
+      "fontSize": 32,
+      "color": "#F0F2F7"
+    },
+    "header": {
+      "fontFace": "Segoe UI Semibold",
+      "fontSize": 12,
+      "color": "#F0F2F7"
+    }
+  },
+  "visualStyles": {
+    "page": {
+      "*": {
+        "background": [
+          {
+            "color": {
+              "solid": {
+                "color": "#1E2130"
+              }
+            },
+            "transparency": 0
+          }
+        ],
+        "outspace": [
+          {
+            "color": {
+              "solid": {
+                "color": "#1E2130"
+              }
+            },
+            "transparency": 0
+          }
+        ]
+      }
+    },
+    "*": {
+      "*": {
+        "background": [
+          {
+            "color": {
+              "solid": {
+                "color": "#1E2130"
+              }
+            },
+            "transparency": 0
+          }
+        ]
+      }
+    }
+  }
+}

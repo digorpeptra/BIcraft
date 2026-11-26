@@ -1,0 +1,1 @@
+MINX(FILTER(Customer, Customer[IsActive]), [Total Sales])

@@ -1,0 +1,1 @@
+CALCULATE([Total Sales], FILTER(Sales, Sales[Quantity] > AVERAGE(Sales[Quantity])))

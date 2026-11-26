@@ -1,0 +1,6 @@
+dataSource DS
+	connectionDetails
+		protocol: tds
+		address
+			server: srv
+

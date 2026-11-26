@@ -1,0 +1,19 @@
+Synthetic Power Pivot workbook (M11.33)
+=======================================
+
+What: sales.xlsx, an Excel workbook package whose xl/model/item.data holds a Power Pivot data
+model: two tables (Product, Sales), a calculated column, two measures, a relationship, a user
+hierarchy, blanks. No Microsoft asset and no client data: every name and value is invented.
+
+How: written by BIcraft's own code, `bicraft_powerpivot::synthetic::sample()`; the test
+`the_committed_fixture_is_the_sample` (crates/powerpivot/tests/workbook.rs) checks the file is
+exactly what the code writes, and `BICRAFT_BLESS=1 cargo test -p bicraft-powerpivot` writes it
+again. The layout follows docs/formats/powerpivot.md: ASSL Load documents, XMObject storage
+trees, VertiPaq files from bicraft-vertipaq's encoder, each file compressed by
+bicraft-xpress8's Plain LZ77 encoder and followed by a CRC marker, in an ABF with ErrorCode and
+ApplyCompression set.
+
+Not verified: the file was never opened in Excel or written by Excel. It carries only what
+BIcraft's reader uses (no sheet content, no connections, no extra ASSL properties); the
+relationship type and content type of item.data follow [MS-XLSX] as we read it. A workbook that
+Excel saves from our own synthetic model is still needed (docs/gaps.md).

@@ -1,0 +1,268 @@
+{
+ "name": "properties",
+ "compatibilityLevel": 1702,
+ "model": {
+  "culture": "en-US",
+  "defaultPowerBIDataSourceVersion": "powerBI_V3",
+  "selectionExpressionBehavior": "visual",
+  "dataSourceVariablesOverrideBehavior": "allow",
+  "forceUniqueNames": true,
+  "disableAutoExists": 1,
+  "maxParallelismPerRefresh": 4,
+  "maxParallelismPerQuery": 2,
+  "dataSourceDefaultMaxConnections": 5,
+  "sourceQueryCulture": "fr-FR",
+  "valueFilterBehavior": "coalesced",
+  "discourageCompositeModels": true,
+  "expressions": [
+   {
+    "name": "DatabaseQuery",
+    "kind": "m",
+    "expression": "let\n    database = AnalysisServices.Database(\"powerbi://api.powerbi.com/v1.0/myorg/ws\", \"ds\")\nin\n    database"
+   },
+   {
+    "name": "Src",
+    "kind": "m",
+    "expression": "\"srv\" meta [IsParameterQuery=true, Type=\"Text\", IsParameterQueryRequired=true]",
+    "remoteParameterName": "RemoteSrv",
+    "sourceLineageTag": "slt"
+   },
+   {
+    "name": "RangeStart",
+    "kind": "m",
+    "expression": "#datetime(2024, 1, 1, 0, 0, 0) meta [IsParameterQuery=true, Type=\"DateTime\", IsParameterQueryRequired=true]"
+   },
+   {
+    "name": "RangeEnd",
+    "kind": "m",
+    "expression": "#datetime(2025, 1, 1, 0, 0, 0) meta [IsParameterQuery=true, Type=\"DateTime\", IsParameterQueryRequired=true]"
+   }
+  ],
+  "tables": [
+   {
+    "name": "Det",
+    "isPrivate": false,
+    "excludeFromModelRefresh": true,
+    "alternateSourcePrecedence": 2,
+    "columns": [
+     {
+      "name": "K",
+      "dataType": "int64",
+      "sourceColumn": "K",
+      "isKey": true,
+      "isUnique": true,
+      "alignment": "right",
+      "tableDetailPosition": 1,
+      "isDefaultLabel": true,
+      "displayOrdinal": 3,
+      "encodingHint": "value",
+      "keepUniqueRows": true,
+      "sourceProviderType": "Int32",
+      "summarizeBy": "sum",
+      "dataCategory": "Uncategorized"
+     },
+     {
+      "name": "V",
+      "dataType": "int64",
+      "sourceColumn": "V",
+      "isNullable": false,
+      "isDefaultImage": true,
+      "isAvailableInMdx": false
+     }
+    ],
+    "measures": [
+     {
+      "name": "M1",
+      "expression": "COUNTROWS(Det)"
+     }
+    ],
+    "partitions": [
+     {
+      "name": "Det-DQ",
+      "mode": "directQuery",
+      "dataView": "full",
+      "source": {
+       "type": "m",
+       "expression": "let\n    Source = Sql.Database(\"srv\", \"db\"),\n    T = Source{[Schema=\"dbo\",Item=\"Det\"]}[Data]\nin\n    T"
+      }
+     }
+    ]
+   },
+   {
+    "name": "Agg",
+    "isHidden": true,
+    "columns": [
+     {
+      "type": "calculatedTableColumn",
+      "name": "S",
+      "dataType": "int64",
+      "isNameInferred": true,
+      "sourceColumn": "[S]",
+      "alternateOf": {
+       "baseColumn": {
+        "table": "Det",
+        "column": "V"
+       },
+       "summarization": "sum"
+      }
+     },
+     {
+      "type": "calculatedTableColumn",
+      "name": "C",
+      "dataType": "int64",
+      "isNameInferred": true,
+      "sourceColumn": "[C]",
+      "alternateOf": {
+       "baseTable": "Det",
+       "summarization": "count"
+      }
+     },
+     {
+      "type": "calculatedTableColumn",
+      "name": "G",
+      "dataType": "int64",
+      "isNameInferred": true,
+      "sourceColumn": "[G]",
+      "alternateOf": {
+       "baseColumn": {
+        "table": "Det",
+        "column": "K"
+       },
+       "summarization": "groupBy"
+      }
+     }
+    ],
+    "partitions": [
+     {
+      "name": "Agg",
+      "source": {
+       "type": "calculated",
+       "expression": "DATATABLE(\"S\", INTEGER, \"C\", INTEGER, \"G\", INTEGER, {{2, 1, 1}})"
+      }
+     }
+    ]
+   },
+   {
+    "name": "Remote",
+    "columns": [
+     {
+      "name": "A",
+      "dataType": "int64",
+      "sourceColumn": "A",
+      "sourceLineageTag": "A"
+     }
+    ],
+    "partitions": [
+     {
+      "name": "Remote",
+      "mode": "directQuery",
+      "source": {
+       "type": "entity",
+       "entityName": "dl_table",
+       "expressionSource": "DatabaseQuery",
+       "schemaName": "dbo"
+      }
+     }
+    ]
+   },
+   {
+    "name": "Inc0",
+    "columns": [
+     {
+      "name": "D",
+      "dataType": "dateTime",
+      "sourceColumn": "D"
+     }
+    ],
+    "refreshPolicy": {
+     "policyType": "basic",
+     "rollingWindowGranularity": "month",
+     "rollingWindowPeriods": 1,
+     "incrementalGranularity": "day",
+     "incrementalPeriods": 1,
+     "sourceExpression": "let\n    Source = Sql.Database(\"srv\", \"db\"),\n    F = Table.SelectRows(Source, each [D] >= RangeStart and [D] < RangeEnd)\nin\n    F"
+    },
+    "partitions": [
+     {
+      "name": "Inc0",
+      "mode": "import",
+      "source": {
+       "type": "m",
+       "expression": "let\n    Source = Sql.Database(\"srv\", \"db\"),\n    T = Source{[Schema=\"dbo\",Item=\"Det\"]}[Data]\nin\n    T"
+      }
+     }
+    ]
+   },
+   {
+    "name": "Hyb",
+    "columns": [
+     {
+      "name": "K",
+      "dataType": "int64",
+      "sourceColumn": "K"
+     }
+    ],
+    "partitions": [
+     {
+      "name": "Hyb-DQ",
+      "mode": "directQuery",
+      "dataView": "full",
+      "source": {
+       "type": "m",
+       "expression": "let\n    Source = Sql.Database(\"srv\", \"db\"),\n    T = Source{[Schema=\"dbo\",Item=\"Det\"]}[Data]\nin\n    T"
+      },
+      "dataCoverageDefinition": {
+       "description": "dc",
+       "expression": "RELATED(Det[K]) > 0"
+      }
+     },
+     {
+      "name": "Hyb-Imp",
+      "mode": "import",
+      "source": {
+       "type": "m",
+       "expression": "let\n    Source = Sql.Database(\"srv\", \"db\"),\n    T = Source{[Schema=\"dbo\",Item=\"Det\"]}[Data]\nin\n    T"
+      }
+     }
+    ]
+   }
+  ],
+  "dataSources": [
+   {
+    "type": "structured",
+    "name": "WithOptions",
+    "connectionDetails": {
+     "protocol": "tds",
+     "address": {
+      "server": "srv",
+      "database": "db"
+     }
+    },
+    "options": {
+     "commandTimeout": "PT1M"
+    },
+    "contextExpression": "let x = 1 in x",
+    "maxConnections": 3,
+    "credential": {
+     "AuthenticationKind": "UsernamePassword",
+     "kind": "SQL",
+     "path": "srv;db",
+     "Username": "u",
+     "Password": "fake-test-value"
+    }
+   },
+   {
+    "name": "Acct",
+    "connectionString": "Provider=MSOLEDBSQL;Data Source=srv",
+    "impersonationMode": "impersonateAccount",
+    "account": "dom\\user",
+    "password": "fake-test-value",
+    "provider": "System.Data.SqlClient"
+   }
+  ],
+  "defaultMeasure": {
+   "table": "Det",
+   "measure": "M1"
+  }
+ }
+}

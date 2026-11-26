@@ -1,0 +1,16 @@
+/// pd
+perspective P
+
+	perspectiveTable T
+		includeAll
+
+		perspectiveMeasure M
+
+		perspectiveColumn Name
+
+		perspectiveHierarchy H
+
+		annotation A = 1
+
+	annotation A = 1
+

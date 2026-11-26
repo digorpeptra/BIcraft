@@ -1,0 +1,1 @@
+VAR Threshold = PERCENTILEX.INC(Product, Product[ListPrice], 0.5) RETURN CALCULATE([Total Sales], Product[ListPrice] >= Threshold)

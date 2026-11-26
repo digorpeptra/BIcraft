@@ -1,0 +1,15 @@
+# Build context of deploy/docker/Dockerfile: the Cargo workspace only.
+.git
+.github
+target
+**/target
+deploy
+docs
+tools
+fuzz
+# never send models or local Power BI state to a builder
+.pbi
+**/.pbi
+*.pbix
+*.pbit
+*.abf

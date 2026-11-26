@@ -1,0 +1,13 @@
+[package]
+name = "bicraft-xpress8"
+description = "L0: the Plain LZ77 (\"Xpress\") codec of [MS-XCA] and the chunk framing of files in Excel Power Pivot backups"
+version.workspace = true
+edition.workspace = true
+# The decoder is ported from DashCraft (MIT OR Apache-2.0, see THIRD_PARTY_NOTICES.md).
+license.workspace = true
+
+[dependencies]
+thiserror.workspace = true
+
+[lints]
+workspace = true

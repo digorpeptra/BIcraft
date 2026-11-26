@@ -1,0 +1,1 @@
+SUMX(KEEPFILTERS(VALUES(Product[Category])), [Total Sales])

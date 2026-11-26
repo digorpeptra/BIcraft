@@ -1,0 +1,107 @@
+/// td
+table T
+	isHidden
+	lineageTag: tl
+
+	defaultDetailRowsDefinition = T
+
+	refreshPolicy
+		policyType: basic
+		mode: hybrid
+		rollingWindowGranularity: year
+		rollingWindowPeriods: 3
+		incrementalGranularity: day
+		incrementalPeriods: 10
+		incrementalPeriodsOffset: -1
+		pollingExpression = 1
+		sourceExpression =
+			let
+			    x = 1
+			in
+			    x
+
+	/// cgd
+	calculationGroup
+		precedence: 3
+
+		/// m
+		multipleOrEmptySelectionExpression = 1
+
+		noSelectionExpression = 2
+
+		calculationItem A = 1
+
+		calculationItem B = 2
+
+		calculationItem C = 3
+
+		annotation CG = 1
+
+	/// mdesc
+	measure M = 1
+
+		/// kd
+		kpi
+			targetDescription: td
+			targetExpression = 1
+			targetFormatString: 0
+			statusGraphic: Shapes
+			statusDescription: sd
+			statusExpression = 1
+			trendGraphic: Standard Arrow
+			trendDescription: trd
+			trendExpression = 1
+
+			annotation KA = 1
+
+		detailRowsDefinition = T
+
+		formatStringDefinition = "0"
+
+		extendedProperty E = v
+
+		changedProperty = Name
+
+		annotation A = 1
+
+	column Name
+		dataType: string
+		sourceColumn: Name
+
+	column C
+		dataType: dateTime
+		sourceColumn: C
+
+		/// vd
+		variation V
+			isDefault
+			relationship: r1
+			defaultHierarchy: T.H
+
+			annotation VA = 1
+
+		extendedProperty E = v
+
+		changedProperty = Name
+
+		annotation A = 1
+
+	hierarchy H
+
+		level L1
+			column: Name
+
+		level L2
+			column: C
+
+		changedProperty = Name
+
+	partition P = m
+		source = 1
+
+	extendedProperty E = v
+
+	changedProperty = Name
+
+	annotation A = 1
+

@@ -1,0 +1,15 @@
+{
+  "version": "0.1",
+  "connections": [
+    {
+      "details": {
+        "protocol": "tds",
+        "address": { "server": "sql01.example", "database": "Sales" },
+        "authentication": null,
+        "query": null
+      },
+      "options": {},
+      "mode": "DirectQuery"
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "note": "Queries of the skewed variant of the engine bench (`engine-bench gen --variant skew`; docs/benchmarks.md, section \"Big dimension and skewed data\"): Zipf-like keys (100,000 products, customers and stores: a few huge groups, many tiny ones), sales in date order with mostly one unit and no discount (long runs), an order number per few lines (high-cardinality text in the fact), anonymous sales (blank customer). Every query has a full ORDER BY, or a single row.",
+  "queries": [
+    {"id": "S01", "kind": "bar", "title": "SUMMARIZECOLUMNS by category (skewed products)", "dax": "EVALUATE SUMMARIZECOLUMNS(Produit[Categorie], \"CA\", [CA], \"Qte\", [Qte]) ORDER BY Produit[Categorie]"},
+    {"id": "S02", "kind": "table", "title": "Table by product, 100,000 products (TOPN 501)", "dax": "EVALUATE TOPN(501, SUMMARIZECOLUMNS(Produit[Produit], \"CA\", [CA], \"Qte\", [Qte]), [CA], DESC, Produit[Produit], ASC) ORDER BY [CA] DESC, Produit[Produit]"},
+    {"id": "S03", "kind": "card", "title": "Distinct orders (high-cardinality text) and customers", "dax": "EVALUATE ROW(\"Commandes\", [Nb commandes], \"Clients\", [Nb clients])"},
+    {"id": "S04", "kind": "line", "title": "By month: sales and distinct orders", "dax": "EVALUATE SUMMARIZECOLUMNS(Calendrier[AnneeMois], \"CA\", [CA], \"Commandes\", [Nb commandes]) ORDER BY Calendrier[AnneeMois]"},
+    {"id": "S05", "kind": "card", "title": "The biggest and a tiny product (CALCULATE)", "dax": "EVALUATE ROW(\"Top\", CALCULATE([CA], Produit[Produit] = \"P000001\"), \"Rare\", CALCULATE([CA], Produit[Produit] = \"P099999\"))"},
+    {"id": "S06", "kind": "slicer", "title": "Slicer on the three biggest products, by region", "dax": "DEFINE VAR __DS0FilterTable = TREATAS({\"P000001\", \"P000002\", \"P000003\"}, Produit[Produit]) EVALUATE SUMMARIZECOLUMNS(Magasin[Region], __DS0FilterTable, \"CA\", [CA], \"Qte\", [Qte]) ORDER BY Magasin[Region]"},
+    {"id": "S07", "kind": "table", "title": "Table by order number (TOPN 501 over a text column of the fact)", "dax": "EVALUATE TOPN(501, SUMMARIZECOLUMNS(Ventes[NumCommande], \"CA\", [CA], \"Lignes\", COUNTROWS(Ventes)), [CA], DESC, Ventes[NumCommande], ASC) ORDER BY [CA] DESC, Ventes[NumCommande]"},
+    {"id": "S08", "kind": "matrix", "title": "Store x category in 2024 (skewed stores)", "dax": "DEFINE VAR __DS0FilterTable = TREATAS({2024}, Calendrier[Annee]) EVALUATE SUMMARIZECOLUMNS(Magasin[Magasin], Produit[Categorie], __DS0FilterTable, \"CA\", [CA]) ORDER BY Magasin[Magasin], Produit[Categorie]"},
+    {"id": "S09", "kind": "card", "title": "Row-by-row SUMX with RELATED over 100,000 prices, one year", "dax": "EVALUATE ROW(\"Valeur catalogue\", CALCULATE(SUMX(Ventes, Ventes[Quantite] * RELATED(Produit[PrixCatalogue])), Calendrier[Annee] = 2024))"},
+    {"id": "S10", "kind": "table", "title": "Table by customer name (skewed customers, TOPN 501)", "dax": "EVALUATE TOPN(501, SUMMARIZECOLUMNS(Client[Client], \"CA\", [CA], \"Commandes\", [Nb commandes]), [CA], DESC, Client[Client], ASC) ORDER BY [CA] DESC, Client[Client]"},
+    {"id": "S11", "kind": "card", "title": "FILTER over the fact (rare quantities)", "dax": "EVALUATE ROW(\"Lignes\", COUNTROWS(FILTER(Ventes, Ventes[Quantite] >= 5)))"},
+    {"id": "S12", "kind": "table", "title": "Products with their rank (RANKX over 100,000 products, TOPN 501)", "dax": "EVALUATE TOPN(501, SUMMARIZECOLUMNS(Produit[Produit], \"CA\", [CA], \"Rang\", [Rang produit]), [CA], DESC, Produit[Produit], ASC) ORDER BY [CA] DESC, Produit[Produit]"},
+    {"id": "S13", "kind": "bar", "title": "By customer segment, anonymous sales included (blank row)", "dax": "EVALUATE SUMMARIZECOLUMNS(Client[Segment], \"CA\", [CA], \"Clients\", [Nb clients]) ORDER BY Client[Segment]"},
+    {"id": "S14", "kind": "matrix", "title": "Share of total by year x category", "dax": "EVALUATE SUMMARIZECOLUMNS(Calendrier[Annee], Produit[Categorie], \"CA\", [CA], \"Part\", [Part CA]) ORDER BY Calendrier[Annee], Produit[Categorie]"}
+  ]
+}

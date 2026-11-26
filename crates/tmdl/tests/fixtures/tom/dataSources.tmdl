@@ -1,0 +1,32 @@
+/// legacy ds
+dataSource 'SQL Legacy' = provider
+	maxConnections: 4
+	connectionString: Provider=SQLNCLI11;Data Source=srv;Initial Catalog=db
+	impersonationMode: impersonateServiceAccount
+	isolation: snapshot
+	timeout: 30
+	provider: System.Data.SqlClient
+
+dataSource SQL/srv;db
+	contextExpression =
+		let
+		  x = 1
+		in
+		  x
+	connectionDetails
+		protocol: tds
+		address
+			server: srv
+			database: db
+	options =
+			{
+			  "commandTimeout": "PT5M"
+			}
+	credential =
+			{
+			  "kind": "SQL",
+			  "path": "srv;db"
+			}
+		authenticationKind: UsernamePassword
+		username: u
+

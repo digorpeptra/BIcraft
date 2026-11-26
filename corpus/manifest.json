@@ -1,0 +1,98 @@
+{
+  "about": "Pinned corpus of Power BI files authored by the BIcraft project (synthetic data only; never client files). The files are kept outside this repository; see docs/corpus.md.",
+  "base_url": "https://github.com/digorpeptra/BIcraft/releases/download/corpus-v1",
+  "entries": [
+    {
+      "name": "basic",
+      "open": "basic.pbix",
+      "made": ["bicraft run --file corpus/recipes/basic.json (BIcraft 0a66952c)"],
+      "desktop": "opened and saved by Power BI Desktop 2.159.1231.0 (Store, French UI) with its Save button",
+      "content": "One imported Enter data table (8 rows), three measures, one page with a card and a clustered column chart",
+      "files": [{"path": "basic.pbix", "size": 18218, "sha256": "beeca2a13f97292f0427b7c6be8cf9a0dfb8c428159c7e6e6c2e3785a0a77d42"}],
+      "expect": {"tables":["Sales"],"calculated_tables":[],"calculated_columns":[],"measures":["Sales[Avg Price]","Sales[Total Amount]","Sales[Total Qty]"],"relationships":[],"roles":[],"calculation_groups":{},"pages":["Overview"],"visual_types":{"card":1,"clusteredColumnChart":1}}
+    },
+    {
+      "name": "star",
+      "open": "star.pbix",
+      "made": ["bicraft run --file corpus/recipes/star.json (BIcraft 0a66952c)"],
+      "desktop": "opened and saved by Power BI Desktop 2.159.1231.0 (Store, French UI) with its Save button",
+      "content": "A star schema: Sales with Product, Customer (both directions) and Date (an active order-date and an inactive ship-date relationship), USERELATIONSHIP and DISTINCTCOUNT measures, a table and a clustered bar chart",
+      "files": [{"path": "star.pbix", "size": 31402, "sha256": "4487d362bee0ae403e74d4a82c9ca62ec8fdee0b73a31092f857d3ff69d59a03"}],
+      "expect": {"tables":["Customer","Date","Product","Sales"],"calculated_tables":[],"calculated_columns":[],"measures":["Sales[Customers]","Sales[Revenue by Ship Date]","Sales[Revenue]"],"relationships":["Sales[CustomerKey] -> Customer[CustomerKey]","Sales[OrderDate] -> Date[Date]","Sales[ProductKey] -> Product[ProductKey]","Sales[ShipDate] -> Date[Date] (inactive)"],"roles":[],"calculation_groups":{},"pages":["Star"],"visual_types":{"clusteredBarChart":1,"tableEx":1}}
+    },
+    {
+      "name": "calculated",
+      "open": "calculated.pbix",
+      "made": ["bicraft run --file corpus/recipes/calculated.json (BIcraft 0a66952c)"],
+      "desktop": "opened and saved by Power BI Desktop 2.159.1231.0 (Store, French UI) with its Save button",
+      "content": "A calculated table (CALENDAR) with a calculated column, two calculated columns on an imported table, a relationship to the calculated table, a matrix and a line chart",
+      "files": [{"path": "calculated.pbix", "size": 23044, "sha256": "6acdcdb2e6efe4abf52690a0f56ffb45d9843e37639618fe37511bdcfc5df51a"}],
+      "expect": {"tables":["Calendar","Sales"],"calculated_tables":["Calendar"],"calculated_columns":["Calendar[Month]","Sales[Band]","Sales[Margin]"],"measures":["Sales[Margin %]","Sales[Total Margin]"],"relationships":["Sales[Date] -> Calendar[Date]"],"roles":[],"calculation_groups":{},"pages":["Margins"],"visual_types":{"lineChart":1,"pivotTable":1}}
+    },
+    {
+      "name": "calcgroup",
+      "open": "calcgroup.pbix",
+      "made": ["bicraft run --file corpus/recipes/calcgroup.json (BIcraft 0a66952c)"],
+      "desktop": "opened and saved by Power BI Desktop 2.159.1231.0 (Store, French UI) with its Save button",
+      "content": "A calculation group (Current, YTD, Prior Year, YoY % with a format string expression) over two measures, a matrix of years by period",
+      "files": [{"path": "calcgroup.pbix", "size": 21250, "sha256": "8eea39d60d09fd87e29bab41c6e46dc3a501cccd46a80908c82e009f620672db"}],
+      "expect": {"tables":["Date","Sales","Time Intelligence"],"calculated_tables":[],"calculated_columns":[],"measures":["Sales[Order Count]","Sales[Sales Amount]"],"relationships":["Sales[Date] -> Date[Date]"],"roles":[],"calculation_groups":{"Time Intelligence":["Current","YTD","Prior Year","YoY %"]},"pages":["Periods"],"visual_types":{"pivotTable":1}}
+    },
+    {
+      "name": "rls",
+      "open": "rls.pbix",
+      "made": ["bicraft run --file corpus/recipes/rls.json (BIcraft 0a66952c)"],
+      "desktop": "opened and saved by Power BI Desktop 2.159.1231.0 (Store, French UI) with its Save button",
+      "content": "Three row-level security roles (a static filter, a USERPRINCIPALNAME filter on example.com addresses, a filter on the fact table), a card and a table",
+      "files": [{"path": "rls.pbix", "size": 19313, "sha256": "d7dbc55969638f34bf18b13c988b8fd43bd0e8a26e8ec6d67469a7be662f16a7"}],
+      "expect": {"tables":["Region","Sales"],"calculated_tables":[],"calculated_columns":[],"measures":["Sales[Total]"],"relationships":["Sales[Region] -> Region[Region]"],"roles":["Large sales","North only","Own region"],"calculation_groups":{},"pages":["Security"],"visual_types":{"card":1,"tableEx":1}}
+    },
+    {
+      "name": "visuals",
+      "open": "visuals.pbix",
+      "made": ["bicraft run --file corpus/recipes/visuals.json (BIcraft 0a66952c)"],
+      "desktop": "opened and saved by Power BI Desktop 2.159.1231.0 (Store, French UI) with its Save button",
+      "content": "Two pages and twelve visuals: column, line, pie, donut, bar and area charts; table, matrix, card, multi-row card, slicer and a text box",
+      "files": [{"path": "visuals.pbix", "size": 25403, "sha256": "bd3f3118a33e34c532a419caa8fa8985456a9ed14cf70c1cd69cd3f08be89755"}],
+      "expect": {"tables":["Sales"],"calculated_tables":[],"calculated_columns":[],"measures":["Sales[Amount Total]","Sales[Units Total]"],"relationships":[],"roles":[],"calculation_groups":{},"pages":["Charts","Tables"],"visual_types":{"areaChart":1,"card":1,"clusteredBarChart":1,"clusteredColumnChart":1,"donutChart":1,"lineChart":1,"multiRowCard":1,"pieChart":1,"pivotTable":1,"slicer":1,"tableEx":1,"textbox":1}}
+    },
+    {
+      "name": "shop-pbip",
+      "open": "shop/Shop.pbip",
+      "made": ["bicraft run --file corpus/recipes/shop-pbip.json (BIcraft 0a66952c; project.new, TMDL and PBIR)"],
+      "desktop": "opened and saved by Power BI Desktop 2.159.1231.0 (Store, French UI) with its Save button, without a data refresh; the .pbi/localSettings.json files Desktop wrote are left out, as a repository would ignore them (no cache.abf was written)",
+      "content": "A PBIP project: two tables, a RELATED calculated column, a relationship, two measures in a display folder, a column chart and a card",
+      "files": [
+        {"path": "shop/.gitignore", "size": 70, "sha256": "e64d402de429b83d5a64370c83232483b1063e6e89b41f6e9afdcc804f90df5b"},
+        {"path": "shop/Shop.pbip", "size": 176, "sha256": "b929032624e89be6e83b0e67baa886acf518af7995955f6a91d8e35f535e8ff4"},
+        {"path": "shop/Shop.Report/.platform", "size": 298, "sha256": "dfdb2d176aa08324a913361d4864bb41740e8b065d82a20600f5202a102d5432"},
+        {"path": "shop/Shop.Report/definition.pbir", "size": 118, "sha256": "337ad41be9c71c0db0241f19c1299c95c06eceb8c006401e9f9246128fcf0a2d"},
+        {"path": "shop/Shop.Report/definition/report.json", "size": 418, "sha256": "bc0e385c66d33d3e69f61065e93e46824247c96c675244eb6edd87525b722a19"},
+        {"path": "shop/Shop.Report/definition/version.json", "size": 152, "sha256": "c8bdd966a85f1eaab4312d2096b6d7b508243e4d7bc5a4d25af3cfcb1056a4e7"},
+        {"path": "shop/Shop.Report/definition/pages/pages.json", "size": 224, "sha256": "eb14831899345ff18613ea5a0ea30d53ef33fdfa9318f6598f2c6d1406c677e8"},
+        {"path": "shop/Shop.Report/definition/pages/3ec6bfb6181685fbf087/page.json", "size": 248, "sha256": "6427804409b71bc6524bcf44496d74ed7d1f227aa024621257647bf157e91ed4"},
+        {"path": "shop/Shop.Report/definition/pages/3ec6bfb6181685fbf087/visuals/55763549a8022a730369/visual.json", "size": 1417, "sha256": "8589c8f376db353a890db6193de43282dd4cb210200d13ac7b2d4f7e4b2025f8"},
+        {"path": "shop/Shop.Report/definition/pages/3ec6bfb6181685fbf087/visuals/b599600d333d1707a925/visual.json", "size": 877, "sha256": "3f0f0d4336520ef21feba4d7fa55b1bc48d77045ae2cb165c031f2acc438606e"},
+        {"path": "shop/Shop.SemanticModel/.platform", "size": 305, "sha256": "e223088d86f8bb7dce3244ced572436fb08eb35ae03a8258d5611a9a0116a231"},
+        {"path": "shop/Shop.SemanticModel/definition.pbism", "size": 43, "sha256": "ed99ec078efd2ff27fc1c65cc97902138d7d3c438acdb7770ae37dc71c7f06c8"},
+        {"path": "shop/Shop.SemanticModel/diagramLayout.json", "size": 1116, "sha256": "ac497795c5ee97679075b35445be47b16badccd112c8c5330454a7e3c1e71486"},
+        {"path": "shop/Shop.SemanticModel/.pbi/editorSettings.json", "size": 217, "sha256": "b5eaeb2175fa47e040ea87779121ac87c3ebc1f8f5a7768c3dec8787d92bbb3e"},
+        {"path": "shop/Shop.SemanticModel/definition/database.tmdl", "size": 39, "sha256": "822c914b643bca32bb20abd8a762df8204a1b9ef02acc2bc7348727f6699cb96"},
+        {"path": "shop/Shop.SemanticModel/definition/model.tmdl", "size": 389, "sha256": "6d47ac913c579529a84f7cd59731bbd976583bcc24c98a499c1baa6a0fffcce8"},
+        {"path": "shop/Shop.SemanticModel/definition/relationships.tmdl", "size": 94, "sha256": "9955ff5998ec0f9b892d38a65539dac66347a83da3cf05d656bf19384e617f50"},
+        {"path": "shop/Shop.SemanticModel/definition/tables/Orders.tmdl", "size": 1827, "sha256": "3f26a1c2ee74e397a739c9af99c669cb1fefbf5ef191677729bcb2c701b1cc63"},
+        {"path": "shop/Shop.SemanticModel/definition/tables/Product.tmdl", "size": 1307, "sha256": "a3650753598ff33954e4c40fcfad14e066ace6da537019eed365cd96887412c6"}
+      ],
+      "expect": {"tables":["Orders","Product"],"calculated_tables":[],"calculated_columns":["Orders[Line Amount]"],"measures":["Orders[Order Amount]","Orders[Orders]"],"relationships":["Orders[ProductKey] -> Product[ProductKey]"],"roles":[],"calculation_groups":{},"pages":["Shop"],"visual_types":{"card":1,"clusteredColumnChart":1}}
+    },
+    {
+      "name": "template",
+      "open": "template.pbit",
+      "made": ["bicraft run --file corpus/recipes/template.json (BIcraft 0a66952c)"],
+      "desktop": "written by BIcraft, opened by Power BI Desktop 2.159.1231.0 (Store, French UI) and exported by it through File > Export > Power BI template with the description BIcraft corpus template (kept in Metadata as FileDescription); the export adds SecurityBindings",
+      "content": "A template (no data): one Enter data table, two measures, one page with a table",
+      "files": [{"path": "template.pbit", "size": 5855, "sha256": "03c1d6f241b7773abe1b7c6d82b3ad79075da7e9c8f0fc9af7fb8f199d9c0288"}],
+      "expect": {"tables":["Budget"],"calculated_tables":[],"calculated_columns":[],"measures":["Budget[Variance %]","Budget[Variance]"],"relationships":[],"roles":[],"calculation_groups":{},"pages":["Budget"],"visual_types":{"tableEx":1}}
+    }
+  ]
+}

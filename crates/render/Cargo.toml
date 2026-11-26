@@ -1,0 +1,27 @@
+[package]
+name = "bicraft-render"
+description = "L4: renders report pages from a viewer snapshot to PNG (pure Rust: tiny-skia, skrifa, harfrust)"
+version.workspace = true
+edition.workspace = true
+license = "(MIT OR Apache-2.0) AND OFL-1.1"
+
+[dependencies]
+serde_json.workspace = true
+# PDF streams (FlateDecode): the zlib codec the workspace already uses.
+flate2.workspace = true
+tiny-skia = { version = "0.12", default-features = false, features = ["std", "simd", "png-format"] }
+# Glyph outlines and font tables (skrifa) and shaping (harfrust): the versions egui already
+# pulls in (epaint), so the tree carries one font stack.
+skrifa = { version = "0.44", default-features = false, features = ["std"] }
+harfrust = { version = "0.12", default-features = false, features = ["std"] }
+resvg = { version = "0.48", default-features = false }
+zune-jpeg = { version = "0.5.15", default-features = false, features = ["std"] }
+gif = { version = "0.14", default-features = false, features = ["std"] }
+image-webp = "0.2"
+bicraft-locale.workspace = true
+
+[dev-dependencies]
+bicraft-env.workspace = true
+
+[lints]
+workspace = true

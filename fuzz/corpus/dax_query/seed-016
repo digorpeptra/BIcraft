@@ -1,0 +1,1 @@
+DEFINE MEASURE Sales[A] = [B] MEASURE Sales[B] = [A] EVALUATE ROW("x", [A])

@@ -1,0 +1,30 @@
+[package]
+name = "bicraft-pbix"
+description = "L4: PBIX/PBIT single-file packages"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+bicraft-locale.workspace = true
+bicraft-versions.workspace = true
+bicraft-abf.workspace = true
+bicraft-metadata.workspace = true
+bicraft-xpress9.workspace = true
+bicraft-layout.workspace = true
+bicraft-model.workspace = true
+bicraft-opc.workspace = true
+bicraft-pbir.workspace = true
+bicraft-report.workspace = true
+bicraft-sqlite.workspace = true
+bicraft-tmsl.workspace = true
+bicraft-vertipaq.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+bicraft-env.workspace = true
+
+[lints]
+workspace = true

@@ -1,0 +1,4 @@
+relationship r1
+	fromColumn: T.C
+	toColumn: T.Name
+

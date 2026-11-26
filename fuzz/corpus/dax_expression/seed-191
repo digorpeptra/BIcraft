@@ -1,0 +1,1 @@
+COUNTROWS(FILTER(Customer, Customer[City] = EARLIER(Customer[City])))

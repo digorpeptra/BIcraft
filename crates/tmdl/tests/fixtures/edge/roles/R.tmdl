@@ -1,0 +1,16 @@
+/// rd
+role R
+	modelPermission: read
+
+	tablePermission Names = TRUE()
+		metadataPermission: none
+
+		columnPermission x1 = none
+
+		annotation A = 1
+
+	member 'a@b.com'
+	member DOMAIN\x = activeDirectory
+
+	annotation A = 1
+

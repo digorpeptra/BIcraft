@@ -1,0 +1,1 @@
+SUMX(Sales, Sales[Quantity] * RELATED(Product[ListPrice]))

@@ -1,0 +1,1 @@
+SUMX(Customer, COUNTROWS(RELATEDTABLE(Sales)))

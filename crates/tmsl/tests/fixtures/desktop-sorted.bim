@@ -1,0 +1,376 @@
+{
+  "compatibilityLevel": 1606,
+  "model": {
+    "annotations": [
+      {
+        "name": "__PBI_TimeIntelligenceEnabled",
+        "value": "0"
+      },
+      {
+        "name": "PBI_ProTooling",
+        "value": "[\"DevMode\"]"
+      }
+    ],
+    "culture": "en-US",
+    "relationships": [
+      {
+        "name": "Sales_Product",
+        "fromColumn": "ProductKey",
+        "fromTable": "Sales",
+        "toColumn": "ProductKey",
+        "toTable": "Product"
+      },
+      {
+        "name": "Sales_Store",
+        "crossFilteringBehavior": "bothDirections",
+        "fromColumn": "StoreKey",
+        "fromTable": "Sales",
+        "toColumn": "StoreKey",
+        "toTable": "Store"
+      },
+      {
+        "name": "Sales_Date",
+        "fromColumn": "Date",
+        "fromTable": "Sales",
+        "toColumn": "Date",
+        "toTable": "Date"
+      },
+      {
+        "name": "Sales_ShipDate",
+        "fromColumn": "ShipDate",
+        "fromTable": "Sales",
+        "isActive": false,
+        "toColumn": "Date",
+        "toTable": "Date"
+      }
+    ],
+    "roles": [
+      {
+        "name": "Readers",
+        "annotations": [
+          {
+            "name": "PBI_Id",
+            "value": "83b98934b45745f79895185ffcb0a278"
+          }
+        ],
+        "modelPermission": "read",
+        "tablePermissions": [
+          {
+            "name": "Store",
+            "filterExpression": "[Region] = \"North\""
+          }
+        ]
+      }
+    ],
+    "tables": [
+      {
+        "name": "Product",
+        "columns": [
+          {
+            "name": "ProductKey",
+            "dataType": "int64",
+            "isNameInferred": false,
+            "lineageTag": "7683647c-b842-48e3-a795-8773e4e0a723",
+            "sourceColumn": "[ProductKey]",
+            "type": "calculatedTableColumn"
+          },
+          {
+            "name": "Product",
+            "dataType": "string",
+            "isNameInferred": false,
+            "lineageTag": "c1a77a53-dde6-45f6-9a22-94910e0d1437",
+            "sourceColumn": "[Product]",
+            "type": "calculatedTableColumn"
+          },
+          {
+            "name": "Category",
+            "dataType": "string",
+            "isNameInferred": false,
+            "lineageTag": "19c643bb-59b0-4a68-842f-8056f6a92969",
+            "sourceColumn": "[Category]",
+            "type": "calculatedTableColumn"
+          },
+          {
+            "name": "Color",
+            "dataType": "string",
+            "isNameInferred": false,
+            "lineageTag": "087279d0-45fb-41ff-a6df-974ff7cf37b5",
+            "sourceColumn": "[Color]",
+            "type": "calculatedTableColumn"
+          }
+        ],
+        "lineageTag": "d93eb2b3-197c-467c-bda7-40228352336b",
+        "partitions": [
+          {
+            "name": "Product",
+            "source": {
+              "expression": "DATATABLE(\"ProductKey\", INTEGER, \"Product\", STRING, \"Category\", STRING, \"Color\", STRING, {{1, \"Bike\", \"Wheels\", \"Red\"}, {2, \"Ball\", \"Toys\", \"Blue\"}, {3, \"Car\", \"Wheels\", \"Red\"}, {4, \"Kite\", \"Toys\", \"Green\"}, {5, \"Helmet\", \"Gear\", \"Blue\"}, {6, \"Gloves\", \"Gear\", \"Red\"}})",
+              "type": "calculated"
+            }
+          }
+        ]
+      },
+      {
+        "name": "Store",
+        "columns": [
+          {
+            "name": "StoreKey",
+            "dataType": "int64",
+            "isNameInferred": false,
+            "lineageTag": "fbd4f000-69d5-4c7c-a3bf-364d8e7d2563",
+            "sourceColumn": "[StoreKey]",
+            "type": "calculatedTableColumn"
+          },
+          {
+            "name": "Store",
+            "dataType": "string",
+            "isNameInferred": false,
+            "lineageTag": "3c63169e-e395-41c0-957b-4623d08f379f",
+            "sourceColumn": "[Store]",
+            "type": "calculatedTableColumn"
+          },
+          {
+            "name": "Region",
+            "dataType": "string",
+            "isNameInferred": false,
+            "lineageTag": "48a07666-f55d-4522-bf19-393d3612a589",
+            "sourceColumn": "[Region]",
+            "type": "calculatedTableColumn"
+          }
+        ],
+        "lineageTag": "f60a5515-6b9a-49a2-845a-b89c3f4cfd73",
+        "partitions": [
+          {
+            "name": "Store",
+            "source": {
+              "expression": "DATATABLE(\"StoreKey\", INTEGER, \"Store\", STRING, \"Region\", STRING, {{1, \"Paris\", \"North\"}, {2, \"Lyon\", \"South\"}, {3, \"Nice\", \"South\"}, {4, \"Lille\", \"North\"}})",
+              "type": "calculated"
+            }
+          }
+        ]
+      },
+      {
+        "name": "Date",
+        "columns": [
+          {
+            "name": "Date",
+            "dataType": "dateTime",
+            "formatString": "yyyy-MM-dd",
+            "isKey": true,
+            "isNameInferred": false,
+            "lineageTag": "c8b596d4-e628-4fd0-bb11-205d5531c9b8",
+            "sourceColumn": "[Date]",
+            "type": "calculatedTableColumn"
+          },
+          {
+            "name": "Year",
+            "dataType": "int64",
+            "isNameInferred": false,
+            "lineageTag": "6c599d3f-3e54-4dd1-96cb-8aa846489566",
+            "sourceColumn": "[Year]",
+            "type": "calculatedTableColumn"
+          },
+          {
+            "name": "Month",
+            "dataType": "int64",
+            "isNameInferred": false,
+            "lineageTag": "b672a12c-1750-4541-9818-9ec7b8c2e880",
+            "sourceColumn": "[Month]",
+            "type": "calculatedTableColumn"
+          },
+          {
+            "name": "Quarter",
+            "dataType": "string",
+            "isNameInferred": false,
+            "lineageTag": "aea9f19b-64b4-493f-884a-0906b449f217",
+            "sourceColumn": "[Quarter]",
+            "type": "calculatedTableColumn"
+          }
+        ],
+        "dataCategory": "Time",
+        "hierarchies": [
+          {
+            "name": "Calendar",
+            "levels": [
+              {
+                "name": "Year",
+                "column": "Year",
+                "lineageTag": "55144149-7f44-41c0-8c28-d7593446c0e8",
+                "ordinal": 0
+              },
+              {
+                "name": "Quarter",
+                "column": "Quarter",
+                "lineageTag": "94bfc515-add0-4d7e-8a2a-95d3af526190",
+                "ordinal": 1
+              },
+              {
+                "name": "Month",
+                "column": "Month",
+                "lineageTag": "e66da306-8c0a-4062-af3b-ceac2b53211a",
+                "ordinal": 2
+              }
+            ],
+            "lineageTag": "419e8d2b-89ba-4e09-9e4d-a328c53ef6a9"
+          }
+        ],
+        "lineageTag": "defdfc5c-4f27-4aee-a04f-22fda7ba7b17",
+        "partitions": [
+          {
+            "name": "Date",
+            "source": {
+              "expression": "ADDCOLUMNS(CALENDAR(DATE(2025, 1, 1), DATE(2026, 12, 31)), \"Year\", YEAR([Date]), \"Month\", MONTH([Date]), \"Quarter\", \"Q\" & QUARTER([Date]))",
+              "type": "calculated"
+            }
+          }
+        ]
+      },
+      {
+        "name": "Sales",
+        "columns": [
+          {
+            "name": "SalesKey",
+            "dataType": "int64",
+            "isNameInferred": false,
+            "lineageTag": "05a13b98-8e51-4caa-b923-169620ed519b",
+            "sourceColumn": "[SalesKey]",
+            "type": "calculatedTableColumn"
+          },
+          {
+            "name": "ProductKey",
+            "dataType": "int64",
+            "isNameInferred": false,
+            "lineageTag": "ec3f0c30-6954-4402-9def-e87514ab125f",
+            "sourceColumn": "[ProductKey]",
+            "type": "calculatedTableColumn"
+          },
+          {
+            "name": "StoreKey",
+            "dataType": "int64",
+            "isNameInferred": false,
+            "lineageTag": "8d42589f-8fdf-47d6-afe0-a475c292fcd3",
+            "sourceColumn": "[StoreKey]",
+            "type": "calculatedTableColumn"
+          },
+          {
+            "name": "Date",
+            "dataType": "dateTime",
+            "isNameInferred": false,
+            "lineageTag": "e6c9137b-d06c-40a5-bc2f-dece6fd89288",
+            "sourceColumn": "[Date]",
+            "type": "calculatedTableColumn"
+          },
+          {
+            "name": "ShipDate",
+            "dataType": "dateTime",
+            "isNameInferred": false,
+            "lineageTag": "cca856e6-8db8-4087-b3ce-4ca400bb1555",
+            "sourceColumn": "[ShipDate]",
+            "type": "calculatedTableColumn"
+          },
+          {
+            "name": "Qty",
+            "dataType": "int64",
+            "isNameInferred": false,
+            "lineageTag": "aa89c84a-d301-4231-8e62-11aa6fd7e920",
+            "sourceColumn": "[Qty]",
+            "type": "calculatedTableColumn"
+          },
+          {
+            "name": "Amount",
+            "dataType": "int64",
+            "isNameInferred": false,
+            "lineageTag": "03269768-e64c-4b0b-bbb2-825e15c220f7",
+            "sourceColumn": "[Amount]",
+            "type": "calculatedTableColumn"
+          }
+        ],
+        "lineageTag": "fbec260b-fc54-43ac-ab77-2af69a14a128",
+        "measures": [
+          {
+            "name": "Total Amount",
+            "expression": "SUM(Sales[Amount])",
+            "lineageTag": "d3cd1440-fb75-4798-9c9c-664b8b9ddb7f"
+          },
+          {
+            "name": "Units",
+            "expression": "SUM(Sales[Qty])",
+            "lineageTag": "b029839f-ff2f-445c-9007-70368e7142bd"
+          },
+          {
+            "name": "Lines",
+            "expression": "COUNTROWS(Sales)",
+            "lineageTag": "be61a71f-76ff-4bff-90dc-c448e63bfefb"
+          },
+          {
+            "name": "All Products",
+            "expression": "CALCULATE([Total Amount], ALL(Product))",
+            "lineageTag": "6a6654c5-d923-4fb7-bb60-81490d519d2b"
+          },
+          {
+            "name": "Red Keep",
+            "expression": "CALCULATE([Total Amount], KEEPFILTERS(Product[Color] = \"Red\"))",
+            "lineageTag": "09e56a5b-031a-400c-bb18-756b47ad75a8"
+          },
+          {
+            "name": "Red Replace",
+            "expression": "CALCULATE([Total Amount], Product[Color] = \"Red\")",
+            "lineageTag": "16aee897-275d-42a7-9b74-d1e34fb46da8"
+          },
+          {
+            "name": "Share Selected",
+            "expression": "DIVIDE([Total Amount], CALCULATE([Total Amount], ALLSELECTED(Product)))",
+            "lineageTag": "94eb3db3-498f-42a8-b55c-0c35418cc4c6"
+          },
+          {
+            "name": "Shipped Amount",
+            "expression": "CALCULATE([Total Amount], USERELATIONSHIP(Sales[ShipDate], 'Date'[Date]))",
+            "lineageTag": "2261fd62-632f-43a3-875a-73bd2eeeae62"
+          },
+          {
+            "name": "Store Count",
+            "expression": "COUNTROWS(Store)",
+            "lineageTag": "8a4564db-20c0-4f0c-adb8-c5b9aa2245b4"
+          },
+          {
+            "name": "Product Count",
+            "expression": "COUNTROWS(Product)",
+            "lineageTag": "665905ab-6b0d-4de2-8550-e91d8d5cc7ca"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Sales",
+            "source": {
+              "expression": "SELECTCOLUMNS(GENERATESERIES(1, 240), \"SalesKey\", [Value], \"ProductKey\", MOD([Value] * 5, 6) + 1, \"StoreKey\", MOD(MOD([Value] * 5, 6) + MOD(INT([Value] / 7), 2), 4) + 1, \"Date\", DATE(2025, 1, 1) + MOD([Value] * 37, 700), \"ShipDate\", DATE(2025, 1, 1) + MOD([Value] * 37, 700) + MOD([Value], 20), \"Qty\", MOD([Value], 5) + 1, \"Amount\", (MOD([Value] * 13, 41) + 10) * (MOD([Value], 5) + 1))",
+              "type": "calculated"
+            }
+          }
+        ]
+      },
+      {
+        "name": "Tag",
+        "columns": [
+          {
+            "name": "Page",
+            "dataType": "string",
+            "isNameInferred": false,
+            "lineageTag": "ec76bad8-67d3-48c1-b923-2e2245ee2f2c",
+            "sourceColumn": "[Page]",
+            "type": "calculatedTableColumn"
+          }
+        ],
+        "lineageTag": "05cd309e-a0e5-4cd0-aed9-53b1e50a2acc",
+        "partitions": [
+          {
+            "name": "Tag",
+            "source": {
+              "expression": "DATATABLE(\"Page\", STRING, {{\"I00\"}, {\"I01\"}, {\"I02\"}, {\"I03\"}, {\"I04\"}, {\"I05\"}, {\"I06\"}, {\"I07\"}, {\"I08\"}, {\"I09\"}, {\"I10\"}, {\"I11\"}, {\"I12\"}, {\"I13\"}, {\"I14\"}, {\"I15\"}, {\"I16\"}, {\"I17\"}, {\"I18\"}, {\"I19\"}, {\"I20\"}, {\"I21\"}, {\"I22\"}, {\"I23\"}, {\"I24\"}, {\"I25\"}, {\"I26\"}, {\"I27\"}, {\"I28\"}})",
+              "type": "calculated"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

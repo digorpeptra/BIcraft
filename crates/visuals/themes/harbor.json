@@ -1,0 +1,47 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/powerbi-desktop-samples/main/Report%20Theme%20JSON%20Schema/reportThemeSchema-2.157.json",
+  "name": "BIcraft Harbor",
+  "dataColors": [
+    "#0B5CAD",
+    "#00838F",
+    "#4A6FA5",
+    "#2E7D32",
+    "#6A4C93",
+    "#00695C",
+    "#1565C0",
+    "#5D6D7E"
+  ],
+  "foreground": "#1B2A3A",
+  "foregroundNeutralSecondary": "#45566A",
+  "background": "#FFFFFF",
+  "tableAccent": "#0B5CAD",
+  "good": "#2E7D32",
+  "neutral": "#5D6D7E",
+  "bad": "#B3261E",
+  "maximum": "#0B5CAD",
+  "center": "#5D6D7E",
+  "minimum": "#00838F",
+  "hyperlink": "#0B5CAD",
+  "textClasses": {
+    "title": {
+      "fontFace": "Segoe UI Semibold",
+      "fontSize": 12,
+      "color": "#1B2A3A"
+    },
+    "label": {
+      "fontFace": "Segoe UI",
+      "fontSize": 10,
+      "color": "#1B2A3A"
+    },
+    "callout": {
+      "fontFace": "Segoe UI Light",
+      "fontSize": 32,
+      "color": "#1B2A3A"
+    },
+    "header": {
+      "fontFace": "Segoe UI Semibold",
+      "fontSize": 12,
+      "color": "#1B2A3A"
+    }
+  }
+}

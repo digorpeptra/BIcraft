@@ -1,0 +1,1 @@
+RANKX(ALL(Sales), Sales[Line Amount])

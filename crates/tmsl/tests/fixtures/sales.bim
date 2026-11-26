@@ -1,0 +1,504 @@
+{
+  "name": "SalesModel",
+  "compatibilityLevel": 1567,
+  "id": "9b2c7a14-5d3e-4f60-8a71-c2b9e0d4f315",
+  "model": {
+    "annotations": [
+      {
+        "name": "__PBI_TimeIntelligenceEnabled",
+        "value": "0"
+      },
+      {
+        "name": "PBI_QueryOrder",
+        "value": "[\"Sales\",\"Product\",\"RangeStart\"]"
+      },
+      {
+        "name": "PBIDesktopVersion",
+        "value": "2.158.1304.0 (bicraft test fixture)"
+      }
+    ],
+    "culture": "en-US",
+    "cultures": [
+      {
+        "name": "en-US",
+        "linguisticMetadata": {
+          "content": {
+            "Language": "en-US",
+            "Version": "1.0.0"
+          },
+          "contentType": "json"
+        }
+      }
+    ],
+    "dataAccessOptions": {
+      "legacyRedirects": true,
+      "returnErrorValuesAsNull": true
+    },
+    "defaultPowerBIDataSourceVersion": "powerBI_V3",
+    "expressions": [
+      {
+        "name": "RangeStart",
+        "annotations": [
+          {
+            "name": "PBI_ResultType",
+            "value": "DateTime"
+          }
+        ],
+        "expression": "#datetime(2024, 1, 1, 0, 0, 0) meta [IsParameterQuery=true, Type=\"DateTime\", IsParameterQueryRequired=true]",
+        "kind": "m",
+        "lineageTag": "0f4e3a8c-1b2d-4e5f-9a6b-7c8d9e0f1a2b"
+      },
+      {
+        "name": "SourceFolder",
+        "description": "Where the CSV extracts live.",
+        "expression": [
+          "let",
+          "    Source = \"C:\\data\\sales\"",
+          "in",
+          "    Source"
+        ],
+        "futureExpressionFlag": {
+          "enabled": true,
+          "level": 3
+        },
+        "kind": "m",
+        "lineageTag": "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
+        "queryGroup": "Parameters"
+      }
+    ],
+    "futureModelSetting": [
+      "alpha",
+      {
+        "beta": null,
+        "gamma": 1.5
+      }
+    ],
+    "queryGroups": [
+      {
+        "folder": "Parameters"
+      }
+    ],
+    "relationships": [
+      {
+        "name": "6d1c9a5e-2f3b-4c4d-8e5f-6a7b8c9d0e1f",
+        "fromColumn": "ProductKey",
+        "fromTable": "Sales",
+        "toColumn": "ProductKey",
+        "toTable": "Product"
+      },
+      {
+        "name": "7e2d0b6f-3a4c-4d5e-9f6a-7b8c9d0e1f2a",
+        "crossFilteringBehavior": "bothDirections",
+        "fromColumn": "OrderDate",
+        "fromTable": "Sales",
+        "joinOnDateBehavior": "datePartOnly",
+        "toColumn": "Date",
+        "toTable": "Date"
+      },
+      {
+        "name": "8f3e1c7a-4b5d-4e6f-8a7b-8c9d0e1f2a3b",
+        "fromColumn": "ShipDate",
+        "fromTable": "Sales",
+        "isActive": false,
+        "toColumn": "Date",
+        "toTable": "Date"
+      },
+      {
+        "name": "9a4f2d8b-5c6e-4f7a-9b8c-9d0e1f2a3b4c",
+        "fromCardinality": "one",
+        "fromColumn": "ProductKey",
+        "fromTable": "Product Details",
+        "securityFilteringBehavior": "bothDirections",
+        "toCardinality": "one",
+        "toColumn": "ProductKey",
+        "toTable": "Product"
+      }
+    ],
+    "roles": [
+      {
+        "name": "West Region",
+        "annotations": [
+          {
+            "name": "PBI_Id",
+            "value": "3c5e7a9b1d2f4a6c8e0b2d4f6a8c0e2b"
+          }
+        ],
+        "modelPermission": "read",
+        "tablePermissions": [
+          {
+            "name": "Sales",
+            "filterExpression": "[Region] = \"West\""
+          },
+          {
+            "name": "Product",
+            "filterExpression": [
+              "VAR allowed = { \"Bikes\", \"Helmets\" }",
+              "RETURN",
+              "    [Category] IN allowed"
+            ],
+            "metadataPermission": "read"
+          }
+        ]
+      },
+      {
+        "name": "Admins",
+        "members": [
+          {
+            "identityProvider": "AzureAD",
+            "memberName": "admins@example.com"
+          }
+        ],
+        "modelPermission": "readRefresh"
+      }
+    ],
+    "sourceQueryCulture": "en-GB",
+    "tables": [
+      {
+        "name": "Sales",
+        "annotations": [
+          {
+            "name": "PBI_ResultType",
+            "value": "Table"
+          }
+        ],
+        "columns": [
+          {
+            "name": "RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61",
+            "dataType": "int64",
+            "isHidden": true,
+            "isKey": true,
+            "isNullable": false,
+            "isUnique": true,
+            "type": "rowNumber"
+          },
+          {
+            "name": "OrderDate",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ],
+            "dataType": "dateTime",
+            "formatString": "General Date",
+            "lineageTag": "a1b2c3d4-0001-4000-8000-000000000001",
+            "sourceColumn": "OrderDate",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "ShipDate",
+            "dataType": "dateTime",
+            "formatString": "Long Date",
+            "isHidden": true,
+            "lineageTag": "a1b2c3d4-0001-4000-8000-000000000002",
+            "sourceColumn": "ShipDate",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "ProductKey",
+            "dataType": "int64",
+            "formatString": "0",
+            "lineageTag": "a1b2c3d4-0001-4000-8000-000000000003",
+            "sourceColumn": "ProductKey",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "Region",
+            "dataCategory": "StateOrProvince",
+            "dataType": "string",
+            "description": "Sales region of the store.",
+            "displayFolder": "Geography",
+            "lineageTag": "a1b2c3d4-0001-4000-8000-000000000004",
+            "sourceColumn": "Region",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "Amount",
+            "dataType": "decimal",
+            "formatString": "\\$#,0.00;(\\$#,0.00);\\$#,0.00",
+            "lineageTag": "a1b2c3d4-0001-4000-8000-000000000005",
+            "sourceColumn": "Amount",
+            "summarizeBy": "sum"
+          },
+          {
+            "name": "Amount With Tax",
+            "dataType": "double",
+            "expression": [
+              "",
+              "VAR rate = 0.2",
+              "RETURN",
+              "    Sales[Amount] * (1 + rate)"
+            ],
+            "isDataTypeInferred": true,
+            "lineageTag": "a1b2c3d4-0001-4000-8000-000000000006",
+            "summarizeBy": "sum",
+            "type": "calculated"
+          },
+          {
+            "name": "Is Big",
+            "dataType": "boolean",
+            "expression": "Sales[Amount] > 1000",
+            "formatString": "\"TRUE\";\"TRUE\";\"FALSE\"",
+            "isDataTypeInferred": true,
+            "lineageTag": "a1b2c3d4-0001-4000-8000-000000000007",
+            "summarizeBy": "none",
+            "type": "calculated"
+          }
+        ],
+        "lineageTag": "a1b2c3d4-0000-4000-8000-000000000000",
+        "measures": [
+          {
+            "name": "Total Sales",
+            "annotations": [
+              {
+                "name": "PBI_FormatHint",
+                "value": "{\"currencyCulture\":\"en-US\"}"
+              }
+            ],
+            "displayFolder": "Revenue",
+            "expression": "SUM(Sales[Amount])",
+            "formatString": "\\$#,0.00;(\\$#,0.00);\\$#,0.00",
+            "lineageTag": "b1b2c3d4-0001-4000-8000-000000000001"
+          },
+          {
+            "name": "Sales YoY %",
+            "description": "Year-over-year growth of Total Sales.",
+            "expression": [
+              "",
+              "VAR cur = [Total Sales]",
+              "VAR prev = CALCULATE([Total Sales], SAMEPERIODLASTYEAR('Date'[Date]))",
+              "RETURN",
+              "    DIVIDE(cur - prev, prev)"
+            ],
+            "formatStringDefinition": {
+              "expression": "IF(ABS([Sales YoY %]) < 0.01, \"0.00%\", \"0.0%\")"
+            },
+            "lineageTag": "b1b2c3d4-0001-4000-8000-000000000002"
+          },
+          {
+            "name": "Hidden Helper",
+            "dataType": "int64",
+            "expression": "COUNTROWS(Sales)",
+            "isHidden": true,
+            "lineageTag": "b1b2c3d4-0001-4000-8000-000000000003"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Sales-4d6f8a0c",
+            "mode": "import",
+            "source": {
+              "expression": [
+                "let",
+                "    Source = Csv.Document(File.Contents(SourceFolder & \"\\sales.csv\"), [Delimiter=\",\", Encoding=65001]),",
+                "    Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),",
+                "    Typed = Table.TransformColumnTypes(Promoted, {{\"Amount\", Currency.Type}})",
+                "in",
+                "    Typed"
+              ],
+              "type": "m"
+            }
+          }
+        ],
+        "refreshPolicy": {
+          "incrementalGranularity": "day",
+          "incrementalPeriods": 3,
+          "policyType": "basic",
+          "rollingWindowGranularity": "year",
+          "rollingWindowPeriods": 2,
+          "sourceExpression": [
+            "let",
+            "    Source = Sales",
+            "in",
+            "    Source"
+          ]
+        }
+      },
+      {
+        "name": "Product",
+        "columns": [
+          {
+            "name": "RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61",
+            "dataType": "int64",
+            "isHidden": true,
+            "isKey": true,
+            "isNullable": false,
+            "isUnique": true,
+            "type": "rowNumber"
+          },
+          {
+            "name": "ProductKey",
+            "dataType": "int64",
+            "isHidden": true,
+            "lineageTag": "c1b2c3d4-0001-4000-8000-000000000001",
+            "sourceColumn": "ProductKey",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "Category",
+            "dataType": "string",
+            "lineageTag": "c1b2c3d4-0001-4000-8000-000000000002",
+            "sortByColumn": "Category Order",
+            "sourceColumn": "Category",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "Category Order",
+            "dataType": "int64",
+            "isHidden": true,
+            "lineageTag": "c1b2c3d4-0001-4000-8000-000000000003",
+            "sourceColumn": "CategoryOrder",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "Name",
+            "dataType": "string",
+            "lineageTag": "c1b2c3d4-0001-4000-8000-000000000004",
+            "sourceColumn": "Name",
+            "summarizeBy": "none"
+          }
+        ],
+        "description": "One row per product.",
+        "hierarchies": [
+          {
+            "name": "Catalog",
+            "levels": [
+              {
+                "name": "Category",
+                "column": "Category",
+                "lineageTag": "c2b2c3d4-0001-4000-8000-000000000001",
+                "ordinal": 0
+              },
+              {
+                "name": "Name",
+                "column": "Name",
+                "lineageTag": "c2b2c3d4-0001-4000-8000-000000000002",
+                "ordinal": 1
+              }
+            ],
+            "lineageTag": "c2b2c3d4-0000-4000-8000-000000000000"
+          }
+        ],
+        "lineageTag": "c1b2c3d4-0000-4000-8000-000000000000",
+        "partitions": [
+          {
+            "name": "Product-5e7a9b1d",
+            "mode": "directQuery",
+            "queryGroup": "Dimensions",
+            "source": {
+              "expression": [
+                "let",
+                "    Source = Sql.Database(\"server\", \"db\"),",
+                "    Product = Source{[Schema=\"dbo\", Item=\"Product\"]}[Data]",
+                "in",
+                "    Product"
+              ],
+              "futureSourceOption": "keep-me",
+              "type": "m"
+            }
+          }
+        ]
+      },
+      {
+        "name": "Date",
+        "columns": [
+          {
+            "name": "Date",
+            "dataCategory": "PaddedDateTableDates",
+            "dataType": "dateTime",
+            "formatString": "yyyy-mm-dd",
+            "isDataTypeInferred": true,
+            "isKey": true,
+            "isNameInferred": true,
+            "lineageTag": "d1b2c3d4-0001-4000-8000-000000000001",
+            "sourceColumn": "[Date]",
+            "summarizeBy": "none",
+            "type": "calculatedTableColumn"
+          },
+          {
+            "name": "Year",
+            "dataType": "int64",
+            "expression": "YEAR('Date'[Date])",
+            "formatString": "0",
+            "isDataTypeInferred": true,
+            "lineageTag": "d1b2c3d4-0001-4000-8000-000000000002",
+            "summarizeBy": "none",
+            "type": "calculated"
+          }
+        ],
+        "dataCategory": "Time",
+        "lineageTag": "d1b2c3d4-0000-4000-8000-000000000000",
+        "partitions": [
+          {
+            "name": "Date",
+            "mode": "import",
+            "source": {
+              "expression": "CALENDAR(DATE(2020, 1, 1), DATE(2026, 12, 31))",
+              "type": "calculated"
+            }
+          }
+        ]
+      },
+      {
+        "name": "Product Details",
+        "columns": [
+          {
+            "name": "ProductKey",
+            "dataType": "int64",
+            "lineageTag": "e1b2c3d4-0001-4000-8000-000000000001",
+            "sourceColumn": "ProductKey",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "Weight (kg)",
+            "dataType": "double",
+            "lineageTag": "e1b2c3d4-0001-4000-8000-000000000002",
+            "sourceColumn": "Weight",
+            "summarizeBy": "sum"
+          }
+        ],
+        "futureTableProperty": {
+          "alpha": "second",
+          "nested": [
+            1,
+            2,
+            3
+          ],
+          "zeta": "first"
+        },
+        "isHidden": true,
+        "lineageTag": "e1b2c3d4-0000-4000-8000-000000000000",
+        "partitions": [
+          {
+            "name": "Product Details",
+            "mode": "import",
+            "source": {
+              "expression": "#table(type table [ProductKey = Int64.Type, Weight = number], {{1, 9.5}})",
+              "type": "m"
+            }
+          }
+        ]
+      },
+      {
+        "name": "Measures",
+        "measures": [
+          {
+            "name": "Sales Label",
+            "expression": "\"Sales: \" & FORMAT([Total Sales], \"#,0\") & \" — été ✓\"",
+            "lineageTag": "f1b2c3d4-0001-4000-8000-000000000001"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Measures",
+            "mode": "import",
+            "source": {
+              "expression": "Row(\"Column\", BLANK())",
+              "type": "calculated"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,1 @@
+CONCATENATEX(TOPN(3, VALUES(Customer[Name]), [Total Sales]), Customer[Name], ", ")

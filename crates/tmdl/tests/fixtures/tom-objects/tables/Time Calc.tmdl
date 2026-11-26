@@ -1,0 +1,35 @@
+table 'Time Calc'
+
+	/// cg desc
+	calculationGroup
+		precedence: 10
+
+		/// multi
+		multipleOrEmptySelectionExpression = SELECTEDMEASURE()
+
+			formatStringDefinition = "#"
+
+		/// none
+		noSelectionExpression = SELECTEDMEASURE() + 0
+
+		/// cur
+		calculationItem Current = SELECTEDMEASURE()
+
+		calculationItem Double = SELECTEDMEASURE() * 2
+
+			formatStringDefinition = "0.00"
+
+		annotation CgNote = cg1
+
+	column Item
+		dataType: string
+		sourceColumn: Name
+		sortByColumn: Ordinal
+
+	column Ordinal
+		dataType: int64
+		isHidden
+		sourceColumn: Ordinal
+
+	partition 'Time Calc' = calculationGroup
+

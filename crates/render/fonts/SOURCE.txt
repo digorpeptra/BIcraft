@@ -1,0 +1,128 @@
+The renderer's bundled fallback faces (after Selawik, in this order): glyph subsets of
+Noto fonts, made by `cargo xtask font-subset bundle SRC_DIR` (xtask/src/font_subset.rs:
+the release, file and SHA-256 of each source; the Unicode ranges and emoji asked for). Each face keeps
+the characters of those blocks it has that Selawik and the faces before it lack, with its
+glyphs renumbered; cmap of these characters only; post format 3; layout and hinting tables
+dropped; name table kept. Licence: SIL Open Font License 1.1, no Reserved Font Name;
+copyright The Noto Project Authors (Noto Emoji: Google LLC). The OFL-*.txt files here
+are the upstream OFL.txt files, unmodified.
+
+Selawik covers 251 of the 2417 characters asked for.
+
+NotoSans-Regular-subset.ttf: a glyph subset of NotoSans-Regular.ttf (Noto Sans).
+Upstream:  https://github.com/notofonts/latin-greek-cyrillic, release NotoSans-v2.015
+Archive:   https://github.com/notofonts/latin-greek-cyrillic/releases/download/NotoSans-v2.015/NotoSans-v2.015.zip
+           SHA-256 0c34df072a3fa7efbb7cbf34950e1f971a4447cffe365d3a359e2d4089b958f5
+Source:    NotoSans/unhinted/ttf/NotoSans-Regular.ttf (431364 bytes)
+           SHA-256 f3961a9cde016d41a4879aecda1474d3a36d6bf54fa0e4643de029cc2248b0e8
+Licence:   OFL-NotoSans.txt
+Subset:    SHA-256 f1014c6fbc344bdf27ee82f150c0d0c101c1c5210762f8f032396939a8b641d0 (70284 bytes)
+Characters (681): U+00AA U+00BA U+0108-0109 U+0114-0115 U+011C-011D U+0124-0125 U+0128-0129 U+012C-012D
+           U+0134-0135 U+0138 U+0149 U+014E-014F U+015C-015D U+0168-0169 U+016C-016D
+           U+017F U+018F U+01A0-01B0 U+01CD-01DC U+0259 U+02BB-02BC U+02C8-02D7 U+0305
+           U+0309 U+030D-0311 U+0313-0325 U+0329-0334 U+0337-0338 U+0370-0377
+           U+037A-037F U+0384-038A U+038C U+038E-03A1 U+03A3-03E1 U+03F0-045F
+           U+0490-0491 U+1E9E U+1EA0-1EF1 U+1EF4-1EF9 U+200B-2012 U+2015-2017 U+201B
+           U+201F U+2023-2025 U+2027 U+202A-202E U+2031-2038 U+203B-205E U+2060-2064
+           U+2066-2071 U+2074-208E U+2090-209C U+20A0-20AB U+20AD-20C0 U+2100-2121
+           U+2123-215F U+2212 U+25CC U+FFFD
+
+NotoSans-Bold-subset.ttf: a glyph subset of NotoSans-Bold.ttf (Noto Sans).
+Upstream:  https://github.com/notofonts/latin-greek-cyrillic, release NotoSans-v2.015
+Archive:   https://github.com/notofonts/latin-greek-cyrillic/releases/download/NotoSans-v2.015/NotoSans-v2.015.zip
+           SHA-256 0c34df072a3fa7efbb7cbf34950e1f971a4447cffe365d3a359e2d4089b958f5
+Source:    NotoSans/unhinted/ttf/NotoSans-Bold.ttf (432376 bytes)
+           SHA-256 87cb2d84472a7d66da659ee47b6cdb9552326e8c128245231f191b6ac72529d9
+Licence:   OFL-NotoSans.txt
+Subset:    SHA-256 df2ce0849242909346657c8ab09d0d1e0ec327cd499147b183fc3d8b52a33cc7 (70108 bytes)
+Characters (681): U+00AA U+00BA U+0108-0109 U+0114-0115 U+011C-011D U+0124-0125 U+0128-0129 U+012C-012D
+           U+0134-0135 U+0138 U+0149 U+014E-014F U+015C-015D U+0168-0169 U+016C-016D
+           U+017F U+018F U+01A0-01B0 U+01CD-01DC U+0259 U+02BB-02BC U+02C8-02D7 U+0305
+           U+0309 U+030D-0311 U+0313-0325 U+0329-0334 U+0337-0338 U+0370-0377
+           U+037A-037F U+0384-038A U+038C U+038E-03A1 U+03A3-03E1 U+03F0-045F
+           U+0490-0491 U+1E9E U+1EA0-1EF1 U+1EF4-1EF9 U+200B-2012 U+2015-2017 U+201B
+           U+201F U+2023-2025 U+2027 U+202A-202E U+2031-2038 U+203B-205E U+2060-2064
+           U+2066-2071 U+2074-208E U+2090-209C U+20A0-20AB U+20AD-20C0 U+2100-2121
+           U+2123-215F U+2212 U+25CC U+FFFD
+
+NotoSansMono-Regular-subset.ttf: a glyph subset of NotoSansMono-Regular.ttf (Noto Sans Mono).
+Upstream:  https://github.com/notofonts/latin-greek-cyrillic, release NotoSansMono-v2.014
+Archive:   https://github.com/notofonts/latin-greek-cyrillic/releases/download/NotoSansMono-v2.014/NotoSansMono-v2.014.zip
+           SHA-256 090cf6c5e03f337a755630ca888b1fef463e64ae7b33ee134e9309c05f978732
+Source:    NotoSansMono/unhinted/ttf/NotoSansMono-Regular.ttf (388660 bytes)
+           SHA-256 87f8ce0522a6c99b743ee5fc75b4073cfdd575639119672828b7b9944b65b4f4
+Licence:   OFL-NotoSans.txt (the same text as Noto Sans's)
+Subset:    SHA-256 4107c539cba0357a02121cbd05fa44d50277d2a3b0825281e978b4e31053a99e (12516 bytes)
+Characters (160): U+2500-259F
+
+NotoSansSymbols2-Regular-subset.ttf: a glyph subset of NotoSansSymbols2-Regular.ttf (Noto Sans Symbols 2).
+Upstream:  https://github.com/notofonts/symbols, release NotoSansSymbols2-v2.008
+Archive:   https://github.com/notofonts/symbols/releases/download/NotoSansSymbols2-v2.008/NotoSansSymbols2-v2.008.zip
+           SHA-256 346c930bbe8eb946701a05c54e9c11a2094dee1d93c387bf1771c0a3e335688f
+Source:    NotoSansSymbols2/unhinted/ttf/NotoSansSymbols2-Regular.ttf (671568 bytes)
+           SHA-256 c4a0a80f0041ce4be81e2478faad22776d23edb98ae3f0d19bd37044820ecf9d
+Licence:   OFL-NotoSansSymbols2.txt
+Subset:    SHA-256 7230fe18cc2fa918a75a2abf037603a86ea323a6fe1ecf0ce106547740b2922b (119888 bytes)
+Characters (525): U+21AF U+21E6-21F0 U+21F3 U+2218-2219 U+2299 U+22C4-22C6 U+2316 U+2318 U+231A-231B
+           U+2325-2328 U+232B U+23CE-23CF U+23E9-23EA U+23ED-23EF U+23F1-23FA
+           U+25A0-25CB U+25CD-2609 U+260E-2612 U+2614-2623 U+2630-2637 U+263C
+           U+2654-2668 U+267F-268F U+269E-26A1 U+26AA-26AC U+26BD-26CD U+26CF-26E1
+           U+2700-2704 U+2706-2709 U+270B-271C U+2722-2727 U+2729-274B U+274D
+           U+274F-2753 U+2756-2775 U+2794 U+2798-27AF U+27B1-27BE U+2B00-2B0D
+           U+2B12-2B2F U+2B50-2B59 U+1F30D-1F30F U+1F321 U+1F324 U+1F327 U+1F329 U+1F396
+           U+1F3C6 U+1F3E0 U+1F3ED U+1F3F3 U+1F3F7 U+1F441 U+1F44C-1F44E U+1F4B0 U+1F4B3
+           U+1F4BB U+1F4C8-1F4CB U+1F4E6 U+1F4EB U+1F503 U+1F50D U+1F512-1F513
+           U+1F550-1F55B U+1F5A5 U+1F5A8 U+1F5B1 U+1F5C2-1F5C3 U+1F5D1 U+1F5D3 U+1F5FA
+           U+1F6CD U+1F6E0 U+1F7E0-1F7EB U+1FA99
+
+NotoSansMath-Regular-subset.ttf: a glyph subset of NotoSansMath-Regular.ttf (Noto Sans Math).
+Upstream:  https://github.com/notofonts/math, release NotoSansMath-v3.000
+Archive:   https://github.com/notofonts/math/releases/download/NotoSansMath-v3.000/NotoSansMath-v3.000.zip
+           SHA-256 ac351837b41f8a897f020b97fb0f075ad574c1e9669fb5839ada1f92fd748356
+Source:    NotoSansMath/unhinted/ttf/NotoSansMath-Regular.ttf (657440 bytes)
+           SHA-256 b127e84699212b6b2ef50aff58e0ebebeec04ffe6db1b9eb9e209c8c3d97b4aa
+Licence:   OFL-NotoSansMath.txt
+Subset:    SHA-256 47b2aece01df1611298bf0c009aec6a30e642ea0bcaa4012269820e6d76ab032 (40668 bytes)
+Characters (396): U+2190-21AE U+21B0-21E5 U+21F1-21F2 U+21F4-2211 U+2213-2217 U+221A-2298 U+229A-22C3
+           U+22C7-2300 U+2302 U+2305-2306 U+2308-230B U+2310-2313 U+2317 U+2319
+           U+231C-231F U+263B U+263D-263E U+2640 U+2642 U+2669-266F U+267E U+26A5 U+26B2
+           U+2720 U+27E8-27E9 U+27F5-27FA U+2934-2935 U+2B0E-2B11
+
+NotoSansSymbols-Regular-subset.ttf: a glyph subset of NotoSansSymbols-Regular.ttf (Noto Sans Symbols).
+Upstream:  https://github.com/notofonts/symbols, release NotoSansSymbols-v2.003
+Archive:   https://github.com/notofonts/symbols/releases/download/NotoSansSymbols-v2.003/NotoSansSymbols-v2.003.zip
+           SHA-256 0c113cdcf6c31d050b80dac39fba2d804a6985281012e76e9220c0a00da007f3
+Source:    NotoSansSymbols/unhinted/ttf/NotoSansSymbols-Regular.ttf (145508 bytes)
+           SHA-256 6eea9cb4cd39269ea9f95ba5c2735f80ae74049dfc9e1a7c932a5cfc8f0c3030
+Licence:   OFL-NotoSansSymbols.txt
+Subset:    SHA-256 533aa10593719bc15eca51663f3af37ac71bd3e67367de37f92409bac1cf76da (46216 bytes)
+Characters (221): U+2160-216B U+2301 U+2303-2304 U+2307 U+230C-230F U+2314-2315 U+2329-232A U+2460-2473
+           U+24EA-24FF U+260A-260D U+2613 U+2624-262F U+2638-263A U+263F U+2641
+           U+2643-2653 U+2670-267D U+2690-269D U+26A2-26A4 U+26A6-26A9 U+26AD-26B1
+           U+26B3-26BC U+26CE U+26E2-26FF U+271D-271F U+2721 U+2776-2793 U+1F610
+
+NotoEmoji-Regular-subset.ttf: a glyph subset of NotoEmoji[wght].ttf (Noto Emoji).
+Upstream:  https://github.com/google/fonts (ofl/notoemoji; upstream googlefonts/emoji-bw), release google/fonts commit 8b0a1d0f5983c89bc2b93f1b5fb55f9e252744b5
+Archive:   https://raw.githubusercontent.com/google/fonts/8b0a1d0f5983c89bc2b93f1b5fb55f9e252744b5/ofl/notoemoji/NotoEmoji%5Bwght%5D.ttf
+           SHA-256 de6c18832938afc99caf132b39d6a30a19bac7f2e812e28db2535b4608d27551
+Source:    ofl/notoemoji/NotoEmoji[wght].ttf (1982596 bytes)
+           SHA-256 de6c18832938afc99caf132b39d6a30a19bac7f2e812e28db2535b4608d27551
+Licence:   OFL-NotoEmoji.txt
+Subset:    SHA-256 27324040f11c6a2abf84f69a84955a5060466f4d6cc82907419bc05b3ce6e31a (63796 bytes)
+Characters (150): U+23EB-23EC U+23F0 U+2705 U+2728 U+274C U+274E U+2754-2755 U+2795-2797 U+1F192-1F193
+           U+1F195 U+1F197-1F199 U+1F30A U+1F31F U+1F331 U+1F333 U+1F34E U+1F355 U+1F381
+           U+1F389-1F38A U+1F3AF U+1F3C1 U+1F3C5 U+1F3E2 U+1F3E5-1F3E6 U+1F3E8
+           U+1F3EA-1F3EC U+1F3F4 U+1F440 U+1F44F U+1F464-1F465 U+1F468-1F469 U+1F494
+           U+1F499-1F49C U+1F4A0-1F4A1 U+1F4A7 U+1F4AA U+1F4AF U+1F4B4-1F4B8 U+1F4BE
+           U+1F4C1-1F4C2 U+1F4C5-1F4C6 U+1F4CC-1F4CE U+1F4DD-1F4DE U+1F4E2-1F4E3
+           U+1F4E7-1F4E8 U+1F4F1 U+1F500-1F502 U+1F504 U+1F50E U+1F510-1F511
+           U+1F514-1F515 U+1F517-1F518 U+1F51A-1F51D U+1F51F U+1F522-1F525 U+1F527-1F528
+           U+1F534-1F53D U+1F5A4 U+1F600-1F601 U+1F603-1F604 U+1F609-1F60A U+1F60D-1F60E
+           U+1F611 U+1F61E-1F61F U+1F621-1F622 U+1F62D U+1F631 U+1F634 U+1F641-1F642
+           U+1F64B-1F64C U+1F680 U+1F686 U+1F697 U+1F69A-1F69B U+1F6A2 U+1F6A9 U+1F6AB
+           U+1F6D2 U+1F7F0 U+1F90D-1F90E U+1F914 U+1F91D U+1F92F U+1F947-1F949 U+1F973
+           U+1F9D1 U+1F9E1 U+1F9ED U+1F9FE
+
+Characters of the blocks asked for that no bundled face has (33), drawn as a box and
+reported by report.render: U+0378-0379 U+0380-0383 U+038B U+038D U+03A2 U+03E2-03EF U+2065 U+2072-2073 U+208F
+U+209D-209F U+270A U+27B0 U+27BF

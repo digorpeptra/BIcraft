@@ -1,0 +1,18 @@
+[package]
+name = "bicraft-auth"
+description = "L0: authentication of bicraft serve (OIDC / OAuth 2.1 bearer JWTs, trusted identity header behind an auth proxy, hashed static API tokens) and the workspace ACL"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde_json.workspace = true
+# Signature checks (RSA PKCS#1 v1.5 and PSS, ECDSA P-256/P-384, Ed25519, HMAC), SHA-256 and the
+# OS random generator. Already in the build through rustls (Apache-2.0 AND ISC): no new crate.
+ring = "0.17"
+# Blocking HTTPS client for OIDC discovery and JWKS, configured like crates/databricks: rustls
+# (ring) with the bundled Mozilla roots, no async runtime, no OpenSSL, static on musl.
+ureq = { version = "3", default-features = false, features = ["rustls"] }
+
+[lints]
+workspace = true

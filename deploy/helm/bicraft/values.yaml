@@ -1,0 +1,316 @@
+# Values of the bicraft chart: one workspace per release (docs/kubernetes.md has the reference).
+#
+# A release runs one `bicraft serve` pod (Deployment, 1 replica, Recreate) for one workspace: the
+# workspace's files live on their own PersistentVolumeClaim, mounted at <workspace.root>/<workspace.id>,
+# and agents reach it at <public URL>/w/<workspace.id>/mcp (files at /w/<workspace.id>/files/).
+# Authentication is mandatory (the pod listens on every interface): set at least one mode under
+# `auth` and at least one grant.
+
+image:
+  repository: bicraft
+  # Defaults to the chart's appVersion.
+  tag: ""
+  # sha256:… — when set, the image is pulled by digest (the tag is then informative only).
+  digest: ""
+  pullPolicy: IfNotPresent
+imagePullSecrets: []
+
+nameOverride: ""
+fullnameOverride: ""
+
+workspace:
+  # The workspace id: the URL segment /w/<id>/ and the folder name. 1 to 64 of [A-Za-z0-9._-], not
+  # starting with a dot.
+  id: main
+  # The server root (`bicraft serve --root`); the workspace volume is mounted in it.
+  root: /srv/bicraft
+
+persistence:
+  # Use an existing claim instead of creating one.
+  existingClaim: ""
+  # Empty: the cluster's default storage class.
+  storageClass: ""
+  accessModes:
+    - ReadWriteOnce
+  # Room for the models, their saved copies and uploads in flight (an upload is written next to
+  # its target before it replaces it).
+  size: 20Gi
+  annotations: {}
+  # Keep the claim (and the workspace's files) when the release is uninstalled.
+  keep: true
+
+# Model size: an admin setting per workspace (docs/beyond-ram.md, docs/kubernetes.md "Sizing").
+model:
+  # BICRAFT_MEMORY_LIMIT, in MiB: the process-wide ceiling of what BIcraft reserves. The pod's
+  # memory limit is this plus 64 MiB (the measured base margin). 0: no limit (not recommended).
+  memoryLimitMiB: 1984
+  # BICRAFT_MEMORY_BUDGET in MiB (decoded columns kept; spill beyond). 0: half of the limit.
+  memoryBudgetMiB: 0
+  # Memory request in MiB. 0: equal to the pod limit (Guaranteed QoS when the CPU matches too).
+  memoryRequestMiB: 0
+  # CPU limit in whole cores; BICRAFT_SCAN_THREADS defaults to it.
+  cpu: 2
+  # CPU request (a Kubernetes quantity). Empty: equal to the limit.
+  cpuRequest: ""
+  # BICRAFT_SCAN_THREADS. 0: the CPU limit.
+  scanThreads: 0
+  # BICRAFT_AGG_THREADS (background aggregation builds). 0: a quarter of the CPU limit, at least 1.
+  aggThreads: 0
+  # BICRAFT_AGGREGATIONS: report-derived aggregations (about 30 % more memory at 100 M rows).
+  aggregations: true
+
+# The temporary folder (TMPDIR and BICRAFT_SPILL_DIR): a disk-backed emptyDir, never in memory.
+spill:
+  # Room for one decompressed backup of the largest model, plus upload staging of zipped projects.
+  sizeLimit: 20Gi
+
+server:
+  port: 7878
+  # --shutdown-grace: seconds running requests get after SIGTERM. The pod's
+  # terminationGracePeriodSeconds is this plus terminationGraceMarginSeconds.
+  shutdownGraceSeconds: 30
+  terminationGraceMarginSeconds: 5
+  # --max-upload-bytes (K/M/G suffixes). Keep the ingress body limit in line.
+  maxUploadBytes: 4G
+  # --max-body-bytes of one MCP request. 0: the server's default (8 MiB).
+  maxBodyBytes: 0
+  # --queue: tool calls running or waiting per workspace. 0: the server's default (8).
+  queue: 0
+  # --max-concurrent-reads: read-only tool calls (queries, renders, inspections) and viewer reads running at
+  # once on the workspace's session; calls that change it run alone, and a waiting one goes first
+  # (docs/web-deployment.md, "Concurrency"). Each running query has its own query memory budget: size
+  # model.memoryLimitMiB for them. 0: the server's default (4); 1: one at a time.
+  maxConcurrentReads: 0
+  # --idle-timeout in seconds: close the workspace session after this long without a call (the file
+  # is reopened on the next call). 0: off.
+  idleTimeoutSeconds: 0
+  # --ready-memory-percent: /readyz answers 503 while reserved memory is above this share of
+  # BICRAFT_MEMORY_LIMIT. 0: off.
+  readyMemoryPercent: 0
+  # --local-offset: Power Query's local clock (DateTime.LocalNow, DateTimeZone.LocalNow): "+02:00",
+  # minutes ("-300"), "UTC" or "machine" (the pod's TZ, which needs a POSIX TZ string such as
+  # "CET-1CEST,M3.5.0,M10.5.0/3": the image has no zone files). Empty: UTC, as in the Power BI
+  # service (docs/formats/data-sources.md, "Clock").
+  localOffset: ""
+  # --allow-origin: browser origins allowed to call the endpoint (agents send none).
+  allowedOrigins: []
+  # More `bicraft serve` arguments, appended as given.
+  extraArgs: []
+  # More environment variables (a list of EnvVar objects).
+  extraEnv: []
+
+# The live viewer (docs/kubernetes.md, "Viewer"): the report viewer of the workspace at
+# <public URL>/w/<workspace.id>/view/, with the same authentication and grants as the MCP endpoint. Readers
+# see the saved files (never an editor's unsaved edits); each browser page has a private view (slicers,
+# selections, page). Browsers authenticate through the trusted-proxy mode (oauth2-proxy), or with a one-time
+# login URL from POST /w/<id>/view/login (docs/auth.md, "The viewer in a browser"). Set auth.publicUrl: the
+# viewer's CSRF check compares Origin with it.
+viewer:
+  enabled: true
+  # --viewer-copies: read-only copies of saved files kept for readers (one per file; a copy is a second
+  # model in memory while an editor has unsaved edits: size model.memoryLimitMiB for it).
+  copies: 1
+  # --max-viewers: browser views kept per workspace (each a few KB).
+  maxViews: 256
+  # Document views (docs/mcp.md, "Document views"): each browser tab on a workspace file is a session
+  # of its own on that file (an editor's is a model in memory: size model.memoryLimitMiB for the tabs
+  # open at once). 0 everywhere: the server's defaults.
+  documentViews:
+    # --max-views-per-user: document views one identity holds at once (default 8).
+    perUser: 0
+    # --max-views: document views open on the workspace (default 32).
+    perWorkspace: 0
+    # --view-idle: seconds after which an unused document view closes (default 1800; four times as
+    # long with unsaved edits, which then stay in the recovery journal).
+    idleSeconds: 0
+  # The UI control channel relayed to editors' app pages (`--viewer-control`, docs/web-deployment.md
+  # "UI control channel"): agents with an editor credential plus the token in X-Bicraft-Control drive
+  # and screenshot their own pages. The token comes from a Secret (BICRAFT_VIEWER_CONTROL_TOKEN, at
+  # least 32 characters): the pod's file system is read-only, so no token file is written.
+  control:
+    enabled: false
+    existingSecret: ""
+    key: token
+
+# Auto-recovery (docs/recovery.md): `--recovery-dir` on a volume of its own, so the edits made since
+# the last save survive an expired browser view, a closed tab and a pod restart; the server keeps one
+# subfolder per workspace. Never inside the workspace volume (its files are listed and downloaded).
+recovery:
+  enabled: true
+  mountPath: /var/lib/bicraft/recovery
+  persistence:
+    # Use an existing claim instead of creating one.
+    existingClaim: ""
+    # Empty: the cluster's default storage class.
+    storageClass: ""
+    accessModes:
+      - ReadWriteOnce
+    # Journals are one short JSON line per edit, with a full recovery copy (a few MB to the model's
+    # size) after an import or past 4 MiB.
+    size: 1Gi
+    # Keep the claim when the release is uninstalled.
+    keep: true
+  # --allow-autosave: the app may save PBIP projects automatically (File > Info; off by default).
+  allowAutosave: false
+
+# Prometheus metrics (docs/kubernetes.md, "Observability"): `bicraft serve --metrics-listen`, on a port of
+# their own that serves `/metrics` only, without authentication (nothing in it is model data; the MCP port
+# never serves it). Requests, command latency, queue, open workspaces, memory limit use and evictions,
+# spill bytes, aggregation builds, drain state.
+metrics:
+  enabled: true
+  port: 9090
+  # The address the listener binds. The pod IP (from the downward API) by default: reachable on the pod
+  # network only, not on localhost (`kubectl port-forward` needs "0.0.0.0"). IPv6 clusters: "[$(POD_IP)]".
+  host: "$(POD_IP)"
+  # --metrics-workspace-label: per-workspace series (one release serves one workspace: rarely useful).
+  workspaceLabel: false
+  # prometheus.io/scrape, /port and /path pod annotations, for annotation-based scrape configs.
+  podAnnotations: true
+  # Who may scrape (NetworkPolicyPeer objects), e.g. the monitoring namespace. Empty: any pod in the cluster.
+  scrapeFrom: []
+  # A ServiceMonitor for the Prometheus Operator (needs its CRDs), with a Service of its own for the port.
+  serviceMonitor:
+    enabled: false
+    interval: 30s
+    scrapeTimeout: 10s
+    # Labels your Prometheus selects ServiceMonitors by (e.g. release: kube-prometheus-stack).
+    labels: {}
+
+logging:
+  # BICRAFT_LOG_FORMAT: "json" (one line per request: route, workspace, caller kind, command id, status,
+  # outcome, duration, sizes; never DAX, values, file names or user ids) or "text" (human server events only).
+  format: json
+
+auth:
+  # --public-url equivalent (BICRAFT_PUBLIC_URL): scheme://host[:port] as clients see it. Needed for
+  # OIDC audiences; its host is answered automatically.
+  publicUrl: ""
+  # BICRAFT_ALLOWED_HOSTS: more Host values answered. The Service's own names (and the ingress
+  # hosts) are added automatically.
+  allowedHosts: []
+  # BICRAFT_AUTH_GRANTS: editor grants SUBJECT=WORKSPACES, e.g. "token:ci=main", "group:bi-team=*".
+  grants: []
+  # BICRAFT_AUTH_READER_GRANTS: reader grants, same form (read-only commands, file downloads and
+  # listings; docs/auth.md "Roles"). An identity matching both kinds is an editor.
+  readerGrants: []
+  # Static API tokens for agents and CI. The tokens file holds SHA-256 hashes only (create entries
+  # with `bicraft serve token create --name NAME --role agent`).
+  apiTokens:
+    # A Secret holding the tokens file under `key`.
+    existingSecret: ""
+    key: tokens.json
+    # Or the file's content, put in a Secret created by the chart.
+    tokensJson: ""
+  oidc:
+    # BICRAFT_OIDC_ISSUERS / _AUDIENCES / _SCOPES: issuers with default settings. For claim names,
+    # role maps and the rest, use `config`.
+    issuers: []
+    audiences: []
+    scopes: []
+  trustedProxy:
+    # BICRAFT_TRUSTED_PROXIES: the auth proxy's addresses (CIDRs). Enables the trusted-header mode.
+    cidrs: []
+    # --proxy-user-header / --proxy-email-header / --proxy-groups-header. Empty: oauth2-proxy's
+    # X-Forwarded-User / -Email / -Groups.
+    userHeader: ""
+    emailHeader: ""
+    groupsHeader: ""
+  # The full JSON configuration (BICRAFT_AUTH_CONFIG, docs/auth.md "Configuration").
+  config:
+    existingSecret: ""
+    key: auth.json
+    json: ""
+
+# The Databricks connector of `model.refresh` (network access; off by default).
+databricks:
+  enabled: false
+  # A Secret holding the personal access token (BICRAFT_DATABRICKS_TOKEN) under `key`.
+  existingSecret: ""
+  key: token
+
+service:
+  type: ClusterIP
+  port: 7878
+  annotations: {}
+
+ingress:
+  enabled: false
+  className: ""
+  # Defaults for ingress-nginx (ignored by other controllers; replace them with your controller's
+  # equivalents): streamed bodies up to the upload cap, no response buffering (SSE), timeouts above
+  # the longest DAX query (600 s).
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "4g"
+    nginx.ingress.kubernetes.io/proxy-request-buffering: "off"
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "660"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "660"
+  # Host names; each one is also answered by the server (Host check).
+  hosts: []
+  # TLS (secretName + hosts), as in the Ingress API.
+  tls: []
+
+# Gateway API alternative to the Ingress.
+httpRoute:
+  enabled: false
+  parentRefs: []
+  hostnames: []
+  # Request timeout (Gateway API duration); above the longest DAX query.
+  timeout: 660s
+  annotations: {}
+
+networkPolicy:
+  enabled: true
+  # Who may connect to the pod (NetworkPolicyPeer objects): typically the ingress controller's or the
+  # auth proxy's namespace. Empty: any pod in the cluster (kubelet probes are always allowed).
+  ingressFrom: []
+  # Egress besides DNS: CIDRs reachable on egressPorts (an OIDC issuer for its keys, Databricks).
+  # Empty: no egress except DNS.
+  egressCidrs: []
+  egressPorts:
+    - 443
+  # Where DNS lives (kube-dns / CoreDNS).
+  dns:
+    namespaceSelector:
+      matchLabels:
+        kubernetes.io/metadata.name: kube-system
+    podSelector:
+      matchLabels:
+        k8s-app: kube-dns
+  # Host names instead of CIDRs needs a CNI with FQDN policies: a CiliumNetworkPolicy (toFQDNs)
+  # is rendered when enabled.
+  cilium:
+    enabled: false
+    fqdns: []
+
+serviceAccount:
+  create: false
+  name: ""
+  annotations: {}
+
+# The pod's fixed identity (the image's USER). The workspace volume is made group-writable for
+# fsGroup.
+podSecurityContext:
+  runAsUser: 65532
+  runAsGroup: 65532
+  fsGroup: 65532
+
+probes:
+  liveness:
+    initialDelaySeconds: 2
+    periodSeconds: 10
+    timeoutSeconds: 3
+    # Under the connection cap even probes get 503 `busy`: tolerate short bursts.
+    failureThreshold: 6
+  readiness:
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 2
+
+podAnnotations: {}
+podLabels: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}
+priorityClassName: ""

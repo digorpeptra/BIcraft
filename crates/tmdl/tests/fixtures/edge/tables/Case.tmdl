@@ -1,0 +1,6 @@
+table Case
+
+	column c
+		dataType: string
+		sourceColumn: c
+

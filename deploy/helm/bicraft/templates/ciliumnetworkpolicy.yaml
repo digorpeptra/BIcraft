@@ -1,0 +1,43 @@
+{{- if and .Values.networkPolicy.enabled .Values.networkPolicy.cilium.enabled }}
+# Egress by host name (an OIDC issuer, a Databricks workspace), for clusters running Cilium. Cilium
+# combines it with the NetworkPolicy above: a connection is allowed when either policy allows it.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: {{ include "bicraft.fullname" . }}-fqdn
+  labels:
+    {{- include "bicraft.labels" . | nindent 4 }}
+spec:
+  endpointSelector:
+    matchLabels:
+      {{- include "bicraft.selectorLabels" . | nindent 6 }}
+  egress:
+    # DNS through Cilium's proxy, which learns the addresses of the names below.
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: ANY
+          rules:
+            dns:
+              - matchPattern: "*"
+    {{- with .Values.networkPolicy.cilium.fqdns }}
+    - toFQDNs:
+        {{- range . }}
+        {{- if contains "*" . }}
+        - matchPattern: {{ . | quote }}
+        {{- else }}
+        - matchName: {{ . | quote }}
+        {{- end }}
+        {{- end }}
+      toPorts:
+        - ports:
+            {{- range $.Values.networkPolicy.egressPorts }}
+            - port: {{ toString . | quote }}
+              protocol: TCP
+            {{- end }}
+    {{- end }}
+{{- end }}

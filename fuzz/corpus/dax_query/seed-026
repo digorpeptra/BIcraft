@@ -1,0 +1,1 @@
+DEFINE FUNCTION Twice = (v) => v * 2 EVALUATE ROW("x", Twice(21))

@@ -1,0 +1,21 @@
+[package]
+name = "bicraft-view"
+description = "L5: live viewer page (localhost HTTP + SSE, embedded web page)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+bicraft-http.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+# The browser app (`/app/`, docs/webui.md) is embedded gzip-compressed; a client that does not
+# accept gzip gets it inflated on the fly.
+flate2.workspace = true
+
+[build-dependencies]
+bicraft-env.workspace = true
+flate2.workspace = true
+
+[lints]
+workspace = true

@@ -1,0 +1,564 @@
+{
+ "model_culture": "fr-FR",
+ "cultures": [
+  "en-US",
+  "en-GB",
+  "fr-FR",
+  "de-DE",
+  "es-ES",
+  "it-IT",
+  "nl-NL",
+  "pt-BR",
+  "ja-JP",
+  "pt-PT",
+  "fr-CA",
+  "fr-BE",
+  "fr-CH",
+  "de-CH",
+  "de-AT",
+  "en-CA",
+  "en-AU",
+  "en-IN",
+  "es-MX",
+  "sv-SE",
+  "da-DK",
+  "nb-NO",
+  "fi-FI",
+  "pl-PL",
+  "cs-CZ",
+  "ru-RU",
+  "tr-TR",
+  "zh-CN",
+  "ko-KR",
+  "nl-BE",
+  "el-GR",
+  "ro-RO",
+  "hu-HU",
+  "sk-SK",
+  "uk-UA",
+  "ca-ES",
+  "id-ID",
+  "vi-VN",
+  "lt-LT",
+  "lv-LV",
+  "et-EE",
+  "hr-HR",
+  "sl-SI",
+  "bg-BG",
+  "zh-TW",
+  "en-NZ",
+  "en-ZA",
+  "en-IE",
+  "es-AR",
+  "es-CO",
+  "it-CH",
+  "de-LU",
+  "fr-LU",
+  "nn-NO",
+  "is-IS",
+  "sr-Latn-RS",
+  "ms-MY",
+  "en-SG",
+  "hi-IN"
+ ],
+ "probes": [
+  [
+   "n2",
+   "Number.ToText(1234567.891, \"N2\", c)"
+  ],
+  [
+   "n0neg",
+   "Number.ToText(-1234.5, \"N0\", c)"
+  ],
+  [
+   "f1",
+   "Number.ToText(1234.56, \"F1\", c)"
+  ],
+  [
+   "p1",
+   "Number.ToText(0.256, \"P1\", c)"
+  ],
+  [
+   "c2",
+   "Number.ToText(1234.5, \"C\", c)"
+  ],
+  [
+   "cneg",
+   "Number.ToText(-1234.5, \"C\", c)"
+  ],
+  [
+   "g",
+   "Number.ToText(1234.5, \"G\", c)"
+  ],
+  [
+   "e2",
+   "Number.ToText(12345.678, \"E2\", c)"
+  ],
+  [
+   "custom",
+   "Number.ToText(1234567.891, \"#,##0.00\", c)"
+  ],
+  [
+   "textnum",
+   "Text.From(1234.5, c)"
+  ],
+  [
+   "textdate",
+   "Text.From(#date(2024,3,5), c)"
+  ],
+  [
+   "textdt",
+   "Text.From(#datetime(2024,3,5,14,7,9), c)"
+  ],
+  [
+   "texttime",
+   "Text.From(#time(9,5,3), c)"
+  ],
+  [
+   "d_long",
+   "Date.ToText(#date(2024,3,5), \"D\", c)"
+  ],
+  [
+   "d_short",
+   "Date.ToText(#date(2024,3,5), \"d\", c)"
+  ],
+  [
+   "d_monthday",
+   "Date.ToText(#date(2024,3,5), \"M\", c)"
+  ],
+  [
+   "d_yearmonth",
+   "Date.ToText(#date(2024,3,5), \"Y\", c)"
+  ],
+  [
+   "dMMM",
+   "Date.ToText(#date(2024,3,5), \"MMM\", c)"
+  ],
+  [
+   "dMMMM",
+   "Date.ToText(#date(2024,3,5), \"MMMM\", c)"
+  ],
+  [
+   "ddMMMM",
+   "Date.ToText(#date(2024,3,5), \"d MMMM\", c)"
+  ],
+  [
+   "dddd",
+   "Date.ToText(#date(2024,3,5), \"dddd\", c)"
+  ],
+  [
+   "dddabbr",
+   "Date.ToText(#date(2024,3,5), \"ddd\", c)"
+  ],
+  [
+   "dcustom",
+   "Date.ToText(#date(2024,3,5), \"dddd d MMMM yyyy\", c)"
+  ],
+  [
+   "dt_general",
+   "DateTime.ToText(#datetime(2024,3,5,14,7,9), \"G\", c)"
+  ],
+  [
+   "dt_short",
+   "DateTime.ToText(#datetime(2024,3,5,14,7,9), \"g\", c)"
+  ],
+  [
+   "dt_full",
+   "DateTime.ToText(#datetime(2024,3,5,14,7,9), \"f\", c)"
+  ],
+  [
+   "t_long",
+   "Time.ToText(#time(9,5,3), \"T\", c)"
+  ],
+  [
+   "t_short",
+   "Time.ToText(#time(9,5,3), \"t\", c)"
+  ],
+  [
+   "tpm",
+   "Time.ToText(#time(14,7,9), \"T\", c)"
+  ],
+  [
+   "monthname",
+   "Date.MonthName(#date(2024,3,5), c)"
+  ],
+  [
+   "dayname",
+   "Date.DayOfWeekName(#date(2024,3,5), c)"
+  ],
+  [
+   "p_space",
+   "Number.ToText(Number.FromText(\"1 234,5\", c), \"R\", \"en-US\")"
+  ],
+  [
+   "p_nnbsp",
+   "Number.ToText(Number.FromText(\"1 234,5\", c), \"R\", \"en-US\")"
+  ],
+  [
+   "p_nbsp",
+   "Number.ToText(Number.FromText(\"1 234,5\", c), \"R\", \"en-US\")"
+  ],
+  [
+   "p_dotcomma",
+   "Number.ToText(Number.FromText(\"1.234,5\", c), \"R\", \"en-US\")"
+  ],
+  [
+   "p_commadot",
+   "Number.ToText(Number.FromText(\"1,234.5\", c), \"R\", \"en-US\")"
+  ],
+  [
+   "p_dollar",
+   "Number.ToText(Number.FromText(\"$2.675\", c), \"R\", \"en-US\")"
+  ],
+  [
+   "p_dollar2",
+   "Number.ToText(Number.FromText(\"$1,234.50\", c), \"R\", \"en-US\")"
+  ],
+  [
+   "p_euro",
+   "Number.ToText(Number.FromText(\"2,675 €\", c), \"R\", \"en-US\")"
+  ],
+  [
+   "p_euro2",
+   "Number.ToText(Number.FromText(\"1.234,50 €\", c), \"R\", \"en-US\")"
+  ],
+  [
+   "p_euro3",
+   "Number.ToText(Number.FromText(\"€1,234.50\", c), \"R\", \"en-US\")"
+  ],
+  [
+   "p_pound",
+   "Number.ToText(Number.FromText(\"£1,234.50\", c), \"R\", \"en-US\")"
+  ],
+  [
+   "p_real",
+   "Number.ToText(Number.FromText(\"R$ 1.234,50\", c), \"R\", \"en-US\")"
+  ],
+  [
+   "p_yen",
+   "Number.ToText(Number.FromText(\"¥1,235\", c), \"R\", \"en-US\")"
+  ],
+  [
+   "p_pct",
+   "Number.ToText(Number.FromText(\"12,5 %\", c), \"R\", \"en-US\")"
+  ],
+  [
+   "p_neg",
+   "Number.ToText(Number.FromText(\"(5)\", c), \"R\", \"en-US\")"
+  ],
+  [
+   "p_type",
+   "Number.ToText(Value.FromText(\"2,5\", c), \"R\", \"en-US\")"
+  ],
+  [
+   "p_cur",
+   "Number.ToText(Currency.From(\"$2.675\", c), \"R\", \"en-US\")"
+  ],
+  [
+   "p_cur2",
+   "Number.ToText(Currency.From(\"2,675 €\", c), \"R\", \"en-US\")"
+  ],
+  [
+   "p_d1",
+   "Date.ToText(Date.FromText(\"05/03/2024\", c), \"yyyy-MM-dd\", \"en-US\")"
+  ],
+  [
+   "p_d2",
+   "Date.ToText(Date.FromText(\"5.3.2024\", c), \"yyyy-MM-dd\", \"en-US\")"
+  ],
+  [
+   "p_d3",
+   "Date.ToText(Date.FromText(\"5 mars 2024\", c), \"yyyy-MM-dd\", \"en-US\")"
+  ],
+  [
+   "p_d4",
+   "Date.ToText(Date.FromText(\"March 5, 2024\", c), \"yyyy-MM-dd\", \"en-US\")"
+  ],
+  [
+   "p_d5",
+   "Date.ToText(Date.FromText(\"5 März 2024\", c), \"yyyy-MM-dd\", \"en-US\")"
+  ],
+  [
+   "p_d6",
+   "Date.ToText(Date.FromText(\"2024-03-05\", c), \"yyyy-MM-dd\", \"en-US\")"
+  ],
+  [
+   "p_d7",
+   "Date.ToText(Date.FromText(\"5-3-2024\", c), \"yyyy-MM-dd\", \"en-US\")"
+  ],
+  [
+   "p_d8",
+   "Date.ToText(Date.FromText(\"2024/03/05\", c), \"yyyy-MM-dd\", \"en-US\")"
+  ],
+  [
+   "m1_full",
+   "Date.ToText(#date(2024,1,7), \"MMMM\", c)"
+  ],
+  [
+   "m1_abbr",
+   "Date.ToText(#date(2024,1,7), \"MMM\", c)"
+  ],
+  [
+   "m1_gen",
+   "Date.ToText(#date(2024,1,7), \"d MMMM\", c)"
+  ],
+  [
+   "m1_genabbr",
+   "Date.ToText(#date(2024,1,7), \"d MMM\", c)"
+  ],
+  [
+   "m2_full",
+   "Date.ToText(#date(2024,2,7), \"MMMM\", c)"
+  ],
+  [
+   "m2_abbr",
+   "Date.ToText(#date(2024,2,7), \"MMM\", c)"
+  ],
+  [
+   "m2_gen",
+   "Date.ToText(#date(2024,2,7), \"d MMMM\", c)"
+  ],
+  [
+   "m2_genabbr",
+   "Date.ToText(#date(2024,2,7), \"d MMM\", c)"
+  ],
+  [
+   "m3_full",
+   "Date.ToText(#date(2024,3,7), \"MMMM\", c)"
+  ],
+  [
+   "m3_abbr",
+   "Date.ToText(#date(2024,3,7), \"MMM\", c)"
+  ],
+  [
+   "m3_gen",
+   "Date.ToText(#date(2024,3,7), \"d MMMM\", c)"
+  ],
+  [
+   "m3_genabbr",
+   "Date.ToText(#date(2024,3,7), \"d MMM\", c)"
+  ],
+  [
+   "m4_full",
+   "Date.ToText(#date(2024,4,7), \"MMMM\", c)"
+  ],
+  [
+   "m4_abbr",
+   "Date.ToText(#date(2024,4,7), \"MMM\", c)"
+  ],
+  [
+   "m4_gen",
+   "Date.ToText(#date(2024,4,7), \"d MMMM\", c)"
+  ],
+  [
+   "m4_genabbr",
+   "Date.ToText(#date(2024,4,7), \"d MMM\", c)"
+  ],
+  [
+   "m5_full",
+   "Date.ToText(#date(2024,5,7), \"MMMM\", c)"
+  ],
+  [
+   "m5_abbr",
+   "Date.ToText(#date(2024,5,7), \"MMM\", c)"
+  ],
+  [
+   "m5_gen",
+   "Date.ToText(#date(2024,5,7), \"d MMMM\", c)"
+  ],
+  [
+   "m5_genabbr",
+   "Date.ToText(#date(2024,5,7), \"d MMM\", c)"
+  ],
+  [
+   "m6_full",
+   "Date.ToText(#date(2024,6,7), \"MMMM\", c)"
+  ],
+  [
+   "m6_abbr",
+   "Date.ToText(#date(2024,6,7), \"MMM\", c)"
+  ],
+  [
+   "m6_gen",
+   "Date.ToText(#date(2024,6,7), \"d MMMM\", c)"
+  ],
+  [
+   "m6_genabbr",
+   "Date.ToText(#date(2024,6,7), \"d MMM\", c)"
+  ],
+  [
+   "m7_full",
+   "Date.ToText(#date(2024,7,7), \"MMMM\", c)"
+  ],
+  [
+   "m7_abbr",
+   "Date.ToText(#date(2024,7,7), \"MMM\", c)"
+  ],
+  [
+   "m7_gen",
+   "Date.ToText(#date(2024,7,7), \"d MMMM\", c)"
+  ],
+  [
+   "m7_genabbr",
+   "Date.ToText(#date(2024,7,7), \"d MMM\", c)"
+  ],
+  [
+   "m8_full",
+   "Date.ToText(#date(2024,8,7), \"MMMM\", c)"
+  ],
+  [
+   "m8_abbr",
+   "Date.ToText(#date(2024,8,7), \"MMM\", c)"
+  ],
+  [
+   "m8_gen",
+   "Date.ToText(#date(2024,8,7), \"d MMMM\", c)"
+  ],
+  [
+   "m8_genabbr",
+   "Date.ToText(#date(2024,8,7), \"d MMM\", c)"
+  ],
+  [
+   "m9_full",
+   "Date.ToText(#date(2024,9,7), \"MMMM\", c)"
+  ],
+  [
+   "m9_abbr",
+   "Date.ToText(#date(2024,9,7), \"MMM\", c)"
+  ],
+  [
+   "m9_gen",
+   "Date.ToText(#date(2024,9,7), \"d MMMM\", c)"
+  ],
+  [
+   "m9_genabbr",
+   "Date.ToText(#date(2024,9,7), \"d MMM\", c)"
+  ],
+  [
+   "m10_full",
+   "Date.ToText(#date(2024,10,7), \"MMMM\", c)"
+  ],
+  [
+   "m10_abbr",
+   "Date.ToText(#date(2024,10,7), \"MMM\", c)"
+  ],
+  [
+   "m10_gen",
+   "Date.ToText(#date(2024,10,7), \"d MMMM\", c)"
+  ],
+  [
+   "m10_genabbr",
+   "Date.ToText(#date(2024,10,7), \"d MMM\", c)"
+  ],
+  [
+   "m11_full",
+   "Date.ToText(#date(2024,11,7), \"MMMM\", c)"
+  ],
+  [
+   "m11_abbr",
+   "Date.ToText(#date(2024,11,7), \"MMM\", c)"
+  ],
+  [
+   "m11_gen",
+   "Date.ToText(#date(2024,11,7), \"d MMMM\", c)"
+  ],
+  [
+   "m11_genabbr",
+   "Date.ToText(#date(2024,11,7), \"d MMM\", c)"
+  ],
+  [
+   "m12_full",
+   "Date.ToText(#date(2024,12,7), \"MMMM\", c)"
+  ],
+  [
+   "m12_abbr",
+   "Date.ToText(#date(2024,12,7), \"MMM\", c)"
+  ],
+  [
+   "m12_gen",
+   "Date.ToText(#date(2024,12,7), \"d MMMM\", c)"
+  ],
+  [
+   "m12_genabbr",
+   "Date.ToText(#date(2024,12,7), \"d MMM\", c)"
+  ],
+  [
+   "w0_full",
+   "Date.ToText(#date(2024,3,3), \"dddd\", c)"
+  ],
+  [
+   "w0_abbr",
+   "Date.ToText(#date(2024,3,3), \"ddd\", c)"
+  ],
+  [
+   "w1_full",
+   "Date.ToText(#date(2024,3,4), \"dddd\", c)"
+  ],
+  [
+   "w1_abbr",
+   "Date.ToText(#date(2024,3,4), \"ddd\", c)"
+  ],
+  [
+   "w2_full",
+   "Date.ToText(#date(2024,3,5), \"dddd\", c)"
+  ],
+  [
+   "w2_abbr",
+   "Date.ToText(#date(2024,3,5), \"ddd\", c)"
+  ],
+  [
+   "w3_full",
+   "Date.ToText(#date(2024,3,6), \"dddd\", c)"
+  ],
+  [
+   "w3_abbr",
+   "Date.ToText(#date(2024,3,6), \"ddd\", c)"
+  ],
+  [
+   "w4_full",
+   "Date.ToText(#date(2024,3,7), \"dddd\", c)"
+  ],
+  [
+   "w4_abbr",
+   "Date.ToText(#date(2024,3,7), \"ddd\", c)"
+  ],
+  [
+   "w5_full",
+   "Date.ToText(#date(2024,3,8), \"dddd\", c)"
+  ],
+  [
+   "w5_abbr",
+   "Date.ToText(#date(2024,3,8), \"ddd\", c)"
+  ],
+  [
+   "w6_full",
+   "Date.ToText(#date(2024,3,9), \"dddd\", c)"
+  ],
+  [
+   "w6_abbr",
+   "Date.ToText(#date(2024,3,9), \"ddd\", c)"
+  ]
+ ],
+ "defaults": [
+  [
+   "def_textnum",
+   "Text.From(1234.5)"
+  ],
+  [
+   "def_numtext",
+   "Number.ToText(1234.5, \"N2\")"
+  ],
+  [
+   "def_textdate",
+   "Text.From(#date(2024,3,5))"
+  ],
+  [
+   "def_fromtext",
+   "Number.ToText(Number.FromText(\"1 234,5\"), \"R\", \"en-US\")"
+  ],
+  [
+   "def_datefrom",
+   "Date.ToText(Date.FromText(\"05/03/2024\"), \"yyyy-MM-dd\", \"en-US\")"
+  ]
+ ]
+}

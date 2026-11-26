@@ -1,0 +1,1 @@
+COUNTROWS(ALLNOBLANKROW(Product[Category]))

@@ -1,0 +1,25 @@
+/// Can read.
+role 'Sales Reader'
+	modelPermission: read
+
+	tablePermission 'Order Lines' = 'Order Lines'[Key] > 0
+
+		columnPermission Key = none
+
+		columnPermission 'It''s "quoted"' = read
+
+		annotation TPA = 1
+
+	tablePermission Product =
+			Product[Category] = "Bikes"
+			    || Product[Category] = "Other"
+
+	tablePermission LocalDate
+		metadataPermission: none
+
+	member 'user@contoso.com'
+	member 'Group A' = group
+	member DOMAIN\user = activeDirectory
+
+	annotation RA = 1
+

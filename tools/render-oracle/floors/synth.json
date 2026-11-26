@@ -1,0 +1,196 @@
+{
+ "actionButton": {
+  "sim": 0.974,
+  "ink": 0.706,
+  "ssim": 0.911,
+  "text": 0.95,
+  "de": 6.7
+ },
+ "areaChart": {
+  "sim": 0.97,
+  "ink": 0.898,
+  "ssim": 0.882,
+  "text": 0.244,
+  "de": 4.8
+ },
+ "barChart": {
+  "sim": 0.98,
+  "ink": 0.881,
+  "ssim": 0.838,
+  "text": 0.664,
+  "de": 2.6
+ },
+ "card": {
+  "sim": 0.985,
+  "ink": 0.575,
+  "ssim": 0.909,
+  "text": 0.95,
+  "de": 8.0
+ },
+ "cardVisual": {
+  "sim": 0.986,
+  "ink": 0.745,
+  "ssim": 0.83,
+  "text": 0.783,
+  "de": 5.7
+ },
+ "clusteredBarChart": {
+  "sim": 0.975,
+  "ink": 0.841,
+  "ssim": 0.789,
+  "text": 0.483,
+  "de": 3.4
+ },
+ "clusteredColumnChart": {
+  "sim": 0.981,
+  "ink": 0.886,
+  "ssim": 0.822,
+  "text": 0.572,
+  "de": 2.1
+ },
+ "columnChart": {
+  "sim": 0.983,
+  "ink": 0.883,
+  "ssim": 0.831,
+  "text": 0.557,
+  "de": 2.6
+ },
+ "donutChart": {
+  "sim": 0.99,
+  "ink": 0.918,
+  "ssim": 0.928,
+  "text": 0.95,
+  "de": 2.0
+ },
+ "funnel": {
+  "sim": 0.981,
+  "ink": 0.903,
+  "ssim": 0.853,
+  "text": 0.873,
+  "de": 1.9
+ },
+ "gauge": {
+  "sim": 0.958,
+  "ink": 0.3,
+  "ssim": 0.813,
+  "text": 0.2,
+  "de": 2.1
+ },
+ "hundredPercentStackedBarChart": {
+  "sim": 0.973,
+  "ink": 0.89,
+  "ssim": 0.795,
+  "text": 0.95,
+  "de": 2.5
+ },
+ "hundredPercentStackedColumnChart": {
+  "sim": 0.983,
+  "ink": 0.93,
+  "ssim": 0.865,
+  "text": 0.682,
+  "de": 2.2
+ },
+ "kpi": {
+  "sim": 0.986,
+  "ink": 0.918,
+  "ssim": 0.887,
+  "text": 0.2,
+  "de": 1.7
+ },
+ "lineChart": {
+  "sim": 0.989,
+  "ink": 0.689,
+  "ssim": 0.848,
+  "text": 0.452,
+  "de": 3.0
+ },
+ "lineClusteredColumnComboChart": {
+  "sim": 0.986,
+  "ink": 0.907,
+  "ssim": 0.873,
+  "text": 0.622,
+  "de": 1.8
+ },
+ "lineStackedColumnComboChart": {
+  "sim": 0.988,
+  "ink": 0.919,
+  "ssim": 0.878,
+  "text": 0.714,
+  "de": 2.5
+ },
+ "multiRowCard": {
+  "sim": 0.985,
+  "ink": 0.751,
+  "ssim": 0.848,
+  "text": 0.727,
+  "de": 5.2
+ },
+ "pieChart": {
+  "sim": 0.99,
+  "ink": 0.936,
+  "ssim": 0.921,
+  "text": 0.95,
+  "de": 2.1
+ },
+ "pivotTable": {
+  "sim": 0.986,
+  "ink": 0.714,
+  "ssim": 0.865,
+  "text": 0.264,
+  "de": 5.2
+ },
+ "scatterChart": {
+  "sim": 0.987,
+  "ink": 0.26,
+  "ssim": 0.853,
+  "text": 0.495,
+  "de": 4.1
+ },
+ "shape": {
+  "sim": 0.99,
+  "ink": -0.03,
+  "ssim": 0.977,
+  "text": 0.95
+ },
+ "slicer": {
+  "sim": 0.992,
+  "ink": 0.843,
+  "ssim": 0.94,
+  "text": 0.95,
+  "de": 3.6
+ },
+ "stackedAreaChart": {
+  "sim": 0.987,
+  "ink": 0.947,
+  "ssim": 0.837,
+  "text": 0.404,
+  "de": 1.9
+ },
+ "tableEx": {
+  "sim": 0.988,
+  "ink": 0.761,
+  "ssim": 0.906,
+  "text": 0.49,
+  "de": 4.6
+ },
+ "textbox": {
+  "sim": 0.992,
+  "ink": 0.97,
+  "ssim": 0.959,
+  "text": 0.95
+ },
+ "treemap": {
+  "sim": 0.982,
+  "ink": 0.942,
+  "ssim": 0.844,
+  "text": 0.95,
+  "de": 2.4
+ },
+ "waterfallChart": {
+  "sim": 0.988,
+  "ink": 0.889,
+  "ssim": 0.873,
+  "text": 0.719,
+  "de": 2.1
+ }
+}

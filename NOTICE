@@ -1,0 +1,69 @@
+BIcraft
+Copyright (c) 2026 the BIcraft contributors.
+Licensed under the MIT License or the Apache License, Version 2.0, at your option
+(LICENSE-MIT, LICENSE-APACHE).
+
+BIcraft is an independent project. It is not affiliated with, endorsed by or sponsored by
+Microsoft. Power BI, Power BI Desktop, Analysis Services and Microsoft are trademarks of the
+Microsoft group of companies; the names are used only to describe the file formats BIcraft works
+with.
+
+Third-party material
+
+This product embeds third-party material under its own licenses, listed below. THIRD_PARTY_NOTICES.md
+describes each component, ATTRIBUTION.md lists every asset with its author, source and licence, and
+the licence texts are under licenses/. `bicraft licenses` prints all of them.
+
+- XPress9 compression codec (crates/xpress9): a Rust port of the C source in
+  https://github.com/microsoft/Extensible-Storage-Engine (dev/ese/src/_xpress9, commit
+  7030fe7407615160e54d152e4ef704eede2fdd7e). MIT License, Copyright (c) Microsoft Corporation.
+  licenses/xpress9/LICENSE-MIT-microsoft-xpress9.
+- Power BI enhanced report format (PBIR) JSON schemas, from https://github.com/microsoft/json-schemas
+  (commit 49f4a76cb7a75fee2669b7cc6ba12ca4332050f7). MIT License, Copyright (c) Microsoft
+  Corporation. licenses/pbir-schemas/.
+- Power BI report theme JSON schema, from https://github.com/microsoft/powerbi-desktop-samples
+  (commit 34f78db38030195329a5ce05323251f778772fe1). MIT License, Copyright (c) Microsoft
+  Corporation. licenses/report-theme-schema/.
+- Best Practice Rules for tabular models (BPARules.json), from
+  https://github.com/microsoft/Analysis-Services (commit 50e8ce5028dd7046e73974ec69cb79af225e41b0).
+  MIT License, Copyright (c) 2016 Microsoft. licenses/bpa-rules/.
+- Selawik fonts, release 1.01, from https://github.com/microsoft/Selawik. SIL Open Font License
+  1.1, Copyright 2015, Microsoft Corporation, with Reserved Font Name Selawik.
+  licenses/selawik-font/OFL-Selawik.txt.
+- Noto Sans Symbols 2, a glyph subset of release v2.008 from https://github.com/notofonts/symbols.
+  SIL Open Font License 1.1, Copyright 2022 The Noto Project Authors.
+  licenses/noto-sans-symbols2/OFL-NotoSansSymbols2.txt.
+- The renderer's fallback faces: glyph subsets of Noto Sans (release v2.015, from
+  https://github.com/notofonts/latin-greek-cyrillic), Noto Sans Symbols 2 (v2.008) and Noto Sans
+  Symbols (v2.003, from https://github.com/notofonts/symbols), Noto Sans Math (v3.000, from
+  https://github.com/notofonts/math), SIL Open Font License 1.1, Copyright 2022 The Noto Project
+  Authors; and Noto Emoji (https://github.com/google/fonts, ofl/notoemoji), SIL Open Font License
+  1.1, Copyright 2013 Google LLC. licenses/noto-sans/, licenses/noto-sans-symbols2/,
+  licenses/noto-sans-math/, licenses/noto-sans-symbols/, licenses/noto-emoji/.
+- Carlito (Regular, Bold, Italic, Bold Italic), glyph subsets of Version 1.104 from
+  https://github.com/google/fonts (ofl/carlito, commit 07ace6abab87a122865e5cb82c7540b39551edb2),
+  renamed "BIcraft Metric Sans" as the Reserved Font Name requires. SIL Open Font License 1.1,
+  Copyright 2013 The Carlito Project Authors, with Reserved Font Name "Carlito".
+  licenses/carlito/OFL-Carlito.txt.
+- UI code ported from DeckCraft (https://github.com/storytold/deckcraft, crates/ui-egui, commit
+  0ec0cc5e815caea982a7deec51bc437f3ba187ad): design tokens, widgets and the icon toolkit; and the
+  File view (Backstage) layout, from commit c252a681a0e219b8a12ca4568822411e90b01a39. MIT
+  License or Apache License 2.0, Copyright (c) 2026 ArtCraft Team and the DeckCraft contributors.
+  licenses/deckcraft/LICENSE-MIT-deckcraft.
+- Code ported from DashCraft (https://github.com/Jxck-S/dashcraft, commit
+  0958fd82b04656ee1797101a2b4df8d114dfebd1): the Plain LZ77 decoder (crates/xpress8) and parts
+  of the Power Pivot metadata reader (crates/powerpivot). MIT License (the project is MIT OR
+  Apache-2.0), Copyright (c) 2026 Jack Sweeney and the DashCraft contributors. licenses/dashcraft/.
+- Chart layout algorithms ported from d3 (https://github.com/d3/d3, tag v3.5.17: the nice domain,
+  ordinal bands and squarified treemap) and d3-array (https://github.com/d3/d3-array, tag v1.2.4:
+  the tick increment), in crates/render. BSD 3-Clause License, Copyright (c) 2010-2016, Michael
+  Bostock (d3); Copyright 2010-2016 Mike Bostock (d3-array).
+  licenses/d3/LICENSE-BSD-d3, licenses/d3/LICENSE-BSD-d3-array.
+- Unicode CLDR 48.0 locale data (a generated subset). Unicode License v3, Copyright (c) 1991-2025
+  Unicode, Inc. licenses/unicode-cldr/.
+
+Code dependencies
+
+- Rust crates from crates.io are used unmodified under their own permissive licences (MIT,
+  Apache-2.0, BSD, ISC, Zlib, CDLA-Permissive-2.0 for webpki-roots' certificate data). Release
+  archives list each one, with its licence texts, in THIRD_PARTY_CRATES.md.

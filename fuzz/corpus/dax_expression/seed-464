@@ -1,0 +1,1 @@
+UNION(VALUES(Customer[City]), VALUES(Product[Category]))

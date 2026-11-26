@@ -1,0 +1,69 @@
+{{- if .Values.networkPolicy.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "bicraft-controller.fullname" . }}
+  labels:
+    {{- include "bicraft-controller.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "bicraft-controller.selectorLabels" . | nindent 6 }}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - ports:
+        - port: http
+          protocol: TCP
+      {{- with .Values.networkPolicy.ingressFrom }}
+      from:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+  egress:
+    # DNS
+    - to:
+        - namespaceSelector:
+            {{- toYaml .Values.networkPolicy.dns.namespaceSelector | nindent 12 }}
+          podSelector:
+            {{- toYaml .Values.networkPolicy.dns.podSelector | nindent 12 }}
+      ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+    # The workspace pods it manages (the gateway forwards to them).
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: workspace
+              app.kubernetes.io/managed-by: bicraft-controller
+      ports:
+        - port: 7878
+          protocol: TCP
+    # The Kubernetes API server.
+    - {{- if .Values.networkPolicy.apiServer.cidrs }}
+      to:
+        {{- range .Values.networkPolicy.apiServer.cidrs }}
+        - ipBlock:
+            cidr: {{ . }}
+        {{- end }}
+      {{- end }}
+      ports:
+        {{- range .Values.networkPolicy.apiServer.ports }}
+        - port: {{ int . }}
+          protocol: TCP
+        {{- end }}
+    {{- if .Values.networkPolicy.egressCidrs }}
+    - to:
+        {{- range .Values.networkPolicy.egressCidrs }}
+        - ipBlock:
+            cidr: {{ . }}
+        {{- end }}
+      ports:
+        {{- range .Values.networkPolicy.egressPorts }}
+        - port: {{ int . }}
+          protocol: TCP
+        {{- end }}
+    {{- end }}
+{{- end }}

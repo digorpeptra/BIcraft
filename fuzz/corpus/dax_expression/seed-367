@@ -1,0 +1,1 @@
+NOT ISBLANK(SELECTEDVALUE(Product[Category]))

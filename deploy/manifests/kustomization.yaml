@@ -1,0 +1,12 @@
+# kubectl apply -k deploy/manifests  (after creating the Secret bicraft-tokens: docs/kubernetes.md)
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: bicraft
+resources:
+  - namespace.yaml
+  - pvc.yaml
+  - deployment.yaml
+  - service.yaml
+  - networkpolicy.yaml
+  # - ingress.yaml          # optional: edit its host first
+  # - servicemonitor.yaml   # optional: needs the Prometheus Operator

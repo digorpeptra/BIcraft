@@ -1,0 +1,160 @@
+{
+  "name": "BicraftOracle",
+  "compatibilityLevel": 1567,
+  "model": {
+    "culture": "en-US",
+    "tables": [
+      {
+        "name": "Customer",
+        "columns": [
+          { "type": "calculatedTableColumn", "name": "CustomerKey", "dataType": "int64", "isNameInferred": true, "isDataTypeInferred": true, "sourceColumn": "[CustomerKey]" },
+          { "type": "calculatedTableColumn", "name": "Name", "dataType": "string", "isNameInferred": true, "isDataTypeInferred": true, "sourceColumn": "[Name]" },
+          { "type": "calculatedTableColumn", "name": "City", "dataType": "string", "isNameInferred": true, "isDataTypeInferred": true, "sourceColumn": "[City]" },
+          { "type": "calculatedTableColumn", "name": "Segment", "dataType": "string", "isNameInferred": true, "isDataTypeInferred": true, "sourceColumn": "[Segment]" },
+          { "type": "calculatedTableColumn", "name": "IsActive", "dataType": "boolean", "isNameInferred": true, "isDataTypeInferred": true, "sourceColumn": "[IsActive]" },
+          { "type": "calculatedTableColumn", "name": "BirthDate", "dataType": "dateTime", "isNameInferred": true, "isDataTypeInferred": true, "sourceColumn": "[BirthDate]" }
+        ],
+        "measures": [
+          { "name": "Customer Count", "expression": "DISTINCTCOUNT(Customer[CustomerKey])" }
+        ],
+        "partitions": [
+          {
+            "name": "Customer",
+            "source": {
+              "type": "calculated",
+              "expression": "DATATABLE(\"CustomerKey\", INTEGER, \"Name\", STRING, \"City\", STRING, \"Segment\", STRING, \"IsActive\", BOOLEAN, \"BirthDate\", DATETIME, {{1, \"Avery\", \"Lyon\", \"Retail\", TRUE, \"1980-04-02\"}, {2, \"Blake\", \"Nantes\", \"Retail\", TRUE, \"1991-11-23\"}, {3, \"Casey\", \"Lyon\", \"Wholesale\", FALSE, \"1975-07-30\"}, {4, \"Devon\", \"Lille\", \"Wholesale\", TRUE, \"1988-01-09\"}, {5, \"Emery\", \"Brest\", \"Online\", TRUE, \"2001-06-17\"}, {6, \"Finley\", \"Nantes\", \"Online\", FALSE, \"1969-12-05\"}})"
+            }
+          }
+        ]
+      },
+      {
+        "name": "Product",
+        "columns": [
+          { "type": "calculatedTableColumn", "name": "ProductKey", "dataType": "int64", "isNameInferred": true, "isDataTypeInferred": true, "sourceColumn": "[ProductKey]" },
+          { "type": "calculatedTableColumn", "name": "Product", "dataType": "string", "isNameInferred": true, "isDataTypeInferred": true, "sourceColumn": "[Product]" },
+          { "type": "calculatedTableColumn", "name": "Category", "dataType": "string", "isNameInferred": true, "isDataTypeInferred": true, "sourceColumn": "[Category]" },
+          { "type": "calculatedTableColumn", "name": "ListPrice", "dataType": "decimal", "isNameInferred": true, "isDataTypeInferred": true, "sourceColumn": "[ListPrice]" },
+          { "type": "calculatedTableColumn", "name": "Weight", "dataType": "double", "isNameInferred": true, "isDataTypeInferred": true, "sourceColumn": "[Weight]" }
+        ],
+        "partitions": [
+          {
+            "name": "Product",
+            "source": {
+              "type": "calculated",
+              "expression": "DATATABLE(\"ProductKey\", INTEGER, \"Product\", STRING, \"Category\", STRING, \"ListPrice\", CURRENCY, \"Weight\", DOUBLE, {{10, \"Kettle\", \"Kitchen\", 39.90, 1.25}, {11, \"Toaster\", \"Kitchen\", 54.50, 2.1}, {12, \"Desk Lamp\", \"Office\", 24.00, 0.8}, {13, \"Notebook\", \"Office\", 3.75, 0.2}, {14, \"Tent\", \"Outdoor\", 189.00, 4.6}, {15, \"Lantern\", \"Outdoor\", 32.20, 0.65}})"
+            }
+          }
+        ]
+      },
+      {
+        "name": "Date",
+        "dataCategory": "Time",
+        "columns": [
+          { "type": "calculatedTableColumn", "name": "Date", "dataType": "dateTime", "isNameInferred": true, "isDataTypeInferred": true, "isKey": true, "sourceColumn": "[Date]" },
+          { "type": "calculatedTableColumn", "name": "Year", "dataType": "int64", "isNameInferred": true, "isDataTypeInferred": true, "sourceColumn": "[Year]" },
+          { "type": "calculatedTableColumn", "name": "Month", "dataType": "int64", "isNameInferred": true, "isDataTypeInferred": true, "sourceColumn": "[Month]" },
+          { "type": "calculatedTableColumn", "name": "Month Name", "dataType": "string", "isNameInferred": true, "isDataTypeInferred": true, "sourceColumn": "[Month Name]" },
+          { "type": "calculatedTableColumn", "name": "Quarter", "dataType": "string", "isNameInferred": true, "isDataTypeInferred": true, "sourceColumn": "[Quarter]" }
+        ],
+        "partitions": [
+          {
+            "name": "Date",
+            "source": {
+              "type": "calculated",
+              "expression": "ADDCOLUMNS(CALENDAR(DATE(2024, 1, 1), DATE(2025, 12, 31)), \"Year\", YEAR([Date]), \"Month\", MONTH([Date]), \"Month Name\", FORMAT([Date], \"mmm\"), \"Quarter\", \"Q\" & QUARTER([Date]))"
+            }
+          }
+        ]
+      },
+      {
+        "name": "Sales",
+        "columns": [
+          { "type": "calculatedTableColumn", "name": "SalesKey", "dataType": "int64", "isNameInferred": true, "isDataTypeInferred": true, "sourceColumn": "[SalesKey]" },
+          { "type": "calculatedTableColumn", "name": "OrderDate", "dataType": "dateTime", "isNameInferred": true, "isDataTypeInferred": true, "sourceColumn": "[OrderDate]", "variations": [ { "name": "Variation", "relationship": "Sales_OrderDate_LocalDateTable", "defaultHierarchy": { "table": "LocalDateTable_0001", "hierarchy": "Date Hierarchy" }, "isDefault": true } ] },
+          { "type": "calculatedTableColumn", "name": "CustomerKey", "dataType": "int64", "isNameInferred": true, "isDataTypeInferred": true, "sourceColumn": "[CustomerKey]" },
+          { "type": "calculatedTableColumn", "name": "ProductKey", "dataType": "int64", "isNameInferred": true, "isDataTypeInferred": true, "sourceColumn": "[ProductKey]" },
+          { "type": "calculatedTableColumn", "name": "Quantity", "dataType": "int64", "isNameInferred": true, "isDataTypeInferred": true, "sourceColumn": "[Quantity]" },
+          { "type": "calculatedTableColumn", "name": "UnitPrice", "dataType": "decimal", "isNameInferred": true, "isDataTypeInferred": true, "sourceColumn": "[UnitPrice]" },
+          { "type": "calculatedTableColumn", "name": "Discount", "dataType": "double", "isNameInferred": true, "isDataTypeInferred": true, "sourceColumn": "[Discount]" },
+          { "type": "calculatedTableColumn", "name": "Channel", "dataType": "string", "isNameInferred": true, "isDataTypeInferred": true, "sourceColumn": "[Channel]" },
+          { "type": "calculatedTableColumn", "name": "IsReturn", "dataType": "boolean", "isNameInferred": true, "isDataTypeInferred": true, "sourceColumn": "[IsReturn]" },
+          { "type": "calculated", "name": "Line Amount", "dataType": "decimal", "isDataTypeInferred": true, "expression": "Sales[Quantity] * Sales[UnitPrice] * (1 - Sales[Discount])" }
+        ],
+        "measures": [
+          { "name": "Total Sales", "expression": "SUM(Sales[Line Amount])" },
+          { "name": "Order Count", "expression": "COUNTROWS(Sales)" },
+          { "name": "Total Quantity", "expression": "SUM(Sales[Quantity])" },
+          { "name": "Average Price", "expression": "AVERAGE(Sales[UnitPrice])" },
+          { "name": "Sales LY", "expression": "CALCULATE([Total Sales], SAMEPERIODLASTYEAR('Date'[Date]))" }
+        ],
+        "partitions": [
+          {
+            "name": "Sales",
+            "source": {
+              "type": "calculated",
+              "expression": "DATATABLE(\"SalesKey\", INTEGER, \"OrderDate\", DATETIME, \"CustomerKey\", INTEGER, \"ProductKey\", INTEGER, \"Quantity\", INTEGER, \"UnitPrice\", CURRENCY, \"Discount\", DOUBLE, \"Channel\", STRING, \"IsReturn\", BOOLEAN, {{1, \"2024-01-05\", 1, 10, 2, 39.90, 0, \"Store\", FALSE}, {2, \"2024-01-19\", 2, 12, 1, 24.00, 0.1, \"Web\", FALSE}, {3, \"2024-02-11\", 3, 14, 1, 189.00, 0, \"Store\", FALSE}, {4, \"2024-03-02\", 4, 13, 10, 3.75, 0.05, \"Web\", FALSE}, {5, \"2024-03-28\", 5, 11, 1, 54.50, 0, \"Web\", TRUE}, {6, \"2024-05-14\", 1, 15, 3, 32.20, 0, \"Store\", FALSE}, {7, \"2024-07-07\", 6, 10, 1, 39.90, 0.2, \"Phone\", FALSE}, {8, \"2024-09-21\", 2, 14, 2, 179.00, 0, \"Web\", FALSE}, {9, \"2024-11-30\", 3, 12, 4, 24.00, 0.15, \"Store\", FALSE}, {10, \"2025-01-08\", 4, 11, 2, 54.50, 0, \"Phone\", FALSE}, {11, \"2025-02-17\", 5, 13, 20, 3.50, 0.1, \"Web\", FALSE}, {12, \"2025-04-03\", 1, 14, 1, 189.00, 0, \"Store\", TRUE}, {13, \"2025-06-26\", 6, 15, 2, 32.20, 0, \"Web\", FALSE}, {14, \"2025-08-12\", 2, 10, 1, 41.00, 0, \"Store\", FALSE}, {15, \"2025-10-01\", 3, 11, 1, 52.00, 0.05, \"Phone\", FALSE}, {16, \"2025-12-20\", 4, 12, 3, 24.00, 0, \"Web\", FALSE}})"
+            }
+          }
+        ]
+      },
+      {
+        "name": "Top Products",
+        "columns": [
+          { "type": "calculatedTableColumn", "name": "ProductKey", "dataType": "int64", "isNameInferred": true, "isDataTypeInferred": true, "sourceColumn": "[ProductKey]" },
+          { "type": "calculatedTableColumn", "name": "Product", "dataType": "string", "isNameInferred": true, "isDataTypeInferred": true, "sourceColumn": "[Product]" },
+          { "type": "calculatedTableColumn", "name": "ListPrice", "dataType": "decimal", "isNameInferred": true, "isDataTypeInferred": true, "sourceColumn": "[ListPrice]" }
+        ],
+        "partitions": [
+          {
+            "name": "Top Products",
+            "source": {
+              "type": "calculated",
+              "expression": "SELECTCOLUMNS(TOPN(3, 'Product', 'Product'[ListPrice], DESC), \"ProductKey\", 'Product'[ProductKey], \"Product\", 'Product'[Product], \"ListPrice\", 'Product'[ListPrice])"
+            }
+          }
+        ]
+      },
+      {
+        "name": "LocalDateTable_0001",
+        "isHidden": true,
+        "showAsVariationsOnly": true,
+        "columns": [
+          { "type": "calculatedTableColumn", "name": "Date", "dataType": "dateTime", "isNameInferred": true, "isDataTypeInferred": true, "isHidden": true, "sourceColumn": "[Date]", "dataCategory": "PaddedDateTableDates" },
+          { "type": "calculated", "name": "Year", "dataType": "int64", "isDataTypeInferred": true, "isHidden": true, "expression": "YEAR([Date])", "dataCategory": "Years" },
+          { "type": "calculated", "name": "MonthNo", "dataType": "int64", "isDataTypeInferred": true, "isHidden": true, "expression": "MONTH([Date])", "dataCategory": "MonthOfYear" },
+          { "type": "calculated", "name": "Month", "dataType": "string", "isDataTypeInferred": true, "isHidden": true, "expression": "FORMAT([Date], \"MMMM\")", "dataCategory": "Months", "sortByColumn": "MonthNo" },
+          { "type": "calculated", "name": "QuarterNo", "dataType": "int64", "isDataTypeInferred": true, "isHidden": true, "expression": "INT(([MonthNo] + 2) / 3)", "dataCategory": "QuarterOfYear" },
+          { "type": "calculated", "name": "Quarter", "dataType": "string", "isDataTypeInferred": true, "isHidden": true, "expression": "\"Qtr \" & [QuarterNo]", "dataCategory": "Quarters", "sortByColumn": "QuarterNo" },
+          { "type": "calculated", "name": "Day", "dataType": "int64", "isDataTypeInferred": true, "isHidden": true, "expression": "DAY([Date])", "dataCategory": "DayOfMonth" }
+        ],
+        "partitions": [
+          {
+            "name": "LocalDateTable_0001",
+            "source": {
+              "type": "calculated",
+              "expression": "CALENDAR(DATE(YEAR(MIN('Sales'[OrderDate])), 1, 1), DATE(YEAR(MAX('Sales'[OrderDate])), 12, 31))"
+            }
+          }
+        ],
+        "hierarchies": [
+          {
+            "name": "Date Hierarchy",
+            "levels": [
+              { "name": "Year", "ordinal": 0, "column": "Year" },
+              { "name": "Quarter", "ordinal": 1, "column": "Quarter" },
+              { "name": "Month", "ordinal": 2, "column": "Month" },
+              { "name": "Day", "ordinal": 3, "column": "Day" }
+            ]
+          }
+        ],
+        "annotations": [ { "name": "__PBI_LocalDateTable", "value": "true" } ]
+      }
+    ],
+    "relationships": [
+      { "name": "Sales_Customer", "fromTable": "Sales", "fromColumn": "CustomerKey", "toTable": "Customer", "toColumn": "CustomerKey" },
+      { "name": "Sales_Product", "fromTable": "Sales", "fromColumn": "ProductKey", "toTable": "Product", "toColumn": "ProductKey" },
+      { "name": "Sales_Date", "fromTable": "Sales", "fromColumn": "OrderDate", "toTable": "Date", "toColumn": "Date" },
+      { "name": "Sales_OrderDate_LocalDateTable", "fromTable": "Sales", "fromColumn": "OrderDate", "toTable": "LocalDateTable_0001", "toColumn": "Date", "joinOnDateBehavior": "datePartOnly" }
+    ]
+  }
+}

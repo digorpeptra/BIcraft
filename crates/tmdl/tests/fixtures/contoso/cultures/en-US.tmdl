@@ -1,0 +1,27 @@
+cultureInfo en-US
+
+	linguisticMetadata =
+			{
+			  "Version": "1.0.0",
+			  "Language": "en-US",
+			  "DynamicImprovement": "HighConfidence",
+			  "Entities": {
+			    "order_line": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "Order Lines"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "order line": {
+			            "State": "Generated"
+			          }
+			        }
+			      ]
+			    }
+			  }
+			}
+		contentType: json
+

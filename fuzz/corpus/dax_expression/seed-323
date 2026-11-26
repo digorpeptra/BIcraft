@@ -1,0 +1,1 @@
+VAR cat = "Office" RETURN CALCULATE([Total Sales], Product[Category] = cat)

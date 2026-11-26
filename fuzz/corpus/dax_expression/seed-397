@@ -1,0 +1,1 @@
+IF(SELECTEDVALUE(Sales[Channel]) IN {"Web", "Phone"}, [Total Sales])

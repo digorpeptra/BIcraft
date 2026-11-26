@@ -1,0 +1,1 @@
+SUMX(Product, RELATED(Sales[Quantity]))

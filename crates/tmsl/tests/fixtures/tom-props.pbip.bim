@@ -1,0 +1,585 @@
+{
+  "name": "DB",
+  "compatibilityLevel": 1000000,
+  "model": {
+    "annotations": [
+      {
+        "name": "amodel",
+        "value": "av"
+      }
+    ],
+    "automaticAggregationOptions": {
+      "aggregationTableMaxRows": 3,
+      "aggregationTableSizeLimit": 3,
+      "detailTableMinRows": 3,
+      "queryCoverage": 0.5
+    },
+    "bindingInfoCollection": [
+      {
+        "name": "B",
+        "connectionId": "v7ConnectionId",
+        "description": "v8Description",
+        "type": "dataBindingHint"
+      }
+    ],
+    "collation": "v4Collation",
+    "culture": "en-US",
+    "dataAccessOptions": {
+      "fastCombine": true,
+      "legacyRedirects": true,
+      "returnErrorValuesAsNull": true
+    },
+    "dataSourceDefaultMaxConnections": 3,
+    "dataSourceVariablesOverrideBehavior": "allow",
+    "defaultDataView": "sample",
+    "defaultDirectLakeIndexingBehavior": "explicit",
+    "defaultMeasure": {
+      "measure": "M",
+      "table": "T"
+    },
+    "defaultMode": "directQuery",
+    "defaultPowerBIDataSourceVersion": "powerBI_V3",
+    "description": "v1Description",
+    "directLakeBehavior": "directLakeOnly",
+    "disableAutoExists": 3,
+    "discourageCompositeModels": true,
+    "discourageImplicitMeasures": true,
+    "expressions": [
+      {
+        "name": "E0",
+        "expression": "1",
+        "kind": "m"
+      },
+      {
+        "name": "E",
+        "annotations": [
+          {
+            "name": "aexpr",
+            "value": "av"
+          }
+        ],
+        "description": "v59Description",
+        "expression": "1",
+        "expressionSource": "E0",
+        "extendedProperties": [
+          {
+            "name": "xexpr",
+            "value": "xv"
+          }
+        ],
+        "kind": "m",
+        "lineageTag": "v61LineageTag",
+        "mAttributes": "meta [IsParameterQuery=true]",
+        "parameterValuesColumn": {
+          "column": "K",
+          "table": "U"
+        },
+        "queryGroup": "G",
+        "remoteParameterName": "v63RemoteParameterName",
+        "sourceLineageTag": "v62SourceLineageTag"
+      }
+    ],
+    "extendedProperties": [
+      {
+        "name": "xmodel",
+        "value": "xv"
+      }
+    ],
+    "forceUniqueNames": true,
+    "functions": [
+      {
+        "name": "F",
+        "annotations": [
+          {
+            "name": "afn",
+            "value": "av"
+          }
+        ],
+        "changedProperties": [
+          {
+            "property": "Name"
+          }
+        ],
+        "description": "v64Description",
+        "expression": "() => 1",
+        "extendedProperties": [
+          {
+            "name": "xfn",
+            "value": "xv"
+          }
+        ],
+        "isHidden": true,
+        "lineageTag": "v66LineageTag",
+        "sourceLineageTag": "v67SourceLineageTag"
+      }
+    ],
+    "mAttributes": "v6MAttributes",
+    "maxParallelismPerQuery": 3,
+    "maxParallelismPerRefresh": 3,
+    "metadataAccessPolicy": "basic",
+    "queryGroups": [
+      {
+        "description": "gd",
+        "folder": "G"
+      }
+    ],
+    "relationships": [
+      {
+        "name": "R",
+        "annotations": [
+          {
+            "name": "arel",
+            "value": "av"
+          }
+        ],
+        "changedProperties": [
+          {
+            "property": "Name"
+          }
+        ],
+        "crossFilteringBehavior": "bothDirections",
+        "extendedProperties": [
+          {
+            "name": "xrel",
+            "value": "xv"
+          }
+        ],
+        "fromCardinality": "one",
+        "fromColumn": "S",
+        "fromTable": "T",
+        "isActive": false,
+        "joinOnDateBehavior": "datePartOnly",
+        "relyOnReferentialIntegrity": true,
+        "securityFilteringBehavior": "bothDirections",
+        "toCardinality": "many",
+        "toColumn": "K",
+        "toTable": "U"
+      }
+    ],
+    "selectionExpressionBehavior": "visual",
+    "sourceQueryCulture": "fr-FR",
+    "storageLocation": "v2StorageLocation",
+    "tables": [
+      {
+        "name": "T",
+        "alternateSourcePrecedence": 3,
+        "annotations": [
+          {
+            "name": "atable",
+            "value": "av"
+          }
+        ],
+        "changedProperties": [
+          {
+            "property": "Name"
+          }
+        ],
+        "columns": [
+          {
+            "name": "C",
+            "alignment": "left",
+            "alternateOf": {
+              "baseColumn": {
+                "column": "S",
+                "table": "T"
+              },
+              "summarization": "sum"
+            },
+            "annotations": [
+              {
+                "name": "acol",
+                "value": "av"
+              }
+            ],
+            "changedProperties": [
+              {
+                "property": "Name"
+              }
+            ],
+            "dataCategory": "v16DataCategory",
+            "dataType": "int64",
+            "description": "v17Description",
+            "displayFolder": "v20DisplayFolder",
+            "displayOrdinal": 3,
+            "encodingHint": "hash",
+            "extendedProperties": [
+              {
+                "name": "xcol",
+                "value": "xv"
+              }
+            ],
+            "formatString": "v18FormatString",
+            "fullTextIndexingBehavior": "auto",
+            "isAvailableInMdx": false,
+            "isDefaultImage": true,
+            "isDefaultLabel": true,
+            "isHidden": true,
+            "isKey": true,
+            "isNullable": false,
+            "isUnique": true,
+            "keepUniqueRows": true,
+            "lineageTag": "v21LineageTag",
+            "sortByColumn": "S",
+            "sourceColumn": "v15SourceColumn",
+            "sourceLineageTag": "v22SourceLineageTag",
+            "sourceProviderType": "v19SourceProviderType",
+            "stringIndexingBehavior": "explicit",
+            "summarizeBy": "none",
+            "tableDetailPosition": 3
+          },
+          {
+            "name": "S",
+            "dataType": "int64",
+            "sourceColumn": "S"
+          },
+          {
+            "name": "CC",
+            "alignment": "left",
+            "dataCategory": "v24DataCategory",
+            "dataType": "int64",
+            "description": "v25Description",
+            "displayFolder": "v28DisplayFolder",
+            "displayOrdinal": 3,
+            "encodingHint": "hash",
+            "expression": "1",
+            "expressionContext": "userContext",
+            "formatString": "v26FormatString",
+            "fullTextIndexingBehavior": "auto",
+            "isAvailableInMdx": false,
+            "isDefaultImage": true,
+            "isDefaultLabel": true,
+            "isHidden": true,
+            "isKey": true,
+            "isNullable": false,
+            "isUnique": true,
+            "keepUniqueRows": true,
+            "lineageTag": "v29LineageTag",
+            "sortByColumn": "S",
+            "sourceLineageTag": "v30SourceLineageTag",
+            "sourceProviderType": "v27SourceProviderType",
+            "stringIndexingBehavior": "explicit",
+            "summarizeBy": "none",
+            "tableDetailPosition": 3,
+            "type": "calculated"
+          }
+        ],
+        "dataCategory": "v9DataCategory",
+        "defaultDetailRowsDefinition": {
+          "expression": "T"
+        },
+        "description": "v10Description",
+        "directLakeIndexingBehavior": "explicit",
+        "excludeFromAutomaticAggregations": true,
+        "excludeFromModelRefresh": true,
+        "extendedProperties": [
+          {
+            "name": "xtable",
+            "value": "xv"
+          }
+        ],
+        "hierarchies": [
+          {
+            "name": "H",
+            "annotations": [
+              {
+                "name": "ahier",
+                "value": "av"
+              }
+            ],
+            "changedProperties": [
+              {
+                "property": "Name"
+              }
+            ],
+            "description": "v48Description",
+            "displayFolder": "v49DisplayFolder",
+            "extendedProperties": [
+              {
+                "name": "xhier",
+                "value": "xv"
+              }
+            ],
+            "hideMembers": "hideBlankMembers",
+            "isHidden": true,
+            "levels": [
+              {
+                "name": "L",
+                "annotations": [
+                  {
+                    "name": "alevel",
+                    "value": "av"
+                  }
+                ],
+                "changedProperties": [
+                  {
+                    "property": "Name"
+                  }
+                ],
+                "column": "S",
+                "description": "v52Description",
+                "extendedProperties": [
+                  {
+                    "name": "xlevel",
+                    "value": "xv"
+                  }
+                ],
+                "lineageTag": "v53LineageTag",
+                "sourceLineageTag": "v54SourceLineageTag"
+              }
+            ],
+            "lineageTag": "v50LineageTag",
+            "sourceLineageTag": "v51SourceLineageTag"
+          }
+        ],
+        "isHidden": true,
+        "isPrivate": true,
+        "lineageTag": "v11LineageTag",
+        "measures": [
+          {
+            "name": "M",
+            "annotations": [
+              {
+                "name": "ameasure",
+                "value": "av"
+              }
+            ],
+            "changedProperties": [
+              {
+                "property": "Name"
+              }
+            ],
+            "dataCategory": "v35DataCategory",
+            "description": "v31Description",
+            "detailRowsDefinition": {
+              "expression": "T"
+            },
+            "displayFolder": "v34DisplayFolder",
+            "expression": "1",
+            "extendedProperties": [
+              {
+                "name": "xmeasure",
+                "value": "xv"
+              }
+            ],
+            "formatString": "v33FormatString",
+            "formatStringDefinition": {
+              "expression": "\"0\""
+            },
+            "isHidden": true,
+            "isSimpleMeasure": true,
+            "kpi": {
+              "description": "v38Description",
+              "statusDescription": "v43StatusDescription",
+              "statusExpression": "v44StatusExpression",
+              "statusGraphic": "v42StatusGraphic",
+              "targetDescription": "v39TargetDescription",
+              "targetExpression": "v40TargetExpression",
+              "targetFormatString": "v41TargetFormatString",
+              "trendDescription": "v46TrendDescription",
+              "trendExpression": "v47TrendExpression",
+              "trendGraphic": "v45TrendGraphic"
+            },
+            "lineageTag": "v36LineageTag",
+            "sourceLineageTag": "v37SourceLineageTag"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "P",
+            "annotations": [
+              {
+                "name": "apart",
+                "value": "av"
+              }
+            ],
+            "dataCoverageDefinition": {
+              "description": "dd",
+              "expression": "TRUE()"
+            },
+            "dataView": "sample",
+            "description": "v55Description",
+            "extendedProperties": [
+              {
+                "name": "xpart",
+                "value": "xv"
+              }
+            ],
+            "mode": "directQuery",
+            "queryGroup": "G",
+            "source": {
+              "expression": "let x = 1 in x",
+              "type": "m"
+            }
+          }
+        ],
+        "refreshPolicy": {
+          "incrementalGranularity": "day",
+          "incrementalPeriods": 3,
+          "incrementalPeriodsOffset": 3,
+          "mode": "hybrid",
+          "policyType": "basic",
+          "pollingExpression": "let y = 1 in y",
+          "rollingWindowGranularity": "year",
+          "rollingWindowPeriods": 3,
+          "sourceExpression": "let x = 1 in x"
+        },
+        "showAsVariationsOnly": true,
+        "sourceLineageTag": "v12SourceLineageTag",
+        "systemManaged": true
+      },
+      {
+        "name": "U",
+        "columns": [
+          {
+            "name": "K",
+            "dataType": "int64",
+            "sourceColumn": "K",
+            "variations": [
+              {
+                "name": "V",
+                "annotations": [
+                  {
+                    "name": "avar",
+                    "value": "av"
+                  }
+                ],
+                "defaultHierarchy": {
+                  "hierarchy": "H",
+                  "table": "T"
+                },
+                "description": "vd",
+                "extendedProperties": [
+                  {
+                    "name": "xvar",
+                    "value": "xv"
+                  }
+                ],
+                "isDefault": true,
+                "relationship": "R"
+              }
+            ]
+          }
+        ],
+        "partitions": [
+          {
+            "name": "U",
+            "source": {
+              "expression": "x",
+              "type": "m"
+            }
+          }
+        ]
+      },
+      {
+        "name": "CG",
+        "calculationGroup": {
+          "annotations": [
+            {
+              "name": "acg",
+              "value": "av"
+            }
+          ],
+          "calculationItems": [
+            {
+              "name": "I",
+              "description": "v57Description",
+              "expression": "SELECTEDMEASURE()",
+              "formatStringDefinition": {
+                "expression": "\"0\""
+              },
+              "ordinal": 0
+            }
+          ],
+          "description": "v56Description",
+          "multipleOrEmptySelectionExpression": {
+            "description": "md",
+            "expression": "BLANK()",
+            "formatStringDefinition": {
+              "expression": "\"0\""
+            }
+          },
+          "noSelectionExpression": {
+            "expression": "BLANK()"
+          },
+          "precedence": 3
+        },
+        "columns": [
+          {
+            "name": "Name",
+            "dataType": "string",
+            "sourceColumn": "Name"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "CG",
+            "source": {
+              "type": "calculationGroup"
+            }
+          }
+        ]
+      },
+      {
+        "name": "CT",
+        "columns": [
+          {
+            "name": "X",
+            "alignment": "left",
+            "dataCategory": "v69DataCategory",
+            "dataType": "int64",
+            "description": "v70Description",
+            "displayFolder": "v73DisplayFolder",
+            "displayOrdinal": 3,
+            "encodingHint": "hash",
+            "formatString": "v71FormatString",
+            "fullTextIndexingBehavior": "auto",
+            "isAvailableInMdx": false,
+            "isDefaultImage": true,
+            "isDefaultLabel": true,
+            "isHidden": true,
+            "isKey": true,
+            "isNameInferred": true,
+            "isNullable": false,
+            "isUnique": true,
+            "keepUniqueRows": true,
+            "lineageTag": "v74LineageTag",
+            "relatedColumnDetails": {
+              "groupByColumns": [
+                {
+                  "groupingColumn": "Y"
+                }
+              ]
+            },
+            "sortByColumn": "Y",
+            "sourceColumn": "v68SourceColumn",
+            "sourceLineageTag": "v75SourceLineageTag",
+            "sourceProviderType": "v72SourceProviderType",
+            "stringIndexingBehavior": "explicit",
+            "summarizeBy": "none",
+            "tableDetailPosition": 3,
+            "type": "calculatedTableColumn"
+          },
+          {
+            "name": "Y",
+            "dataType": "string",
+            "isHidden": true,
+            "isNameInferred": true,
+            "sourceColumn": "[Y]",
+            "type": "calculatedTableColumn"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "CT",
+            "source": {
+              "expression": "T",
+              "type": "calculated"
+            }
+          }
+        ]
+      }
+    ],
+    "valueFilterBehavior": "independent"
+  },
+  "storageLocation": "v2StorageLocation"
+}

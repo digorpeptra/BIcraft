@@ -1,0 +1,1 @@
+COUNTROWS(FILTER(Sales, Sales[CustomerKey] = EARLIER(Sales[CustomerKey])))

@@ -1,0 +1,14 @@
+table Legacy
+
+	column A
+		dataType: string
+		sourceColumn: A
+
+	partition Q = query
+		mode: import
+		source
+			query =
+				SELECT *
+				FROM dbo.A
+			dataSource: 'SQL Legacy'
+

@@ -1,0 +1,20 @@
+relationship 'rel 1'
+	crossFilteringBehavior: bothDirections
+	relyOnReferentialIntegrity
+	securityFilteringBehavior: bothDirections
+	fromColumn: 'Order Lines'.Key
+	toColumn: Product.'Product Key'
+
+	annotation RA = 1
+
+relationship 'rel date'
+	isActive: false
+	joinOnDateBehavior: datePartOnly
+	fromColumn: Product.Date
+	toColumn: LocalDate.Date
+
+relationship d0e1f2a3-many
+	toCardinality: many
+	fromColumn: 'Order Lines'.'It''s "quoted"'
+	toColumn: 'Calc Table'.Value
+

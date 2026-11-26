@@ -1,0 +1,1 @@
+SUMX(VALUES(Customer[CustomerKey]), IF([Total Sales] > 100, 1, 0))

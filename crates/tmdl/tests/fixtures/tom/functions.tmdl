@@ -1,0 +1,11 @@
+/// Adds one.
+function AddOne =
+		(x : NUMERIC) =>
+		    x + 1
+	isHidden
+	lineageTag: f1
+
+	annotation FA = 1
+
+function 'Fn.Two' = () => 2
+

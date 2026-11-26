@@ -1,0 +1,31 @@
+/// md
+model Model
+	defaultMode: directQuery
+	defaultDataView: sample
+	culture: en-US
+	defaultPowerBIDataSourceVersion: powerBI_V3
+	forceUniqueNames
+	discourageImplicitMeasures
+	sourceQueryCulture: en-GB
+	disableAutoExists: 1
+	maxParallelismPerRefresh: 4
+	maxParallelismPerQuery: 2
+	dataAccessOptions
+		fastCombine
+		legacyRedirects
+		returnErrorValuesAsNull
+
+queryGroup G
+
+extendedProperty E = v
+
+annotation A = 1
+
+ref table T
+
+ref role R
+
+ref perspective P
+
+ref cultureInfo de-DE
+

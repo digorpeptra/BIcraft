@@ -1,0 +1,215 @@
+# Values of the BIcraft workspace controller (docs/kubernetes.md, "The controller").
+
+image:
+  # The bicraft image: the controller and the workspace pods run the same binary.
+  repository: bicraft
+  # Default: the chart's appVersion.
+  tag: ""
+  digest: ""
+  pullPolicy: IfNotPresent
+# [{name: SECRET}], used by the controller and the workspace pods.
+imagePullSecrets: []
+
+nameOverride: ""
+fullnameOverride: ""
+
+crd:
+  # Install the BicraftWorkspace CustomResourceDefinition with the release (it is cluster-wide:
+  # set false when several releases share one cluster, and install it once).
+  install: true
+  # The resource group. `bicraft.dev` is a placeholder until the project's domain is chosen; every
+  # release and the CRD must use the same value.
+  group: bicraft.dev
+  # Keep the CRD (and so every workspace) when the release is uninstalled.
+  keep: true
+
+controller:
+  port: 7878
+  # Seconds between reconciliation passes (API calls trigger one at once).
+  intervalSeconds: 5
+  shutdownGraceSeconds: 30
+  terminationGraceMarginSeconds: 5
+  # Subjects allowed to create and delete workspaces through the API (docs/auth.md subjects, e.g.
+  # token:admin, group:bi-admins). Admins can also open every workspace.
+  admins: []
+  resources:
+    requests:
+      cpu: 100m
+      memory: 64Mi
+    limits:
+      cpu: "1"
+      memory: 256Mi
+  extraArgs: []
+  extraEnv: []
+
+# Authentication of the gateway: the same settings as the bicraft chart (docs/auth.md). The
+# workspace pods do not authenticate callers themselves: they trust the gateway's identity headers
+# from the controller's address only, behind a NetworkPolicy that admits the controller alone.
+auth:
+  publicUrl: ""
+  allowedHosts: []
+  # Controller-wide grants (SUBJECT=WORKSPACES); each workspace adds its own `spec.grants`.
+  grants: []
+  # Controller-wide reader grants (read-only commands and downloads, docs/auth.md "Roles"); each
+  # workspace adds its own `spec.readers`.
+  readerGrants: []
+  apiTokens:
+    existingSecret: ""
+    key: tokens.json
+    # Inline tokens file content (hashes only), used when existingSecret is empty.
+    tokensJson: ""
+  oidc:
+    issuers: []
+    audiences: []
+    scopes: []
+  trustedProxy:
+    cidrs: []
+    userHeader: ""
+    emailHeader: ""
+    groupsHeader: ""
+  config:
+    existingSecret: ""
+    key: auth.json
+    json: ""
+
+# What workspaces may be: the admin's parameters (docs/web-deployment.md, decision 5).
+workspaces:
+  defaultClass: small
+  # Size classes. memoryLimitMiB is BICRAFT_MEMORY_LIMIT; the pod limit is that + 64 MiB.
+  classes:
+    small:
+      memoryLimitMiB: 448
+      cpu: 1
+      spillSize: 2Gi
+      volumeSize: 2Gi
+      maxVolumeSize: 10Gi
+    medium:
+      memoryLimitMiB: 1984
+      cpu: 2
+      spillSize: 10Gi
+      volumeSize: 10Gi
+      maxVolumeSize: 50Gi
+    large:
+      memoryLimitMiB: 8128
+      cpu: 8
+      spillSize: 40Gi
+      volumeSize: 50Gi
+      maxVolumeSize: 500Gi
+  # 0 = never stop idle workspaces.
+  defaultIdleTimeoutSeconds: 900
+  # Retain (the volume outlives the workspace) or Delete.
+  defaultReclaimPolicy: Retain
+  # Empty: the cluster's default storage class.
+  storageClass: ""
+  # Named egress profiles a workspace may list in spec.egress, e.g.
+  #   databricks: {cidrs: [203.0.113.0/24], ports: [443], allowNetwork: true,
+  #                databricksSecret: {name: dbx-token, key: token}}
+  egressProfiles: {}
+  # Addresses workspace pods accept identity headers from. Empty: the controller pod's own address
+  # (tightest; a controller restart on a new address rolls the awake workspace pods).
+  gatewayTrustedCidrs: []
+  wakeTimeoutSeconds: 180
+  networkPolicy: true
+  pod:
+    shutdownGraceSeconds: 30
+    maxUploadBytes: 4G
+    allowedOrigins: []
+    extraArgs: []
+    extraEnv: []
+    nodeSelector: {}
+    tolerations: []
+    priorityClassName: ""
+    annotations: {}
+    # Document views (docs/mcp.md, "Document views"): each browser tab on a workspace file is a session
+    # of its own (an editor's is a model in memory: size the classes for the tabs open at once).
+    # --max-views-per-user, --max-views, --view-idle (seconds). 0: the server's defaults (8, 32, 1800).
+    maxViewsPerUser: 0
+    maxViews: 0
+    viewIdleSeconds: 0
+    # --allow-autosave: the app may save PBIP projects automatically (File > Info).
+    allowAutosave: false
+    # --local-offset: Power Query's local clock (DateTime.LocalNow): "+02:00", minutes, "UTC" or
+    # "machine". Empty: UTC, as in the Power BI service (docs/formats/data-sources.md, "Clock").
+    localOffset: ""
+    # The UI control channel relayed to editors' app pages (--viewer-control; docs/web-deployment.md
+    # "UI control channel"), reached through the gateway with an editor credential plus the token in
+    # X-Bicraft-Control. The token (at least 32 characters) comes from this Secret, in the release's
+    # namespace, as BICRAFT_VIEWER_CONTROL_TOKEN. Empty: off.
+    viewerControl:
+      existingSecret: ""
+      key: token
+  # Auto-recovery (docs/recovery.md): each workspace gets a second claim, bws-<id>-recovery, mounted
+  # outside its files and passed as --recovery-dir, so unsaved edits survive an idle scale to zero, an
+  # expired browser view and a pod restart. It follows the workspace's reclaim policy.
+  recovery:
+    enabled: true
+    volumeSize: 1Gi
+    # Empty: the workspace volume's storage class.
+    storageClass: ""
+
+service:
+  type: ClusterIP
+  port: 7878
+  annotations: {}
+
+ingress:
+  enabled: false
+  className: ""
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: 4g
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+    nginx.ingress.kubernetes.io/proxy-request-buffering: "off"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "660"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "660"
+  hosts: []
+  tls: []
+
+httpRoute:
+  enabled: false
+  parentRefs: []
+  hostnames: []
+  timeout: 660s
+
+networkPolicy:
+  enabled: true
+  # Peers allowed to reach the gateway; empty = any pod (the ingress controller must be allowed).
+  ingressFrom: []
+  # The Kubernetes API server, as seen by NetworkPolicy (after the Service's address translation:
+  # usually the control-plane nodes' addresses and port 6443). Empty cidrs: any address on these
+  # ports.
+  apiServer:
+    cidrs: []
+    ports: [443, 6443]
+  dns:
+    namespaceSelector:
+      matchLabels:
+        kubernetes.io/metadata.name: kube-system
+    podSelector:
+      matchLabels:
+        k8s-app: kube-dns
+  # Extra egress for an OIDC issuer's keys.
+  egressCidrs: []
+  egressPorts: [443]
+
+podSecurityContext:
+  runAsUser: 65532
+  runAsGroup: 65532
+  fsGroup: 65532
+
+probes:
+  liveness:
+    initialDelaySeconds: 2
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 6
+  readiness:
+    periodSeconds: 5
+    timeoutSeconds: 5
+    failureThreshold: 2
+
+podAnnotations: {}
+podLabels: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}
+priorityClassName: ""

@@ -1,0 +1,251 @@
+//! Checks run from an extracted release archive: `--version`, a model generated and validated,
+//! an MCP `initialize` + `tools/list` over stdio, the install script into a scratch folder, and
+//! the `.pbiviz` files under `visuals/`.
+//!
+//! The archive is extracted with the operating system's own `tar` (Windows' bsdtar reads zip),
+//! as a user would, not with the library that wrote it.
+
+use std::io::{BufRead, BufReader, Write};
+use std::path::{Path, PathBuf};
+use std::process::{Command, Stdio};
+use std::sync::mpsc;
+use std::time::Duration;
+
+use super::Target;
+
+/// How long the MCP server may take to answer one request.
+const MCP_TIMEOUT: Duration = Duration::from_secs(60);
+
+pub fn run(t: Target, archive: &Path, out: &Path, top: &str, version: &str) -> Result<(), String> {
+    let scratch = out.join(format!(".smoke-{}", t.label()));
+    if scratch.exists() {
+        std::fs::remove_dir_all(&scratch).map_err(|e| format!("smoke: {}: {e}", scratch.display()))?;
+    }
+    std::fs::create_dir_all(&scratch).map_err(|e| format!("smoke: {}: {e}", scratch.display()))?;
+    let result = checks(t, archive, &scratch, top, version);
+    match &result {
+        Ok(()) => {
+            let _ = std::fs::remove_dir_all(&scratch);
+            eprintln!("smoke ({}): all checks passed", t.label());
+        }
+        Err(_) => eprintln!("smoke ({}): scratch kept in {}", t.label(), scratch.display()),
+    }
+    result
+}
+
+fn checks(t: Target, archive: &Path, scratch: &Path, top: &str, version: &str) -> Result<(), String> {
+    let mut tar = Command::new(tar_program());
+    tar.arg(if t == Target::Linux { "-xzf" } else { "-xf" })
+        .arg(archive)
+        .arg("-C")
+        .arg(scratch);
+    expect_ok(tar, "extract")?;
+    let dir = scratch.join(top);
+    let bin = dir.join(t.exe());
+
+    // 1. --version
+    let line = stdout_of(Command::new(&bin).arg("--version"), "--version")?;
+    if !line.starts_with(&format!("bicraft {version}")) {
+        return Err(format!("smoke: --version printed `{line}`"));
+    }
+    eprintln!("smoke: {line}");
+
+    // 2. a generated project, validated.
+    let proj = scratch.join("project");
+    let mut c = Command::new(&bin);
+    c.arg("new-project").arg(&proj).arg("Smoke");
+    stdout_of(&mut c, "new-project")?;
+    let model = proj.join("Smoke.SemanticModel");
+    let report = stdout_of(
+        Command::new(&bin).arg("validate-model").arg(&model),
+        "validate-model",
+    )?;
+    let v: serde_json::Value =
+        serde_json::from_str(&report).map_err(|e| format!("smoke: validate-model output: {e}"))?;
+    if v.get("valid") != Some(&serde_json::Value::Bool(true)) {
+        return Err(format!("smoke: validate-model: {report}"));
+    }
+    eprintln!("smoke: validate-model ok");
+
+    // 3. MCP handshake over stdio.
+    mcp(&bin, version)?;
+
+    // 4. The install script, into a scratch folder.
+    let dest = scratch.join("installed");
+    let mut c = match t {
+        Target::Windows => {
+            let mut c = Command::new("powershell.exe");
+            c.args([
+                "-NoProfile",
+                "-NonInteractive",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+            ])
+            .arg(dir.join("install.ps1"))
+            .arg("-Destination")
+            .arg(&dest);
+            c
+        }
+        Target::Linux => {
+            let mut c = Command::new("sh");
+            c.arg(dir.join("install.sh")).arg(&dest);
+            c
+        }
+    };
+    let said = stdout_of(&mut c, "install script")?;
+    let installed = stdout_of(
+        Command::new(dest.join(t.exe())).arg("--version"),
+        "installed --version",
+    )?;
+    if installed != line || !said.contains(&line) {
+        return Err(format!("smoke: install script output:\n{said}"));
+    }
+    eprintln!("smoke: install script ok");
+
+    // 5. BIcraft's visuals (M12.5): `.pbiviz` packages next to their README.
+    let visuals = dir.join("visuals");
+    let packages: Vec<PathBuf> = std::fs::read_dir(&visuals)
+        .map_err(|e| format!("smoke: {}: {e}", visuals.display()))?
+        .flatten()
+        .map(|e| e.path())
+        .filter(|p| p.extension().is_some_and(|x| x == "pbiviz"))
+        .collect();
+    if packages.is_empty() || !visuals.join("README.md").is_file() {
+        return Err(format!(
+            "smoke: {} has no .pbiviz or no README.md",
+            visuals.display()
+        ));
+    }
+    for p in &packages {
+        let head = std::fs::read(p).map_err(|e| format!("smoke: {}: {e}", p.display()))?;
+        if !head.starts_with(b"PK") {
+            return Err(format!("smoke: {} is not a .pbiviz package", p.display()));
+        }
+    }
+    eprintln!("smoke: {} visuals ok", packages.len());
+    Ok(())
+}
+
+fn tar_program() -> PathBuf {
+    if cfg!(windows) {
+        // System32's bsdtar extracts zip; a Git-for-Windows GNU tar earlier on PATH would not.
+        let root = std::env::var_os("SystemRoot").unwrap_or_else(|| "C:\\Windows".into());
+        PathBuf::from(root).join("System32").join("tar.exe")
+    } else {
+        PathBuf::from("tar")
+    }
+}
+
+fn expect_ok(mut c: Command, what: &str) -> Result<(), String> {
+    let o = c.output().map_err(|e| format!("smoke: {what}: {e}"))?;
+    if o.status.success() {
+        Ok(())
+    } else {
+        Err(format!(
+            "smoke: {what} failed ({}): {}",
+            o.status,
+            String::from_utf8_lossy(&o.stderr)
+        ))
+    }
+}
+
+fn stdout_of(c: &mut Command, what: &str) -> Result<String, String> {
+    let o = c.output().map_err(|e| format!("smoke: {what}: {e}"))?;
+    if !o.status.success() {
+        return Err(format!(
+            "smoke: {what} failed ({}): {}{}",
+            o.status,
+            String::from_utf8_lossy(&o.stdout),
+            String::from_utf8_lossy(&o.stderr)
+        ));
+    }
+    Ok(String::from_utf8_lossy(&o.stdout).trim().to_owned())
+}
+
+/// `initialize` then `tools/list`; the server must exit when stdin closes.
+fn mcp(bin: &Path, version: &str) -> Result<(), String> {
+    let mut child = Command::new(bin)
+        .arg("mcp")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn()
+        .map_err(|e| format!("smoke: mcp: {e}"))?;
+    let result = mcp_session(&mut child, version);
+    if result.is_err() {
+        let _ = child.kill();
+    }
+    let status = child.wait().map_err(|e| format!("smoke: mcp: {e}"))?;
+    result?;
+    if !status.success() {
+        return Err(format!("smoke: mcp exited with {status}"));
+    }
+    eprintln!("smoke: mcp handshake ok");
+    Ok(())
+}
+
+fn mcp_session(child: &mut std::process::Child, version: &str) -> Result<(), String> {
+    let mut stdin = child.stdin.take().ok_or("smoke: mcp: no stdin")?;
+    let stdout = child.stdout.take().ok_or("smoke: mcp: no stdout")?;
+    // Lines are read on a thread so a hung server fails the check instead of blocking it.
+    let (tx, rx) = mpsc::channel();
+    std::thread::spawn(move || {
+        for line in BufReader::new(stdout).lines() {
+            if tx.send(line).is_err() {
+                break;
+            }
+        }
+    });
+    let send = |stdin: &mut std::process::ChildStdin, msg: serde_json::Value| {
+        writeln!(stdin, "{msg}")
+            .and_then(|()| stdin.flush())
+            .map_err(|e| format!("smoke: mcp write: {e}"))
+    };
+    let ask =
+        |stdin: &mut std::process::ChildStdin, req: serde_json::Value| -> Result<serde_json::Value, String> {
+            send(stdin, req)?;
+            let line = rx
+                .recv_timeout(MCP_TIMEOUT)
+                .map_err(|_| "smoke: mcp: no answer".to_owned())?
+                .map_err(|e| format!("smoke: mcp read: {e}"))?;
+            serde_json::from_str(&line).map_err(|e| format!("smoke: mcp: bad JSON `{line}`: {e}"))
+        };
+    let init = ask(
+        &mut stdin,
+        serde_json::json!({"jsonrpc": "2.0", "id": 1, "method": "initialize",
+        "params": {"protocolVersion": "2025-06-18", "capabilities": {},
+                   "clientInfo": {"name": "xtask-dist", "version": "1"}}}),
+    )?;
+    let info = init.pointer("/result/serverInfo");
+    if info
+        .and_then(|i| i.get("name"))
+        .and_then(serde_json::Value::as_str)
+        != Some("bicraft")
+        || info
+            .and_then(|i| i.get("version"))
+            .and_then(serde_json::Value::as_str)
+            != Some(version)
+    {
+        return Err(format!("smoke: mcp initialize answered {init}"));
+    }
+    send(
+        &mut stdin,
+        serde_json::json!({"jsonrpc": "2.0", "method": "notifications/initialized"}),
+    )?;
+    let tools = ask(
+        &mut stdin,
+        serde_json::json!({"jsonrpc": "2.0", "id": 2, "method": "tools/list"}),
+    )?;
+    let n = tools
+        .pointer("/result/tools")
+        .and_then(serde_json::Value::as_array)
+        .map_or(0, Vec::len);
+    if n == 0 {
+        return Err(format!("smoke: mcp tools/list answered {tools}"));
+    }
+    eprintln!("smoke: mcp lists {n} tools");
+    // Closing stdin ends the server.
+    drop(stdin);
+    Ok(())
+}

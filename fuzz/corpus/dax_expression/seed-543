@@ -1,0 +1,1 @@
+CALCULATE([Customer Count], Sales[Channel] = "Web")

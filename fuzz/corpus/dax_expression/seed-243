@@ -1,0 +1,1 @@
+SUMX(SUMMARIZE(Sales, Product[Category], "Q", SUM(Sales[Quantity])), [Q])

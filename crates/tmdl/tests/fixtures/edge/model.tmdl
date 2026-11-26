@@ -1,0 +1,16 @@
+model Model
+	culture: en-US
+	forceUniqueNames
+	disableAutoExists: 1
+
+queryGroup G
+
+queryGroup G\Sub
+
+annotation A = 1
+
+ref table Names
+ref table Case
+
+ref role R
+

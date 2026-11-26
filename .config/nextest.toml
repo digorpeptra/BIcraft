@@ -1,0 +1,64 @@
+# cargo-nextest (https://nexte.st): `cargo xtask ci` runs the tests with it when it is installed
+# (each test in its own process, in parallel across test binaries), and falls back to
+# `cargo test` otherwise. CI installs exactly this version (.github/workflows/ci.yml). Doctests
+# are not run by nextest: `cargo xtask ci` runs them with `cargo test --doc`. docs/ci.md.
+nextest-version = { recommended = "0.9.150" }
+
+[profile.default]
+# A hung test is reported after a minute and killed after five.
+slow-timeout = { period = "60s", terminate-after = 5 }
+
+# `cargo xtask ci` and the GitHub test jobs. Collect every failure in one run instead of one per
+# rebuild, and repeat failures at the end of the log.
+[profile.ci]
+fail-fast = false
+failure-output = "immediate-final"
+slow-timeout = { period = "60s", terminate-after = 5 }
+[profile.ci.junit]
+path = "junit.xml"
+
+# `cargo xtask heavy` and the nightly workflow: the big-volume variants and long loops listed in
+# xtask/src/heavy.rs; they are allowed more time.
+[profile.heavy]
+fail-fast = false
+failure-output = "immediate-final"
+slow-timeout = { period = "120s", terminate-after = 10 }
+[profile.heavy.junit]
+path = "junit.xml"
+
+# The engine's differential tests on 3,000- and 30,000-row models (the storage engine and the
+# grouping-by-ranges paths against the reference evaluator): about 90 s each with the dev
+# profile's opt-level 1, more on a loaded machine. They keep their place in the gate (no smaller
+# test covers the same paths) with ten minutes before they are killed.
+[[profile.default.overrides]]
+filter = 'package(bicraft-engine) & test(/^preview::general::(storage_tests::storage_engine_matches_the_reference_|mem_tests::topn_over_a_grouping_)/)'
+slow-timeout = { period = "120s", terminate-after = 5 }
+
+[[profile.ci.overrides]]
+filter = 'package(bicraft-engine) & test(/^preview::general::(storage_tests::storage_engine_matches_the_reference_|mem_tests::topn_over_a_grouping_)/)'
+slow-timeout = { period = "120s", terminate-after = 5 }
+
+# Every command against empty and hostile params in four session states (about 300,000 runs):
+# a few minutes alone, more while other builds load the machine; ten minutes before it is killed.
+[[profile.default.overrides]]
+filter = 'package(bicraft-engine) & binary(hostile_params)'
+slow-timeout = { period = "120s", terminate-after = 5 }
+
+[[profile.ci.overrides]]
+filter = 'package(bicraft-engine) & binary(hostile_params)'
+slow-timeout = { period = "120s", terminate-after = 5 }
+
+# The UI speed tests (crates/ui/src/tests/speed_ui_tests.rs, docs/ui-perf.md) time the window's
+# frames: they run alone, every other test waiting, so their budgets measure the UI and not the
+# builds and tests around them.
+[[profile.default.overrides]]
+filter = 'package(bicraft-ui) & test(/speed_ui_tests::/)'
+threads-required = "num-cpus"
+
+[[profile.ci.overrides]]
+filter = 'package(bicraft-ui) & test(/speed_ui_tests::/)'
+threads-required = "num-cpus"
+
+[[profile.heavy.overrides]]
+filter = 'package(bicraft-ui) & test(/speed_ui_tests::/)'
+threads-required = "num-cpus"

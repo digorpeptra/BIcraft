@@ -1,0 +1,1 @@
+SUMX(ADDCOLUMNS(Product, "@Rev", [Total Sales]), [@Rev])

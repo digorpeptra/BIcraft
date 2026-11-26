@@ -1,0 +1,13 @@
+table 'Sales.Archive'
+	lineageTag: 0d6b1f7c-0000-4000-8000-000000000050
+
+	column Value
+		dataType: string
+		lineageTag: 0d6b1f7c-0000-4000-8000-000000000051
+		summarizeBy: none
+		sourceColumn: Value
+
+	partition 'Sales.Archive' = m
+		mode: directQuery
+		source = #table({"Value"}, {{"a"}})
+

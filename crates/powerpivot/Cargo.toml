@@ -1,0 +1,20 @@
+[package]
+name = "bicraft-powerpivot"
+description = "L3: Excel Power Pivot workbooks: the data model backup in xl/model/item.data, its XML metadata and its VertiPaq data"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+bicraft-abf.workspace = true
+bicraft-model.workspace = true
+bicraft-opc.workspace = true
+bicraft-vertipaq.workspace = true
+bicraft-xpress8.workspace = true
+bicraft-xpress9.workspace = true
+roxmltree = "0.21"
+serde_json.workspace = true
+thiserror.workspace = true
+
+[lints]
+workspace = true

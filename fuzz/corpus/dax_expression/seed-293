@@ -1,0 +1,1 @@
+COUNTROWS(DATATABLE("k", INTEGER, {{1}, {2}}))

@@ -1,0 +1,1 @@
+DEFINE TABLE Cats = VALUES(Product[Category]) EVALUATE Cats

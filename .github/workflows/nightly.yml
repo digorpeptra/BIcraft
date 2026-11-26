@@ -1,0 +1,114 @@
+# Nightly: what the gate leaves out to stay near ten minutes (docs/ci.md).
+#
+# - heavy (Linux, Windows): `cargo xtask heavy`, the heavy tests of xtask/src/heavy.rs (big-volume
+#   variants of gate tests) and the gate's fuzz and differential loops run longer;
+# - latest-stable (Linux): the whole gate (`cargo xtask ci`) on the latest stable Rust, so a new
+#   release's lints and behaviour show up here before RUST_TOOLCHAIN in ci.yml is bumped.
+#
+# Runs once a day on main and on demand (Actions > Nightly > Run workflow). Caches are restored
+# from and saved to their own entries, never the gate's.
+name: Nightly
+
+on:
+  schedule:
+    - cron: "17 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nightly-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  # Keep in sync with ci.yml.
+  RUST_TOOLCHAIN: "1.99.1"
+  NEXTEST: cargo-nextest@0.9.150
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: "0"
+  CARGO_NET_RETRY: "10"
+  RUST_BACKTRACE: "1"
+  CACHE_VERSION: v1
+
+jobs:
+  heavy:
+    name: heavy tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+
+      - name: Install Rust
+        shell: bash
+        run: |
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal --no-self-update
+          rustup default "$RUST_TOOLCHAIN"
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.x"
+
+      - name: Windows build settings
+        if: runner.os == 'Windows'
+        shell: bash
+        run: echo "CARGO_PROFILE_DEV_DEBUG=0" >> "$GITHUB_ENV"
+
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          prefix-key: ${{ env.CACHE_VERSION }}-rust
+          shared-key: heavy
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+          cache-on-failure: true
+
+      - uses: taiki-e/install-action@c509219cf42fba86913069efd0ade2458c59337b # v2.90.1
+        with:
+          tool: ${{ env.NEXTEST }}
+
+      - name: cargo xtask heavy
+        run: cargo xtask heavy
+
+      - name: Test report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: heavy-junit-${{ matrix.os }}
+          path: target/nextest/heavy/junit.xml
+          if-no-files-found: ignore
+
+  latest-stable:
+    name: gate on the latest stable Rust
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+
+      - name: Install Rust
+        shell: bash
+        run: |
+          rustup toolchain install stable --profile minimal --no-self-update \
+            --component clippy --component rustfmt --target wasm32-unknown-unknown
+          rustup default stable
+          rustc --version
+
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          prefix-key: ${{ env.CACHE_VERSION }}-rust
+          shared-key: latest-stable
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+          cache-on-failure: true
+
+      - uses: taiki-e/install-action@c509219cf42fba86913069efd0ade2458c59337b # v2.90.1
+        with:
+          tool: ${{ env.NEXTEST }}
+
+      - name: cargo xtask ci
+        run: cargo xtask ci

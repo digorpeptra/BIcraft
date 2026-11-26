@@ -1,0 +1,149 @@
+{
+  "name": "",
+  "culture": "en-US",
+  "tables": [
+    {
+      "name": "Sales",
+      "is_hidden": false,
+      "columns": [
+        {
+          "name": "RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61",
+          "data_type": "int64",
+          "is_hidden": true,
+          "extra": {
+            "type": "rowNumber",
+            "isUnique": true,
+            "isKey": true,
+            "isNullable": false
+          }
+        },
+        {
+          "name": "Amount",
+          "data_type": "int64",
+          "source_column": "amount",
+          "lineage_tag": "c-amount",
+          "is_hidden": false
+        },
+        {
+          "name": "Region",
+          "data_type": "string",
+          "source_column": "region",
+          "is_hidden": false
+        }
+      ],
+      "measures": [
+        {
+          "name": "Total",
+          "expression": "SUM(Sales[Amount])",
+          "is_hidden": false
+        }
+      ],
+      "partitions": [
+        {
+          "name": "Sales",
+          "mode": "directQuery",
+          "source_type": "entity",
+          "source_extra": {
+            "entityName": "sales",
+            "expressionSource": "DatabaseQuery",
+            "schemaName": "dbo"
+          }
+        }
+      ],
+      "extra": {
+        "directLakeIndexingBehavior": "explicit",
+        "sets": [
+          {
+            "name": "All regions",
+            "expression": "VALUES(Sales[Region])",
+            "isHidden": true
+          }
+        ],
+        "excludedArtifacts": [
+          {
+            "artifactType": 8,
+            "reference": {
+              "name": "Margin",
+              "reason": "test"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "Local",
+      "is_hidden": false,
+      "columns": [
+        {
+          "name": "RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61",
+          "data_type": "int64",
+          "is_hidden": true,
+          "extra": {
+            "type": "rowNumber",
+            "isUnique": true,
+            "isKey": true,
+            "isNullable": false
+          }
+        },
+        {
+          "name": "Value",
+          "data_type": "int64",
+          "source_column": "[Value]",
+          "is_hidden": false,
+          "extra": {
+            "type": "calculatedTableColumn",
+            "isNameInferred": true,
+            "isDataTypeInferred": true
+          }
+        }
+      ],
+      "measures": [],
+      "partitions": [
+        {
+          "name": "Local",
+          "source_type": "calculated",
+          "expression": "{1, 2, 3}"
+        }
+      ]
+    }
+  ],
+  "relationships": [],
+  "expressions": [
+    {
+      "name": "DatabaseQuery",
+      "kind": "m",
+      "expression": "let\n    database = Sql.Database(\"lake.example.invalid\", \"warehouse\")\nin\n    database",
+      "extra": {
+        "mAttributes": "[Version = \"1\"]"
+      }
+    }
+  ],
+  "annotations": [
+    {
+      "name": "Provenance",
+      "value": "BIcraft: synthetic model (G16 preview features)"
+    }
+  ],
+  "extra": {
+    "name": "Model",
+    "defaultPowerBIDataSourceVersion": "powerBI_V3",
+    "directLakeBehavior": "directQueryOnly",
+    "metadataAccessPolicy": "calculationDefinitions",
+    "defaultDirectLakeIndexingBehavior": "full",
+    "perspectives": [
+      {
+        "name": "Explore",
+        "tables": [
+          {
+            "name": "Sales",
+            "columns": [
+              {
+                "name": "Region"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

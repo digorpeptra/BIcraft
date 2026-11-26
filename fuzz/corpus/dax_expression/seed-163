@@ -1,0 +1,1 @@
+DATEDIFF(Customer[BirthDate], DATE(2025, 1, 1), YEAR)

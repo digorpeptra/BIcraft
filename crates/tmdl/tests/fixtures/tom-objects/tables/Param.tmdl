@@ -1,0 +1,26 @@
+table Param
+
+	column Param
+		sourceColumn: [Value1]
+
+		relatedColumnDetails
+			groupByColumn: 'Param Fields'
+
+	column 'Param Fields'
+		isHidden
+		sourceColumn: [Value2]
+		sortByColumn: 'Param Order'
+
+		extendedProperty ParameterMetadata =
+				{
+				  "version": 3,
+				  "kind": 2
+				}
+
+	column 'Param Order'
+		isHidden
+		sourceColumn: [Value3]
+
+	partition Param = calculated
+		source = {("Total", NAMEOF('Sales'[Total]), 0), ("Dyn", NAMEOF('Sales'[Dyn]), 1)}
+

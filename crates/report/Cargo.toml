@@ -1,0 +1,13 @@
+[package]
+name = "bicraft-report"
+description = "L1: the in-memory report (pages, visuals, resources) shared by PBIR and legacy layouts"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+
+[lints]
+workspace = true

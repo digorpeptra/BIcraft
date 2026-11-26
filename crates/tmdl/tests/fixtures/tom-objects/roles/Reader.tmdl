@@ -1,0 +1,28 @@
+/// role desc
+role Reader
+	modelPermission: read
+
+	tablePermission Sales = Sales[Region] = "North"
+
+		extendedProperty TpExt = e-TpExt
+
+		columnPermission City = none
+
+			annotation ColPermNote = v-ColPermNote
+
+		annotation TpNote = tp
+
+	tablePermission Param
+		metadataPermission: none
+
+	member Everyone = activeDirectory
+		extendedProperty MemberExt = e-MemberExt
+
+		annotation MemberNote = v-MemberNote
+
+	member System = activeDirectory
+
+	extendedProperty RoleExt = e-RoleExt
+
+	annotation RoleNote = r1
+

@@ -1,0 +1,31 @@
+cultureInfo fr-FR
+	translations
+		model Model
+			caption: Modèle
+			description =
+				multi
+				line
+			table 'Order Lines'
+				caption: Lignes
+				description: desc
+				column Key
+					caption: Clé
+					displayFolder: Clés
+				column 'It''s "quoted"'
+					caption: " lead"
+				measure 'Sales Amount'
+					caption: Montant
+					displayFolder: Chiffres clés
+				hierarchy 'H 1'
+					caption: H
+					level 'L 1'
+						caption: N 1
+			perspective 'Sales View'
+				caption: Vue
+			role 'Sales Reader'
+				description: Peut lire.
+			expression Param
+				caption: Paramètre
+
+	linguisticMetadata = <xml/>
+

@@ -1,0 +1,4 @@
+/// Database description.
+database Edge
+	compatibilityLevel: 1601
+

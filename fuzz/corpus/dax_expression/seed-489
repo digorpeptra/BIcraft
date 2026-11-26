@@ -1,0 +1,1 @@
+LOOKUPVALUE(Customer[City], Customer[CustomerKey], 1) = Customer[City]

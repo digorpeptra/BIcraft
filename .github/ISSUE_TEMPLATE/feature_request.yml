@@ -1,0 +1,52 @@
+name: Feature request
+description: Something BIcraft should read, write, check or let you do.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Check ROADMAP.md and docs/gaps.md first: the work may already be planned or listed as a
+        known gap. Describe features in your own words; do not attach client files or Power BI
+        files authored by others.
+  - type: textarea
+    id: need
+    attributes:
+      label: What you want to do
+      description: The task you are trying to get done, and what stops you today.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What BIcraft could do
+      description: >-
+        The behaviour you would like: a command, a format feature, a DAX or Power Query function,
+        a UI change. Say how you would call it from the CLI or MCP if you have an idea.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      multiple: true
+      options:
+        - File formats (PBIX, PBIT, PBIP, PBIR, TMDL, TMSL)
+        - Semantic model and DAX
+        - Power Query (M) and data
+        - Report and visuals
+        - CLI or MCP server
+        - Server mode and deployment
+        - Desktop or browser app
+        - Other
+  - type: textarea
+    id: desktop
+    attributes:
+      label: How Power BI Desktop behaves
+      description: >-
+        When the feature exists in Power BI Desktop: what Desktop shows or writes for a file you
+        made yourself, and its version (Help > About).
+  - type: textarea
+    id: context
+    attributes:
+      label: Anything else
+      description: Alternatives you considered, links to public documentation or specifications.

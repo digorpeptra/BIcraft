@@ -1,0 +1,16 @@
+.bicraft-spec {
+    font-family: "Segoe UI", sans-serif;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+.bicraft-spec svg {
+    display: block;
+}
+
+.bicraft-spec-message {
+    margin: 8px;
+    color: #555555;
+    font-size: 12px;
+}

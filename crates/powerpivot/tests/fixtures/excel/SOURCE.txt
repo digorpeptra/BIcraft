@@ -1,0 +1,41 @@
+Excel-saved Power Pivot workbook (M11.33, docs/gaps.md G100)
+============================================================
+
+What: excel-model.xlsx, a workbook Microsoft Excel saved with a data model built from our own
+synthetic worksheet tables: Product (5 rows), Customer (3 rows), Sales (12 rows, a date
+column), two relationships Sales -> Product and Sales -> Customer, three measures
+(Total quantity with a whole-number format and a description, Revenue with a two-decimal
+format, Customers with the General format). Every name and value is invented; no Microsoft
+asset, no client data.
+
+Made with: Microsoft Excel 16.0, build 16.0.20625.20108 (Microsoft 365, Windows 11), on
+2026-11-23, by make-model.ps1 (this folder) through Excel's public COM object model
+(Workbook.Connections.Add2 with CreateModelConnection, Model.ModelRelationships.Add,
+Model.ModelMeasures.Add, Workbook.RemovePersonalInformation; Excel VBA reference on Microsoft
+Learn):
+
+    powershell -File make-model.ps1 -OutPath <dir>\excel-model.xlsx -TempDir <neutral-dir>
+
+The script starts its own Excel with TEMP set to <neutral-dir>, a short folder named after no
+user, which the data model backup records as the engine's working folder. Excel also records the computer name in
+the backup's PARTITIONS file; it was replaced, at the same length, by
+
+    cargo run -p bicraft-powerpivot --example scrub_workbook -- <in> <out> <COMPUTERNAME>=<same-length text>
+
+which rewrites only that uncompressed file and its CRC end marker, rewrites the ZIP container
+(same parts, same content), and checks that the name is found nowhere else. Excel 16.0.20625
+opened the scrubbed file and loaded its model (check-model.ps1, this folder).
+
+Excel's own results: check-model.ps1 prints the model as Excel's object model lists it and
+evaluates three DAX queries in Excel's engine:
+
+    ROW: Total quantity 58, Revenue 263.96, Customers 3
+    by Customer[Country]: France 217.73 / 31, Belgium 46.23 / 27
+    by Product[Category]: Tools 132.5 / 40, Toys 51.5 / 14, Home 79.96 / 4
+
+The engine test `a_workbook_excel_saved_opens_with_excels_results_and_saves_as_pbix`
+(crates/engine/src/workbook_import_tests.rs) expects these values from BIcraft's evaluator;
+crates/powerpivot/tests/excel_saved.rs checks the model, every value and every CRC marker.
+
+Not covered: Excel's object model has no call to add a calculated column, a hierarchy, a
+display folder or a hidden column, so the workbook has none.

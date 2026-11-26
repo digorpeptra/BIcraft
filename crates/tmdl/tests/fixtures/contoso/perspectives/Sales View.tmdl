@@ -1,0 +1,13 @@
+perspective 'Sales View'
+
+	perspectiveTable 'Order Lines'
+
+		perspectiveMeasure 'Sales Amount'
+
+		perspectiveColumn Qty
+
+	perspectiveTable Calendar
+		includeAll
+
+		perspectiveHierarchy 'Calendar Hierarchy'
+

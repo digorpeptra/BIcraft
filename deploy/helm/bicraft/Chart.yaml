@@ -1,0 +1,21 @@
+apiVersion: v2
+name: bicraft
+description: >-
+  BIcraft's MCP server (`bicraft serve`) for one workspace: agents open, query, edit and save Power
+  BI files (PBIX, PBIT, PBIP) over MCP Streamable HTTP, with the workspace's files on its own
+  PersistentVolumeClaim.
+type: application
+# The chart's own version; bump it on every change of the chart.
+version: 0.1.0
+# The bicraft version the default image tag points to (`cargo xtask deploy check` keeps it equal to
+# the workspace version).
+appVersion: "0.1.0"
+kubeVersion: ">=1.27.0-0"
+# home and sources: to add once the public repository URL is chosen.
+keywords:
+  - power-bi
+  - mcp
+  - dax
+  - agents
+annotations:
+  docs: docs/kubernetes.md

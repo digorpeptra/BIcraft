@@ -1,0 +1,12 @@
+cultureInfo fr-FR
+	translations
+		model Model
+			caption: Modèle
+			table 'Order Lines'
+				caption: Lignes de commande
+				column Qty
+					caption: Quantité
+				measure 'Sales Amount'
+					caption: Montant des ventes
+					displayFolder: Chiffres clés
+

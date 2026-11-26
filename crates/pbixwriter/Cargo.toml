@@ -1,0 +1,23 @@
+[package]
+name = "bicraft-pbixwriter"
+description = "L4: writes PBIT and thin PBIX packages"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+bicraft-versions.workspace = true
+bicraft-model.workspace = true
+bicraft-opc.workspace = true
+bicraft-pbir.workspace = true
+bicraft-report.workspace = true
+bicraft-tmsl.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+bicraft-env.workspace = true
+zip.workspace = true

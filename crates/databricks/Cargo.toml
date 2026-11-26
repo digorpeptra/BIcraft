@@ -1,0 +1,20 @@
+[package]
+name = "bicraft-databricks"
+description = "L3: the Databricks connector of bicraft's Power Query evaluator (SQL Statement Execution API over HTTPS), run only when explicitly allowed"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+bicraft-locale.workspace = true
+bicraft-env.workspace = true
+bicraft-data.workspace = true
+serde_json.workspace = true
+# Blocking HTTPS client with rustls (ring) and the bundled Mozilla roots (webpki-roots), the same
+# configuration `cargo xtask schema-watch` already uses: no async runtime, no OpenSSL, static on
+# musl. Licences: MIT/Apache-2.0 (ureq), Apache-2.0/ISC/MIT (rustls), Apache-2.0 AND ISC (ring),
+# CDLA-Permissive-2.0 (webpki-roots) — THIRD_PARTY_NOTICES.md.
+ureq = { version = "3", default-features = false, features = ["rustls"] }
+
+[lints]
+workspace = true

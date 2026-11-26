@@ -1,0 +1,1 @@
+SUMX(RELATEDTABLE(Sales), Sales[Quantity])

@@ -1,0 +1,1 @@
+VAR t = ADDCOLUMNS(Product, "@x", 1) RETURN SUMX(t, [@x])

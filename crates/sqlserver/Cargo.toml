@@ -1,0 +1,26 @@
+[package]
+name = "bicraft-sqlserver"
+description = "L3: the SQL Server connector of bicraft's Power Query evaluator (TDS 7.4 over TLS, SQL authentication), run only when explicitly allowed"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[features]
+# A scripted TDS server on 127.0.0.1 for the tests of this crate and of the engine (src/fake.rs).
+fake-server = []
+
+[dependencies]
+bicraft-data.workspace = true
+bicraft-env.workspace = true
+# TLS without an async runtime and without OpenSSL: rustls with ring and the bundled Mozilla
+# roots, the configuration bicraft-databricks already uses through ureq. Licences:
+# Apache-2.0/ISC/MIT (rustls), Apache-2.0 AND ISC (ring), CDLA-Permissive-2.0 (webpki-roots);
+# THIRD_PARTY_NOTICES.md.
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
+webpki-roots = "1"
+
+[dev-dependencies]
+bicraft-sqlserver = { path = ".", features = ["fake-server"] }
+
+[lints]
+workspace = true

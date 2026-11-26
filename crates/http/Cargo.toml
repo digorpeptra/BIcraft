@@ -1,0 +1,11 @@
+[package]
+name = "bicraft-http"
+description = "L0: hardened std HTTP/1.1 plumbing (bounded heads and bodies, deadlines, connection caps) shared by the viewer and the MCP HTTP endpoint"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+
+[lints]
+workspace = true

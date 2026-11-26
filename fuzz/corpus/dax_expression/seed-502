@@ -1,0 +1,1 @@
+SWITCH(TRUE(), [Total Sales] > 500, "High", [Total Sales] > 100, "Mid", "Low")

@@ -1,0 +1,1 @@
+CALCULATE([Total Sales], OFFSET(-1, 'Date'[Year], ORDERBY('Date'[Year])))

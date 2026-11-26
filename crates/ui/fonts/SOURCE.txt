@@ -1,0 +1,15 @@
+NotoSansSymbols2-subset.ttf: a glyph subset of Noto Sans Symbols 2 Regular.
+
+Upstream:  https://github.com/notofonts/symbols, release NotoSansSymbols2-v2.008 (2023-10-13)
+Archive:   https://github.com/notofonts/symbols/releases/download/NotoSansSymbols2-v2.008/NotoSansSymbols2-v2.008.zip
+           SHA-256 346c930bbe8eb946701a05c54e9c11a2094dee1d93c387bf1771c0a3e335688f
+Source:    NotoSansSymbols2/unhinted/ttf/NotoSansSymbols2-Regular.ttf (671568 bytes)
+           SHA-256 c4a0a80f0041ce4be81e2478faad22776d23edb98ae3f0d19bd37044820ecf9d
+Licence:   SIL Open Font License 1.1 (OFL-NotoSansSymbols2.txt, the archive's OFL.txt unmodified),
+           Copyright 2022 The Noto Project Authors. No Reserved Font Name.
+Subset:    cargo xtask font-subset NotoSansSymbols2-Regular.ttf NotoSansSymbols2-subset.ttf "•⌫⏴⏵⏶⏷■□▲△▶▷►▼▽◀◁◄◆◇○●★☆⚠✓✔✕✖✗✘✦✱"
+           (glyph ids kept; other glyphs emptied; cmap of these characters only; post format 3;
+           layout and hinting tables dropped; name table kept)
+           SHA-256 f59b8fc0df19e564b499d06993492ef7b8117d7fe4758da2f5ca74ba1307bd53 (26000 bytes)
+Characters: U+2022 U+232B U+23F4-23F7 U+25A0 U+25A1 U+25B2 U+25B3 U+25B6 U+25B7 U+25BA U+25BC U+25BD U+25C0 U+25C1 U+25C4 U+25C6 U+25C7 U+25CB U+25CF U+2605 U+2606 U+26A0 U+2713-2718 U+2726 U+2731
+Used for:  the symbols of the BIcraft UI (crates/ui/src/fonts.rs), after Selawik.

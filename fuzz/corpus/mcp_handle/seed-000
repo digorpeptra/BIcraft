@@ -1,0 +1,12 @@
+{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"fuzz","version":"0"}}}
+{"jsonrpc":"2.0","method":"notifications/initialized"}
+{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"new_model","arguments":{"name":"M"}}}
+{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"add_table","arguments":{"name":"Sales","partition":{"source_type":"m","expression":"let x = 1 in x"}}}}
+{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"add_column","arguments":{"table":"Sales","name":"Amount","data_type":"decimal"}}}
+{"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"add_column","arguments":{"table":"Sales","name":"Qty","data_type":"int64","expression":"1"}}}
+{"jsonrpc":"2.0","id":6,"method":"tools/call","params":{"name":"add_measure","arguments":{"table":"Sales","name":"Total","expression":"SUM(Sales[Amount])"}}}
+{"jsonrpc":"2.0","id":7,"method":"tools/call","params":{"name":"set_measure","arguments":{"name":"Total","new_name":"Total Sales","update_report":true}}}
+{"jsonrpc":"2.0","id":8,"method":"tools/call","params":{"name":"validate_dax","arguments":{"expression":"CALCULATE([Total Sales], Sales[Qty] > 1)","table":"Sales"}}}
+{"jsonrpc":"2.0","id":9,"method":"tools/call","params":{"name":"validate_model","arguments":{}}}
+{"jsonrpc":"2.0","id":10,"method":"tools/call","params":{"name":"model_summary","arguments":{}}}
+{"jsonrpc":"2.0","id":11,"method":"tools/call","params":{"name":"add_relationship","arguments":{"from":"Sales[Qty]","to":"Sales[Amount]"}}}

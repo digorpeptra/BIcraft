@@ -1,0 +1,9 @@
+{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"fuzz","version":"0"}}}
+{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"new_model","arguments":{"name":"M"}}}
+{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"add_table","arguments":{"name":"T"}}}
+{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"add_column","arguments":{"table":"T","name":"C","data_type":"string"}}}
+{"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"add_page","arguments":{"display_name":"Page 1","width":1280,"height":720}}}
+{"jsonrpc":"2.0","id":6,"method":"tools/call","params":{"name":"report_summary","arguments":{}}}
+{"jsonrpc":"2.0","id":7,"method":"tools/call","params":{"name":"add_visual","arguments":{"page":"Page 1","visual_type":"card","x":0,"y":0,"width":100,"height":50,"fields":[{"role":"Values","field":"T[C]"}]}}}
+{"jsonrpc":"2.0","id":8,"method":"tools/call","params":{"name":"validate_report","arguments":{}}}
+{"jsonrpc":"2.0","id":9,"method":"tools/call","params":{"name":"validate_dax_query","arguments":{"query":"EVALUATE SUMMARIZECOLUMNS(T[C]) ORDER BY T[C]"}}}

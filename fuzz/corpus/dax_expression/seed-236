@@ -1,0 +1,1 @@
+CONCATENATEX(Product, Product[Product], ", ")

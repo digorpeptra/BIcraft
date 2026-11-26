@@ -1,0 +1,47 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/powerbi-desktop-samples/main/Report%20Theme%20JSON%20Schema/reportThemeSchema-2.157.json",
+  "name": "BIcraft Clear Sight",
+  "dataColors": [
+    "#0072B2",
+    "#B84E00",
+    "#007A5E",
+    "#CC3D93",
+    "#8A6E00",
+    "#1F78A0",
+    "#5E3C99",
+    "#666666"
+  ],
+  "foreground": "#1A1A1A",
+  "foregroundNeutralSecondary": "#4A4A4A",
+  "background": "#FFFFFF",
+  "tableAccent": "#0072B2",
+  "good": "#007A5E",
+  "neutral": "#8A6E00",
+  "bad": "#B84E00",
+  "maximum": "#0072B2",
+  "center": "#8A6E00",
+  "minimum": "#B84E00",
+  "hyperlink": "#0060A0",
+  "textClasses": {
+    "title": {
+      "fontFace": "Segoe UI Semibold",
+      "fontSize": 12,
+      "color": "#1A1A1A"
+    },
+    "label": {
+      "fontFace": "Segoe UI",
+      "fontSize": 10,
+      "color": "#1A1A1A"
+    },
+    "callout": {
+      "fontFace": "Segoe UI Light",
+      "fontSize": 32,
+      "color": "#1A1A1A"
+    },
+    "header": {
+      "fontFace": "Segoe UI Semibold",
+      "fontSize": 12,
+      "color": "#1A1A1A"
+    }
+  }
+}

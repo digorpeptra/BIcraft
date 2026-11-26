@@ -1,0 +1,40 @@
+{
+  "name": "Retail flow",
+  "version": "1.0",
+  "culture": "en-US",
+  "entities": [
+    {
+      "$type": "LocalEntity",
+      "name": "Stores",
+      "attributes": [
+        { "name": "StoreId", "dataType": "int64" },
+        { "name": "City", "dataType": "string" }
+      ],
+      "partitions": [ { "name": "Part001", "location": "https://storage.example/flow/Stores.csv" } ]
+    },
+    {
+      "$type": "LocalEntity",
+      "name": "Sales",
+      "attributes": [
+        { "name": "StoreId", "dataType": "int64" },
+        { "name": "Amount", "dataType": "decimal" },
+        { "name": "Day", "dataType": "dateTime" }
+      ],
+      "partitions": [ { "name": "Part001", "location": "https://storage.example/flow/Sales.csv" } ]
+    }
+  ],
+  "relationships": [
+    {
+      "$type": "SingleKeyRelationship",
+      "fromAttribute": { "entityName": "Sales", "attributeName": "StoreId" },
+      "toAttribute": { "entityName": "Stores", "attributeName": "StoreId" }
+    }
+  ],
+  "pbi:mashup": {
+    "document": "section Section1;\r\nshared Stores = let\r\n    Source = #table(type table [StoreId = Int64.Type, City = text], {{1, \"Lyon\"}})\r\nin\r\n    Source;\r\nshared Rate = 0.2 meta [IsParameterQuery = true, Type = \"Number\", IsParameterQueryRequired = true];\r\n",
+    "queriesMetadata": {
+      "Stores": { "queryId": "00000000-0000-0000-0000-000000000003", "queryName": "Stores", "loadEnabled": true },
+      "Rate": { "queryId": "00000000-0000-0000-0000-000000000004", "queryName": "Rate", "loadEnabled": false }
+    }
+  }
+}

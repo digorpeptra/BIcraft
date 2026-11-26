@@ -1,0 +1,22 @@
+[package]
+name = "bicraft-locale"
+description = "L0: culture data (separators, currency, date patterns, names, display units) and locale-aware formatting and parsing"
+version.workspace = true
+edition.workspace = true
+license = "(MIT OR Apache-2.0) AND Unicode-3.0"
+
+[dependencies]
+jiff.workspace = true
+
+[features]
+# `calendar::machine_offset_minutes`: the machine's time zone through jiff's system time zone
+# (Windows: the system zone's IANA name resolved in jiff's bundled tzdb; Unix: TZ, then
+# /etc/localtime, names resolved in /usr/share/zoneinfo).
+clock = ["jiff/tz-system", "jiff/tzdb-bundle-platform", "jiff/tzdb-zoneinfo"]
+
+[dev-dependencies]
+# tests/oracle.rs reads the engine's recorded results
+serde_json.workspace = true
+
+[lints]
+workspace = true

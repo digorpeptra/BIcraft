@@ -1,0 +1,1 @@
+CALCULATE(MAX(Sales[OrderDate]), ALL(Sales))

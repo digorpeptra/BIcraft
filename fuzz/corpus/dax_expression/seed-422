@@ -1,0 +1,1 @@
+CALCULATE([Total Sales], WINDOW(1, ABS, 0, ALLSELECTED('Date'[Month]), ORDERBY('Date'[Month])))

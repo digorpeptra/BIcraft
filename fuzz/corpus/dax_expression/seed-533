@@ -1,0 +1,1 @@
+UPPER(SELECTEDVALUE(Product[Category]))

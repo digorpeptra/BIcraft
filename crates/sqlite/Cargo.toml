@@ -1,0 +1,16 @@
+[package]
+name = "bicraft-sqlite"
+description = "L0: SQLite database file reader and writer in pure Rust"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+thiserror.workspace = true
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+bicraft-env.workspace = true
+serde_json.workspace = true

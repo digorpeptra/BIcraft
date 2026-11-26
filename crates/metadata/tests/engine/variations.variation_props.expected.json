@@ -1,0 +1,678 @@
+{
+  "name": "",
+  "culture": "en-US",
+  "tables": [
+    {
+      "name": "Customer",
+      "is_hidden": false,
+      "columns": [
+        {
+          "name": "RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61",
+          "data_type": "int64",
+          "is_hidden": true,
+          "extra": {
+            "type": "rowNumber",
+            "isUnique": true,
+            "isKey": true,
+            "isNullable": false
+          }
+        },
+        {
+          "name": "CustomerKey",
+          "data_type": "int64",
+          "source_column": "[CustomerKey]",
+          "is_hidden": false,
+          "extra": {
+            "type": "calculatedTableColumn",
+            "isNameInferred": true,
+            "isDataTypeInferred": true
+          }
+        },
+        {
+          "name": "Name",
+          "data_type": "string",
+          "source_column": "[Name]",
+          "is_hidden": false,
+          "extra": {
+            "type": "calculatedTableColumn",
+            "isNameInferred": true,
+            "isDataTypeInferred": true
+          }
+        },
+        {
+          "name": "City",
+          "data_type": "string",
+          "source_column": "[City]",
+          "is_hidden": false,
+          "extra": {
+            "type": "calculatedTableColumn",
+            "isNameInferred": true,
+            "isDataTypeInferred": true
+          }
+        },
+        {
+          "name": "Segment",
+          "data_type": "string",
+          "source_column": "[Segment]",
+          "is_hidden": false,
+          "extra": {
+            "type": "calculatedTableColumn",
+            "isNameInferred": true,
+            "isDataTypeInferred": true
+          }
+        },
+        {
+          "name": "IsActive",
+          "data_type": "boolean",
+          "source_column": "[IsActive]",
+          "is_hidden": false,
+          "extra": {
+            "type": "calculatedTableColumn",
+            "isNameInferred": true,
+            "isDataTypeInferred": true
+          }
+        },
+        {
+          "name": "BirthDate",
+          "data_type": "dateTime",
+          "source_column": "[BirthDate]",
+          "is_hidden": false,
+          "extra": {
+            "type": "calculatedTableColumn",
+            "isNameInferred": true,
+            "isDataTypeInferred": true
+          }
+        }
+      ],
+      "measures": [
+        {
+          "name": "Customer Count",
+          "expression": "DISTINCTCOUNT(Customer[CustomerKey])",
+          "is_hidden": false
+        }
+      ],
+      "partitions": [
+        {
+          "name": "Customer",
+          "source_type": "calculated",
+          "expression": "DATATABLE(\"CustomerKey\", INTEGER, \"Name\", STRING, \"City\", STRING, \"Segment\", STRING, \"IsActive\", BOOLEAN, \"BirthDate\", DATETIME, {{1, \"Avery\", \"Lyon\", \"Retail\", TRUE, \"1980-04-02\"}, {2, \"Blake\", \"Nantes\", \"Retail\", TRUE, \"1991-11-23\"}, {3, \"Casey\", \"Lyon\", \"Wholesale\", FALSE, \"1975-07-30\"}, {4, \"Devon\", \"Lille\", \"Wholesale\", TRUE, \"1988-01-09\"}, {5, \"Emery\", \"Brest\", \"Online\", TRUE, \"2001-06-17\"}, {6, \"Finley\", \"Nantes\", \"Online\", FALSE, \"1969-12-05\"}})"
+        }
+      ]
+    },
+    {
+      "name": "Product",
+      "is_hidden": false,
+      "columns": [
+        {
+          "name": "RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61",
+          "data_type": "int64",
+          "is_hidden": true,
+          "extra": {
+            "type": "rowNumber",
+            "isUnique": true,
+            "isKey": true,
+            "isNullable": false
+          }
+        },
+        {
+          "name": "ProductKey",
+          "data_type": "int64",
+          "source_column": "[ProductKey]",
+          "is_hidden": false,
+          "extra": {
+            "type": "calculatedTableColumn",
+            "isNameInferred": true,
+            "isDataTypeInferred": true
+          }
+        },
+        {
+          "name": "Product",
+          "data_type": "string",
+          "source_column": "[Product]",
+          "is_hidden": false,
+          "extra": {
+            "type": "calculatedTableColumn",
+            "isNameInferred": true,
+            "isDataTypeInferred": true
+          }
+        },
+        {
+          "name": "Category",
+          "data_type": "string",
+          "source_column": "[Category]",
+          "is_hidden": false,
+          "extra": {
+            "type": "calculatedTableColumn",
+            "isNameInferred": true,
+            "isDataTypeInferred": true
+          }
+        },
+        {
+          "name": "ListPrice",
+          "data_type": "decimal",
+          "source_column": "[ListPrice]",
+          "is_hidden": false,
+          "extra": {
+            "type": "calculatedTableColumn",
+            "isNameInferred": true,
+            "isDataTypeInferred": true
+          }
+        },
+        {
+          "name": "Weight",
+          "data_type": "double",
+          "source_column": "[Weight]",
+          "is_hidden": false,
+          "extra": {
+            "type": "calculatedTableColumn",
+            "isNameInferred": true,
+            "isDataTypeInferred": true
+          }
+        }
+      ],
+      "measures": [],
+      "partitions": [
+        {
+          "name": "Product",
+          "source_type": "calculated",
+          "expression": "DATATABLE(\"ProductKey\", INTEGER, \"Product\", STRING, \"Category\", STRING, \"ListPrice\", CURRENCY, \"Weight\", DOUBLE, {{10, \"Kettle\", \"Kitchen\", 39.90, 1.25}, {11, \"Toaster\", \"Kitchen\", 54.50, 2.1}, {12, \"Desk Lamp\", \"Office\", 24.00, 0.8}, {13, \"Notebook\", \"Office\", 3.75, 0.2}, {14, \"Tent\", \"Outdoor\", 189.00, 4.6}, {15, \"Lantern\", \"Outdoor\", 32.20, 0.65}})"
+        }
+      ]
+    },
+    {
+      "name": "Date",
+      "is_hidden": false,
+      "columns": [
+        {
+          "name": "RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61",
+          "data_type": "int64",
+          "is_hidden": true,
+          "extra": {
+            "type": "rowNumber",
+            "isUnique": true,
+            "isNullable": false
+          }
+        },
+        {
+          "name": "Date",
+          "data_type": "dateTime",
+          "source_column": "[Date]",
+          "is_hidden": false,
+          "extra": {
+            "type": "calculatedTableColumn",
+            "isNameInferred": true,
+            "isDataTypeInferred": true,
+            "isKey": true
+          }
+        },
+        {
+          "name": "Year",
+          "data_type": "int64",
+          "source_column": "[Year]",
+          "is_hidden": false,
+          "extra": {
+            "type": "calculatedTableColumn",
+            "isNameInferred": true,
+            "isDataTypeInferred": true
+          }
+        },
+        {
+          "name": "Month",
+          "data_type": "int64",
+          "source_column": "[Month]",
+          "is_hidden": false,
+          "extra": {
+            "type": "calculatedTableColumn",
+            "isNameInferred": true,
+            "isDataTypeInferred": true
+          }
+        },
+        {
+          "name": "Month Name",
+          "data_type": "string",
+          "source_column": "[Month Name]",
+          "is_hidden": false,
+          "extra": {
+            "type": "calculatedTableColumn",
+            "isNameInferred": true,
+            "isDataTypeInferred": true
+          }
+        },
+        {
+          "name": "Quarter",
+          "data_type": "string",
+          "source_column": "[Quarter]",
+          "is_hidden": false,
+          "extra": {
+            "type": "calculatedTableColumn",
+            "isNameInferred": true,
+            "isDataTypeInferred": true
+          }
+        }
+      ],
+      "measures": [],
+      "partitions": [
+        {
+          "name": "Date",
+          "source_type": "calculated",
+          "expression": "ADDCOLUMNS(CALENDAR(DATE(2024, 1, 1), DATE(2025, 12, 31)), \"Year\", YEAR([Date]), \"Month\", MONTH([Date]), \"Month Name\", FORMAT([Date], \"mmm\"), \"Quarter\", \"Q\" & QUARTER([Date]))"
+        }
+      ],
+      "extra": {
+        "dataCategory": "Time"
+      }
+    },
+    {
+      "name": "Sales",
+      "is_hidden": false,
+      "columns": [
+        {
+          "name": "RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61",
+          "data_type": "int64",
+          "is_hidden": true,
+          "extra": {
+            "type": "rowNumber",
+            "isUnique": true,
+            "isKey": true,
+            "isNullable": false
+          }
+        },
+        {
+          "name": "SalesKey",
+          "data_type": "int64",
+          "source_column": "[SalesKey]",
+          "is_hidden": false,
+          "extra": {
+            "type": "calculatedTableColumn",
+            "isNameInferred": true,
+            "isDataTypeInferred": true
+          }
+        },
+        {
+          "name": "OrderDate",
+          "data_type": "dateTime",
+          "source_column": "[OrderDate]",
+          "is_hidden": false,
+          "extra": {
+            "type": "calculatedTableColumn",
+            "isNameInferred": true,
+            "isDataTypeInferred": true,
+            "variations": [
+              {
+                "name": "Variation",
+                "description": "auto date",
+                "relationship": "Sales_OrderDate_LocalDateTable",
+                "defaultHierarchy": {
+                  "table": "LocalDateTable_0001",
+                  "hierarchy": "Date Hierarchy"
+                },
+                "isDefault": true,
+                "annotations": [
+                  {
+                    "name": "VarNote",
+                    "value": "v"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "CustomerKey",
+          "data_type": "int64",
+          "source_column": "[CustomerKey]",
+          "is_hidden": false,
+          "extra": {
+            "type": "calculatedTableColumn",
+            "isNameInferred": true,
+            "isDataTypeInferred": true
+          }
+        },
+        {
+          "name": "ProductKey",
+          "data_type": "int64",
+          "source_column": "[ProductKey]",
+          "is_hidden": false,
+          "extra": {
+            "type": "calculatedTableColumn",
+            "isNameInferred": true,
+            "isDataTypeInferred": true
+          }
+        },
+        {
+          "name": "Quantity",
+          "data_type": "int64",
+          "source_column": "[Quantity]",
+          "is_hidden": false,
+          "extra": {
+            "type": "calculatedTableColumn",
+            "isNameInferred": true,
+            "isDataTypeInferred": true
+          }
+        },
+        {
+          "name": "UnitPrice",
+          "data_type": "decimal",
+          "source_column": "[UnitPrice]",
+          "is_hidden": false,
+          "extra": {
+            "type": "calculatedTableColumn",
+            "isNameInferred": true,
+            "isDataTypeInferred": true
+          }
+        },
+        {
+          "name": "Discount",
+          "data_type": "double",
+          "source_column": "[Discount]",
+          "is_hidden": false,
+          "extra": {
+            "type": "calculatedTableColumn",
+            "isNameInferred": true,
+            "isDataTypeInferred": true
+          }
+        },
+        {
+          "name": "Channel",
+          "data_type": "string",
+          "source_column": "[Channel]",
+          "is_hidden": false,
+          "extra": {
+            "type": "calculatedTableColumn",
+            "isNameInferred": true,
+            "isDataTypeInferred": true
+          }
+        },
+        {
+          "name": "IsReturn",
+          "data_type": "boolean",
+          "source_column": "[IsReturn]",
+          "is_hidden": false,
+          "extra": {
+            "type": "calculatedTableColumn",
+            "isNameInferred": true,
+            "isDataTypeInferred": true
+          }
+        },
+        {
+          "name": "Line Amount",
+          "data_type": "decimal",
+          "expression": "Sales[Quantity] * Sales[UnitPrice] * (1 - Sales[Discount])",
+          "is_hidden": false,
+          "extra": {
+            "isDataTypeInferred": true
+          }
+        }
+      ],
+      "measures": [
+        {
+          "name": "Total Sales",
+          "expression": "SUM(Sales[Line Amount])",
+          "is_hidden": false
+        },
+        {
+          "name": "Order Count",
+          "expression": "COUNTROWS(Sales)",
+          "is_hidden": false
+        },
+        {
+          "name": "Total Quantity",
+          "expression": "SUM(Sales[Quantity])",
+          "is_hidden": false
+        },
+        {
+          "name": "Average Price",
+          "expression": "AVERAGE(Sales[UnitPrice])",
+          "is_hidden": false
+        },
+        {
+          "name": "Sales LY",
+          "expression": "CALCULATE([Total Sales], SAMEPERIODLASTYEAR('Date'[Date]))",
+          "is_hidden": false
+        }
+      ],
+      "partitions": [
+        {
+          "name": "Sales",
+          "source_type": "calculated",
+          "expression": "DATATABLE(\"SalesKey\", INTEGER, \"OrderDate\", DATETIME, \"CustomerKey\", INTEGER, \"ProductKey\", INTEGER, \"Quantity\", INTEGER, \"UnitPrice\", CURRENCY, \"Discount\", DOUBLE, \"Channel\", STRING, \"IsReturn\", BOOLEAN, {{1, \"2024-01-05\", 1, 10, 2, 39.90, 0, \"Store\", FALSE}, {2, \"2024-01-19\", 2, 12, 1, 24.00, 0.1, \"Web\", FALSE}, {3, \"2024-02-11\", 3, 14, 1, 189.00, 0, \"Store\", FALSE}, {4, \"2024-03-02\", 4, 13, 10, 3.75, 0.05, \"Web\", FALSE}, {5, \"2024-03-28\", 5, 11, 1, 54.50, 0, \"Web\", TRUE}, {6, \"2024-05-14\", 1, 15, 3, 32.20, 0, \"Store\", FALSE}, {7, \"2024-07-07\", 6, 10, 1, 39.90, 0.2, \"Phone\", FALSE}, {8, \"2024-09-21\", 2, 14, 2, 179.00, 0, \"Web\", FALSE}, {9, \"2024-11-30\", 3, 12, 4, 24.00, 0.15, \"Store\", FALSE}, {10, \"2025-01-08\", 4, 11, 2, 54.50, 0, \"Phone\", FALSE}, {11, \"2025-02-17\", 5, 13, 20, 3.50, 0.1, \"Web\", FALSE}, {12, \"2025-04-03\", 1, 14, 1, 189.00, 0, \"Store\", TRUE}, {13, \"2025-06-26\", 6, 15, 2, 32.20, 0, \"Web\", FALSE}, {14, \"2025-08-12\", 2, 10, 1, 41.00, 0, \"Store\", FALSE}, {15, \"2025-10-01\", 3, 11, 1, 52.00, 0.05, \"Phone\", FALSE}, {16, \"2025-12-20\", 4, 12, 3, 24.00, 0, \"Web\", FALSE}})"
+        }
+      ]
+    },
+    {
+      "name": "Top Products",
+      "is_hidden": false,
+      "columns": [
+        {
+          "name": "RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61",
+          "data_type": "int64",
+          "is_hidden": true,
+          "extra": {
+            "type": "rowNumber",
+            "isUnique": true,
+            "isKey": true,
+            "isNullable": false
+          }
+        },
+        {
+          "name": "ProductKey",
+          "data_type": "int64",
+          "source_column": "[ProductKey]",
+          "is_hidden": false,
+          "extra": {
+            "type": "calculatedTableColumn",
+            "isNameInferred": true,
+            "isDataTypeInferred": true
+          }
+        },
+        {
+          "name": "Product",
+          "data_type": "string",
+          "source_column": "[Product]",
+          "is_hidden": false,
+          "extra": {
+            "type": "calculatedTableColumn",
+            "isNameInferred": true,
+            "isDataTypeInferred": true
+          }
+        },
+        {
+          "name": "ListPrice",
+          "data_type": "decimal",
+          "source_column": "[ListPrice]",
+          "is_hidden": false,
+          "extra": {
+            "type": "calculatedTableColumn",
+            "isNameInferred": true,
+            "isDataTypeInferred": true
+          }
+        }
+      ],
+      "measures": [],
+      "partitions": [
+        {
+          "name": "Top Products",
+          "source_type": "calculated",
+          "expression": "SELECTCOLUMNS(TOPN(3, 'Product', 'Product'[ListPrice], DESC), \"ProductKey\", 'Product'[ProductKey], \"Product\", 'Product'[Product], \"ListPrice\", 'Product'[ListPrice])"
+        }
+      ]
+    },
+    {
+      "name": "LocalDateTable_0001",
+      "is_hidden": true,
+      "columns": [
+        {
+          "name": "RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61",
+          "data_type": "int64",
+          "is_hidden": true,
+          "extra": {
+            "type": "rowNumber",
+            "isUnique": true,
+            "isKey": true,
+            "isNullable": false
+          }
+        },
+        {
+          "name": "Date",
+          "data_type": "dateTime",
+          "source_column": "[Date]",
+          "data_category": "PaddedDateTableDates",
+          "is_hidden": true,
+          "extra": {
+            "type": "calculatedTableColumn",
+            "isNameInferred": true,
+            "isDataTypeInferred": true
+          }
+        },
+        {
+          "name": "Year",
+          "data_type": "int64",
+          "expression": "YEAR([Date])",
+          "data_category": "Years",
+          "is_hidden": true,
+          "extra": {
+            "isDataTypeInferred": true
+          }
+        },
+        {
+          "name": "MonthNo",
+          "data_type": "int64",
+          "expression": "MONTH([Date])",
+          "data_category": "MonthOfYear",
+          "is_hidden": true,
+          "extra": {
+            "isDataTypeInferred": true
+          }
+        },
+        {
+          "name": "Month",
+          "data_type": "string",
+          "expression": "FORMAT([Date], \"MMMM\")",
+          "sort_by_column": "MonthNo",
+          "data_category": "Months",
+          "is_hidden": true,
+          "extra": {
+            "isDataTypeInferred": true
+          }
+        },
+        {
+          "name": "QuarterNo",
+          "data_type": "int64",
+          "expression": "INT(([MonthNo] + 2) / 3)",
+          "data_category": "QuarterOfYear",
+          "is_hidden": true,
+          "extra": {
+            "isDataTypeInferred": true
+          }
+        },
+        {
+          "name": "Quarter",
+          "data_type": "string",
+          "expression": "\"Qtr \" & [QuarterNo]",
+          "sort_by_column": "QuarterNo",
+          "data_category": "Quarters",
+          "is_hidden": true,
+          "extra": {
+            "isDataTypeInferred": true
+          }
+        },
+        {
+          "name": "Day",
+          "data_type": "int64",
+          "expression": "DAY([Date])",
+          "data_category": "DayOfMonth",
+          "is_hidden": true,
+          "extra": {
+            "isDataTypeInferred": true
+          }
+        }
+      ],
+      "measures": [],
+      "partitions": [
+        {
+          "name": "LocalDateTable_0001",
+          "source_type": "calculated",
+          "expression": "CALENDAR(DATE(YEAR(MIN('Sales'[OrderDate])), 1, 1), DATE(YEAR(MAX('Sales'[OrderDate])), 12, 31))"
+        }
+      ],
+      "annotations": [
+        {
+          "name": "__PBI_LocalDateTable",
+          "value": "true"
+        }
+      ],
+      "extra": {
+        "showAsVariationsOnly": true,
+        "hierarchies": [
+          {
+            "name": "Date Hierarchy",
+            "description": "dates",
+            "levels": [
+              {
+                "name": "Year",
+                "ordinal": 0,
+                "description": "year level",
+                "column": "Year"
+              },
+              {
+                "name": "Quarter",
+                "ordinal": 1,
+                "column": "Quarter"
+              },
+              {
+                "name": "Month",
+                "ordinal": 2,
+                "column": "Month"
+              },
+              {
+                "name": "Day",
+                "ordinal": 3,
+                "column": "Day"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "name": "Sales_Customer",
+      "from_table": "Sales",
+      "from_column": "CustomerKey",
+      "to_table": "Customer",
+      "to_column": "CustomerKey",
+      "is_active": true
+    },
+    {
+      "name": "Sales_Product",
+      "from_table": "Sales",
+      "from_column": "ProductKey",
+      "to_table": "Product",
+      "to_column": "ProductKey",
+      "is_active": true
+    },
+    {
+      "name": "Sales_Date",
+      "from_table": "Sales",
+      "from_column": "OrderDate",
+      "to_table": "Date",
+      "to_column": "Date",
+      "is_active": true
+    },
+    {
+      "name": "Sales_OrderDate_LocalDateTable",
+      "from_table": "Sales",
+      "from_column": "OrderDate",
+      "to_table": "LocalDateTable_0001",
+      "to_column": "Date",
+      "is_active": true,
+      "extra": {
+        "joinOnDateBehavior": "datePartOnly"
+      }
+    }
+  ],
+  "extra": {
+    "name": "Model"
+  }
+}

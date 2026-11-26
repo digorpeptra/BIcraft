@@ -1,0 +1,14 @@
+[package]
+name = "bicraft-mlang"
+description = "L0: BIcraft's catalogue of the M (Power Query) functions its evaluator runs, with their parameters and short descriptions, and completion, hover and signature help over M text"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+
+[dev-dependencies]
+serde_json.workspace = true
+
+[lints]
+workspace = true

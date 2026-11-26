@@ -1,0 +1,1 @@
+DEFINE MEASURE Sales[Total Sales] = 1 EVALUATE ROW("x", [Total Sales])

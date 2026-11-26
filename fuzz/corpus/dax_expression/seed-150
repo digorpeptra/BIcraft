@@ -1,0 +1,1 @@
+IF(Sales[IsReturn], -1, 1) * Sales[Line Amount]

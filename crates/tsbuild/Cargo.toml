@@ -1,0 +1,24 @@
+[package]
+name = "bicraft-tsbuild"
+description = "L0: compiles a custom visual's TypeScript and bundles it into one JavaScript file with swc (no Node)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+# swc (https://swc.rs, Apache-2.0, crates.io): the parser, the TypeScript strip pass, the code
+# generator and the bundler. The versions are the newest that built with the workspace's MSRV
+# then, 1.90 (cargo's MSRV-aware resolver picked them); they move together.
+swc_bundler = "59.0.0"
+swc_common = "28.0.0"
+swc_ecma_ast = "31.0.0"
+swc_ecma_codegen = "34.0.0"
+swc_ecma_loader = "29.0.0"
+swc_ecma_parser = "48.0.0"
+swc_ecma_transforms_base = "52.0.0"
+swc_ecma_transforms_typescript = "58.0.0"
+# the error type of swc_bundler's Load and Resolve traits
+anyhow = "1.0.104"
+
+[lints]
+workspace = true

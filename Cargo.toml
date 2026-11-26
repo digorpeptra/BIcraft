@@ -1,0 +1,123 @@
+[workspace]
+resolver = "3"
+members = ["crates/*", "apps/*", "xtask"]
+exclude = ["fuzz"]
+default-members = ["crates/*", "apps/*"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+rust-version = "1.95"
+repository = "https://github.com/digorpeptra/BIcraft"
+
+[workspace.dependencies]
+# internal
+bicraft-env = { path = "crates/env" }
+bicraft-http = { path = "crates/http" }
+bicraft-auth = { path = "crates/auth" }
+bicraft-mem = { path = "crates/mem" }
+bicraft-opc = { path = "crates/opc" }
+bicraft-locale = { path = "crates/locale" }
+bicraft-xpress9 = { path = "crates/xpress9" }
+bicraft-xpress8 = { path = "crates/xpress8" }
+bicraft-tsbuild = { path = "crates/tsbuild" }
+bicraft-sqlite = { path = "crates/sqlite" }
+bicraft-abf = { path = "crates/abf" }
+bicraft-vertipaq = { path = "crates/vertipaq" }
+bicraft-scan = { path = "crates/scan" }
+bicraft-versions = { path = "crates/versions" }
+bicraft-mlang = { path = "crates/mlang" }
+bicraft-model = { path = "crates/model" }
+bicraft-report = { path = "crates/report" }
+bicraft-visuals = { path = "crates/visuals" }
+bicraft-dax = { path = "crates/dax" }
+bicraft-diff = { path = "crates/diff" }
+bicraft-data = { path = "crates/data" }
+bicraft-databricks = { path = "crates/databricks" }
+bicraft-sqlserver = { path = "crates/sqlserver" }
+bicraft-webdata = { path = "crates/webdata" }
+bicraft-tmsl = { path = "crates/tmsl" }
+bicraft-tmdl = { path = "crates/tmdl" }
+bicraft-metadata = { path = "crates/metadata" }
+bicraft-powerpivot = { path = "crates/powerpivot" }
+bicraft-pbir = { path = "crates/pbir" }
+bicraft-layout = { path = "crates/layout-bb" }
+bicraft-pbix = { path = "crates/pbix" }
+bicraft-pbip = { path = "crates/pbip" }
+bicraft-pbixwriter = { path = "crates/pbixwriter" }
+bicraft-bpa = { path = "crates/bpa" }
+bicraft-engine = { path = "crates/engine" }
+bicraft-mcp = { path = "crates/mcp" }
+bicraft-view = { path = "crates/view" }
+bicraft-render = { path = "crates/render" }
+bicraft-ui = { path = "crates/ui" }
+bicraft-controller = { path = "crates/controller" }
+
+# external
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+thiserror = "2"
+zip = { version = "9.4", default-features = false, features = ["deflate-flate2"] }
+# The PBIX zip writer (crates/opc): same versions the zip crate already pulls in.
+flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
+crc32fast = "1"
+# The storage engine's worker pool (crates/scan/src/pool.rs): rayon's core only, no parallel iterators.
+rayon-core = "1.13"
+# Calendar math (crates/locale/src/calendar.rs): civil dates only (`std`), no time zone database.
+# The desktop app and the CLI add the `clock` feature through `bicraft-locale/clock` (the
+# machine's offset for Power Query's local clock, docs/formats/data-sources.md "Clock").
+jiff = { version = "1", default-features = false, features = ["std"] }
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+dbg_macro = "warn"
+todo = "warn"
+
+# Dev and test builds (docs/ci.md, "Build profiles"). Most of the test time is spent in the
+# storage engine, the DAX evaluator, the scan kernels, the codecs and the readers' fuzz loops, many
+# times slower unoptimised (the engine's differential tests: over 20 minutes each at opt-level 0,
+# about 90 s at 1). The workspace builds with opt-level 1 and every dependency with opt-level 2
+# (compiled once, then cached). The crates above the engine (servers, CLI, apps), whose tests
+# are not compute-bound, stay at opt-level 0, where their build costs more than their tests.
+# Debug assertions and overflow checks stay on everywhere (`cargo xtask ci` checks it: the
+# never-crash rules rely on them). Line tables keep file:line in panics and backtraces; full
+# debug info: CARGO_PROFILE_DEV_DEBUG=true.
+[profile.dev]
+opt-level = 1
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
+opt-level = 2
+debug = false
+[profile.dev.package.bicraft-mcp]
+opt-level = 0
+[profile.dev.package.bicraft-view]
+opt-level = 0
+[profile.dev.package.bicraft-controller]
+opt-level = 0
+[profile.dev.package.bicraft-auth]
+opt-level = 0
+[profile.dev.package.bicraft-http]
+opt-level = 0
+
+# Distributed binaries: smaller and a little faster, at the cost of a slower release build.
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = true
+
+# Release archives (`cargo xtask dist`, release workflow): fat LTO on top of release. Linux x64,
+# 2026-10-15: 23.8 MB → 22.0 MB and ~6 % faster on a short CLI run, for a ~20 % longer build;
+# kept out of `release` so benchmark and local release builds stay quicker.
+[profile.dist]
+inherits = "release"
+lto = "fat"
+
+# The browser app (`cargo xtask webui`, docs/webui.md): release with fat LTO for a smaller module.
+# Speed is kept (opt-level 3): pages are rendered on the browser's main thread.
+[profile.webui]
+inherits = "release"
+lto = "fat"

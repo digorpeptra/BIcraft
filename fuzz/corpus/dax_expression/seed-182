@@ -1,0 +1,1 @@
+SUMX(FILTER(Sales, Sales[OrderDate] <= EARLIER(Sales[OrderDate])), Sales[Quantity])
