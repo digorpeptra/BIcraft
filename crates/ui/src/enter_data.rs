@@ -396,7 +396,7 @@ pub fn show(app: &mut App, ctx: &egui::Context) {
         None => l.t("Enter data", "Entrer des données").to_string(),
     };
     egui::Window::new(title)
-        .id(egui::Id::new("bicraft-enter-data"))
+        .id(egui::Id::unique("bicraft-enter-data"))
         .collapsible(false)
         .resizable(false)
         .open(&mut open)
@@ -433,7 +433,7 @@ pub fn show(app: &mut App, ctx: &egui::Context) {
 }
 
 /// `r` named `label` in the accessibility tree.
-fn labelled(r: egui::Response, ty: egui::WidgetType, label: &str) -> egui::Response {
+fn labelled(r: egui::Response, ty: egui::Role, label: &str) -> egui::Response {
     let enabled = r.enabled();
     r.widget_info(|| egui::WidgetInfo::labeled(ty, enabled, label));
     r
@@ -556,7 +556,7 @@ fn grid(ui: &mut Ui, g: &mut Grid, l: Lang, t: &Tokens, editing: bool, acts: &mu
                     );
                     labelled(
                         r,
-                        egui::WidgetType::TextEdit,
+                        egui::Role::TextInput,
                         &format!("{} {} {}", l.t("Column", "Colonne"), c + 1, l.t("name", "nom")),
                     );
                     ui.horizontal(|ui| {
@@ -571,10 +571,10 @@ fn grid(ui: &mut Ui, g: &mut Grid, l: Lang, t: &Tokens, editing: bool, acts: &mu
                                 }
                             })
                             .response;
-                        labelled(r, egui::WidgetType::ComboBox, &label);
+                        labelled(r, egui::Role::ComboBox, &label);
                         let r = ui.add_enabled(editing, egui::Button::new("✕").small());
                         let label = format!("{} {}", l.t("Remove column", "Supprimer la colonne"), col.name);
-                        let r = labelled(r, egui::WidgetType::Button, &label).on_hover_text(&label);
+                        let r = labelled(r, egui::Role::Button, &label).on_hover_text(&label);
                         if r.clicked() {
                             acts.push(Act::RemoveColumn(c));
                         }
@@ -588,7 +588,7 @@ fn grid(ui: &mut Ui, g: &mut Grid, l: Lang, t: &Tokens, editing: bool, acts: &mu
                 ui.horizontal(|ui| {
                     let label = format!("{} {}", l.t("Remove row", "Supprimer la ligne"), ri + 1);
                     let r = ui.add_enabled(editing, egui::Button::new("✕").small());
-                    let r = labelled(r, egui::WidgetType::Button, &label).on_hover_text(&label);
+                    let r = labelled(r, egui::Role::Button, &label).on_hover_text(&label);
                     if r.clicked() {
                         acts.push(Act::RemoveRow(ri));
                     }
@@ -603,7 +603,7 @@ fn grid(ui: &mut Ui, g: &mut Grid, l: Lang, t: &Tokens, editing: bool, acts: &mu
                     );
                     let name = names.get(ci).map_or("", String::as_str);
                     let label = format!("{} {}, {name}", l.t("Row", "Ligne"), ri + 1);
-                    let r = labelled(r, egui::WidgetType::TextEdit, &label);
+                    let r = labelled(r, egui::Role::TextInput, &label);
                     if r.has_focus() {
                         focus = Some((ri, ci));
                     }

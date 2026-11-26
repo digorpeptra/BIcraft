@@ -314,7 +314,7 @@ pub fn show(app: &mut App, ctx: &egui::Context) {
     let mut close = false;
     let mut remove: Option<(String, bool)> = None;
     egui::Window::new(l.t("Remove a custom visual", "Supprimer un visuel personnalisé"))
-        .id(egui::Id::new("bicraft-remove-custom-visual"))
+        .id(egui::Id::unique("bicraft-remove-custom-visual"))
         .collapsible(false)
         .resizable(false)
         .open(&mut open)
@@ -342,7 +342,7 @@ pub fn show(app: &mut App, ctx: &egui::Context) {
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                         let label = format!("{} {}", l.t("Remove", "Supprimer"), e.label);
                         let b = ui.button(l.t("Remove", "Supprimer"));
-                        b.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, &label));
+                        b.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, &label));
                         if b.clicked() {
                             if *n > 0 {
                                 d.confirm = Some(e.name.clone());

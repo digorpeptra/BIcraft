@@ -4161,7 +4161,7 @@ fn icon_tab(ui: &mut Ui, icon: Icon, label: &str, on: bool) -> egui::Response {
             t.accent,
         );
     }
-    resp.widget_info(|| egui::WidgetInfo::selected(egui::WidgetType::Button, true, on, label));
+    resp.widget_info(|| egui::WidgetInfo::selected(egui::Role::Button, true, on, label));
     resp.on_hover_text(label)
 }
 
@@ -4188,7 +4188,7 @@ fn group_tab(ui: &mut Ui, label: &str, a11y: &str, on: bool) -> egui::Response {
             t.accent,
         );
     }
-    resp.widget_info(|| egui::WidgetInfo::selected(egui::WidgetType::Button, true, on, a11y));
+    resp.widget_info(|| egui::WidgetInfo::selected(egui::Role::Button, true, on, a11y));
     resp
 }
 
@@ -4254,7 +4254,7 @@ pub fn pane(app: &mut App, ui: &mut Ui, sel: &VisualSel, v: &Value) {
             .char_limit(200)
             .desired_width(ui.available_width()),
     );
-    r.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::TextEdit, true, label));
+    r.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, true, label));
     ui.add_space(6.0);
     let query = crate::palette::fold(app.panes.format.search.trim());
     let group = app.panes.format.group;
@@ -4650,7 +4650,7 @@ fn card_ui(ui: &mut Ui, cx: &mut Cx<'_>, card: &Card, open: bool) -> bool {
                         "{} {title}",
                         l.t("Reset to default", "Rétablir les valeurs par défaut")
                     );
-                    r.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, st.is_ok(), &a11y));
+                    r.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, st.is_ok(), &a11y));
                     if r.clicked() {
                         cx.acts.push(Act::Edit {
                             key: None,
@@ -4847,7 +4847,7 @@ fn levels_ui(ui: &mut Ui, cx: &mut Cx<'_>, card: &Card) {
                 .char_limit(MAX_TEXT)
                 .desired_width(ui.available_width()),
         );
-        resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::TextEdit, enabled, &a11y_label));
+        resp.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, enabled, &a11y_label));
         let mut typed = None;
         if resp.lost_focus() {
             if ui.input(|x| x.key_pressed(Key::Escape)) {
@@ -4949,7 +4949,7 @@ fn styles_ui(ui: &mut Ui, cx: &mut Cx<'_>, card: &Card, s: &Section, run: &[&Pro
                 let st = cx.state(id);
                 let r = ui.add_enabled(st.is_ok(), egui::Button::selectable(on, text));
                 let name = a11y(card, s, prop, l);
-                r.widget_info(|| egui::WidgetInfo::selected(egui::WidgetType::Button, st.is_ok(), on, &name));
+                r.widget_info(|| egui::WidgetInfo::selected(egui::Role::Button, st.is_ok(), on, &name));
                 if r.on_hover_text(l.t(prop.en, prop.fr)).clicked() {
                     cx.commit(key, prop.to, prop.ctl, json!(!on));
                 }
@@ -4998,7 +4998,7 @@ fn prop_ui(ui: &mut Ui, cx: &mut Cx<'_>, card: &Card, s: &Section, prop: &Prop) 
                     .char_limit(MAX_TEXT)
                     .desired_width(ui.available_width()),
             );
-            r.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::TextEdit, enabled, &name));
+            r.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, enabled, &name));
             let mut typed = None;
             if r.lost_focus() {
                 if ui.input(|i| i.key_pressed(Key::Escape)) {
@@ -5015,14 +5015,14 @@ fn prop_ui(ui: &mut Ui, cx: &mut Cx<'_>, card: &Card, s: &Section, prop: &Prop) 
         }
         Ctl::Run(cmd, en, fr) => {
             let r = ui.button(l.t(en, fr));
-            r.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, enabled, &name));
+            r.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, enabled, &name));
             if r.clicked() {
                 cx.acts.push(Act::Invoke(cmd));
             }
         }
         Ctl::RunWith(cmd, param, value, en, fr) => {
             let r = ui.button(l.t(en, fr));
-            r.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, enabled, &name));
+            r.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, enabled, &name));
             if r.clicked() {
                 cx.acts.push(Act::Edit {
                     key: None,
@@ -5096,7 +5096,7 @@ fn control(ui: &mut Ui, cx: &mut Cx<'_>, key: &str, prop: &Prop, cur: &Value, na
                     }
                 });
             r.response
-                .widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::ComboBox, true, name));
+                .widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, true, name));
             if let Some(s) = picked {
                 cx.commit(key.to_string(), prop.to, prop.ctl, json!(s));
             }
@@ -5116,7 +5116,7 @@ fn control(ui: &mut Ui, cx: &mut Cx<'_>, key: &str, prop: &Prop, cur: &Value, na
                     }
                 });
             r.response
-                .widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::ComboBox, true, name));
+                .widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, true, name));
             if let Some(f) = picked {
                 cx.commit(key.to_string(), prop.to, prop.ctl, json!(f));
             }
@@ -5142,7 +5142,7 @@ fn control(ui: &mut Ui, cx: &mut Cx<'_>, key: &str, prop: &Prop, cur: &Value, na
                     }
                 });
             r.response
-                .widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::ComboBox, true, name));
+                .widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, true, name));
             if let Some(v) = picked {
                 cx.commit(key.to_string(), prop.to, prop.ctl, json!(v));
             }
@@ -5167,7 +5167,7 @@ fn control(ui: &mut Ui, cx: &mut Cx<'_>, key: &str, prop: &Prop, cur: &Value, na
                     }
                 });
             r.response
-                .widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::ComboBox, true, name));
+                .widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, true, name));
             if let Some(v) = picked {
                 cx.commit(key.to_string(), prop.to, prop.ctl, json!(v));
             }
@@ -5183,7 +5183,7 @@ fn control(ui: &mut Ui, cx: &mut Cx<'_>, key: &str, prop: &Prop, cur: &Value, na
                 let on = now.eq_ignore_ascii_case(v);
                 let r = ui.add(egui::Button::selectable(on, glyph));
                 let a = format!("{name} {}", l.t(en, fr));
-                r.widget_info(|| egui::WidgetInfo::selected(egui::WidgetType::Button, true, on, &a));
+                r.widget_info(|| egui::WidgetInfo::selected(egui::Role::Button, true, on, &a));
                 if r.on_hover_text(l.t(en, fr)).clicked() && !on {
                     cx.commit(key.to_string(), prop.to, prop.ctl, json!(v));
                 }
@@ -5240,7 +5240,7 @@ fn fx_ui(ui: &mut Ui, cx: &mut Cx<'_>, target: &'static str, name: &str) {
         "{name} {}",
         l.t("Conditional formatting", "Mise en forme conditionnelle")
     );
-    r.widget_info(|| egui::WidgetInfo::selected(egui::WidgetType::Button, st.is_ok(), on, &a));
+    r.widget_info(|| egui::WidgetInfo::selected(egui::Role::Button, st.is_ok(), on, &a));
     let hover = match (&st, on) {
         (Err(why), _) => format!("{} {why}", l.t("Unavailable:", "Indisponible :")),
         (Ok(()), true) => format!(
@@ -5309,7 +5309,7 @@ pub(crate) fn pick_color(
         egui::StrokeKind::Inside,
     );
     let shown = hex.clone().unwrap_or_else(|| "—".into());
-    r.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, name));
+    r.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, name));
     let r = r.on_hover_text(format!("{hover} {shown}"));
     let mut picked: Option<String> = None;
     let draft_key = format!("{key}#hex");
@@ -5331,7 +5331,7 @@ pub(crate) fn pick_color(
                         );
                     }
                     let a = format!("{name} {c}");
-                    sresp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, &a));
+                    sresp.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, &a));
                     if sresp.on_hover_text(c).clicked() {
                         picked = Some(c.clone());
                         ui.close();
@@ -5354,7 +5354,7 @@ pub(crate) fn pick_color(
                     .hint_text("#118DFF"),
             );
             let a = format!("{name} {}", l.t("hex", "hex"));
-            er.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::TextEdit, true, &a));
+            er.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, true, &a));
             let typed = entry.1.trim().to_string();
             if er.lost_focus()
                 && ui.input(|i| i.key_pressed(Key::Enter))
@@ -5400,7 +5400,7 @@ fn number_ui(ui: &mut Ui, cx: &mut Cx<'_>, key: &str, prop: &Prop, cur: &Value, 
                 .max_decimals(0),
         ),
     };
-    r.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Slider, true, name));
+    r.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Slider, true, name));
     let busy = r.dragged() || r.has_focus();
     let done = r.drag_stopped() || r.lost_focus() || (r.changed() && !busy);
     if done {

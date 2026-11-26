@@ -286,7 +286,7 @@ pub fn show(app: &mut App, ctx: &egui::Context) {
     let mut open = true;
     let mut close = false;
     egui::Window::new(format!("{} › {title}", l.t("New parameter", "Nouveau paramètre")))
-        .id(egui::Id::new("bicraft-new-parameter"))
+        .id(egui::Id::unique("bicraft-new-parameter"))
         .collapsible(false)
         .resizable(false)
         .open(&mut open)

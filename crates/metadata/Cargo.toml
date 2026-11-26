@@ -17,6 +17,7 @@ bicraft-env.workspace = true
 bicraft-abf.workspace = true
 bicraft-opc.workspace = true
 bicraft-xpress9.workspace = true
+rusqlite.workspace = true
 
 [lints]
 workspace = true

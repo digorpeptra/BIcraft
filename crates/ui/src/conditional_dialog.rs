@@ -1248,7 +1248,7 @@ fn color32(c: [u8; 3]) -> Color32 {
 /// An icon of the icon sets as the tables draw it, `size` points square.
 fn icon_image(ui: &mut Ui, name: &str, size: f32) -> egui::Response {
     let px = (size * ui.ctx().pixels_per_point()).round().clamp(8.0, 64.0) as u32;
-    let id = egui::Id::new(("bicraft-cf-icon", name, px));
+    let id = egui::Id::unique(("bicraft-cf-icon", name, px));
     let tex = ui.ctx().data(|d| d.get_temp::<egui::TextureHandle>(id));
     let tex = tex.or_else(|| {
         let rgba = bicraft_render::icon_rgba(name, px)?;
@@ -1395,7 +1395,7 @@ fn preview_ui(ui: &mut Ui, d: &CfDialog, l: Lang) {
         .join(", ");
     let a = format!("{name}: {summary}");
     r.response
-        .widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Label, true, &a));
+        .widget_info(|| egui::WidgetInfo::labeled(egui::Role::Label, true, &a));
 }
 
 // ----- the window -----
@@ -1461,7 +1461,7 @@ pub fn show(app: &mut App, ctx: &egui::Context, sel: &VisualSel, v: &Value, swat
     let mut open = true;
     let mut done = Done::Keep;
     egui::Window::new(window_title(d.kind(), l))
-        .id(egui::Id::new("bicraft-conditional-format"))
+        .id(egui::Id::unique("bicraft-conditional-format"))
         .collapsible(false)
         .resizable(false)
         .open(&mut open)
@@ -1492,7 +1492,7 @@ fn combo<R>(
         .height(300.0)
         .show_ui(ui, add);
     r.response
-        .widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::ComboBox, true, name));
+        .widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, true, name));
     r.inner
 }
 
@@ -1535,7 +1535,7 @@ fn number_box(ui: &mut Ui, text: &mut String, width: f32, name: &str) {
             .char_limit(40)
             .desired_width(width),
     );
-    r.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::TextEdit, true, name));
+    r.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, true, name));
 }
 
 /// A checkbox labelled `label`: whether it was clicked.
@@ -1947,7 +1947,7 @@ fn rows_ui(ui: &mut Ui, d: &mut CfDialog, icons: bool, swatch: &mut Swatch<'_>, 
                 }
                 let name = format!("{} {n}", l.t("Delete rule", "Supprimer la règle"));
                 let r = ui.small_button("✕");
-                r.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, &name));
+                r.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, &name));
                 if r.on_hover_text(&name).clicked() {
                     remove = Some(i);
                 }
@@ -2015,10 +2015,10 @@ fn icon_pick(ui: &mut Ui, id: &str, cur: &mut String, name: &str) {
         3.0,
         t.text_dim,
     );
-    r.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::ComboBox, true, name));
+    r.widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, true, name));
     let r = r.on_hover_text(cur.as_str());
     egui::Popup::menu(&r)
-        .id(egui::Id::new(("bicraft-cf-iconpick", id)))
+        .id(egui::Id::unique(("bicraft-cf-iconpick", id)))
         .show(|ui| {
             egui::Grid::new(("bicraft-cf-icons", id))
                 .spacing(vec2(4.0, 4.0))
@@ -2030,9 +2030,7 @@ fn icon_pick(ui: &mut Ui, id: &str, cur: &mut String, name: &str) {
                                 .inner
                                 .interact(Sense::click());
                             let a = format!("{name} {icon}");
-                            resp.widget_info(|| {
-                                egui::WidgetInfo::labeled(egui::WidgetType::Button, true, &a)
-                            });
+                            resp.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, &a));
                             if resp.on_hover_text(*icon).clicked() {
                                 *cur = (*icon).to_string();
                                 ui.close();

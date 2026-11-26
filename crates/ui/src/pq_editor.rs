@@ -1796,7 +1796,7 @@ pub fn show(app: &mut App, ctx: &egui::Context) {
         (area.height() - 40.0).clamp(420.0, 900.0),
     );
     egui::Window::new(l.t("Power Query editor", "Éditeur Power Query"))
-        .id(egui::Id::new("bicraft-pq-editor"))
+        .id(egui::Id::unique("bicraft-pq-editor"))
         .collapsible(false)
         .resizable(false)
         .fixed_size(size)
@@ -2161,7 +2161,7 @@ fn advanced_ui(ui: &mut Ui, e: &mut Editor, l: Lang, t: &Tokens, acts: &mut Vec<
                 ui,
                 text,
                 assist,
-                egui::Id::new("bicraft-pq-advanced-text"),
+                egui::Id::unique("bicraft-pq-advanced-text"),
                 label,
                 &names,
                 18,
@@ -2832,7 +2832,8 @@ fn formula_bar(ui: &mut Ui, e: &mut Editor, l: Lang, acts: &mut Vec<Act>) {
     let has = e.step.is_some();
     let names = m_names(e, true);
     ui.horizontal(|ui| {
-        let r = ui.label(RichText::new("fx").font(theme::bold(13.0)));
+        // the field keeps its own name (egui 0.37's `labelled_by` would name it "fx" instead)
+        ui.label(RichText::new("fx").font(theme::bold(13.0)));
         let label = l.t("Formula of the step", "Formule de l'étape");
         let w = (ui.available_width() - 270.0).max(120.0);
         let enabled = has && !e.busy;
@@ -2840,15 +2841,14 @@ fn formula_bar(ui: &mut Ui, e: &mut Editor, l: Lang, acts: &mut Vec<Act>) {
             ui,
             &mut e.formula,
             &mut e.m_formula,
-            egui::Id::new("bicraft-pq-formula-text"),
+            egui::Id::unique("bicraft-pq-formula-text"),
             label,
             &names,
             2,
             w,
             enabled,
             l,
-        )
-        .labelled_by(r.id);
+        );
         let current = e
             .selected
             .and_then(|i| e.queries.get(i))
@@ -3771,7 +3771,7 @@ fn preview_ui(ui: &mut Ui, e: &mut Editor, l: Lang, t: &Tokens, acts: &mut Vec<A
                                         .response
                                         .on_hover_text(format!("{ty} · {label}"))
                                         .widget_info(|| {
-                                            egui::WidgetInfo::labeled(egui::WidgetType::Button, !busy, &label)
+                                            egui::WidgetInfo::labeled(egui::Role::Button, !busy, &label)
                                         });
                                     let r = ui
                                         .selectable_label(
@@ -3793,7 +3793,7 @@ fn preview_ui(ui: &mut Ui, e: &mut Editor, l: Lang, t: &Tokens, acts: &mut Vec<A
                                     let r = widgets::small_button(ui, Icon::ChevronDown, "", !busy, open)
                                         .on_hover_text(&label);
                                     r.widget_info(|| {
-                                        egui::WidgetInfo::labeled(egui::WidgetType::Button, !busy, &label)
+                                        egui::WidgetInfo::labeled(egui::Role::Button, !busy, &label)
                                     });
                                     if r.clicked() && !busy {
                                         acts.push(Act::Filter(n.clone()));
@@ -3936,7 +3936,7 @@ fn quality_cell(ui: &mut Ui, name: &str, c: Option<&ColumnProfile>, l: Lang, t: 
             summary.join(", ")
         );
         ui.allocate_response(egui::vec2(0.0, 0.0), egui::Sense::hover())
-            .widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Label, true, &label));
+            .widget_info(|| egui::WidgetInfo::labeled(egui::Role::Label, true, &label));
     });
 }
 
@@ -3976,7 +3976,7 @@ fn distribution_cell(ui: &mut Ui, name: &str, c: Option<&ColumnProfile>, l: Lang
         );
         let label = format!("{} {name}: {text}", l.t("Distribution of", "Distribution de"));
         ui.label(RichText::new(&text).small().color(t.text_dim))
-            .widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Label, true, &label));
+            .widget_info(|| egui::WidgetInfo::labeled(egui::Role::Label, true, &label));
     });
 }
 

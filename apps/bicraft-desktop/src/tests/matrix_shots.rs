@@ -201,11 +201,7 @@ fn matrix_screenshots() {
             h.step();
         }
         h.step();
-        let expand = if suffix == "fr" {
-            "Développer ⏵"
-        } else {
-            "Expand ⏵"
-        };
+        let expand = if suffix == "fr" { "Développer" } else { "Expand" };
         let r = h.get_by_label(expand).rect();
         h.hover_at(r.center());
         for _ in 0..4 {

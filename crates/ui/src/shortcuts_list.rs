@@ -120,7 +120,7 @@ pub fn show(app: &mut App, ctx: &Context) {
     let mut open = true;
     let mut close = false;
     egui::Window::new(l.t("Keyboard shortcuts", "Raccourcis clavier"))
-        .id(egui::Id::new("bicraft-shortcuts"))
+        .id(egui::Id::unique("bicraft-shortcuts"))
         .collapsible(false)
         .resizable(false)
         .open(&mut open)

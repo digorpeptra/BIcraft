@@ -207,7 +207,7 @@ pub fn ui(ui: &mut Ui, l: Lang, v: &Value, visual: &str, st: &Result<(), String>
         );
         return None;
     }
-    let pick_id = egui::Id::new(("bicraft-data-format-field", visual));
+    let pick_id = egui::Id::unique(("bicraft-data-format-field", visual));
     let mut pick: usize = ui.data(|d| d.get_temp(pick_id)).unwrap_or(0);
     if pick >= fields.len() {
         pick = 0;
@@ -224,7 +224,7 @@ pub fn ui(ui: &mut Ui, l: Lang, v: &Value, visual: &str, st: &Result<(), String>
     ui.data_mut(|d| d.insert_temp(pick_id, pick));
     let (_, role, index, cur) = fields.get(pick).cloned()?;
     let of = format!("{role}#{index}#{}", cur.as_deref().unwrap_or(""));
-    let draft_id = egui::Id::new(("bicraft-data-format-draft", visual));
+    let draft_id = egui::Id::unique(("bicraft-data-format-draft", visual));
     let mut d: Draft = ui
         .data(|m| m.get_temp::<Draft>(draft_id))
         .filter(|d| d.of == of)
@@ -248,7 +248,7 @@ pub fn ui(ui: &mut Ui, l: Lang, v: &Value, visual: &str, st: &Result<(), String>
                 let name = l.t("Decimal places", "Nombre de décimales");
                 ui.label(RichText::new(name).small());
                 let r = ui.add(egui::DragValue::new(&mut d.decimals).range(0..=15));
-                r.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::DragValue, true, name));
+                r.widget_info(|| egui::WidgetInfo::labeled(egui::Role::SpinButton, true, name));
             });
         }
         if matches!(d.kind, "whole" | "decimal" | "percentage" | "currency") {
@@ -289,7 +289,7 @@ pub fn ui(ui: &mut Ui, l: Lang, v: &Value, visual: &str, st: &Result<(), String>
                     .hint_text("#,0.00")
                     .desired_width(ui.available_width()),
             );
-            r.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::TextEdit, true, name));
+            r.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, true, name));
         }
         let now = cur
             .as_deref()
@@ -301,7 +301,7 @@ pub fn ui(ui: &mut Ui, l: Lang, v: &Value, visual: &str, st: &Result<(), String>
         );
         let apply = l.t("Apply the data format", "Appliquer le format des données");
         let r = ui.button(l.t("Apply", "Appliquer"));
-        r.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, apply));
+        r.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, apply));
         if r.clicked() {
             run = Some(params(&d, &role, index));
         }

@@ -121,7 +121,7 @@ pub fn show(
         })
         .inner;
     let resp = out.response.response.clone();
-    resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::TextEdit, enabled, label));
+    resp.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, enabled, label));
     // Tab, the arrows and Esc stay with the editor while it has the list
     if resp.has_focus() && st.completion.is_some() {
         ctx.memory_mut(|m| {
@@ -235,7 +235,7 @@ fn signature_ui(ctx: &egui::Context, id: Id, text: &str, cursor: usize, pos: egu
             egui::Frame::popup(ui.style()).show(ui, |ui| {
                 ui.set_max_width(520.0);
                 let r = ui.label(job);
-                r.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Label, true, &signature));
+                r.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Label, true, &signature));
                 ui.label(RichText::new(f.description).size(11.0).color(t.text_dim));
             });
         });
@@ -277,7 +277,7 @@ fn hover_ui(
                 ui.set_max_width(520.0);
                 ui.horizontal(|ui| {
                     let r = ui.label(RichText::new(&head).font(formula::mono()).color(t.text));
-                    r.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Label, true, &head));
+                    r.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Label, true, &head));
                     ui.label(RichText::new(kind).size(11.0).color(t.text_dim));
                 });
                 if !h.description.is_empty() {

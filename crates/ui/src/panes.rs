@@ -1001,7 +1001,7 @@ fn data_pane(app: &mut App, ui: &mut Ui) {
                 .hint_text(l.t("Search", "Rechercher"))
                 .desired_width(w),
         )
-        .widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::TextEdit, true, name));
+        .widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, true, name));
         let tip = if app.panes.show_hidden {
             l.t("Hide hidden fields", "Masquer les champs masqués")
         } else {
@@ -1165,7 +1165,7 @@ fn tree_row(
         font,
         ink,
     );
-    resp.widget_info(|| egui::WidgetInfo::selected(egui::WidgetType::CollapsingHeader, true, open, name));
+    resp.widget_info(|| egui::WidgetInfo::selected(egui::Role::Button, true, open, name));
     resp
 }
 
@@ -1272,7 +1272,7 @@ fn field_row(
     // with nothing selected, the box makes a new visual (Desktop)
     let can = cx.bind.is_ok();
     let checked = cx.sel.as_ref().is_some_and(|(_, v)| !is_bound(v, f).is_empty());
-    let id = Id::new(("bicraft-field", &f.table, &f.name, f.measure, depth));
+    let id = Id::unique(("bicraft-field", &f.table, &f.name, f.measure, depth));
     let (rect, _) = ui.allocate_exact_size(vec2(ui.available_width(), ROW_H), Sense::hover());
     let sense = if cx.bind.is_ok() {
         Sense::click_and_drag()
@@ -1309,7 +1309,7 @@ fn field_row(
         theme::font(13.0),
         ink,
     );
-    resp.widget_info(|| egui::WidgetInfo::selected(egui::WidgetType::Checkbox, can, checked, &f.name));
+    resp.widget_info(|| egui::WidgetInfo::selected(egui::Role::CheckBox, can, checked, &f.name));
     if resp.drag_started() && cx.bind.is_ok() {
         DragAndDrop::set_payload(ui.ctx(), Drag::Field(f.clone()));
     }
@@ -1778,7 +1778,7 @@ fn gallery(app: &mut App, ui: &mut Ui, sel: Option<&VisualSel>, current: &str) {
                             !enabled,
                         );
                         resp.widget_info(|| {
-                            egui::WidgetInfo::selected(egui::WidgetType::Button, enabled, on, d.as_str())
+                            egui::WidgetInfo::selected(egui::Role::Button, enabled, on, d.as_str())
                         });
                         let tip = if d == n { n.clone() } else { format!("{d}\n{n}") };
                         let resp = resp.on_hover_text(tip);
@@ -1845,7 +1845,7 @@ fn gallery(app: &mut App, ui: &mut Ui, sel: Option<&VisualSel>, current: &str) {
                         }
                         let label = c.label.clone();
                         resp.widget_info(|| {
-                            egui::WidgetInfo::selected(egui::WidgetType::Button, enabled, on, label.as_str())
+                            egui::WidgetInfo::selected(egui::Role::Button, enabled, on, label.as_str())
                         });
                         let resp = resp.on_hover_text(format!(
                             "{}\n{}",
@@ -1884,7 +1884,7 @@ fn gallery(app: &mut App, ui: &mut Ui, sel: Option<&VisualSel>, current: &str) {
                         t.text,
                     );
                     let more = l.t("More visuals", "Plus de visuels");
-                    resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, more));
+                    resp.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, more));
                     let resp = resp.on_hover_text(more);
                     egui::Popup::menu(&resp).show(|ui| crate::custom_visuals::more_menu(app, ui));
                     i += 1;
@@ -1983,13 +1983,13 @@ fn well_ui(ui: &mut Ui, w: &Well<'_>, rename: &mut Option<Rename>) -> Option<(&'
         theme::bold(12.0),
         t.text_dim,
     );
-    cap_resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Label, true, w.cap));
+    cap_resp.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Label, true, w.cap));
     let _ = cap_resp.on_hover_text(&w.role.name);
     let mut rows: Vec<Rect> = Vec::new();
     for (i, it) in w.items.iter().enumerate() {
         let (rect, _) = ui.allocate_exact_size(vec2(ui.available_width(), ROW_H + 2.0), Sense::hover());
         rows.push(rect);
-        let id = Id::new(("bicraft-well-item", &w.sel.visual, &w.role.name, i));
+        let id = Id::unique(("bicraft-well-item", &w.sel.visual, &w.role.name, i));
         let resp = ui.interact(
             rect,
             id,
@@ -2073,7 +2073,7 @@ fn well_ui(ui: &mut Ui, w: &Well<'_>, rename: &mut Option<Rename>) -> Option<(&'
                 l.t("Rename for this visual:", "Renommer pour ce visuel :"),
                 it.label
             );
-            te.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::TextEdit, true, &rl));
+            te.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, true, &rl));
             if !r.focused {
                 te.request_focus();
                 r.focused = true;
@@ -2104,7 +2104,7 @@ fn well_ui(ui: &mut Ui, w: &Well<'_>, rename: &mut Option<Rename>) -> Option<(&'
             );
         }
         let full = format!("{} {} {}", it.label, l.t("in", "dans"), w.cap);
-        resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, w.edit.is_ok(), &full));
+        resp.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, w.edit.is_ok(), &full));
         let resp = if cut { resp.on_hover_text(&it.label) } else { resp };
         let start_rename = |rename: &mut Option<Rename>| {
             *rename = Some(Rename {
@@ -2253,7 +2253,7 @@ fn well_ui(ui: &mut Ui, w: &Well<'_>, rename: &mut Option<Rename>) -> Option<(&'
                 ui.painter().rect_filled(x_rect, CornerRadius::same(4), t.pressed);
             }
             icons::paint(ui.painter(), x_rect.shrink(4.0), Icon::Close, t.text_dim, false);
-            xr.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, &remove_tip));
+            xr.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, &remove_tip));
             if xr.clicked() {
                 let mut p = json!({"page": w.sel.page, "visual": w.sel.visual, "role": it.role});
                 target(&mut p);
@@ -2293,7 +2293,7 @@ fn well_ui(ui: &mut Ui, w: &Well<'_>, rename: &mut Option<Rename>) -> Option<(&'
                 });
                 let label = format!("{} {}", l.t("Summarize", "Synthétiser"), it.label);
                 mb.response
-                    .widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::ComboBox, enabled, &label));
+                    .widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, enabled, &label));
             });
         }
     }
@@ -2604,7 +2604,7 @@ pub fn finish(app: &mut App, ctx: &egui::Context) {
     let t = Tokens::of(app.prefs.theme);
     let painter = ctx.layer_painter(egui::LayerId::new(
         egui::Order::Tooltip,
-        Id::new("bicraft-drag-chip"),
+        Id::unique("bicraft-drag-chip"),
     ));
     let text = clip(d.label(), 40);
     let galley = painter.layout_no_wrap(text, theme::font(12.0), t.text);

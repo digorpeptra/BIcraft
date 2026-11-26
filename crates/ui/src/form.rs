@@ -695,7 +695,7 @@ pub fn show(app: &mut App, ctx: &egui::Context) {
     };
     let title = spec.text(l).to_string();
     egui::Window::new(&title)
-        .id(egui::Id::new(("bicraft-form", form.serial)))
+        .id(egui::Id::unique(("bicraft-form", form.serial)))
         .collapsible(false)
         .resizable(false)
         .default_width(500.0)
@@ -819,7 +819,7 @@ fn result(ui: &mut egui::Ui, form: &mut Form, t: &Tokens, l: Lang) {
                     ui,
                     v,
                     view,
-                    egui::Id::new(("form-answer", form.serial)),
+                    egui::Id::unique(("form-answer", form.serial)),
                     RESULT_H,
                     l,
                 );

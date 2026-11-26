@@ -1,4 +1,4 @@
-//! `apply_model` (model → metadata rows) over the synthetic database of gen_fixture.py.
+//! `apply_model` (model → metadata rows) over the synthetic database of gen_fixture.rs.
 
 use bicraft_metadata::{
     Error, MetaRow, MetaValue, MetadataTables, apply_model, apply_model_at, build_model,

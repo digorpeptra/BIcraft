@@ -763,7 +763,7 @@ pub fn result_ui(app: &mut App, ctx: &egui::Context) {
     let mut act = None;
     let view = &mut app.cmd.view;
     egui::Window::new(title)
-        .id(egui::Id::new("bicraft-command-result"))
+        .id(egui::Id::unique("bicraft-command-result"))
         .collapsible(false)
         .resizable(true)
         .default_size([640.0, 440.0])
@@ -807,7 +807,7 @@ pub fn result_ui(app: &mut App, ctx: &egui::Context) {
                         ui.label(RichText::new(format!("✓ {}", l.t("Done", "Terminé"))).color(t.ok));
                     } else {
                         let h = (ui.available_height() - 40.0).max(160.0);
-                        crate::answer::show(ui, v, a, egui::Id::new("cmd-answer"), h, l);
+                        crate::answer::show(ui, v, a, egui::Id::unique("cmd-answer"), h, l);
                     }
                 }
                 Some(Err(e)) => {

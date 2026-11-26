@@ -231,7 +231,7 @@ impl Props<'_> {
                 });
             let enabled = self.editable;
             r.response
-                .widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::ComboBox, enabled, label));
+                .widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, enabled, label));
         });
         if let Some(v) = picked
             && (mixed || v.as_deref() != current)

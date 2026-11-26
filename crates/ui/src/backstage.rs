@@ -377,7 +377,7 @@ pub fn show(app: &mut App, ui: &mut Ui) {
             if has_doc {
                 let (r, resp) = ui.allocate_exact_size(vec2(NAV_W, BACK_H), Sense::click());
                 let label = l.t("Back", "Retour");
-                resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, label));
+                resp.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, label));
                 let c = pos2(r.left() + 26.0, r.center().y);
                 if resp.hovered() {
                     ui.painter().circle_filled(c, 17.0, t.hover);
@@ -467,7 +467,7 @@ fn nav_item(ui: &mut Ui, nav: Nav, bs: &Backstage, index: usize, t: &Tokens, l: 
     let (rect, resp) = ui.allocate_exact_size(vec2(NAV_W, ITEM_H), Sense::click());
     let selected = nav == Nav::Page(bs.page);
     let label = nav.label(l);
-    resp.widget_info(|| egui::WidgetInfo::selected(egui::WidgetType::Button, true, selected, label));
+    resp.widget_info(|| egui::WidgetInfo::selected(egui::Role::Button, true, selected, label));
     let p = ui.painter();
     let row = rect.shrink2(vec2(6.0, 1.0));
     if resp.hovered() {
@@ -641,7 +641,7 @@ fn format_badge(ui: &Ui, c: egui::Pos2, name: &str, t: &Tokens, ink: egui::Color
 /// A small icon button with its label for the accessibility tree and as tooltip.
 fn icon_button(ui: &mut Ui, rect: Rect, icon: Icon, label: &str, t: &Tokens) -> bool {
     let r = ui.allocate_rect(rect, Sense::click());
-    r.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, label));
+    r.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, label));
     if r.hovered() {
         ui.painter().rect_filled(r.rect, CornerRadius::same(3), t.hover);
     }
@@ -705,7 +705,7 @@ fn recent_list(app: &mut App, ui: &mut Ui, query: &str, limit: usize) {
     for r in list.into_iter().take(limit) {
         let (name, folder) = split_path(&r.path);
         let (rect, resp) = ui.allocate_exact_size(vec2(width, 44.0), Sense::click());
-        resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, &name));
+        resp.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, &name));
         if resp.hovered() {
             ui.painter().rect_filled(rect, CornerRadius::same(3), t.hover);
         }
@@ -791,7 +791,7 @@ fn recent_list(app: &mut App, ui: &mut Ui, query: &str, limit: usize) {
 fn place_row(ui: &mut Ui, icon: Icon, label: &str, selected: bool, width: f32) -> egui::Response {
     let t = Tokens::get(ui.ctx());
     let (rect, resp) = ui.allocate_exact_size(vec2(width, 44.0), Sense::click());
-    resp.widget_info(|| egui::WidgetInfo::selected(egui::WidgetType::Button, true, selected, label));
+    resp.widget_info(|| egui::WidgetInfo::selected(egui::Role::Button, true, selected, label));
     let p = ui.painter();
     if selected {
         p.rect_filled(rect, CornerRadius::same(4), t.selected);
@@ -829,7 +829,7 @@ fn square_button(ui: &mut Ui, icon: Icon, label: &str, enabled: bool) -> egui::R
         vec2(96.0, 80.0),
         if enabled { Sense::click() } else { Sense::hover() },
     );
-    resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, enabled, label));
+    resp.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, enabled, label));
     let p = ui.painter();
     let hot = resp.hovered() && enabled;
     p.rect_filled(rect, CornerRadius::same(4), if hot { t.hover } else { t.card });
@@ -879,7 +879,7 @@ fn task_row(ui: &mut Ui, icon: Icon, button: &str, title: &str, detail: &str, en
 fn new_tile(ui: &mut Ui, label: &str, template: bool) -> egui::Response {
     let t = Tokens::get(ui.ctx());
     let (rect, resp) = ui.allocate_exact_size(vec2(176.0, 134.0), Sense::click());
-    resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, label));
+    resp.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, label));
     let p = ui.painter();
     if resp.hovered() {
         p.rect_filled(rect, CornerRadius::same(4), t.hover);
@@ -1175,7 +1175,7 @@ fn browse(app: &mut App, ui: &mut Ui, bs: &mut Backstage) {
     for f in list.into_iter().take(MAX_LIST_ROWS) {
         let (name, folder) = split_path(&f.path);
         let (rect, resp) = ui.allocate_exact_size(vec2(width, 44.0), Sense::click());
-        resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, &name));
+        resp.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, &name));
         if resp.hovered() {
             ui.painter().rect_filled(rect, CornerRadius::same(3), t.hover);
         }

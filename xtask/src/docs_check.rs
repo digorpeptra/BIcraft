@@ -35,9 +35,18 @@ const VENDOR: &[&str] = &[
     "ImageLoad",
 ];
 
-/// Directories never scanned (build output, vendored or generated material, and `.claude`,
-/// where local agent worktrees, other checkouts, live).
-const SKIP_DIRS: &[&str] = &["target", ".git", ".claude", "node_modules", "fuzz", ".pbi"];
+/// Directories never scanned (build output, vendored or generated material, `.claude`,
+/// where local agent worktrees, other checkouts, live, and `plan`, the maintainers'
+/// gitignored local notes, never committed).
+const SKIP_DIRS: &[&str] = &[
+    "target",
+    ".git",
+    ".claude",
+    "node_modules",
+    "fuzz",
+    ".pbi",
+    "plan",
+];
 
 pub fn cmd() -> Result<(), String> {
     let root = crate::root();

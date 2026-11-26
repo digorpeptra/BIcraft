@@ -88,8 +88,8 @@ fn big(ui: &mut Ui, icon: Icon, label: &str, enabled: bool, toggle: Option<bool>
     }
     let text = label.replace('\n', " ");
     resp.widget_info(|| match toggle {
-        Some(on) => egui::WidgetInfo::selected(egui::WidgetType::Button, enabled, on, &text),
-        None => egui::WidgetInfo::labeled(egui::WidgetType::Button, enabled, &text),
+        Some(on) => egui::WidgetInfo::selected(egui::Role::Button, enabled, on, &text),
+        None => egui::WidgetInfo::labeled(egui::Role::Button, enabled, &text),
     });
     resp
 }
@@ -170,7 +170,7 @@ pub fn small_button(ui: &mut Ui, icon: Icon, label: &str, enabled: bool, selecte
             if enabled { t.text } else { t.text_faint },
         );
     }
-    resp.widget_info(|| egui::WidgetInfo::selected(egui::WidgetType::Button, enabled, selected, label));
+    resp.widget_info(|| egui::WidgetInfo::selected(egui::Role::Button, enabled, selected, label));
     resp
 }
 
@@ -199,7 +199,7 @@ pub fn icon_toggle_tinted(
         painter.rect_filled(rect, CornerRadius::same(4), c);
     }
     icons::paint(&painter, rect.shrink(3.0), icon, tint.unwrap_or(t.text), !enabled);
-    resp.widget_info(|| egui::WidgetInfo::selected(egui::WidgetType::Button, enabled, on, tip));
+    resp.widget_info(|| egui::WidgetInfo::selected(egui::Role::Button, enabled, on, tip));
     resp.on_hover_text(tip)
 }
 
@@ -227,7 +227,7 @@ pub fn switch(ui: &mut Ui, on: bool, enabled: bool, label: &str) -> Response {
     let x = if on { rect.max.x - 9.0 } else { rect.min.x + 9.0 };
     let knob = if on { t.accent_text } else { t.text_dim };
     p.circle_filled(pos2(x, rect.center().y), 5.5, knob);
-    resp.widget_info(|| egui::WidgetInfo::selected(egui::WidgetType::Checkbox, enabled, on, label));
+    resp.widget_info(|| egui::WidgetInfo::selected(egui::Role::CheckBox, enabled, on, label));
     resp
 }
 
@@ -246,7 +246,7 @@ pub fn status_icon(ui: &mut Ui, icon: Icon, tip: &str, on: bool) -> Response {
         t.text_dim,
         false,
     );
-    resp.widget_info(|| egui::WidgetInfo::selected(egui::WidgetType::Button, true, on, tip));
+    resp.widget_info(|| egui::WidgetInfo::selected(egui::Role::Button, true, on, tip));
     resp.on_hover_text(tip)
 }
 
@@ -306,7 +306,7 @@ pub fn section(ui: &mut Ui, title: &str, open: bool) -> bool {
         theme::bold(13.0),
         t.text,
     );
-    resp.widget_info(|| egui::WidgetInfo::selected(egui::WidgetType::CollapsingHeader, true, open, title));
+    resp.widget_info(|| egui::WidgetInfo::selected(egui::Role::Button, true, open, title));
     if resp.clicked() { !open } else { open }
 }
 
@@ -337,7 +337,7 @@ pub fn primary(ui: &mut Ui, label: &str, enabled: bool, reason: &str) -> Respons
         font,
         if enabled { t.accent_text } else { t.text_faint },
     );
-    resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, enabled, label));
+    resp.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, enabled, label));
     if enabled || reason.is_empty() {
         resp
     } else {
@@ -365,7 +365,7 @@ pub fn pill(ui: &mut Ui, label: &str, dot: Option<Color32>, strong: bool) -> Res
         font,
         if strong { t.text } else { t.text_dim },
     );
-    resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Label, true, label));
+    resp.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Label, true, label));
     resp
 }
 
@@ -395,7 +395,7 @@ pub fn tab(ui: &mut Ui, label: &str, active: bool, contextual: bool) -> Response
             t.accent,
         );
     }
-    resp.widget_info(|| egui::WidgetInfo::selected(egui::WidgetType::Button, true, active, label));
+    resp.widget_info(|| egui::WidgetInfo::selected(egui::Role::Button, true, active, label));
     resp
 }
 
@@ -437,7 +437,7 @@ pub fn error_bar(ui: &mut Ui, msg: &str, close_tip: &str) -> bool {
                     ui.painter().rect_filled(r, CornerRadius::same(4), t.hover);
                 }
                 icons::paint(ui.painter(), r.shrink(4.0), Icon::Close, t.err_text, false);
-                resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, close_tip));
+                resp.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, close_tip));
                 if resp.on_hover_text(close_tip).clicked() {
                     close = true;
                 }

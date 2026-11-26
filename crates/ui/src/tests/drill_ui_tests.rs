@@ -401,8 +401,8 @@ fn right_click_expand_entire_level_and_the_header_icon_edit_the_matrix() {
         screen(&h, x + w - 4.0, y + hh / 2.0)
     };
     press(&mut h, at, PointerButton::Secondary);
-    // the submenu's button carries its arrow
-    let r = h.get_by_label("Expand ⏵").rect();
+    // the submenu's button (its arrow is drawn, not part of its name)
+    let r = h.get_by_label("Expand").rect();
     h.hover_at(r.center());
     for _ in 0..4 {
         h.step();

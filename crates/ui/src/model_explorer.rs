@@ -259,7 +259,7 @@ impl Explorer {
                 .hint_text(l.t("Search", "Rechercher"))
                 .desired_width(ui.available_width()),
         )
-        .widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::TextEdit, true, name));
+        .widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, true, name));
         self.needle = self.query.trim().to_lowercase();
         ui.add_space(4.0);
         egui::ScrollArea::vertical()
@@ -311,7 +311,17 @@ impl Explorer {
             return None;
         }
         let sel = Sel::Item(item);
-        let resp = row(ui, depth, icon, text, None, cx.sel == Some(&sel), false, drag);
+        let resp = row(
+            ui,
+            cx.l,
+            depth,
+            icon,
+            text,
+            None,
+            cx.sel == Some(&sel),
+            false,
+            drag,
+        );
         if resp.clicked() {
             out.sel = Some(Some(sel));
         }
@@ -336,7 +346,7 @@ impl Explorer {
     ) {
         let open = self.is_open(key);
         let selected = sel.as_ref().is_some_and(|x| cx.on(x));
-        let r = row(ui, depth, icon, text, Some(open), selected, false, false);
+        let r = row(ui, cx.l, depth, icon, text, Some(open), selected, false, false);
         if r.clicked() {
             self.toggle(key);
             if let Some(sel) = sel {
@@ -483,6 +493,7 @@ impl Explorer {
                             }
                             let resp = row(
                                 ui,
+                                cx.l,
                                 2,
                                 Icon::Calculator,
                                 name,
@@ -565,7 +576,7 @@ impl Explorer {
                     None,
                     |me, ui, out| {
                         for p in perspectives.iter().filter(|p| me.hit(p)) {
-                            let resp = row(ui, 2, Icon::Eye, p, None, false, false, false);
+                            let resp = row(ui, cx.l, 2, Icon::Eye, p, None, false, false, false);
                             menu_on(
                                 &resp,
                                 cx,
@@ -600,7 +611,17 @@ impl Explorer {
                             let sel = Sel::Rel(*i);
                             let on = cx.sel == Some(&sel);
                             let dim = r.get("active").and_then(Value::as_bool) == Some(false);
-                            let resp = row(ui, 2, Icon::Relationship, &rel_text(r), None, on, dim, false);
+                            let resp = row(
+                                ui,
+                                cx.l,
+                                2,
+                                Icon::Relationship,
+                                &rel_text(r),
+                                None,
+                                on,
+                                dim,
+                                false,
+                            );
                             if resp.clicked() {
                                 out.sel = Some(Some(sel));
                             }
@@ -866,6 +887,7 @@ impl Explorer {
         let selected = cx.on(&sel);
         let r = row(
             ui,
+            cx.l,
             depth,
             Icon::Table,
             &name,
@@ -918,6 +940,7 @@ impl Explorer {
             };
             let resp = row(
                 ui,
+                cx.l,
                 depth + 1,
                 icon,
                 cname,
@@ -963,6 +986,7 @@ impl Explorer {
             let hopen = self.open.contains(&hkey);
             let resp = row(
                 ui,
+                cx.l,
                 depth + 1,
                 Icon::Hierarchy,
                 hname,
@@ -992,6 +1016,7 @@ impl Explorer {
                 for (_, level) in objects(h, "levels") {
                     row(
                         ui,
+                        cx.l,
                         depth + 2,
                         Icon::Column,
                         s(level, "name"),
@@ -1032,6 +1057,7 @@ fn measure_row(ui: &mut Ui, cx: &Cx<'_>, out: &mut Out, table: &str, x: &Value, 
     };
     let resp = row(
         ui,
+        cx.l,
         depth,
         Icon::Measure,
         name,
@@ -1101,10 +1127,11 @@ fn items(ui: &mut Ui, cx: &Cx<'_>, out: &mut Out, menu: &[(&'static str, Value, 
 }
 
 /// One row: a chevron for a branch (`open`), the icon, the name; selected rows are lit, hidden
-/// or inactive objects dimmed. Its accessible label is its text.
+/// or inactive objects dimmed. Its accessible label is its text (a generic name when empty).
 #[allow(clippy::too_many_arguments)]
 fn row(
     ui: &mut Ui,
+    l: Lang,
     depth: usize,
     icon: Icon,
     text: &str,
@@ -1152,10 +1179,15 @@ fn row(
         theme::font(13.0),
         ink,
     );
-    let label = text.to_string();
+    // a nameless object (a damaged snapshot) still has an accessible name
+    let label = if text.trim().is_empty() {
+        l.t("Object without a name", "Objet sans nom").to_string()
+    } else {
+        text.to_string()
+    };
     resp.widget_info(|| match open {
-        Some(open) => egui::WidgetInfo::selected(egui::WidgetType::CollapsingHeader, true, open, &label),
-        None => egui::WidgetInfo::selected(egui::WidgetType::SelectableLabel, true, selected, &label),
+        Some(open) => egui::WidgetInfo::selected(egui::Role::Button, true, open, &label),
+        None => egui::WidgetInfo::selected(egui::Role::Button, true, selected, &label),
     });
     if drag && resp.dragged() {
         ui.ctx().set_cursor_icon(egui::CursorIcon::Grabbing);

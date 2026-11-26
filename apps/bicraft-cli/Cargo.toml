@@ -31,7 +31,7 @@ rpassword = "7"
 # SIGTERM / SIGINT / SIGHUP (Unix) and Ctrl+C, Ctrl+Break, console close (Windows) for the graceful
 # drain of `bicraft serve` (MIT OR Apache-2.0; its platform calls are the crate's own, our crates stay
 # free of unsafe code).
-ctrlc = { version = "3.4", features = ["termination"] }
+ctrlc = { version = "3.5", features = ["termination"] }
 
 [build-dependencies]
 bicraft-env.workspace = true

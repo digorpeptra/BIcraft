@@ -20,9 +20,9 @@ bicraft-ui.workspace = true
 serde_json.workspace = true
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-egui = "0.36"
+egui = "0.37"
 # The web runner; `wgpu` brings egui-wgpu's defaults: WebGPU with the WebGL2 fallback (as DeckCraft).
-eframe = { version = "0.36", default-features = false, features = ["default_fonts", "wgpu", "accesskit"] }
+eframe = { version = "0.37", default-features = false, features = ["default_fonts", "wgpu", "accesskit"] }
 # Pinned: `cargo xtask webui` runs the wasm-bindgen CLI of exactly this version (docs/webui.md).
 wasm-bindgen = "=0.2.129"
 wasm-bindgen-futures = "0.4"

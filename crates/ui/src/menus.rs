@@ -308,7 +308,7 @@ fn header(app: &mut App, ui: &Ui, rect: Rect, zoom: f32) {
     };
     let at = egui::pos2(at.x.max(rect.min.x), at.y.max(top));
     let l = app.lang;
-    egui::Area::new(egui::Id::new("bicraft-visual-header"))
+    egui::Area::new(egui::Id::unique("bicraft-visual-header"))
         .pivot(pivot)
         .fixed_pos(at)
         .order(egui::Order::Foreground)

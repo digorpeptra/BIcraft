@@ -834,7 +834,7 @@ impl ModelView {
             let r = ui
                 .add_enabled(self.editable, egui::Button::new("+").small())
                 .on_hover_text(tip);
-            r.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, self.editable, tip));
+            r.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, self.editable, tip));
             if r.clicked() {
                 self.run = Some((
                     "diagram.add",
@@ -1015,7 +1015,7 @@ impl ModelView {
         let (rect, resp) = ui.allocate_exact_size(size, Sense::click_and_drag());
         resp.widget_info(|| {
             egui::WidgetInfo::labeled(
-                egui::WidgetType::Other,
+                egui::Role::Unknown,
                 true,
                 l.t("Model diagram", "Diagramme du modèle"),
             )
@@ -2643,7 +2643,13 @@ fn summary_panel(
     for t in tables.iter().take(MAX_LIST) {
         let n = s(t, "name");
         ui.horizontal(|ui| {
-            let mut label = RichText::new(clip(n, 120));
+            // a nameless table (a damaged snapshot) still shows, and is named, as one
+            let shown = if n.trim().is_empty() {
+                l.t("Table without a name", "Table sans nom").to_string()
+            } else {
+                clip(n, 120)
+            };
+            let mut label = RichText::new(shown);
             if yes(t, "hidden") {
                 label = label.color(pal.faint);
             }

@@ -286,7 +286,7 @@ rfd (MIT), sys-locale (MIT OR Apache-2.0), windows-registry (MIT OR Apache-2.0, 
 the same HTTPS client as the Databricks connector (below), and at build time resvg, tiny-skia and
 winresource (MIT) for its icon. egui embeds its default fonts (`epaint_default_fonts`): Ubuntu
 Light (Ubuntu Font Licence 1.0), Hack (MIT and Bitstream Vera licence), Noto Emoji (OFL-1.1) and
-an emoji icon font (MIT and OFL-1.1); with Selawik and the Noto Sans Symbols 2 subset (above)
+an emoji icon font (MIT and OFL-1.1), with its five-glyph `egui-icons` subset (same licence); with Selawik and the Noto Sans Symbols 2 subset (above)
 they draw the app's chrome, never report pages.
 `THIRD_PARTY_CRATES.md` in the Windows archive lists every crate with its licence texts, the
 fonts' included.

@@ -148,7 +148,7 @@ fn tile(ui: &mut Ui, s: &Swatch, name: &str, on: bool) -> egui::Response {
         theme::font(11.0),
         t.text,
     );
-    resp.widget_info(|| egui::WidgetInfo::selected(egui::WidgetType::Button, true, on, name));
+    resp.widget_info(|| egui::WidgetInfo::selected(egui::Role::Button, true, on, name));
     resp
 }
 

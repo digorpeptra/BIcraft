@@ -202,7 +202,7 @@ pub fn show(app: &mut App, ctx: &egui::Context) {
     let mut open = true;
     let mut close = false;
     egui::Window::new(l.t("Visual calculations", "Calculs visuels"))
-        .id(egui::Id::new("bicraft-visual-calculations"))
+        .id(egui::Id::unique("bicraft-visual-calculations"))
         .collapsible(false)
         .resizable(false)
         .open(&mut open)
@@ -278,7 +278,7 @@ fn body(app: &mut App, ui: &mut Ui, e: &mut Editor, l: Lang, close: &mut bool) {
                             let mut shown = !hidden;
                             let tip = format!("{} {name}", l.t("Show on the visual:", "Afficher sur le visuel :"));
                             let r = ui.checkbox(&mut shown, "").on_hover_text(&tip);
-                            r.widget_info(|| egui::WidgetInfo::selected(egui::WidgetType::Checkbox, true, shown, &tip));
+                            r.widget_info(|| egui::WidgetInfo::selected(egui::Role::CheckBox, true, shown, &tip));
                             if r.clicked() {
                                 action = Some(Call {
                                     id: SET,
@@ -302,7 +302,7 @@ fn body(app: &mut App, ui: &mut Ui, e: &mut Editor, l: Lang, close: &mut bool) {
                                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                                     let label = format!("{} {name}", l.t("Delete", "Supprimer"));
                                     let b = ui.small_button("🗑").on_hover_text(&label);
-                                    b.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, &label));
+                                    b.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, &label));
                                     if b.clicked() {
                                         action = Some(Call {
                                             id: REMOVE,
@@ -389,7 +389,7 @@ fn formula_bar(ui: &mut Ui, e: &mut Editor, fs: &[Value], l: Lang, t: &Tokens, a
             egui::Button::new(format!("{} ▾", l.t("Templates", "Modèles"))),
         );
         let label = l.t("Templates", "Modèles");
-        b.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, label));
+        b.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, label));
         if let Some(field) = first {
             egui::Popup::menu(&b).show(|ui| {
                 for (en, fr, pattern) in TEMPLATES {
@@ -419,7 +419,7 @@ fn formula_bar(ui: &mut Ui, e: &mut Editor, fs: &[Value], l: Lang, t: &Tokens, a
             .hint_text(l.t("RUNNINGSUM([Sales Amount])", "RUNNINGSUM([Montant des ventes])"))
             .layouter(&mut layouter),
     );
-    r.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::TextEdit, true, label));
+    r.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, true, label));
     ui.add_space(4.0);
     ui.horizontal(|ui| {
         let ok = !e.expression.trim().is_empty() && !e.name.trim().is_empty();

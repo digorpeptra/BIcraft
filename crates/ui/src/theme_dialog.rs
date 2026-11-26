@@ -683,7 +683,7 @@ pub fn show(app: &mut App, ctx: &egui::Context) {
     let mut close = false;
     let mut call = None;
     egui::Window::new(l.t("Customize theme", "Personnaliser le thème"))
-        .id(egui::Id::new("bicraft-customize-theme"))
+        .id(egui::Id::unique("bicraft-customize-theme"))
         .collapsible(false)
         .resizable(false)
         .open(&mut open)
@@ -849,7 +849,7 @@ fn color_edit(ui: &mut Ui, text: &mut String, what: &str, w: f32) -> bool {
         let mut c = to_color32(text).unwrap_or(Color32::GRAY);
         let r = ui.color_edit_button_srgba(&mut c);
         let a11y = format!("{what} ({})", text.trim());
-        r.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::ColorButton, true, &a11y));
+        r.widget_info(|| egui::WidgetInfo::labeled(egui::Role::ColorWell, true, &a11y));
         if r.changed() {
             *text = hex(c);
             changed = true;
@@ -860,7 +860,7 @@ fn color_edit(ui: &mut Ui, text: &mut String, what: &str, w: f32) -> bool {
                 .desired_width(w)
                 .hint_text("#RRGGBB"),
         );
-        e.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::TextEdit, true, what));
+        e.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, true, what));
         changed |= e.changed();
     });
     changed
@@ -939,7 +939,7 @@ fn field(ui: &mut Ui, d: &mut Dialog, f: &Field, what: &str, l: Lang, t: &Tokens
                     pick
                 });
             r.response
-                .widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::ComboBox, true, what));
+                .widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, true, what));
             if let Some(Some(fam)) = r.inner {
                 next = Some(json!(fam));
             }
@@ -958,7 +958,7 @@ fn field(ui: &mut Ui, d: &mut Dialog, f: &Field, what: &str, l: Lang, t: &Tokens
                     .max_decimals(1)
                     .suffix(suffix),
             );
-            r.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::DragValue, true, what));
+            r.widget_info(|| egui::WidgetInfo::labeled(egui::Role::SpinButton, true, what));
             if r.changed() {
                 next = Some(number(x));
             }
@@ -969,7 +969,7 @@ fn field(ui: &mut Ui, d: &mut Dialog, f: &Field, what: &str, l: Lang, t: &Tokens
         Kind::Toggle => {
             let mut on = value.as_bool().unwrap_or(false);
             let r = ui.checkbox(&mut on, l.t("On", "Activé"));
-            r.widget_info(|| egui::WidgetInfo::selected(egui::WidgetType::Checkbox, true, on, what));
+            r.widget_info(|| egui::WidgetInfo::selected(egui::Role::CheckBox, true, on, what));
             if r.changed() {
                 next = Some(json!(on));
             }

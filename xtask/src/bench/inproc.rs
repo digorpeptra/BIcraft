@@ -11,7 +11,7 @@ use serde_json::{Value, json};
 use super::synth::{self, ModelShape};
 use super::{Bencher, Opts, Work, cli, copy_dir, mcp_session, write_file};
 
-/// A synthetic `metadata.sqlitedb` (our own, see `crates/metadata/tests/gen_fixture.py`).
+/// A synthetic `metadata.sqlitedb` (our own, see `crates/metadata/tests/gen_fixture.rs`).
 const SYNTHETIC_METADATA: &[u8] =
     include_bytes!("../../../crates/metadata/tests/fixtures/synthetic_metadata.sqlitedb");
 

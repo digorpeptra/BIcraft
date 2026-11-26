@@ -298,7 +298,11 @@ fn every_character_the_ui_uses_has_a_glyph() {
     ] {
         let faces: Vec<skrifa::charmap::Charmap<'_>> = fd.families[&family]
             .iter()
-            .map(|k| skrifa::MetadataProvider::charmap(&skrifa::FontRef::new(&fd.font_data[k].font).unwrap()))
+            .map(|k| {
+                skrifa::MetadataProvider::charmap(
+                    &skrifa::FontRef::new((*fd.font_data[k].font).as_ref()).unwrap(),
+                )
+            })
             .collect();
         let missing: Vec<char> = chars
             .iter()
@@ -474,7 +478,7 @@ fn check_and_cross_are_the_symbol_faces() {
         let first = faces
             .iter()
             .find(|k| {
-                skrifa::FontRef::new(&fd.font_data[*k].font)
+                skrifa::FontRef::new((*fd.font_data[*k].font).as_ref())
                     .is_ok_and(|f| skrifa::MetadataProvider::charmap(&f).map('✓').is_some())
             })
             .unwrap();

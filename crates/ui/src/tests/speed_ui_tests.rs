@@ -757,6 +757,7 @@ fn run(rows: usize, b: &Budget) -> Report {
     let mut scroll = Frames::default();
     for _ in 0..60 {
         h.event(Event::MouseWheel {
+            source: egui::MouseWheelSource::Wheel,
             unit: egui::MouseWheelUnit::Point,
             delta: vec2(0.0, -(rows as f32) / 4.0),
             modifiers: Modifiers::NONE,

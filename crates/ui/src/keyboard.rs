@@ -111,7 +111,7 @@ struct KeyMenu {
 }
 
 fn key_menu_id() -> Id {
-    Id::new("bicraft-key-menu")
+    Id::unique("bicraft-key-menu")
 }
 
 fn key_menu(ctx: &Context) -> KeyMenu {
@@ -610,7 +610,7 @@ fn ring(app: &App, ctx: &Context) {
     };
     let r = ctx.layer_transform_to_global(layer).map_or(r, |t| t.mul_rect(r));
     let t = Tokens::of(app.prefs.theme);
-    let painter = ctx.layer_painter(LayerId::new(Order::Foreground, Id::new("bicraft-focus-ring")));
+    let painter = ctx.layer_painter(LayerId::new(Order::Foreground, Id::unique("bicraft-focus-ring")));
     painter.rect_stroke(
         r.expand(1.0),
         egui::CornerRadius::same(4),

@@ -1,7 +1,7 @@
 //! Compare our reader with what SQLite itself reads from the same files.
 //!
 //! Every `fixtures/<name>.db` was written by SQLite and `fixtures/<name>.json` records what SQLite
-//! read back (see `gen_fixtures.py`).
+//! read back (see `gen_fixtures.rs`).
 
 use std::path::{Path, PathBuf};
 

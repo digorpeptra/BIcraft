@@ -207,7 +207,7 @@ pub fn show(app: &mut App, ctx: &egui::Context) {
     let mut close = false;
     let mut acts = Vec::new();
     egui::Window::new(l.t("Data source settings", "Paramètres de source de données"))
-        .id(egui::Id::new("bicraft-source-settings"))
+        .id(egui::Id::unique("bicraft-source-settings"))
         .collapsible(false)
         .resizable(false)
         .open(&mut open)

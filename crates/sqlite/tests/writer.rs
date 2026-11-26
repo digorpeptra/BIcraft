@@ -1,14 +1,14 @@
 //! The writer, checked against SQLite itself.
 //!
-//! Every file written here is read back with our reader and, when Python's `sqlite3` module is
-//! available (`python3` or `python`), opened by SQLite through `sqlite_check.py`: it must pass
-//! `PRAGMA integrity_check` and `PRAGMA foreign_key_check`, and SQLite must see exactly the
-//! rows that were written. Without Python those checks are skipped with a note.
+//! Every file written here is read back with our reader and opened by SQLite itself (the
+//! `rusqlite` dev-dependency, with SQLite compiled from its bundled source; `sqlite_report`): it
+//! must pass `PRAGMA integrity_check` and `PRAGMA foreign_key_check`, and SQLite must see exactly
+//! the rows that were written.
 
 use std::path::{Path, PathBuf};
-use std::process::Command;
-use std::sync::OnceLock;
 use std::sync::atomic::{AtomicUsize, Ordering};
+
+use rusqlite::OptionalExtension;
 
 use bicraft_sqlite::{Database, DatabaseBuilder, Error, Generated, Row, Value, rewrite};
 use serde_json::{Value as J, json};
@@ -44,23 +44,6 @@ fn fixture(name: &str) -> Database {
 // ---------------------------------------------------------------------------------------------
 // SQLite oracle
 
-fn python() -> Option<&'static str> {
-    static PY: OnceLock<Option<&'static str>> = OnceLock::new();
-    *PY.get_or_init(|| {
-        for cmd in ["python3", "python"] {
-            let ok = Command::new(cmd)
-                .args(["-I", "-c", "import sqlite3, json; print('ok')"])
-                .output()
-                .is_ok_and(|o| o.status.success() && String::from_utf8_lossy(&o.stdout).trim() == "ok");
-            if ok {
-                return Some(cmd);
-            }
-        }
-        eprintln!("note: no Python with sqlite3 found; SQLite oracle checks are skipped");
-        None
-    })
-}
-
 fn scratch(label: &str) -> PathBuf {
     static N: AtomicUsize = AtomicUsize::new(0);
     let dir = Path::new(env!("CARGO_TARGET_TMPDIR")).join("sqlite-writer");
@@ -76,32 +59,155 @@ fn scratch(label: &str) -> PathBuf {
     ))
 }
 
-/// Run `sqlite_check.py` on `bytes`; asserts that SQLite finds the file intact.
-fn sqlite_view(label: &str, bytes: &[u8]) -> Option<J> {
-    let v = sqlite_raw(label, bytes)?;
+/// What SQLite reads from `bytes`; asserts that SQLite finds the file intact.
+fn sqlite_view(label: &str, bytes: &[u8]) -> J {
+    let v = sqlite_raw(label, bytes);
     assert_eq!(v["integrity"], json!(["ok"]), "{label}: integrity_check");
     assert_eq!(v["foreign_keys"], json!([]), "{label}: foreign_key_check");
-    Some(v)
+    v
 }
 
-/// Run `sqlite_check.py` on `bytes` and return its report.
-fn sqlite_raw(label: &str, bytes: &[u8]) -> Option<J> {
-    let py = python()?;
+/// Open `bytes` with SQLite and return its report (see [`sqlite_report`]).
+fn sqlite_raw(label: &str, bytes: &[u8]) -> J {
     let path = scratch(label);
     std::fs::write(&path, bytes).unwrap();
-    let out = Command::new(py)
-        .arg("-I")
-        .arg(tests_dir().join("sqlite_check.py"))
-        .arg(&path)
-        .output()
-        .unwrap();
+    let out = sqlite_report(&path);
     let _ = std::fs::remove_file(&path);
-    assert!(
-        out.status.success(),
-        "{label}: SQLite could not read the file: {}",
-        String::from_utf8_lossy(&out.stderr)
-    );
-    Some(serde_json::from_slice(&out.stdout).unwrap())
+    out.unwrap_or_else(|e| panic!("{label}: SQLite could not read the file: {e}"))
+}
+
+/// What SQLite itself sees in the database at `path`: `PRAGMA integrity_check` and
+/// `PRAGMA foreign_key_check`, the header pragmas, the schema, every row of every ordinary table,
+/// and the row count of a full scan through each index (`null` where SQLite cannot serve one,
+/// e.g. a partial index).
+fn sqlite_report(path: &Path) -> rusqlite::Result<J> {
+    use rusqlite::types::ValueRef;
+
+    fn enc(v: ValueRef) -> rusqlite::Result<J> {
+        Ok(match v {
+            ValueRef::Null => J::Null,
+            ValueRef::Integer(i) => json!({ "i": i.to_string() }),
+            ValueRef::Real(r) => json!({ "r": hex(&r.to_be_bytes()) }),
+            ValueRef::Text(_) => json!({ "t": v.as_str()? }),
+            ValueRef::Blob(b) => json!({ "b": hex(b) }),
+        })
+    }
+    /// A pragma or schema value as plain JSON.
+    fn plain(v: ValueRef) -> rusqlite::Result<J> {
+        Ok(match v {
+            ValueRef::Null => J::Null,
+            ValueRef::Integer(i) => json!(i),
+            ValueRef::Real(r) => json!(r),
+            ValueRef::Text(_) => json!(v.as_str()?),
+            ValueRef::Blob(b) => json!(hex(b)),
+        })
+    }
+    /// Every row of `sql`, each value through `f`.
+    fn rows(
+        con: &rusqlite::Connection,
+        sql: &str,
+        f: fn(ValueRef) -> rusqlite::Result<J>,
+    ) -> rusqlite::Result<Vec<Vec<J>>> {
+        let mut stmt = con.prepare(sql)?;
+        let n = stmt.column_count();
+        let mut out = Vec::new();
+        let mut it = stmt.query([])?;
+        while let Some(r) = it.next()? {
+            out.push(
+                (0..n)
+                    .map(|i| f(r.get_ref(i)?))
+                    .collect::<rusqlite::Result<_>>()?,
+            );
+        }
+        Ok(out)
+    }
+    fn qi(name: &str) -> String {
+        format!("\"{}\"", name.replace('"', "\"\""))
+    }
+
+    let con = rusqlite::Connection::open(path)?;
+    let integrity: Vec<J> = rows(&con, "PRAGMA integrity_check", plain)?
+        .into_iter()
+        .filter_map(|r| r.into_iter().next())
+        .collect();
+    // Each value as text, NULL as `None`: the form the earlier oracle recorded.
+    let foreign_keys: Vec<J> = rows(&con, "PRAGMA foreign_key_check", plain)?
+        .into_iter()
+        .map(|r| {
+            J::Array(
+                r.into_iter()
+                    .map(|v| match v {
+                        J::Null => json!("None"),
+                        J::String(s) => J::String(s),
+                        other => J::String(other.to_string()),
+                    })
+                    .collect(),
+            )
+        })
+        .collect();
+    let mut pragmas = serde_json::Map::new();
+    for p in [
+        "page_size",
+        "page_count",
+        "encoding",
+        "auto_vacuum",
+        "user_version",
+        "application_id",
+        "freelist_count",
+    ] {
+        let v = con.query_row(&format!("PRAGMA {p}"), [], |r| plain(r.get_ref(0)?))?;
+        pragmas.insert(p.into(), v);
+    }
+    let schema = rows(
+        &con,
+        "SELECT type, name, tbl_name, sql FROM sqlite_schema ORDER BY rowid",
+        plain,
+    )?;
+    let text = |v: &J| v.as_str().unwrap_or_default().to_owned();
+    let mut tables = serde_json::Map::new();
+    for e in &schema {
+        let (typ, name, sql) = (text(&e[0]), text(&e[1]), text(&e[3]));
+        if typ != "table" || sql.to_uppercase().starts_with("CREATE VIRTUAL") {
+            continue;
+        }
+        let wr = con
+            .query_row("SELECT wr FROM pragma_table_list WHERE name = ?", [&name], |r| {
+                r.get::<_, Option<i64>>(0)
+            })
+            .optional()?
+            .flatten();
+        let sel = if wr.is_some_and(|w| w != 0) {
+            format!("SELECT * FROM {}", qi(&name))
+        } else {
+            format!("SELECT _rowid_, * FROM {} ORDER BY _rowid_", qi(&name))
+        };
+        let rs = rows(&con, &sel, enc)?;
+        tables.insert(name, J::Array(rs.into_iter().map(J::Array).collect()));
+    }
+    let mut out = json!({
+        "sqlite_version": rusqlite::version(),
+        "integrity": integrity,
+        "foreign_keys": foreign_keys,
+        "pragmas": pragmas,
+        "schema": schema,
+        "tables": tables,
+    });
+    // Every index must also answer a full scan in index order with the right row count.
+    for e in &schema {
+        if text(&e[0]) != "index" {
+            continue;
+        }
+        let (name, tbl) = (text(&e[1]), text(&e[2]));
+        let n = con
+            .query_row(
+                &format!("SELECT count(*) FROM {} INDEXED BY {}", qi(&tbl), qi(&name)),
+                [],
+                |r| r.get::<_, i64>(0),
+            )
+            .ok();
+        out["index_counts"][name] = json!(n);
+    }
+    Ok(out)
 }
 
 fn hex(b: &[u8]) -> String {
@@ -134,28 +240,27 @@ fn rows_json(rows: &[Row]) -> J {
 /// read. Returns the reader's database.
 fn check_both(label: &str, bytes: &[u8]) -> Database {
     let db = Database::from_bytes(bytes).unwrap_or_else(|e| panic!("{label}: our reader: {e}"));
-    if let Some(view) = sqlite_view(label, bytes) {
-        for t in db.tables() {
-            // SQLite computes VIRTUAL generated columns; our reader does not
-            let computed = t.columns.iter().any(|c| c.generated == Some(Generated::Virtual));
-            let Ok(rows) = db.rows_vec(&t.name) else {
-                continue;
-            };
-            if computed {
-                continue;
-            }
-            assert_eq!(
-                view["tables"][&t.name],
-                rows_json(&rows),
-                "{label}: table {}",
-                t.name
-            );
+    let view = sqlite_view(label, bytes);
+    for t in db.tables() {
+        // SQLite computes VIRTUAL generated columns; our reader does not
+        let computed = t.columns.iter().any(|c| c.generated == Some(Generated::Virtual));
+        let Ok(rows) = db.rows_vec(&t.name) else {
+            continue;
+        };
+        if computed {
+            continue;
         }
-        for e in db.schema().iter().filter(|e| e.kind == "index") {
-            let n = db.rows_vec(&e.tbl_name).map(|r| r.len()).ok();
-            if let (Some(n), Some(c)) = (n, view["index_counts"][&e.name].as_u64()) {
-                assert_eq!(c as usize, n, "{label}: entries of index {}", e.name);
-            }
+        assert_eq!(
+            view["tables"][&t.name],
+            rows_json(&rows),
+            "{label}: table {}",
+            t.name
+        );
+    }
+    for e in db.schema().iter().filter(|e| e.kind == "index") {
+        let n = db.rows_vec(&e.tbl_name).map(|r| r.len()).ok();
+        if let (Some(n), Some(c)) = (n, view["index_counts"][&e.name].as_u64()) {
+            assert_eq!(c as usize, n, "{label}: entries of index {}", e.name);
         }
     }
     db
@@ -737,29 +842,33 @@ fn constraint_indexes_follow_sqlite() {
         ]
     );
     // SQLite agrees on the automatic indexes it expects: rebuild the same schema with SQLite.
-    if let Some(py) = python() {
-        let path = scratch("constraint_indexes_sqlite");
-        let script = "import sqlite3, sys\n\
-             con = sqlite3.connect(sys.argv[1])\n\
-             for row in sqlite3.connect(sys.argv[2]).execute(\"SELECT sql FROM sqlite_schema WHERE sql IS NOT NULL\"):\n\
-             \x20   con.execute(row[0])\n\
-             print('|'.join(r[0] for r in con.execute(\"SELECT name FROM sqlite_schema WHERE type='index' ORDER BY rowid\")))\n\
-             con.close()\n";
-        let ours = scratch("constraint_indexes_ours");
-        std::fs::write(&ours, &bytes).unwrap();
-        let out = Command::new(py)
-            .arg("-I")
-            .arg("-c")
-            .arg(script)
-            .arg(&path)
-            .arg(&ours)
-            .output()
+    let ours = scratch("constraint_indexes_ours");
+    std::fs::write(&ours, &bytes).unwrap();
+    let theirs = rusqlite::Connection::open_in_memory().unwrap();
+    {
+        let src = rusqlite::Connection::open(&ours).unwrap();
+        let mut stmt = src
+            .prepare("SELECT sql FROM sqlite_schema WHERE sql IS NOT NULL")
             .unwrap();
-        let _ = std::fs::remove_file(&path);
-        let _ = std::fs::remove_file(&ours);
-        assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
-        assert_eq!(String::from_utf8_lossy(&out.stdout).trim(), idx.join("|"));
+        let sqls: Vec<String> = stmt
+            .query_map([], |r| r.get(0))
+            .unwrap()
+            .collect::<Result<_, _>>()
+            .unwrap();
+        for sql in sqls {
+            theirs.execute(&sql, []).unwrap();
+        }
     }
+    let _ = std::fs::remove_file(&ours);
+    let mut stmt = theirs
+        .prepare("SELECT name FROM sqlite_schema WHERE type='index' ORDER BY rowid")
+        .unwrap();
+    let names: Vec<String> = stmt
+        .query_map([], |r| r.get(0))
+        .unwrap()
+        .collect::<Result<_, _>>()
+        .unwrap();
+    assert_eq!(names, idx);
 }
 
 #[test]
@@ -811,9 +920,8 @@ fn oracle_detects_misordered_index() {
     bytes[p0 + 1] = bytes[p1 + 1];
     bytes[p1] = a[0];
     bytes[p1 + 1] = a[1];
-    if let Some(v) = sqlite_raw("misordered", &bytes) {
-        assert_ne!(v["integrity"], json!(["ok"]));
-    }
+    let v = sqlite_raw("misordered", &bytes);
+    assert_ne!(v["integrity"], json!(["ok"]));
 }
 
 #[test]
@@ -861,24 +969,23 @@ fn rewrite_identity_every_fixture() {
             assert_eq!(h.0.user_version, h.1.user_version, "{label}");
             assert_eq!(h.0.auto_vacuum(), h.1.auto_vacuum(), "{label}");
             assert_eq!(h.0.reserved_bytes, h.1.reserved_bytes, "{label}");
-            if let (Some(want), Some(got)) = (&original, sqlite_view(&label, &out)) {
-                assert_eq!(got["schema"], want["schema"], "{label}: schema");
-                assert_eq!(got["tables"], want["tables"], "{label}: rows");
-                assert_eq!(
-                    got["index_counts"], want["index_counts"],
-                    "{label}: index entries"
-                );
-                for p in [
-                    "page_size",
-                    "encoding",
-                    "auto_vacuum",
-                    "user_version",
-                    "application_id",
-                ] {
-                    assert_eq!(got["pragmas"][p], want["pragmas"][p], "{label}: {p}");
-                }
-                assert_eq!(got["pragmas"]["freelist_count"], json!(0), "{label}");
+            let (want, got) = (&original, sqlite_view(&label, &out));
+            assert_eq!(got["schema"], want["schema"], "{label}: schema");
+            assert_eq!(got["tables"], want["tables"], "{label}: rows");
+            assert_eq!(
+                got["index_counts"], want["index_counts"],
+                "{label}: index entries"
+            );
+            for p in [
+                "page_size",
+                "encoding",
+                "auto_vacuum",
+                "user_version",
+                "application_id",
+            ] {
+                assert_eq!(got["pragmas"][p], want["pragmas"][p], "{label}: {p}");
             }
+            assert_eq!(got["pragmas"]["freelist_count"], json!(0), "{label}");
         }
     }
 }
@@ -947,37 +1054,25 @@ fn rewrite_with_changed_rows() {
 /// is refused clearly.
 #[test]
 fn rewrite_expression_and_partial_indexes() {
-    let Some(py) = python() else {
-        return;
-    };
     let path = scratch("expr_src");
-    let script = "import sqlite3, sys\n\
-         con = sqlite3.connect(sys.argv[1])\n\
-         con.executescript('''\n\
-         CREATE TABLE e (id INTEGER PRIMARY KEY, a TEXT, b INT);\n\
-         CREATE INDEX e_lower ON e(lower(a));\n\
-         CREATE INDEX e_part ON e(b) WHERE b > 2;\n\
-         CREATE TABLE f (x TEXT UNIQUE, y);\n\
-         CREATE TRIGGER f_t AFTER INSERT ON f BEGIN SELECT 1; END;\n\
-         INSERT INTO e (a, b) VALUES ('A', 1), ('b', 3), ('C', 5);\n\
-         INSERT INTO f VALUES ('k', 1), ('l', 2);\n\
-         ''')\n\
-         con.commit()\n\
-         con.close()\n";
-    let out = Command::new(py)
-        .arg("-I")
-        .arg("-c")
-        .arg(script)
-        .arg(&path)
-        .output()
-        .unwrap();
-    assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
+    let con = rusqlite::Connection::open(&path).unwrap();
+    con.execute_batch(
+        "CREATE TABLE e (id INTEGER PRIMARY KEY, a TEXT, b INT);
+         CREATE INDEX e_lower ON e(lower(a));
+         CREATE INDEX e_part ON e(b) WHERE b > 2;
+         CREATE TABLE f (x TEXT UNIQUE, y);
+         CREATE TRIGGER f_t AFTER INSERT ON f BEGIN SELECT 1; END;
+         INSERT INTO e (a, b) VALUES ('A', 1), ('b', 3), ('C', 5);
+         INSERT INTO f VALUES ('k', 1), ('l', 2);",
+    )
+    .unwrap();
+    con.close().unwrap();
     let bytes = std::fs::read(&path).unwrap();
     let _ = std::fs::remove_file(&path);
     let db = Database::from_bytes(&bytes).unwrap();
     let kept = rewrite(&db, |t| (t == "f").then(|| db.rows_vec("f").unwrap())).unwrap();
-    let want = sqlite_view("expr_original", &bytes).unwrap();
-    let got = sqlite_view("expr_kept", &kept).unwrap();
+    let want = sqlite_view("expr_original", &bytes);
+    let got = sqlite_view("expr_kept", &kept);
     assert_eq!(got["schema"], want["schema"]);
     assert_eq!(got["tables"], want["tables"]);
     let r = rewrite(&db, |t| (t == "e").then(|| db.rows_vec("e").unwrap()));
@@ -1046,11 +1141,10 @@ fn real_metadata_db_identity() {
             total_rows += rows.len();
             assert_eq!(back.rows_vec(&t.name).unwrap(), rows, "table #{}", t.root_page);
         }
-        if let (Some(want), Some(got)) = (&original, sqlite_view(&format!("real_{mode}"), &out)) {
-            assert_eq!(got["schema"], want["schema"], "{mode}: schema");
-            assert_eq!(got["tables"], want["tables"], "{mode}: rows");
-            assert_eq!(got["index_counts"], want["index_counts"], "{mode}: index entries");
-        }
+        let (want, got) = (&original, sqlite_view(&format!("real_{mode}"), &out));
+        assert_eq!(got["schema"], want["schema"], "{mode}: schema");
+        assert_eq!(got["tables"], want["tables"], "{mode}: rows");
+        assert_eq!(got["index_counts"], want["index_counts"], "{mode}: index entries");
         eprintln!(
             "real metadata.sqlitedb ({mode}): {} schema objects, {} tables, {total_rows} rows, {} -> {} bytes",
             db.schema().len(),

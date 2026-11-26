@@ -327,7 +327,7 @@ pub fn show(app: &mut App, ctx: &egui::Context) {
     let mut open = true;
     let mut close = false;
     egui::Window::new(title)
-        .id(egui::Id::new("bicraft-groups"))
+        .id(egui::Id::unique("bicraft-groups"))
         .collapsible(false)
         .resizable(false)
         .open(&mut open)
@@ -648,9 +648,7 @@ fn bin_ui(ui: &mut Ui, d: &mut GroupDialog, l: Lang, t: &Tokens) {
                     }
                 })
                 .response
-                .widget_info(|| {
-                    egui::WidgetInfo::labeled(egui::WidgetType::ComboBox, true, l.t("Unit", "Unité"))
-                });
+                .widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, true, l.t("Unit", "Unité")));
         });
     }
     ui.label(
