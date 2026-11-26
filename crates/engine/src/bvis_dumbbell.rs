@@ -10,7 +10,7 @@ pub(super) const DEF: Def = Def {
     guid: "bicraftDumbbell6F1A8C3E9D2B7F4A0C5E",
     name: "bicraftDumbbell",
     display_name: "BIcraft Dumbbell",
-    version: "1.3.4.0",
+    version: "1.3.5.0",
     description: "Two values per category as dumbbells or a slope chart (BIcraft, docs/formats/bicraft-visuals.md)",
     roles: &[
         Role {

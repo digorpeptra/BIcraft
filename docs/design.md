@@ -422,7 +422,11 @@ colour alone: the accessibility tree names each icon "Mode: target title" with i
 state. Hover is a `hover` fill. A click on another mode runs `page.interactions` with one rule (one
 undo step); a click on the default mode removes the rule; a click on the marked mode does nothing.
 Clicks on data points still go to the viewer, so the page previews the rules being edited;
-leaving the mode clears the page's data-point selection.
+leaving the mode clears the page's data-point selection. The icons take keyboard focus: Tab moves
+through them, Enter or Space runs one. Targets with the same title are named "Title (name)".
+A selected visual group is the source for all its visuals: they take no icons; another visual
+shows the modes any of them can take, and when they reach it differently no icon is marked (the
+tooltip adds "the group's visuals differ here"); a click writes the rule for every one of them.
 
 Screenshots (`gpu-tests`, `BICRAFT_DESKTOP_SHOTS`): `interactions-light`, `-dark`, `-fr` and their
 `-preview` (a column clicked), from `interactions_screenshots`.
@@ -586,6 +590,10 @@ Differences from the specification above, on purpose:
   visual by a double click (an inline field over its label; Enter or leaving it keeps the name,
   Escape drops it) or its right-click menu (Rename for this visual, Restore the field's name).
   The frames test covers the pane (`the_filters_pane_draws_the_same_frames_in_both_shells`).
+  For a reader (G41, 2026-11-26) the same controls change an unlocked card for that reader only
+  (`view.interact` `filter` / `filter_clear`); a locked card shows its lock and its controls are
+  greyed with the reason as tooltip; a reader has no ×, no drop slot, no sort list and keeps
+  the card's filter type unless the report lets readers change it.
 - The **formula bar** (`formula.rs`, 2026-11-05, Desktop's formula bar) is a `Panel::top` on
   `chrome` right under the ribbon, across the window, shown only while a measure, a calculated
   column or a calculated table is selected (the Data pane, a Build pane well, the model diagram's

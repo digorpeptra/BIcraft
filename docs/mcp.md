@@ -1960,7 +1960,10 @@ Page and layout commands:
   `actionButton` with `visualLink` type `Back`); `false` removes it. `type: "report"` removes the
   type, the binding and the drillthrough filters.
 - **`page.interactions`** merges rules into `page.visualInteractions` (`filter` → `DataFilter`,
-  `highlight` → `HighlightFilter`, `none` → `NoFilter`; `default` removes the rule).
+  `highlight` → `HighlightFilter`, `none` → `NoFilter`; `default` removes the rule). A visual
+  group as `source` or `target` stands for every visual inside it (nested groups too): one rule
+  per pair between them, a later rule of the call winning for a pair; a group and one of its own
+  visuals have no pair and are refused.
   The app's Edit interactions mode (Visual tab) sends it with one rule per icon click.
 - **`report.settings`** writes `report.json` `settings`: `default_interaction: "filter"` sets
   `defaultFilterActionIsDataFilter: true` (Desktop's report option "Change default visual

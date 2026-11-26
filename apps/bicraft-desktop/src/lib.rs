@@ -26,6 +26,7 @@ use bicraft_ui::shell::{Caps, PrefsStore, Shell};
 use bicraft_ui::source::{self, Origin};
 
 pub mod control;
+pub mod headless;
 pub mod lnk;
 pub mod local;
 pub mod prefs;

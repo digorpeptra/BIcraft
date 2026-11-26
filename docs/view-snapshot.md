@@ -1197,6 +1197,19 @@ kept across re-reads of the files (unknown pages and visuals are ignored).
 - The reader's sort (`view.interact` `sort`) is not an `interaction` field: the data report's
   visual takes it as its `query.sortDefinition`, so the visual's `sort` and `data` show it;
   `view.interactions` lists them as `sorts: [{page, visual, sort: [{field, descending}]}]`.
+- **Reader filters** (G41, 2026-11-26; `view.interact` `filter` / `filter_clear`) are not an
+  `interaction` field either: as in Power BI's reading view, a reader changes the condition of a
+  filter card the author neither locked (`isLockedInViewMode`) nor hid (`isHiddenInViewMode`),
+  on the visual (`page` and `visual`; a bound field without a card counts as one, as the Filters
+  pane lists it), the page (`page`) or every page (neither). The changed `filterConfig` replaces
+  the stored one in the data and display reports, the way an applied bookmark's filters do, so
+  the visuals and the Filters pane's `CARD`s (`filters`) show it; the report is not changed.
+  Refused: a locked or hidden card, a field without a card, the view-mode flags (`hidden`,
+  `locked`), Top N off a visual, and a change of the card's type (basic, advanced, top N,
+  relative) unless the report's `allow_change_filter_types` is on. `filter_clear` clears the
+  card's condition and keeps the card. `reset` drops every reader filter; a bookmark applied
+  after them sets its own; `view.interactions` lists them in `bookmark_filters` (`{scope, page?,
+  visual?, filters}`, the filter overrides of bookmarks and readers alike).
 
 **Actions** (`view.interact {action, ...}`, the body of `POST /api/interact`): `page {page}` (name,
 display name or index), `back`, `slicer_toggle {page, visual, value, ctrl?}`, `slicer_select_all`,
@@ -1207,7 +1220,10 @@ ctrl?}`, `clear_selection {page}`, `clear_slicers {page}`, `apply_slicers {page}
 visual}`, `bookmark {bookmark}` (name or display name), `focus {page, visual | null}`,
 `show_table {page, visual, on?}`, `spotlight {page, visual | null}`, `sort {page, visual, field |
 null, direction?}` (the reader's sort: `visual.set_sort`'s field syntax and defaults; `null`
-goes back to the report's sort), `reset`. Answer: `{action, changed, state, pending?}`. An unknown action, page or visual,
+goes back to the report's sort), `filter {page?, visual?, field, condition}` (the condition as
+`visual.filter` takes it: `in` / `not_in`, `op` + `value`, `conditions` + `logic`, `relative`,
+`top` + `by` + `direction` on a visual), `filter_clear {page?, visual?, field}` (reader filters,
+above), `reset`. Answer: `{action, changed, state, pending?}`. An unknown action, page or visual,
 a measure column in a point or a malformed value is an error (400 on the route) and leaves the
 state unchanged.
 

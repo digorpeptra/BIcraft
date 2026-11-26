@@ -767,6 +767,95 @@ fn interactions_merge_and_remove() {
 }
 
 #[test]
+fn a_group_as_source_or_target_sets_a_rule_per_member() {
+    let mut s = session();
+    let a = chart(&mut s, "clusteredColumnChart");
+    let b = chart(&mut s, "lineChart");
+    let c = add(&mut s, "card", json!([{"role": "Values", "field": "[Total]"}]));
+    let d = chart(&mut s, "pieChart");
+    let pg = page(&s);
+    let group = |s: &mut Session, members: Value| {
+        run(s, "visual.group", json!({"page": pg, "visuals": members}))["group"]
+            .as_str()
+            .unwrap()
+            .to_string()
+    };
+    // inner = {a, b}; outer = {inner, c}; d stays outside
+    let inner = group(&mut s, json!([a, b]));
+    let outer = group(&mut s, json!([inner, c]));
+    let rules = |s: &Session| -> Vec<(String, String, String)> {
+        let mut v: Vec<_> = page_of(s, &pg)
+            .extra
+            .get("visualInteractions")
+            .and_then(Value::as_array)
+            .cloned()
+            .unwrap_or_default()
+            .iter()
+            .map(|r| {
+                (
+                    r["source"].as_str().unwrap().to_string(),
+                    r["target"].as_str().unwrap().to_string(),
+                    r["type"].as_str().unwrap().to_string(),
+                )
+            })
+            .collect();
+        v.sort();
+        v
+    };
+    let triple = |x: &str, y: &str, t: &str| (x.to_string(), y.to_string(), t.to_string());
+    // a group as the source: every visual of it (nested groups too) reaches the target
+    let params = json!({"page": pg, "rules": [{"source": outer, "target": d, "type": "none"}]});
+    let out = run(&mut s, "page.interactions", params.clone());
+    assert_eq!(out["changed"], true);
+    let mut want = vec![
+        triple(&a, &d, "NoFilter"),
+        triple(&b, &d, "NoFilter"),
+        triple(&c, &d, "NoFilter"),
+    ];
+    want.sort();
+    assert_eq!(rules(&s), want);
+    idempotent(&mut s, "page.interactions", params);
+    // a group as the target, a later visual rule overriding one member
+    run(
+        &mut s,
+        "page.interactions",
+        json!({"page": pg, "clear": true, "rules": [
+            {"source": d, "target": inner, "type": "filter"},
+            {"source": d, "target": b, "type": "highlight"}]}),
+    );
+    let mut want = vec![triple(&d, &a, "DataFilter"), triple(&d, &b, "HighlightFilter")];
+    want.sort();
+    assert_eq!(rules(&s), want);
+    // a group to a group: every pair across them, none inside one visual
+    run(
+        &mut s,
+        "page.interactions",
+        json!({"page": pg, "clear": true, "rules": [{"source": inner, "target": c, "type": "none"}]}),
+    );
+    assert_eq!(rules(&s).len(), 2);
+    // the default removes every member's rule
+    run(
+        &mut s,
+        "page.interactions",
+        json!({"page": pg, "rules": [{"source": inner, "target": c, "type": "default"}]}),
+    );
+    assert!(page_of(&s, &pg).extra.get("visualInteractions").is_none());
+    assert_pbir_ok(&mut s);
+    // a group and one of its own members have no pair between them
+    let err = fails(
+        &mut s,
+        "page.interactions",
+        json!({"page": pg, "rules": [{"source": outer, "target": a, "type": "none"}]}),
+    );
+    assert!(err.contains("no pair"), "{err}");
+    fails(
+        &mut s,
+        "page.interactions",
+        json!({"page": pg, "rules": [{"source": outer, "target": outer, "type": "none"}]}),
+    );
+}
+
+#[test]
 fn layer_order_moves_z_and_tab_order_together() {
     let mut s = session();
     let a = chart(&mut s, "clusteredColumnChart");

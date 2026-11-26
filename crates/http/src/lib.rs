@@ -741,7 +741,11 @@ pub fn write_owner_only(path: &std::path::Path, bytes: &[u8]) -> io::Result<()> 
 /// Windows: replaces the DACL of `path` with one entry, full control for the current user, and
 /// no inherited entries. The workspace forbids `unsafe` code, so this goes through the system's
 /// own tools by their absolute paths (`%SystemRoot%\System32`): `whoami /user` for the SID,
-/// `icacls /inheritance:r /grant:r *SID:(F)` for the list.
+/// `icacls /inheritance:r /grant:r *SID:(F)` for the list. In a folder without inheritable
+/// entries a new file carries the creator's default DACL as explicit entries (SYSTEM,
+/// Administrators, the logon session), which those two switches keep, so the list is then read
+/// back as SDDL (`icacls /save`), every other trustee is removed (`/remove *SID`) and the result
+/// is checked: anything but the one entry is an error.
 #[cfg(windows)]
 pub fn restrict_to_owner(path: &std::path::Path) -> io::Result<()> {
     use std::process::{Command, Stdio};
@@ -750,6 +754,38 @@ pub fn restrict_to_owner(path: &std::path::Path) -> io::Result<()> {
         .unwrap_or_else(|| std::path::PathBuf::from(r"C:\Windows"));
     let system = root.join("System32");
     let failed = |what: &str| io::Error::other(format!("cannot restrict the file to its owner: {what}"));
+    let icacls = |args: &[&std::ffi::OsStr]| -> io::Result<bool> {
+        Ok(Command::new(system.join("icacls.exe"))
+            .arg(path)
+            .args(args)
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status()?
+            .success())
+    };
+    // `icacls FILE /save ACLFILE` writes the file's name and its SDDL, in UTF-16LE.
+    let read_sddl = || -> io::Result<String> {
+        let name = path.file_name().ok_or_else(|| failed("no file name"))?;
+        let mut save_name = name.to_os_string();
+        save_name.push(format!(".acl-{}", std::process::id()));
+        let save = path.with_file_name(save_name);
+        let _ = std::fs::remove_file(&save);
+        let ok = icacls(&["/save".as_ref(), save.as_os_str(), "/q".as_ref()]);
+        let bytes = std::fs::read(&save);
+        let _ = std::fs::remove_file(&save);
+        if !ok? {
+            return Err(failed("icacls could not read the list back"));
+        }
+        let bytes = bytes?;
+        let units: Vec<u16> = bytes
+            .as_chunks::<2>()
+            .0
+            .iter()
+            .map(|c| u16::from_le_bytes(*c))
+            .collect();
+        Ok(String::from_utf16_lossy(&units))
+    };
     let out = Command::new(system.join("whoami.exe"))
         .args(["/user", "/fo", "csv", "/nh"])
         .stdin(Stdio::null())
@@ -760,17 +796,98 @@ pub fn restrict_to_owner(path: &std::path::Path) -> io::Result<()> {
     }
     let text = String::from_utf8_lossy(&out.stdout);
     let sid = current_sid(&text).ok_or_else(|| failed("no SID in whoami's answer"))?;
-    let status = Command::new(system.join("icacls.exe"))
-        .arg(path)
-        .args(["/inheritance:r", "/grant:r", &format!("*{sid}:(F)"), "/q"])
-        .stdin(Stdio::null())
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .status()?;
-    if !status.success() {
+    let grant = format!("*{sid}:(F)");
+    if !icacls(&[
+        "/inheritance:r".as_ref(),
+        "/grant:r".as_ref(),
+        grant.as_ref(),
+        "/q".as_ref(),
+    ])? {
         return Err(failed("icacls refused the new list"));
     }
+    let sddl = read_sddl()?;
+    let others: Vec<String> = dacl_aces(&sddl)
+        .ok_or_else(|| failed("unreadable SDDL from icacls"))?
+        .1
+        .iter()
+        .filter_map(|ace| ace_trustee(ace))
+        .filter(|t| !t.eq_ignore_ascii_case(sid))
+        .map(|t| format!("*{t}"))
+        .collect();
+    if !others.is_empty() {
+        let mut args: Vec<&std::ffi::OsStr> = vec!["/remove".as_ref()];
+        args.extend(others.iter().map(|t| std::ffi::OsStr::new(t.as_str())));
+        args.push("/q".as_ref());
+        if !icacls(&args)? {
+            return Err(failed("icacls could not remove the other entries"));
+        }
+    }
+    if !owner_only_dacl(&read_sddl()?, sid) {
+        return Err(failed("the list still grants someone else"));
+    }
     Ok(())
+}
+
+/// The DACL of an SDDL string (`D:PAI(A;;FA;;;S-1-…)(A;;FA;;;SY)`): its flags and its entries,
+/// each without its parentheses; `None` when there is no DACL or a parenthesis is unbalanced.
+#[cfg_attr(not(windows), allow(dead_code))]
+fn dacl_aces(sddl: &str) -> Option<(&str, Vec<&str>)> {
+    let start = sddl.find("D:")?.checked_add(2)?;
+    let rest = sddl.get(start..)?;
+    let flags_end = rest
+        .find(|c: char| !c.is_ascii_alphabetic())
+        .unwrap_or(rest.len());
+    let flags = rest.get(..flags_end)?;
+    let mut aces = Vec::new();
+    let mut tail = rest.get(flags_end..)?;
+    while tail.starts_with('(') {
+        let mut depth = 0usize;
+        let mut end = None;
+        for (i, c) in tail.char_indices() {
+            match c {
+                '(' => depth = depth.checked_add(1)?,
+                ')' => {
+                    depth = depth.checked_sub(1)?;
+                    if depth == 0 {
+                        end = Some(i);
+                        break;
+                    }
+                }
+                _ => {}
+            }
+        }
+        let end = end?;
+        aces.push(tail.get(1..end)?);
+        tail = tail.get(end.checked_add(1)?..)?;
+    }
+    Some((flags, aces))
+}
+
+/// The trustee of an SDDL entry (`A;;FA;;;S-1-5-18`): its sixth field, a SID or an alias (`SY`).
+#[cfg_attr(not(windows), allow(dead_code))]
+fn ace_trustee(ace: &str) -> Option<&str> {
+    let t = ace.split(';').nth(5)?.trim();
+    let ok = !t.is_empty() && t.len() <= 184 && t.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-');
+    ok.then_some(t)
+}
+
+/// Whether an SDDL string's DACL is protected and holds exactly one entry: allow, full control,
+/// no inheritance flags, for `sid`.
+#[cfg_attr(not(windows), allow(dead_code))]
+fn owner_only_dacl(sddl: &str, sid: &str) -> bool {
+    let Some((flags, aces)) = dacl_aces(sddl) else {
+        return false;
+    };
+    let [ace] = aces.as_slice() else {
+        return false;
+    };
+    let fields: Vec<&str> = ace.split(';').collect();
+    flags.contains('P')
+        && fields.len() == 6
+        && fields.first() == Some(&"A")
+        && fields.get(1) == Some(&"")
+        && fields.get(2) == Some(&"FA")
+        && fields.get(5).is_some_and(|t| t.eq_ignore_ascii_case(sid))
 }
 
 /// The SID in `whoami /user /fo csv /nh`'s line (`"host\user","S-1-5-21-…"`).

@@ -881,6 +881,9 @@ fn interact_on(s: &Session, current: &mut Interactions, p: &Value) -> Result<Val
         "spotlight" => reader::spotlight(&mut next, report, p)?,
         "sort" => reader::sort(&mut next, report, s.model.as_ref(), p)?,
         "tree_toggle" => reader::tree_toggle(&mut next, report, p)?,
+        "filter" | "filter_clear" => {
+            reader::filter(&mut next, report, s.model.as_ref(), p, action == "filter_clear")?
+        }
         "clear_selection" => {
             let page = find_page(report, p.get("page"))?;
             next.selections.remove(&page.name);
@@ -2622,6 +2625,9 @@ pub(crate) mod reader;
 #[path = "interact_tests.rs"]
 mod tests;
 
+#[cfg(test)]
+#[path = "interact_filters_tests.rs"]
+mod filters_tests;
 #[cfg(test)]
 #[path = "interact_focus_tests.rs"]
 mod focus_tests;

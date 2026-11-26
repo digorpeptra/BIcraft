@@ -368,6 +368,127 @@ fn stale_card_field(cfg: &Option<Value>, p: &Value) -> Option<FieldRef> {
     })
 }
 
+/// The conditions a reader may set on a card (`view.interact` `filter`): `*.filter`'s, without
+/// the view-mode flags.
+const READER_FILTER_PARAMS: &[&str] = &[
+    "in",
+    "not_in",
+    "op",
+    "value",
+    "conditions",
+    "logic",
+    "relative",
+    "top",
+    "by",
+    "direction",
+];
+
+/// The `type` a card on `field` has, or would have once made (`Categorical` for a column,
+/// `Advanced` otherwise, as [`add_card`] makes it).
+fn card_type(card: Option<&Value>, field: &FieldRef) -> String {
+    match card.and_then(|c| c.get("type")).and_then(Value::as_str) {
+        Some(t) => t.to_string(),
+        None if matches!(field, FieldRef::Column { .. }) => "Categorical".into(),
+        None => "Advanced".into(),
+    }
+}
+
+/// A reader's change of one filter card in `cfg` (`view.interact` `filter` and `filter_clear`,
+/// docs/view-snapshot.md "Reader filters"): the card on `p.field` gets the condition `p` states,
+/// or loses its condition with `clear`, as Power BI's reading view lets a reader change a filter.
+/// Refused: a card the author locked or hid in view mode, a field without a card (on a visual, a
+/// bound field counts as one, as the Filters pane lists it), the view-mode flags, and a change of
+/// the card's type unless the report allows it (`types`, "Allow users to change filter types").
+pub(crate) fn reader_change(
+    cfg: &mut Option<Value>,
+    p: &Value,
+    scope: Scope,
+    model: Option<&SemanticModel>,
+    known: &[FieldRef],
+    clear: bool,
+    types: bool,
+) -> Result<Vec<String>, String> {
+    for k in ["hidden", "locked"] {
+        if p.get(k).is_some() {
+            return Err(format!(
+                "`{k}` is the author's (the card's view-mode flag); a reader changes the condition only"
+            ));
+        }
+    }
+    let field = field_of(p, model, known, scope)?.ok_or("missing string parameter `field`")?;
+    let text = field_text(&field);
+    let list = containers(cfg, scope.owner())?;
+    let card = list
+        .iter()
+        .find(|c| card_field(c).is_some_and(|f| same_field(&f, &field)));
+    match card {
+        None if scope == Scope::Visual && known.iter().any(|k| same_field(k, &field)) => {}
+        None => {
+            return Err(format!(
+                "{} filters have no card on {text}; a reader changes the cards the Filters pane shows",
+                scope.owner()
+            ));
+        }
+        Some(c) => {
+            let on = |k: &str| c.get(k).and_then(Value::as_bool).unwrap_or(false);
+            if on("isHiddenInViewMode") {
+                return Err(format!("the filter on {text} is hidden from readers"));
+            }
+            if on("isLockedInViewMode") {
+                return Err(format!(
+                    "the filter on {text} is locked: readers cannot change it"
+                ));
+            }
+        }
+    }
+    if clear {
+        if card.is_none() {
+            return Ok(Vec::new());
+        }
+        return clear_cards(cfg, Some(&field), true, scope.owner());
+    }
+    if !has_condition(p) {
+        return Err(
+            "a condition is required (`in` / `not_in`, `op` or `conditions`, `relative`, `top`); `filter_clear` clears it"
+                .into(),
+        );
+    }
+    if scope != Scope::Visual
+        && let Some(k) = ["top", "by", "direction"].iter().find(|k| p.get(**k).is_some())
+    {
+        return Err(format!(
+            "top N filters are visual-level filters, as in Power BI Desktop: `{k}` is not taken here"
+        ));
+    }
+    let before = card_type(card, &field);
+    let mut item = Map::new();
+    for k in std::iter::once(&"field").chain(READER_FILTER_PARAMS) {
+        if let Some(v) = p.get(*k) {
+            item.insert((*k).into(), v.clone());
+        }
+    }
+    let mut next = cfg.clone();
+    let (mut items, _) = filters_without(next.as_ref(), model, known, Some(&field));
+    items.push(Value::Object(item));
+    let reqs = parse_filters(&Value::Array(items), model, known)?;
+    let mut changes = Vec::new();
+    apply_filters(&mut next, &reqs, &mut changes, scope.owner())?;
+    let after_list = containers(&next, scope.owner())?;
+    let after = card_type(
+        after_list
+            .iter()
+            .find(|c| card_field(c).is_some_and(|f| same_field(&f, &field))),
+        &field,
+    );
+    if !types && after != before {
+        return Err(format!(
+            "the filter on {text} is a {before} filter and this report does not let readers change filter types (report.settings allow_change_filter_types)"
+        ));
+    }
+    *cfg = next;
+    Ok(changes)
+}
+
 /// `page.filter` / `report.filter`.
 fn level_filter(s: &mut Session, p: &Value, scope: Scope) -> Result<Value, String> {
     // Desktop offers Top N on visual filters only (docs/formats/pbir.md, "Top N cards")

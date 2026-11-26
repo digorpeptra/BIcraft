@@ -1365,7 +1365,7 @@ fn draw_body(cv: &mut Canvas, ds: &data::Dataset, b: Bx, f: &Fmt, ctx: &Ctx<'_>,
         combo,
     };
     match k {
-        "card" => bodies::card_body(cv, ds, b, ctx),
+        "card" => bodies::card_body(cv, ds, b, f, ctx),
         "cardNew" => bodies::card_new_body(cv, ds, b, f, ctx),
         "multiRow" => bodies::multi_row_body(cv, ds, b, ctx),
         "table" => tables::table_body(cv, ds, b, f, ctx),

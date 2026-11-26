@@ -1599,6 +1599,212 @@ fn sankey_ribbons_keep_their_own_slots_and_go_round_nodes() {
     assert!(errors.is_empty(), "{}", errors.join("\n"));
 }
 
+/// Whether the segment from `a` to `b` meets the box `(x0, y0, x1, y1)` (Liang–Barsky).
+fn segment_meets_box(a: (f64, f64), b: (f64, f64), r: (f64, f64, f64, f64)) -> bool {
+    let (dx, dy) = (b.0 - a.0, b.1 - a.1);
+    let (mut t0, mut t1) = (0.0f64, 1.0f64);
+    for (p, q) in [
+        (-dx, a.0 - r.0),
+        (dx, r.2 - a.0),
+        (-dy, a.1 - r.1),
+        (dy, r.3 - a.1),
+    ] {
+        if p == 0.0 {
+            if q < 0.0 {
+                return false;
+            }
+        } else {
+            let t = q / p;
+            if p < 0.0 {
+                t0 = t0.max(t);
+            } else {
+                t1 = t1.min(t);
+            }
+        }
+    }
+    t0 <= t1
+}
+
+/// Whether the polygon `pts` and the box `r` overlap: an edge meets the box, or the box's centre
+/// is inside the polygon (even-odd).
+fn polygon_meets_box(pts: &[(f64, f64)], r: (f64, f64, f64, f64)) -> bool {
+    let n = pts.len();
+    if n < 3 {
+        return false;
+    }
+    let (cx, cy) = ((r.0 + r.2) / 2.0, (r.1 + r.3) / 2.0);
+    let mut inside = false;
+    for i in 0..n {
+        let (a, b) = (pts[i], pts[(i + 1) % n]);
+        if segment_meets_box(a, b, r) {
+            return true;
+        }
+        if (a.1 > cy) != (b.1 > cy) && cx < a.0 + (cy - a.1) * (b.0 - a.0) / (b.1 - a.1) {
+            inside = !inside;
+        }
+    }
+    inside
+}
+
+/// What is wrong with the node labels of a Sankey layout (`{prims, hits}`) in a `w`×`h` visual:
+/// a label box (0.55 of its size per character from its anchor, its size high) outside the
+/// visual, two label boxes overlapping, or a label box over a ribbon without a halo (a rect drawn
+/// just before it, covering it); `strict`: any halo at all (a layout whose labels all have room
+/// beside their nodes).
+fn sankey_label_errors(out: &Value, w: f64, h: f64, who: &str, strict: bool) -> Vec<String> {
+    const EPS: f64 = 0.5;
+    let mut errors = Vec::new();
+    let prims = out["prims"].as_array().cloned().unwrap_or_default();
+    let hits = out["hits"].as_array().cloned().unwrap_or_default();
+    let f = |p: &Value, k: &str| p[k].as_f64().unwrap_or(f64::NAN);
+    let names: Vec<String> = hits
+        .iter()
+        .filter(|h| h.get("node").is_some())
+        .filter_map(|h| h["label"].as_str().map(str::to_string))
+        .collect();
+    let is_label = |s: &str| {
+        names.iter().any(|l| {
+            l == s
+                || s.strip_suffix('…')
+                    .is_some_and(|p| !p.is_empty() && l.starts_with(p))
+        })
+    };
+    let ribbons: Vec<Vec<(f64, f64)>> = prims
+        .iter()
+        .filter(|p| p["t"] == "poly")
+        .map(|p| {
+            p["points"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .map(|q| {
+                    (
+                        q[0].as_f64().unwrap_or(f64::NAN),
+                        q[1].as_f64().unwrap_or(f64::NAN),
+                    )
+                })
+                .collect()
+        })
+        .collect();
+    let mut boxes: Vec<(String, (f64, f64, f64, f64))> = Vec::new();
+    for (i, p) in prims.iter().enumerate() {
+        let s = p["text"].as_str().unwrap_or("");
+        if p["t"] != "text" || !is_label(s) {
+            continue;
+        }
+        let (x, y, size) = (f(p, "x"), f(p, "y"), f(p, "size"));
+        let wd = s.chars().count() as f64 * size * 0.55;
+        let (a, b) = match p["anchor"].as_str() {
+            Some("start") => (x, x + wd),
+            Some("end") => (x - wd, x),
+            _ => (x - wd / 2.0, x + wd / 2.0),
+        };
+        let r = (a, y - size / 2.0, b, y + size / 2.0);
+        if r.0 < -EPS || r.2 > w + EPS || r.1 < -EPS || r.3 > h + EPS {
+            errors.push(format!(
+                "{who}: the label `{s}` ({r:?}) is outside 0..{w} × 0..{h}"
+            ));
+        }
+        let halo = i
+            .checked_sub(1)
+            .and_then(|j| prims.get(j))
+            .filter(|q| q["t"] == "rect")
+            .is_some_and(|q| {
+                f(q, "x") <= r.0 + 0.011
+                    && f(q, "x") + f(q, "w") >= r.2 - 0.011
+                    && f(q, "y") <= r.1 + 0.011
+                    && f(q, "y") + f(q, "h") >= r.3 - 0.011
+            });
+        if halo && strict {
+            errors.push(format!(
+                "{who}: the label `{s}` needs a halo, though every label has room"
+            ));
+        }
+        let inner = (r.0 + EPS, r.1 + EPS, r.2 - EPS, r.3 - EPS);
+        if !halo && ribbons.iter().any(|pts| polygon_meets_box(pts, inner)) {
+            errors.push(format!("{who}: the label `{s}` ({r:?}) is drawn over a ribbon"));
+        }
+        for (t, q) in &boxes {
+            if r.0 < q.2 - EPS && q.0 < r.2 - EPS && r.1 < q.3 - EPS && q.1 < r.3 - EPS {
+                errors.push(format!("{who}: the labels `{s}` and `{t}` overlap"));
+            }
+        }
+        boxes.push((s.to_string(), r));
+    }
+    if boxes.is_empty() && !names.is_empty() {
+        errors.push(format!("{who}: no label drawn"));
+    }
+    errors
+}
+
+/// The Sankey's node labels sit beside their nodes inside the visual, never over a ribbon (unless
+/// on a halo) or another label, in every Sankey case with labels; with two columns every label
+/// sits outside, on the outer side, with no halo. The Rust layout and (with Node) the TypeScript.
+#[test]
+fn sankey_labels_stay_clear_of_ribbons_and_each_other() {
+    let ts = ts_results();
+    if ts.is_none() {
+        eprintln!("note: node is not on the PATH; the TypeScript Sankey is not checked (development check)");
+    }
+    let mut errors = Vec::new();
+    for (name, kind, input, w, h) in cases() {
+        if kind != "sankey" || input["options"]["showLabels"] == false {
+            continue;
+        }
+        let strict = name == "sankey_crossing";
+        errors.extend(sankey_label_errors(
+            &chart_pack::layout(kind, &input, w, h).json(),
+            w,
+            h,
+            &format!("rust {name}"),
+            strict,
+        ));
+        if let Some(ts) = &ts {
+            errors.extend(sankey_label_errors(
+                &ts[name],
+                w,
+                h,
+                &format!("typescript {name}"),
+                strict,
+            ));
+        }
+    }
+    // two columns: the sources' labels on the left of their nodes, the destinations' on the right
+    let out = chart_pack::layout(
+        "sankey",
+        &json!({"rows": [["A", "Z", 1], ["B", "Z", 2]]}),
+        300.0,
+        200.0,
+    )
+    .json();
+    let prims = out["prims"].as_array().cloned().unwrap_or_default();
+    let node_x = |n: &str| {
+        out["hits"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .find(|h| h["name"] == n)
+            .and_then(|h| prims.get(h["prim"].as_u64()? as usize))
+            .and_then(|r| Some((r["x"].as_f64()?, r["x"].as_f64()? + r["w"].as_f64()?)))
+    };
+    let label = |s: &str| prims.iter().find(|p| p["t"] == "text" && p["text"] == s).cloned();
+    match (node_x("A"), node_x("Z"), label("A"), label("Z")) {
+        (Some(a), Some(z), Some(la), Some(lz)) => {
+            if !(la["anchor"] == "end" && la["x"].as_f64().unwrap_or(f64::NAN) <= a.0) {
+                errors.push(format!(
+                    "the source's label is not on its left: {la} beside {a:?}"
+                ));
+            }
+            if !(lz["anchor"] == "start" && lz["x"].as_f64().unwrap_or(f64::NAN) >= z.1) {
+                errors.push(format!(
+                    "the destination's label is not on its right: {lz} beside {z:?}"
+                ));
+            }
+        }
+        _ => errors.push("the two-column Sankey has no nodes or labels".into()),
+    }
+    assert!(errors.is_empty(), "{}", errors.join("\n"));
+}
 /// The visuals' TypeScript, compiled by BIcraft's bundler and run by Node, lays out every case
 /// as the renderer does.
 #[test]

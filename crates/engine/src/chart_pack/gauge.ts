@@ -40,9 +40,72 @@ function optVal(o: any, k: string): number | null {
     return numOf(o[k]);
 }
 
+/** A section's text with the commas right after its last decimal placeholder moved before its decimal point. */
+function scaleSection(sec: [string, boolean][]): string {
+    const text = (r: [string, boolean][]) => r.map((x) => x[0]).join("");
+    let d = -1;
+    let l = -1;
+    let sci = false;
+    for (let i = 0; i < sec.length; i++) {
+        const c = sec[i][0];
+        if (!sec[i][1]) {
+            continue;
+        }
+        if (c === "." && d < 0) {
+            d = i;
+        }
+        if (c === "0" || c === "#") {
+            l = i;
+        }
+        if (c === "E" || c === "e") {
+            sci = true;
+        }
+    }
+    let n = 0;
+    while (l >= 0 && l + 1 + n < sec.length && sec[l + 1 + n][1] && sec[l + 1 + n][0] === ",") {
+        n++;
+    }
+    if (d < 0 || l < 0 || sci || l < d || n === 0) {
+        return text(sec);
+    }
+    return text(sec.slice(0, d)) + ",".repeat(n) + text(sec.slice(d, l + 1)) + text(sec.slice(l + 1 + n));
+}
+
+/**
+ * Format string `f` with the commas right after a section's last decimal placeholder moved before its decimal point
+ * (`$#,0.00,,"M"` → `$#,0,,.00"M"`): read as scaling commas, ÷1000 each, as before the point. Quoted and escaped text
+ * and scientific sections stay as they are. The twin of gauge.rs `scale_commas`.
+ */
+export function scaleCommas(f: string): string {
+    let sec: [string, boolean][] = [];
+    let out = "";
+    let quoted = false;
+    let esc = false;
+    for (const c of Array.from(f)) {
+        if (esc || quoted) {
+            quoted = quoted && c !== "\"";
+            esc = false;
+            sec.push([c, false]);
+            continue;
+        }
+        if (c === "\"") {
+            quoted = true;
+        } else if (c === "\\") {
+            esc = true;
+        } else if (c === ";") {
+            out += scaleSection(sec) + ";";
+            sec = [];
+            continue;
+        }
+        sec.push([c, c !== "\"" && c !== "\\"]);
+    }
+    return out + scaleSection(sec);
+}
+
+/** A value written with its field's whole format string (after scaleCommas); without one, as the pack writes numbers. */
 function fmtNum(v: number, f: string, lang: string): string {
     const g = Array.from(f).slice(0, 200).join("");
-    return g.trim() === "" ? fmtAuto(v) : formatNumber(v, g, lang === "fr" ? "fr-FR" : "en-US");
+    return g.trim() === "" ? fmtAuto(v) : formatNumber(v, scaleCommas(g.trim()), lang === "fr" ? "fr-FR" : "en-US");
 }
 
 export function signed(v: number, s: string): string {
@@ -100,6 +163,8 @@ interface G {
     maxText: string;
     /** The variance line ("" without a target or previous value) and its ink. */
     varText: string;
+    /** The variance line with less and less of it, for the arc's narrow middle: the whole line, then without its words, then the difference alone. */
+    varTexts: string[];
     varInk: string;
     refText: string;
     ref: number | null;
@@ -202,16 +267,20 @@ function prepare(input: any, k: Look): G | null {
     let varText = "";
     let varInk = k.label;
     let refText = "";
+    let varTexts: string[] = [];
     if (ref !== null) {
         const diff = val - ref;
-        varText = signed(diff, fmtNum(diff, f, lang));
+        const diffText = signed(diff, fmtNum(diff, f, lang));
+        varText = diffText;
         if (ref !== 0) {
             varText += " (" + pctText(diff / Math.abs(ref), lang) + ")";
         }
+        const bare = varText;
         varText += refKind === "target" ? (fr ? " vs cible" : " vs target") : fr ? " vs précédent" : " vs previous";
         const good = lower ? diff <= 0 : diff >= 0;
         varInk = (good ? GOOD : BAD)[k.night ? 1 : 0];
         refText = (refKind === "target" ? (fr ? "Cible : " : "Target: ") : fr ? "Précédent : " : "Previous: ") + fmtNum(ref, f, lang);
+        varTexts = [varText, bare, diffText];
     }
     const lit = highlighted(input);
     return {
@@ -229,6 +298,7 @@ function prepare(input: any, k: Look): G | null {
         minText: fmtNum(min, f, lang),
         maxText: fmtNum(max, f, lang),
         varText,
+        varTexts,
         varInk,
         refText,
         ref,
@@ -309,8 +379,10 @@ function arcStyle(out: Out, k: Look, g: G, input: any, trend: boolean, w: number
         p.push(line(cx + a * sc[1], cy - a * sc[0], cx + b * sc[1], cy - b * sc[0], g.targetFill, minimal(k) ? 2 : 3));
     }
     const ly = cy + 4 + k.tick / 2;
-    p.push(text(inside(cx - R + thick / 2, g.minText, k.tick, w), ly, g.minText, k.tick, k.text, "middle"));
-    p.push(text(inside(cx + R - thick / 2, g.maxText, k.tick, w), ly, g.maxText, k.tick, k.text, "middle"));
+    const minX = inside(cx - R + thick / 2, g.minText, k.tick, w);
+    const maxX = inside(cx + R - thick / 2, g.maxText, k.tick, w);
+    p.push(text(minX, ly, g.minText, k.tick, k.text, "middle"));
+    p.push(text(maxX, ly, g.maxText, k.tick, k.text, "middle"));
     const inner = R - thick;
     const vs = Math.min(Math.max(R * 0.3, 12), 40);
     const vy = cy - inner * 0.35;
@@ -319,9 +391,19 @@ function arcStyle(out: Out, k: Look, g: G, input: any, trend: boolean, w: number
         out.hits.push(valueHit(g, p.length));
         p.push(textW(cx, vy, s, vs, k.label, "middle", 0, 700));
     }
-    const v = fit(g.varText, k.name, 2 * inner - 8);
-    if (v !== "") {
-        p.push(textW(cx, vy + vs / 2 + 3 + k.name / 2, v, k.name, g.varInk, "middle", 0, 600));
+    // the variance under the value: the most of it that fits whole inside the ring, and between
+    // the minimum and the maximum when it reaches their line, at the name size, else the tick size
+    const gap = Math.min(cx - minX - est(g.minText, k.tick) / 2, maxX - est(g.maxText, k.tick) / 2 - cx);
+    const varY = (size: number) => vy + vs / 2 + 3 + size / 2;
+    const room = (size: number) => (varY(size) + size / 2 > ly - k.tick / 2 ? Math.min(2 * inner - 8, 2 * gap - 8) : 2 * inner - 8);
+    let picked = false;
+    for (const t of g.varTexts) {
+        for (const size of [k.name, k.tick]) {
+            if (!picked && t !== "" && est(t, size) <= room(size)) {
+                p.push(textW(cx, varY(size), t, size, g.varInk, "middle", 0, 600));
+                picked = true;
+            }
+        }
     }
     if (trendH > 0) {
         spark(out, k, g, input, PAD + 4, h - PAD - trendH, w - PAD - 4, h - PAD - 4);
@@ -385,10 +467,28 @@ function bulletStyle(out: Out, k: Look, g: G, input: any, trend: boolean, w: num
 
 function kpiStyle(out: Out, k: Look, g: G, input: any, trend: boolean, w: number, h: number): void {
     const p = out.prims;
-    const trendH = trend && h >= 80 ? Math.min(h * 0.3, 60) : 0;
-    const area = h - 2 * PAD - (trendH > 0 ? trendH + 6 : 0);
-    const vs = Math.min(Math.max(Math.min(area * 0.42, w * 0.16), 12), 48);
-    const block = vs + (g.varText !== "" ? k.name + 6 : 0) + (g.refText !== "" ? k.tick + 4 : 0);
+    let trendH = trend && h >= 80 ? Math.min(h * 0.3, 60) : 0;
+    const areaOf = (t: number) => h - 2 * PAD - (t > 0 ? t + 6 : 0);
+    const vs = Math.min(Math.max(Math.min(areaOf(trendH) * 0.42, w * 0.16), 12), 48);
+    let showVar = g.varText !== "";
+    let showRef = g.refText !== "";
+    const blockOf = (v: boolean, r: boolean) => vs + (v ? k.name + 6 : 0) + (r ? k.tick + 4 : 0);
+    // the text first: the sparkline takes what it leaves (none under 16 px), then the reference
+    // and the variance lines give way when even that is too little
+    if (trendH > 0 && blockOf(showVar, showRef) > areaOf(trendH)) {
+        trendH = h - 2 * PAD - 6 - blockOf(showVar, showRef);
+        if (trendH < 16) {
+            trendH = 0;
+        }
+    }
+    const area = areaOf(trendH);
+    if (blockOf(showVar, showRef) > area) {
+        showRef = false;
+    }
+    if (blockOf(showVar, showRef) > area) {
+        showVar = false;
+    }
+    const block = blockOf(showVar, showRef);
     let y = PAD + Math.max((area - block) / 2, 0);
     const cx = w / 2;
     const s = fit(g.valText, vs, w - 2 * PAD);
@@ -397,13 +497,15 @@ function kpiStyle(out: Out, k: Look, g: G, input: any, trend: boolean, w: number
         p.push(textW(cx, y + vs / 2, s, vs, g.lit && g.hv === null ? mix(k.label, k.surface, 0.6) : k.label, "middle", 0, 700));
     }
     y += vs;
-    const v = fit(g.varText, k.name, w - 2 * PAD);
-    if (v !== "") {
+    // the most of the variance that fits whole, else the whole line shortened
+    const whole = g.varTexts.filter((t) => t !== "" && est(t, k.name) <= w - 2 * PAD);
+    const v = whole.length > 0 ? whole[0] : fit(g.varText, k.name, w - 2 * PAD);
+    if (showVar && v !== "") {
         p.push(textW(cx, y + 6 + k.name / 2, v, k.name, g.varInk, "middle", 0, 600));
         y += k.name + 6;
     }
     const r = fit(g.refText, k.tick, w - 2 * PAD);
-    if (r !== "") {
+    if (showRef && r !== "") {
         p.push(text(cx, y + 4 + k.tick / 2, r, k.tick, k.text, "middle"));
     }
     if (trendH > 0) {

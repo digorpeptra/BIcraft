@@ -889,3 +889,71 @@ fn the_lock_and_the_eye_of_a_card() {
     assert!(h.query_by_label("Day is in the last 1 day").is_none());
     h.get_by_label("Filters on this page");
 }
+
+#[test]
+fn a_long_field_name_is_elided_on_its_card_and_shown_whole_on_hover() {
+    const NAME: &str = "Revenue Target for the Whole Year";
+    let mut app = App::new(
+        "en-US",
+        engine_shell(Caps::DESKTOP, || {
+            let mut s = shop_session();
+            s.execute(
+                "measure.add",
+                &json!({"table": "Sales", "name": NAME, "expression": "SUM(Sales[Amount])"}),
+            )
+            .unwrap();
+            let page = s.report.as_ref().unwrap().pages[0].name.clone();
+            s.execute(
+                "visual.add",
+                &json!({"page": page, "visual_type": "card", "x": 20, "y": 340, "width": 300,
+                        "height": 150, "fields": [{"role": "Values", "field": format!("[{NAME}]")}]}),
+            )
+            .unwrap();
+            s.dirty = false;
+            s.report_dirty = false;
+            s
+        }),
+    )
+    .with_sync_render();
+    app.open_path(Path::new("shop.pbip"));
+    let mut h = harness(app, (1600.0, 900.0));
+    for _ in 0..200 {
+        h.step();
+        if h.state().shown.is_some() && h.state().placed.is_some() {
+            break;
+        }
+    }
+    let card = visual_named(&h, "card");
+    select(&mut h, &card);
+    let header = format!("{NAME} is (All)");
+    // the accessibility label keeps the whole name
+    h.get_by_label(&header);
+    // the painted name is whole or ends with an ellipsis, and fits inside its clip
+    let mut seen = 0;
+    for c in &h.output().shapes {
+        if let egui::Shape::Text(x) = &c.shape {
+            let s = x.galley.text();
+            let stem = s.trim_end_matches('…');
+            if stem.len() < 8 || !NAME.starts_with(stem) {
+                continue;
+            }
+            seen += 1;
+            let r = x.galley.rect.translate(x.pos.to_vec2());
+            assert!(s == NAME || s.ends_with('…'), "{s:?} is cut without an ellipsis");
+            assert!(
+                r.max.x <= c.clip_rect.max.x + 0.5,
+                "{s:?} ({r:?}) runs past its clip {:?}",
+                c.clip_rect
+            );
+        }
+    }
+    assert!(seen > 0, "the card's name is painted");
+    // hovering the header shows the whole name (no other node carries it before)
+    assert!(h.query_all_by_label(NAME).next().is_none());
+    h.get_by_label(&header).hover();
+    steps(&mut h, 4);
+    assert!(
+        h.query_all_by_label(NAME).next().is_some(),
+        "the whole name shows on hover"
+    );
+}

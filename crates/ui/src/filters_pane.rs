@@ -836,6 +836,31 @@ fn exec(app: &mut App, id: &'static str, params: Value) {
     app.run(Call { id, params }, Then::Nothing);
 }
 
+/// A reader's edit of a card as their own view state: `*.filter {…}` becomes `view.interact
+/// {action: "filter", …}` and `*.clear_filters {…, keep_cards}` `filter_clear` (the engine finds
+/// the level from `page` and `visual`, refuses a locked or hidden card, never changes the report).
+pub fn reader_action(id: &str, params: Value) -> Option<Value> {
+    let clear = matches!(
+        id,
+        "visual.clear_filters" | "page.clear_filters" | "report.clear_filters"
+    );
+    if !clear && !matches!(id, "visual.filter" | "page.filter" | "report.filter") {
+        return None;
+    }
+    let Value::Object(mut o) = params else {
+        return None;
+    };
+    // the reader only clears a condition (Desktop's eraser), never removes the card
+    if clear && o.remove("keep_cards") != Some(Value::Bool(true)) {
+        return None;
+    }
+    o.insert(
+        "action".into(),
+        json!(if clear { "filter_clear" } else { "filter" }),
+    );
+    Some(Value::Object(o))
+}
+
 /// Keeps the answer of a `column.values` call ([`Then::FilterValues`]).
 pub fn values_answer(app: &mut App, field: &str, revision: u64, r: Result<Value, String>) {
     let (values, cut) = match r {
@@ -1015,6 +1040,10 @@ pub fn pane(app: &mut App, ui: &mut Ui) {
     let payload = DragAndDrop::payload::<Drag>(ui.ctx()).map(|d| (*d).clone());
     // the snapshot's model says which columns are dates; a reader does not see hidden cards
     let reader = app.access.as_deref() == Some("reader");
+    let types = snap
+        .pointer("/report/settings/allow_change_filter_types")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
     for (_, cards) in &mut sections {
         mark_dates(cards, &snap);
         if reader {
@@ -1054,6 +1083,7 @@ pub fn pane(app: &mut App, ui: &mut Ui) {
                     revision,
                     payload: payload.as_ref(),
                     reader,
+                    types,
                     style: &style,
                     order: &order,
                     sort: &target.sort,
@@ -1064,6 +1094,17 @@ pub fn pane(app: &mut App, ui: &mut Ui) {
         });
     for a in acts {
         match a {
+            Act::Run(id, p) if reader => match reader_action(id, p) {
+                Some(action) => app.interact(action),
+                None => {
+                    app.status = l
+                        .t(
+                            "Readers cannot change this.",
+                            "Les lecteurs ne peuvent pas modifier ceci.",
+                        )
+                        .into()
+                }
+            },
             Act::Run(id, p) => exec(app, id, p),
             Act::Values(field, table, column) => {
                 if ribbon::state(app, "column.values").is_ok() {
@@ -1088,8 +1129,12 @@ struct SectionCx<'a> {
     lang: Lang,
     revision: u64,
     payload: Option<&'a Drag>,
-    /// A reader's pane: no lock or eye toggles.
+    /// A reader's pane: no lock or eye toggles; an unlocked card's edits are the reader's own
+    /// (`view.interact` `filter` / `filter_clear`, [`reader_action`]).
     reader: bool,
+    /// Whether a reader may change a card's filter type (the report's "Allow users to change
+    /// filter types", `report.settings.allow_change_filter_types` in the snapshot).
+    types: bool,
     /// The page's Filters pane format.
     style: &'a crate::filter_pane_ui::PaneStyle,
     /// Whether `filter.order` can run.
@@ -1271,6 +1316,24 @@ fn drop_card(ui: &mut Ui, cx: &SectionCx<'_>, placed: &[(&Card, Rect)], acts: &m
 fn card_ui(ui: &mut Ui, cx: &SectionCx<'_>, c: &Card, st: &mut FiltersUi, acts: &mut Vec<Act>) -> Rect {
     let t = Tokens::get(ui.ctx());
     let l = cx.lang;
+    // a reader changes an unlocked card for themselves (Power BI's reading view); a locked one
+    // stays read-only, its lock saying why
+    let reader_edit = if c.locked {
+        Err(l
+            .t(
+                "the report's author locked this filter",
+                "l'auteur du rapport a verrouillé ce filtre",
+            )
+            .to_string())
+    } else {
+        Ok(())
+    };
+    let reader_cx = SectionCx {
+        edit: &reader_edit,
+        clear: &reader_edit,
+        ..*cx
+    };
+    let cx = if cx.reader { &reader_cx } else { cx };
     let key = cx.target.key(&c.field);
     let open = st.open.contains(&key);
     let label = card_label(c, l);
@@ -1333,27 +1396,40 @@ fn card_ui(ui: &mut Ui, cx: &SectionCx<'_>, c: &Card, st: &mut FiltersUi, acts: 
                     Stroke::new(1.2, fg),
                 );
             }
-            let text_max = head.max.x - 94.0;
-            let clip_rect = Rect::from_min_max(head.min, pos2(text_max, head.max.y));
-            p.with_clip_rect(clip_rect).text(
-                pos2(head.min.x + 16.0, head.min.y + 9.0),
+            // the name stops short of the icons, the condition below takes the card's width: each
+            // cut with an ellipsis where it does not fit, and shown whole on hover
+            let text_min = head.min.x + 16.0;
+            let name_font = crate::filter_pane_ui::font(cs.family.as_deref(), size, true);
+            let sum_font = crate::filter_pane_ui::font(cs.family.as_deref(), (size - 1.0).max(6.0), false);
+            let name = crate::pq_deps::fit_text(ui, &label, name_font.clone(), head.max.x - 94.0 - text_min);
+            let cond = crate::pq_deps::fit_text(ui, &sum, sum_font.clone(), head.max.x - 4.0 - text_min);
+            let cut = name != label || cond != sum;
+            p.with_clip_rect(head).text(
+                pos2(text_min, head.min.y + 9.0),
                 Align2::LEFT_CENTER,
-                clip(&label, MAX_LABEL),
-                crate::filter_pane_ui::font(cs.family.as_deref(), size, true),
+                name,
+                name_font,
                 fg,
             );
-            // the icons sit on the title's row: the condition below takes the card's width
             p.with_clip_rect(head).text(
-                pos2(head.min.x + 16.0, head.min.y + 25.0),
+                pos2(text_min, head.min.y + 25.0),
                 Align2::LEFT_CENTER,
-                clip(&sum, 80),
-                crate::filter_pane_ui::font(cs.family.as_deref(), (size - 1.0).max(6.0), false),
+                cond,
+                sum_font,
                 fg_dim,
             );
             let full = format!("{label} {sum}");
             resp.widget_info(|| {
                 egui::WidgetInfo::selected(egui::WidgetType::CollapsingHeader, true, open, &full)
             });
+            let resp = if cut {
+                resp.on_hover_ui(|ui| {
+                    ui.label(&label);
+                    ui.label(&sum);
+                })
+            } else {
+                resp
+            };
             if resp.clicked() {
                 if open {
                     st.open.remove(&key);
@@ -1384,7 +1460,7 @@ fn card_ui(ui: &mut Ui, cx: &SectionCx<'_>, c: &Card, st: &mut FiltersUi, acts: 
             }
             lock_and_eye(ui, cx, c, head, &key, &label, acts);
             // ×: remove a card added by hand
-            if !c.auto && cx.clear.is_ok() {
+            if !c.auto && !cx.reader && cx.clear.is_ok() {
                 let xr = Rect::from_center_size(pos2(head.max.x - 12.0, head.min.y + 10.0), vec2(18.0, 18.0));
                 let tip = format!("{} {label}", l.t("Remove filter on", "Supprimer le filtre sur"));
                 let x = ui.interact(xr, ui.id().with(("remove", &key)), Sense::click());
@@ -1540,6 +1616,11 @@ fn card_body(ui: &mut Ui, cx: &SectionCx<'_>, c: &Card, key: &str, st: &mut Filt
                 Mode::RelativeTime,
                 l.t("Relative time filtering", "Filtrage d'heure relative"),
             ));
+        }
+        // a reader keeps the card's type unless the report lets readers change it
+        if cx.reader && !cx.types {
+            let own = draft_of(c).mode;
+            m.retain(|(x, _)| *x == own);
         }
         m
     };

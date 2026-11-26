@@ -1939,3 +1939,42 @@ fn whole_visual_conditional_colours_are_drawn() {
         .expect("the distance is drawn");
     assert_eq!(dist.color, rgb(0x00AA00), "{names:?}");
 }
+
+#[test]
+fn the_classic_card_applies_its_display_units_and_decimals() {
+    // `labels.labelDisplayUnits` / `labelPrecision` of Power BI's classic card: auto keeps the
+    // abbreviated value, set units scale it, decimals apply to the shown value
+    let card = |format: Value| {
+        json!([{"name": "c", "type": "card", "x": 0, "y": 0, "width": 300, "height": 150, "format": format,
+            "data": data(json!([{"name": "Revenue", "role": "Values", "kind": "measure"}]), json!([[1_234_567.0]]))}])
+    };
+    let shown =
+        |format: Value| -> Vec<String> { texts(&snap(card(format))).into_iter().map(|r| r.text).collect() };
+    let auto = shown(json!({}));
+    let cases = [
+        (
+            json!({"labels": {"display_units": 1e3, "precision": 0}}),
+            "1,235K",
+        ),
+        (
+            json!({"labels": {"display_units": 1e6, "precision": 3}}),
+            "1.235M",
+        ),
+        (
+            json!({"labels": {"display_units": 1e9, "precision": 3}}),
+            "0.001bn",
+        ),
+        (
+            json!({"labels": {"display_units": 1, "precision": 1}}),
+            "1,234,567.0",
+        ),
+        (json!({"labels": {"precision": 1}}), "1.2M"),
+    ];
+    for (format, want) in cases {
+        let got = shown(format.clone());
+        assert!(got.iter().any(|t| t == want), "{format}: {got:?}");
+        assert_ne!(got, auto, "{format} changed nothing");
+    }
+    // auto (0) is the default
+    assert_eq!(shown(json!({"labels": {"display_units": 0}})), auto);
+}

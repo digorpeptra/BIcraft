@@ -9,7 +9,7 @@ import VisualConstructorOptions = powerbi.extensibility.visual.VisualConstructor
 import IVisual = powerbi.extensibility.visual.IVisual;
 import { Point, PackVisual, RoleColumn, formatsOf, idOf, roleColumn, rowsOf, tipLine } from "./base";
 import { Hit, Out } from "./kit";
-import { layoutGauge, pctText, signed } from "./gauge";
+import { layoutGauge, pctText, scaleCommas, signed } from "./gauge";
 import { objectValue } from "./runtime/data";
 import { formatValue } from "./runtime/format";
 import { Slice, card, color, group, model, number, toggle, withLook } from "./runtime/formatting";
@@ -116,7 +116,7 @@ export class Visual extends PackVisual implements IVisual {
     protected point(hit: Hit): Point | null {
         const trend = this.cols[0];
         const valueCol = this.cols[1];
-        const f = valueCol ? valueCol.format : "";
+        const f = valueCol ? scaleCommas(valueCol.format) : "";
         const value = (v: number) => formatValue(v, f, this.locale);
         const name = valueCol && valueCol.name !== "" ? valueCol.name : pick(this.locale, VALUE);
         let tip: TooltipItem[] = [];

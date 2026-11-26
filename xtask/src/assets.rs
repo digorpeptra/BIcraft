@@ -14,6 +14,10 @@
 //! - its bare file name (`bicraft-icon-mono.svg`) when the same row names its folder through
 //!   another path (`assets/logo/bicraft-icon.svg`).
 //!
+//! A folder or glob covers a checked file only when it is the checked folder holding it or lies
+//! inside it: an upstream folder a row cites as a source (`docs/`) is not a row for
+//! `docs/images/`.
+//!
 //! It fails listing the files without a row, and the rows naming a checked file that is gone.
 
 use std::path::Path;
@@ -35,7 +39,7 @@ pub fn cmd() -> Result<(), String> {
     let problems = check(&attribution, &files);
     if problems.is_empty() {
         println!(
-            "assets: {} files under assets/, the bundled fonts and the UI's icons, each with an ATTRIBUTION.md row",
+            "assets: {} files under assets/ and docs/images/, the map data, the bundled fonts and the UI's icons, each with an ATTRIBUTION.md row",
             files.len()
         );
         return Ok(());
@@ -142,8 +146,34 @@ pub(crate) fn check(attribution: &str, files: &[String]) -> Vec<String> {
     problems
 }
 
+/// The checked folder holding `file` (`docs/images` for a README image), if any.
+fn checked_root(file: &str) -> Option<&'static str> {
+    ASSET_DIRS
+        .iter()
+        .chain(FONT_DIRS)
+        .copied()
+        .filter(|d| file.starts_with(&format!("{d}/")))
+        .max_by_key(|d| d.len())
+}
+
+/// Whether folder `d` is the checked folder `root` or lies inside it: a wider folder (`docs/`
+/// for `docs/images/`, such as an upstream source folder cited in a row) covers nothing there.
+fn within(d: &str, root: Option<&str>) -> bool {
+    root.is_none_or(|r| d == r || d.starts_with(&format!("{r}/")))
+}
+
+/// The folder before a glob's first wildcard segment (`assets/img` of `assets/img/*.png`).
+fn glob_folder(pattern: &str) -> String {
+    pattern
+        .split('/')
+        .take_while(|s| !s.contains('*'))
+        .collect::<Vec<_>>()
+        .join("/")
+}
+
 /// Whether one row's names cover `file`.
 fn covers(row: &[String], file: &str) -> bool {
+    let root = checked_root(file);
     let (dir, name) = file.rsplit_once('/').unwrap_or(("", file));
     let row_dirs: Vec<&str> = row
         .iter()
@@ -158,9 +188,9 @@ fn covers(row: &[String], file: &str) -> bool {
         .collect();
     row.iter().any(|t| {
         if t.contains('*') {
-            glob(t, file)
+            glob(t, file) && within(&glob_folder(t), root)
         } else if let Some(d) = t.strip_suffix('/') {
-            file.starts_with(&format!("{d}/"))
+            file.starts_with(&format!("{d}/")) && within(d, root)
         } else if t.contains('/') {
             t == file
         } else {
@@ -299,6 +329,41 @@ Prose mentioning `assets/prose.svg` is not a row.
         assert!(glob("a/**/z.txt", "a/b/c/z.txt"));
         assert!(glob("a/x*y*z", "a/x1y2z"));
         assert!(!glob("a/x*y*z", "a/xz"));
+    }
+
+    #[test]
+    fn a_folder_wider_than_a_checked_folder_covers_nothing_in_it() {
+        // a source cell citing an upstream `docs/` folder is not a row for the README's images
+        let doc = "| `x.ksy` | them | [repo](https://example.org) `docs/` | CC0 |\n| `assets/**` | us |\n";
+        let p = check(doc, &files(&["docs/images/shot.png", "assets/logo/a.svg"]));
+        assert_eq!(
+            p,
+            vec!["docs/images/shot.png: no row in ATTRIBUTION.md".to_string()]
+        );
+        // the checked folder itself, or one inside it, still covers
+        for row in ["`docs/images/`", "`docs/images/*.png`", "`docs/images/**`"] {
+            let doc = format!("| {row} | us |\n");
+            assert_eq!(
+                check(&doc, &files(&["docs/images/shot.png"])),
+                Vec::<String>::new(),
+                "{row}"
+            );
+        }
+    }
+
+    /// A README image added without its row fails the check on the repository's own file.
+    #[test]
+    fn a_stray_readme_image_without_a_row_fails() {
+        let root = crate::root();
+        let doc = std::fs::read_to_string(root.join("ATTRIBUTION.md")).unwrap();
+        let mut files = checked_files(&root).unwrap();
+        assert!(files.iter().any(|f| f.starts_with("docs/images/")), "{files:?}");
+        files.push("docs/images/stray.png".into());
+        let p = check(&doc, &files);
+        assert_eq!(
+            p,
+            vec!["docs/images/stray.png: no row in ATTRIBUTION.md".to_string()]
+        );
     }
 
     /// The repository itself passes (what `cargo xtask ci` checks).

@@ -1290,8 +1290,13 @@ impl App {
         if self.applied != Some(self.prefs.theme) {
             theme::apply(ui.ctx(), &Tokens::of(self.prefs.theme));
             self.applied = Some(self.prefs.theme);
-            // the new style applies from the next pass
+            // the new style applies from the next pass: this one would lay the window out in
+            // egui's default spacing, and what it sizes stays (a pane grows to fit its content
+            // and keeps that width), so the picture would depend on what was on screen at that
+            // frame. Draw nothing and run the next pass at once.
+            ui.ctx().request_discard("the theme applies from the next pass");
             ui.ctx().request_repaint();
+            return;
         }
         self.shortcuts(ui);
         self.title_row(ui);

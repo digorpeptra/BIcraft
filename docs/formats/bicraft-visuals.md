@@ -26,9 +26,10 @@ the registry (missing or older replaced, newer kept).
 | `box_plot` | BIcraft Box Plot | `bicraftBoxPlot2E7B4D9A1F6C3E8B5D0A` | `category` (Grouping, 1): one box per value; `sample` (Grouping, 1): the items whose values make the distribution; `value` (Measure, 1) |
 | `dumbbell` | BIcraft Dumbbell | `bicraftDumbbell6F1A8C3E9D2B7F4A0C5E` | `category` (Grouping, 1); `start` (Measure, 1); `end` (Measure, 1) |
 
-The histogram, bullet chart and box plot are version 1.3.2.0, the dumbbell 1.3.4.0 (raised with every change of its TypeScript or of what it
-bundles; 1.3.1.0 and 1.3.3.0 changed only the package icon, G111; the last raise, 2026-11-25, bundles the runtime's text settings and the
-Spec layout's series and numbers, G119, and changes nothing these visuals draw). Since 1.1.0.0 they draw with BIcraft's look ([visual-look.md](visual-look.md)): the
+The histogram, bullet chart and box plot are version 1.3.2.0, the dumbbell 1.3.5.0 (raised with every change of its TypeScript or of what it
+bundles; 1.3.1.0 and 1.3.3.0 changed only the package icon, G111; 1.3.4.0, 2026-11-25, bundles the runtime's text settings and the
+Spec layout's series and numbers, G119, and changes nothing these visuals draw; 1.3.5.0, 2026-11-26, keeps the dumbbell's value labels
+inside the visual, "Dumbbell and slope chart"). Since 1.1.0.0 they draw with BIcraft's look ([visual-look.md](visual-look.md)): the
 format object `style` also holds `preset`, `palette`, `rounded`, `gradient`, `shadow`, `card` (since 1.2.0.0), `pills` (since 1.2.0.0) and
 `animation` (the Style card), and the colours follow the report theme; the Minimal preset draws
 what 1.0.3.0 drew. Since 1.2.0.0 (the look's second pass): the card and value chips, larger
@@ -199,7 +200,14 @@ value label is never placed above the first row's centre or half a value text be
 top, whichever is higher, and a slope chart's never above its axes' top; the labels the moves
 would push there are left out (their values stay in the tooltip) and the others are moved apart
 again without them (`fit_inside` / `fitInside`, in each drawer). 1.3.1.0 pushed them above the
-plot, over the legend and past the visual's top edge ("Seen in Desktop").
+plot, over the legend and past the visual's top edge ("Seen in Desktop"). Since 1.3.5.0 (2026-11-26) a dumbbell's value
+labels also stay inside its width: the margin left of the scale holds the widest smaller value's
+label and the margin right of it the widest larger value's (its estimated width, plus the chip's
+padding, plus the dot's gap and 2 px; at least the look's margin of 1.3.4.0, at most 30% of the
+plot beside the category names); where a margin capped at 30% still leaves a label no room it
+goes on the other side of its dot, and is left out when neither side has room. 1.3.4.0 kept a
+fixed margin, so a wide value at the scale's end ran past the visual's right edge and was cut
+(`2,435,57`), and a wide smaller value at its start ran over the category names.
 
 ## Runtime
 

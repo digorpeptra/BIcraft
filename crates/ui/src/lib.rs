@@ -61,6 +61,7 @@ pub mod menus;
 pub mod mobile;
 pub mod model_explorer;
 pub mod model_view;
+pub mod offscreen;
 pub mod optimize_ui;
 pub mod options_page;
 pub mod page_tabs;

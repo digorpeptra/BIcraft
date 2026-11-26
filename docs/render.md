@@ -888,8 +888,10 @@ number formats), funnel 0.958 (its label style is not read yet).
     background colour and transparency.
   - *Lines.* `lines` then `series_lines` per series: width (2 px by default), dashed or dotted,
     markers (circles, `marker_size`), marker colour; line labels 9 px above the points.
-- **Cards and indicators.** Card callout 27 pt; display units use the format string's decimals
-  ("910K"); new cards with label and value; multi-row cards in columns at Desktop's sizes; KPI
+- **Cards and indicators.** Card callout 27 pt; auto display units use the format string's
+  decimals ("910K"); the classic card's callout display units and decimals
+  (`labels.labelDisplayUnits`, `labelPrecision`: auto, none, thousands to trillions) scale and round
+  it as on data labels ("1.235M", "1,234,567.0"); new cards with label and value; multi-row cards in columns at Desktop's sizes; KPI
   value with its format string, the trend area under it; gauges filling the visual (ring 30 % of
   the radius, percentages to 100 %).
 - **Slicers.** Classic header black 12 px (9 pt, Desktop's computed style), items #666666 10 pt every 19 px, 13 px boxes filled

@@ -2057,6 +2057,7 @@ fn well_ui(ui: &mut Ui, w: &Well<'_>, rename: &mut Option<Rename>) -> Option<(&'
         let here =
             |r: &Rename| r.visual == w.sel.visual && r.role.eq_ignore_ascii_case(&it.role) && r.index == i;
         let renaming = rename.as_ref().is_some_and(here);
+        let mut cut = false;
         if renaming && let Some(r) = rename.as_mut() {
             // "Rename for this visual": Enter or leaving the box keeps the name, Escape drops it
             let te_id = id.with("rename");
@@ -2091,16 +2092,20 @@ fn well_ui(ui: &mut Ui, w: &Well<'_>, rename: &mut Option<Rename>) -> Option<(&'
                 *rename = None;
             }
         } else {
+            // cut with an ellipsis where it does not fit, shown whole on hover
+            let shown = crate::pq_deps::fit_text(ui, &it.label, theme::font(12.0), label_rect.width());
+            cut = shown != it.label;
             ui.painter().with_clip_rect(label_rect).text(
                 pos2(label_rect.min.x, body.center().y),
                 Align2::LEFT_CENTER,
-                clip(&it.label, MAX_LABEL),
+                shown,
                 theme::font(12.0),
                 t.text,
             );
         }
         let full = format!("{} {} {}", it.label, l.t("in", "dans"), w.cap);
         resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, w.edit.is_ok(), &full));
+        let resp = if cut { resp.on_hover_text(&it.label) } else { resp };
         let start_rename = |rename: &mut Option<Rename>| {
             *rename = Some(Rename {
                 visual: w.sel.visual.clone(),

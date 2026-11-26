@@ -106,6 +106,12 @@ pub(crate) fn cases() -> Vec<(&'static str, &'static str, Value, Value, f64, f64
         col("start", "Q1", json!((0..20).map(|i| 40.0 + f64::from(i % 3) * 0.5).collect::<Vec<_>>())),
         col("end", "Q4", json!((0..20).map(|i| 60.0 + f64::from(i % 2) * 0.4).collect::<Vec<_>>()))
     ]});
+    // four regions' revenue last year and this year, in millions
+    let wide = json!({"columns": [
+        col("category", "Region", json!(["North", "South", "East", "West"])),
+        col("start", "Revenue PY", json!([1_985_400, 2_120_300, 1_600_000, 1_802_000])),
+        col("end", "Revenue", json!([2_400_000, 2_301_900, 1_712_400, 2_050_100]))
+    ]});
     // date categories written with their column's format string (G110, 2026-11-24)
     let dated = |format: &str, locale: &str| {
         json!({"locale": locale, "columns": [
@@ -479,6 +485,24 @@ pub(crate) fn cases() -> Vec<(&'static str, &'static str, Value, Value, f64, f64
             300.0,
             150.0,
         ),
+        // revenue in millions, the larger value at the right end of the scale: its label is
+        // wider than a fixed margin and must stay inside the visual (README dashboard, 2026-11-26)
+        (
+            "dumbbell_wide_values",
+            "dumbbell",
+            wide.clone(),
+            json!({}),
+            400.0,
+            216.0,
+        ),
+        (
+            "dumbbell_wide_values_pills",
+            "dumbbell",
+            wide,
+            json!({"style": {"pills": true, "preset": "minimal"}}),
+            300.0,
+            160.0,
+        ),
         ("dumbbell_empty", "dumbbell", json!({}), json!({}), 300.0, 160.0),
     ]
 }
@@ -730,6 +754,72 @@ fn the_layouts_draw_what_the_data_says() {
     );
     let low = lowest("slope_overfull", 15.0, 150.0);
     assert!(low >= 32.0 - 0.011, "slope_overfull: a label at {low}");
+}
+
+/// A dumbbell's texts stay inside the visual across its width: each one's estimated box (0.55
+/// of its size per character, from its anchor, a pill 5 px wider) within 0..w and clear of the
+/// other texts on its row, whatever the values' width.
+#[test]
+fn dumbbell_texts_stay_inside_the_visual() {
+    let r = rust_results();
+    let mut errors = Vec::new();
+    for (name, kind, _, _, w, _) in cases() {
+        if kind != "dumbbell" {
+            continue;
+        }
+        // (text, y, from, to); a value label's pill reaches 5 px past its text
+        let mut boxes: Vec<(String, f64, f64, f64)> = Vec::new();
+        let prims = r[name].as_array().cloned().unwrap_or_default();
+        for (i, p) in prims.iter().enumerate() {
+            if p["t"] != "text" {
+                continue;
+            }
+            let s = p["text"].as_str().unwrap_or("");
+            let pill = i
+                .checked_sub(1)
+                .and_then(|j| prims.get(j))
+                .is_some_and(|q| q["role"] == "pill");
+            let pad = if pill { 5.0 } else { 0.0 };
+            let wd = s.chars().count() as f64 * p["size"].as_f64().unwrap_or(0.0) * 0.55;
+            let x = p["x"].as_f64().unwrap_or(f64::NAN);
+            let (a, b) = match p["anchor"].as_str() {
+                Some("start") => (x - pad, x + wd + pad),
+                Some("end") => (x - wd - pad, x + pad),
+                _ => (x - wd / 2.0 - pad, x + wd / 2.0 + pad),
+            };
+            if a < -0.5 || b > w + 0.5 {
+                errors.push(format!("{name}: `{s}` spans {a:.1}..{b:.1}, outside 0..{w}"));
+            }
+            let y = p["y"].as_f64().unwrap_or(f64::NAN);
+            for (t, ty, ta, tb) in &boxes {
+                if (ty - y).abs() < 1.0 && a < tb - 0.5 && *ta < b - 0.5 {
+                    errors.push(format!(
+                        "{name}: `{s}` ({a:.1}..{b:.1}) overlaps `{t}` ({ta:.1}..{tb:.1})"
+                    ));
+                }
+            }
+            boxes.push((s.to_string(), y, a, b));
+        }
+    }
+    // the wide values are all drawn: there is room for them
+    let values = |name: &str| {
+        r[name]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter(|p| {
+                p["t"] == "text"
+                    && p["anchor"] != "middle"
+                    && p["text"].as_str().is_some_and(|s| s.contains(','))
+            })
+            .count()
+    };
+    for name in ["dumbbell_wide_values", "dumbbell_wide_values_pills"] {
+        if values(name) != 8 {
+            errors.push(format!("{name}: {} of 8 value labels drawn", values(name)));
+        }
+    }
+    assert!(errors.is_empty(), "{}", errors.join("\n"));
 }
 
 #[test]
