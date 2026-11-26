@@ -33,7 +33,7 @@ bicraft-locale = { workspace = true, features = ["clock"] }
 # Remote mode: a blocking HTTPS client (rustls with the bundled Mozilla roots), as crates/auth.
 ureq = { version = "3", default-features = false, features = ["rustls"] }
 # Native file dialogs (MIT; on Linux through the XDG desktop portal).
-rfd = "0.17"
+rfd = "0.18"
 # The Paste button reads the OS clipboard (MIT OR Apache-2.0; already egui-winit's clipboard).
 arboard = { version = "3.6", default-features = false }
 
