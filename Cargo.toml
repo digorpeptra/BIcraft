@@ -58,7 +58,7 @@ bicraft-controller = { path = "crates/controller" }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
 thiserror = "2"
-zip = { version = "9.4", default-features = false, features = ["deflate-flate2"] }
+zip = { version = "9.8", default-features = false, features = ["deflate-flate2"] }
 # The PBIX zip writer (crates/opc): same versions the zip crate already pulls in.
 flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
 crc32fast = "1"
@@ -68,6 +68,10 @@ rayon-core = "1.13"
 # The desktop app and the CLI add the `clock` feature through `bicraft-locale/clock` (the
 # machine's offset for Power Query's local clock, docs/formats/data-sources.md "Clock").
 jiff = { version = "1", default-features = false, features = ["std"] }
+# Test-only SQLite oracle (crates/sqlite and crates/metadata dev-dependencies): real SQLite,
+# compiled from the bundled amalgamation, writes the fixtures and checks the writer's files.
+# Never a normal dependency: BIcraft's own SQLite reader and writer stay pure Rust.
+rusqlite = { version = "0.41", default-features = false, features = ["bundled"] }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

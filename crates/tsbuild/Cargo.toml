@@ -18,7 +18,7 @@ swc_ecma_parser = "48.0.0"
 swc_ecma_transforms_base = "52.0.0"
 swc_ecma_transforms_typescript = "58.0.0"
 # the error type of swc_bundler's Load and Resolve traits
-anyhow = "1.0.104"
+anyhow = "1.0.105"
 
 [lints]
 workspace = true

@@ -1452,9 +1452,7 @@ impl App {
                         let w = tw + 24.0 + 22.0 + if *dirty { 12.0 } else { 0.0 };
                         let (r, resp) =
                             ui.allocate_exact_size(Vec2::new(w, DOC_TABS_H - 4.0), Sense::click());
-                        resp.widget_info(|| {
-                            egui::WidgetInfo::selected(egui::WidgetType::SelectableLabel, true, on, name)
-                        });
+                        resp.widget_info(|| egui::WidgetInfo::selected(egui::Role::Button, true, on, name));
                         let p = ui.painter();
                         let shape = CornerRadius {
                             nw: 6,
@@ -1494,10 +1492,11 @@ impl App {
                         });
                         let xr =
                             Rect::from_center_size(pos2(r.max.x - 14.0, r.center().y), Vec2::splat(18.0));
-                        let x_resp = ui.interact(xr, ui.id().with(("bicraft-doc-close", i)), Sense::click());
+                        let x_resp =
+                            ui.interact(xr, ui.scope_id().with(("bicraft-doc-close", i)), Sense::click());
                         let close_label = format!("{} {name}", l.t("Close", "Fermer"));
                         x_resp.widget_info(|| {
-                            egui::WidgetInfo::labeled(egui::WidgetType::Button, true, &close_label)
+                            egui::WidgetInfo::labeled(egui::Role::Button, true, &close_label)
                         });
                         if x_resp.hovered() {
                             ui.painter().rect_filled(xr, CornerRadius::same(4), t.pressed);
@@ -1515,7 +1514,7 @@ impl App {
             });
         let (r, resp) = row.allocate_exact_size(Vec2::new(26.0, DOC_TABS_H - 4.0), Sense::click());
         let label = l.t("Open or create a file", "Ouvrir ou créer un fichier");
-        resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, label));
+        resp.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, label));
         if resp.hovered() {
             row.painter().rect_filled(r, CornerRadius::same(4), t.hover);
         }
@@ -3114,7 +3113,7 @@ impl App {
         let mut close = false;
         let ctrl = ctx.input(|i| i.modifiers.command || i.modifiers.ctrl);
         let fresh_now = p.fresh;
-        let area = egui::Area::new(egui::Id::new("bicraft-popup"))
+        let area = egui::Area::new(egui::Id::unique("bicraft-popup"))
             .fixed_pos(p.at + Vec2::new(0.0, 8.0))
             .order(egui::Order::Foreground)
             .show(ctx, |ui| {

@@ -324,11 +324,11 @@ pub fn show(ui: &mut Ui, d: &mut Deps, l: Lang, t: &Tokens) -> Option<DepsAct> {
         let label = format!("{word} {}", n.name);
         ui.interact(
             r.intersect(canvas),
-            ui.id().with(("bicraft-pq-dep", i)),
+            ui.scope_id().with(("bicraft-pq-dep", i)),
             Sense::hover(),
         )
         .on_hover_text(&n.name)
-        .widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Label, true, &label));
+        .widget_info(|| egui::WidgetInfo::labeled(egui::Role::Label, true, &label));
     }
     act
 }

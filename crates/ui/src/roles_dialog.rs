@@ -408,7 +408,7 @@ pub fn show(app: &mut App, ctx: &egui::Context) {
     let mut close = false;
     let mut calls: Vec<(Call, Then)> = Vec::new();
     egui::Window::new(l.t("Manage security roles", "Gérer les rôles de sécurité"))
-        .id(egui::Id::new("bicraft-manage-roles"))
+        .id(egui::Id::unique("bicraft-manage-roles"))
         .collapsible(false)
         .resizable(false)
         .open(&mut open)
@@ -509,7 +509,7 @@ fn roles_ui(ui: &mut Ui, cx: &mut Cx<'_>) {
                         .char_limit(256)
                         .desired_width(ROLES_W - 10.0),
                 );
-                r.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::TextEdit, true, &text));
+                r.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, true, &text));
                 let typed = name.trim().to_string();
                 let enter = r.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter));
                 let ok = !typed.is_empty() && typed != role;
@@ -608,9 +608,7 @@ fn tables_ui(ui: &mut Ui, cx: &mut Cx<'_>) {
                         .is_some_and(|x| x.eq_ignore_ascii_case(&row.table));
                 let r = ui.selectable_label(on, crate::app::clip(&row.table, 28));
                 let a11y = format!("{} {}", l.t("Table", "Table"), row.table);
-                r.widget_info(|| {
-                    egui::WidgetInfo::selected(egui::WidgetType::SelectableLabel, true, on, &a11y)
-                });
+                r.widget_info(|| egui::WidgetInfo::selected(egui::Role::Button, true, on, &a11y));
                 if r.clicked() && !on {
                     cx.d.table = Some(row.table.clone());
                     cx.d.editor = None;
@@ -644,7 +642,7 @@ fn combo(ui: &mut Ui, id: Id, label: &str, current: &str, choices: &[String], w:
             }
         });
     r.response
-        .widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::ComboBox, true, label));
+        .widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, true, label));
     picked
 }
 
@@ -676,7 +674,7 @@ fn editor_ui(ui: &mut Ui, cx: &mut Cx<'_>) {
             let mut hidden = row.hidden;
             let text = format!("{} {}", l.t("Hide table", "Masquer la table"), row.table);
             let r = ui.checkbox(&mut hidden, l.t("Hide table", "Masquer la table"));
-            r.widget_info(|| egui::WidgetInfo::selected(egui::WidgetType::Checkbox, true, hidden, &text));
+            r.widget_info(|| egui::WidgetInfo::selected(egui::Role::CheckBox, true, hidden, &text));
             if r.changed() {
                 let c = permission(&role, &row.table, None, hidden);
                 cx.calls.push((c, Then::Nothing));
@@ -779,7 +777,7 @@ fn editor_ui(ui: &mut Ui, cx: &mut Cx<'_>) {
             dax_box::show(
                 ui,
                 &mut e.dax,
-                Id::new(("bicraft-roles-dax", row.table.to_lowercase())),
+                Id::unique(("bicraft-roles-dax", row.table.to_lowercase())),
                 &label,
                 &scope,
                 &diags,
@@ -837,7 +835,7 @@ fn editor_ui(ui: &mut Ui, cx: &mut Cx<'_>) {
         ui.add_space(8.0);
         let save_label = format!("{} {}", l.t("Save filter", "Enregistrer le filtre"), row.table);
         let b = widgets::primary(ui, l.t("Save", "Enregistrer"), dirty && !e.saving, "");
-        b.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, dirty, &save_label));
+        b.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, dirty, &save_label));
         if b.clicked() {
             e.edit = e.edit.wrapping_add(1);
             e.saving = true;
@@ -892,7 +890,7 @@ fn conditions_ui(ui: &mut Ui, e: &mut Editor, columns: &[String], row: &TableRow
             }
             for (i, c) in e.rows.iter_mut().enumerate() {
                 let n = i + 1;
-                let base = Id::new(("bicraft-roles-cond", row.table.to_lowercase(), i));
+                let base = Id::unique(("bicraft-roles-cond", row.table.to_lowercase(), i));
                 ui.horizontal(|ui| {
                     if i == 0 {
                         ui.add_space(72.0);
@@ -934,7 +932,7 @@ fn conditions_ui(ui: &mut Ui, e: &mut Editor, columns: &[String], row: &TableRow
                                 .hint_text(l.t("Value", "Valeur"))
                                 .desired_width(100.0),
                         );
-                        r.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::TextEdit, true, &label));
+                        r.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, true, &label));
                     }
                     let label = format!("{} {n}", l.t("Delete condition", "Supprimer la condition"));
                     if widgets::icon_toggle(ui, Icon::Delete, &label, true, false).clicked() {
@@ -951,7 +949,7 @@ fn conditions_ui(ui: &mut Ui, e: &mut Editor, columns: &[String], row: &TableRow
     let can_add = e.rows.len() < MAX_CONDITIONS && !columns.is_empty();
     let add = widgets::small_button(ui, Icon::Plus, l.t("New", "Nouveau"), can_add, false);
     let add_label = l.t("New condition", "Nouvelle condition");
-    add.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, can_add, add_label));
+    add.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, can_add, add_label));
     if add.clicked() {
         e.rows.push(Cond {
             column: columns.first().cloned().unwrap_or_default(),
@@ -969,7 +967,7 @@ fn conditions_ui(ui: &mut Ui, e: &mut Editor, columns: &[String], row: &TableRow
                     .color(t.text_dim),
             );
             let label = format!("{} {dax}", l.t("DAX of the conditions:", "DAX des conditions :"));
-            r.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Label, true, &label));
+            r.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Label, true, &label));
         });
     }
 }
@@ -1061,7 +1059,7 @@ fn columns_ui(ui: &mut Ui, cx: &mut Cx<'_>, role: &str, row: &TableRow) {
     );
     let a11y = format!("{} {}", l.t("Columns of", "Colonnes de"), row.table);
     let r = ui.selectable_label(open, text.as_str());
-    r.widget_info(|| egui::WidgetInfo::selected(egui::WidgetType::SelectableLabel, true, open, &a11y));
+    r.widget_info(|| egui::WidgetInfo::selected(egui::Role::Button, true, open, &a11y));
     if r.clicked() {
         cx.d.columns_open = !open;
     }
@@ -1076,9 +1074,7 @@ fn columns_ui(ui: &mut Ui, cx: &mut Cx<'_>, role: &str, row: &TableRow) {
                         let mut h = *hidden;
                         let label = format!("{} {}[{c}]", l.t("Hide", "Masquer"), row.table);
                         let r = ui.checkbox(&mut h, format!("{} {c}", l.t("Hide", "Masquer")));
-                        r.widget_info(|| {
-                            egui::WidgetInfo::selected(egui::WidgetType::Checkbox, true, h, &label)
-                        });
+                        r.widget_info(|| egui::WidgetInfo::selected(egui::Role::CheckBox, true, h, &label));
                         if r.changed() {
                             cx.calls
                                 .push((permission(role, &row.table, Some(c), h), Then::Nothing));

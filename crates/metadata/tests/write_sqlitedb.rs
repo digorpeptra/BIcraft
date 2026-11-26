@@ -1,5 +1,5 @@
 //! `write_sqlitedb`: model → rewritten `metadata.sqlitedb` bytes, over the synthetic database of
-//! gen_fixture.py.
+//! gen_fixture.rs.
 
 use bicraft_metadata::{
     Error, MetaValue, read_sqlitedb, tables_from_sqlitedb, write_sqlitedb, write_sqlitedb_at,

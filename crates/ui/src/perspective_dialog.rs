@@ -220,7 +220,7 @@ pub fn show(app: &mut App, ctx: &egui::Context) {
     let mut close = false;
     let mut calls = Vec::new();
     egui::Window::new(l.t("Perspectives", "Perspectives"))
-        .id(egui::Id::new("bicraft-perspectives"))
+        .id(egui::Id::unique("bicraft-perspectives"))
         .collapsible(false)
         .resizable(false)
         .open(&mut open)
@@ -352,7 +352,7 @@ fn body(
         let c = save_call(d, tabs);
         let r = widgets::primary(ui, l.t("Save", "Enregistrer"), c.is_some(), "");
         let a11y = l.t("Save the perspective", "Enregistrer la perspective");
-        r.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, c.is_some(), a11y));
+        r.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, c.is_some(), a11y));
         if r.clicked()
             && let Some(c) = c
         {
@@ -383,7 +383,7 @@ fn table_ui(
         let label = format!("{} ({have}/{total})", tab.name);
         let r = ui.checkbox(&mut whole, RichText::new(&label).font(theme::bold(13.0)));
         let a11y = format!("{} {}", l.t("Include table", "Inclure la table"), tab.name);
-        r.widget_info(|| egui::WidgetInfo::selected(egui::WidgetType::Checkbox, true, whole, &a11y));
+        r.widget_info(|| egui::WidgetInfo::selected(egui::Role::CheckBox, true, whole, &a11y));
         if r.changed() {
             if whole {
                 m.columns = tab.columns.iter().cloned().collect();
@@ -400,7 +400,7 @@ fn table_ui(
         } else {
             l.t("Members", "Membres")
         });
-        b.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, &more));
+        b.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, &more));
         if b.clicked() {
             if is_open {
                 open.retain(|x| *x != key);
@@ -426,7 +426,7 @@ fn table_ui(
                 let mut x = on.contains(n);
                 let a11y = format!("{}[{n}]", tab.name);
                 let r = ui.checkbox(&mut x, format!("{n} ({kind})"));
-                r.widget_info(|| egui::WidgetInfo::selected(egui::WidgetType::Checkbox, true, x, &a11y));
+                r.widget_info(|| egui::WidgetInfo::selected(egui::Role::CheckBox, true, x, &a11y));
                 if r.changed() {
                     if x {
                         on.insert(n.clone());

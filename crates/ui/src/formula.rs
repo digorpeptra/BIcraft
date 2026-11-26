@@ -167,11 +167,11 @@ impl Find {
 
 /// The find field's id (tests).
 pub fn find_id() -> Id {
-    Id::new("bicraft-formula-find")
+    Id::unique("bicraft-formula-find")
 }
 
 fn replace_id() -> Id {
-    Id::new("bicraft-formula-replace")
+    Id::unique("bicraft-formula-replace")
 }
 
 impl FormulaBar {
@@ -229,7 +229,7 @@ impl FormulaBar {
 
 /// The editor's id (tests, the app's Esc).
 pub fn editor_id() -> Id {
-    Id::new("bicraft-formula-editor")
+    Id::unique("bicraft-formula-editor")
 }
 
 /// The editor (or its find row) has the keyboard: Esc and Enter are the bar's.
@@ -247,11 +247,11 @@ struct Pick {
 }
 
 fn pick_id() -> Id {
-    Id::new("bicraft-formula-pick")
+    Id::unique("bicraft-formula-pick")
 }
 
 fn shared_id() -> Id {
-    Id::new("bicraft-formula-shared")
+    Id::unique("bicraft-formula-shared")
 }
 
 /// What the menus need to know: the snapshot and the chrome's language.
@@ -1832,7 +1832,7 @@ fn editor(
     if out.response.response.lost_focus() && !read_only && bar.dirty() {
         let at = ctx.input(|i| i.pointer.interact_pos());
         let on_list = ctx
-            .memory(|m| m.area_rect(Id::new("bicraft-formula-list")))
+            .memory(|m| m.area_rect(Id::unique("bicraft-formula-list")))
             .zip(at)
             .is_some_and(|(r, p)| bar.completion.is_some() && r.contains(p));
         let on_bar = at.is_some_and(|p| bar_rect.contains(p));
@@ -1905,7 +1905,7 @@ fn editor(
     if let (Some(c), Some(pos)) = (bar.completion.clone(), anchor) {
         let known = bar.functions.clone();
         let funcs = known.as_ref().map_or(&[][..], |f| f.0.as_slice());
-        if let Some(i) = list_ui(&ctx, Id::new("bicraft-formula-list"), &c, pos, t, l, funcs) {
+        if let Some(i) = list_ui(&ctx, Id::unique("bicraft-formula-list"), &c, pos, t, l, funcs) {
             accept = Some(i);
         }
     } else if let (Some(pos), Some(cb), true) = (anchor, cursor_byte, out.response.response.has_focus()) {
@@ -2037,7 +2037,7 @@ pub(crate) fn rows_ui(
                         egui::Label::new(RichText::new(crate::app::clip(d, 400)).size(11.5).color(t.text))
                             .wrap(),
                     );
-                    r.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Label, true, d));
+                    r.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Label, true, d));
                 }
             });
         });
@@ -2092,14 +2092,14 @@ fn signature_ui(ctx: &egui::Context, bar: &FormulaBar, cursor: usize, pos: egui:
         }
     }
     job.append(")", 0.0, plain);
-    egui::Area::new(Id::new("bicraft-formula-signature"))
+    egui::Area::new(Id::unique("bicraft-formula-signature"))
         .order(egui::Order::Tooltip)
         .fixed_pos(pos + vec2(0.0, 4.0))
         .interactable(false)
         .show(ctx, |ui| {
             egui::Frame::popup(ui.style()).show(ui, |ui| {
                 let r = ui.label(job);
-                r.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Label, true, &f.signature));
+                r.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Label, true, &f.signature));
             });
         });
 }

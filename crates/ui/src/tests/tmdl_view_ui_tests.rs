@@ -200,7 +200,7 @@ fn an_error_has_its_line_and_column_goes_there_and_changes_nothing() {
     assert_eq!(measure(&h, "Bad"), None);
     h.get_by_label("Error");
     click(&mut h, "Go to line 5, column 21");
-    let id = egui::Id::new(("bicraft-tmdl-editor", h.state().cmd.tmdl.tabs[0].id));
+    let id = egui::Id::unique(("bicraft-tmdl-editor", h.state().cmd.tmdl.tabs[0].id));
     let at = h.ctx.memory(|m| m.has_focus(id));
     assert!(at, "Go to gives the editor the focus");
     let cursor = egui::TextEdit::load_state(&h.ctx, id)

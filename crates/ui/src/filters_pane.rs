@@ -971,7 +971,7 @@ pub fn pane(app: &mut App, ui: &mut Ui) {
     }
     let name = l.t("Search the filters", "Rechercher dans les filtres");
     ui.add(find)
-        .widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::TextEdit, true, name));
+        .widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, true, name));
     ui.add_space(4.0);
     let Some(snap) = app.loaded.as_ref().map(|x| x.snap.clone()) else {
         return;
@@ -1163,7 +1163,7 @@ fn section(
         crate::filter_pane_ui::font(ps.family.as_deref(), ps.header_size.unwrap_or(12.0), true),
         ps.foreground.unwrap_or(t.text_dim),
     );
-    resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Label, true, title));
+    resp.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Label, true, title));
     // the section's sort order (filterSortOrder): A to Z, Z to A or custom (cards dragged)
     if !cx.reader && cx.order.is_ok() && cards.iter().any(|c| c.own) {
         let words = |m: &str| match m {
@@ -1192,7 +1192,7 @@ fn section(
                         }
                     });
                 cr.response
-                    .widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::ComboBox, true, &name));
+                    .widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, true, &name));
             },
         );
         if let Some(m) = picked {
@@ -1239,10 +1239,10 @@ fn section(
     let label = format!("{slot_text} ({title})");
     let sr = ui.interact(
         slot,
-        ui.id().with(("bicraft-filter-slot", cx.target.scope)),
+        ui.scope_id().with(("bicraft-filter-slot", cx.target.scope)),
         Sense::hover(),
     );
-    sr.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Label, true, &label));
+    sr.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Label, true, &label));
     if can_take {
         ui.painter().rect_stroke(
             area.expand(2.0),
@@ -1419,9 +1419,7 @@ fn card_ui(ui: &mut Ui, cx: &SectionCx<'_>, c: &Card, st: &mut FiltersUi, acts: 
                 fg_dim,
             );
             let full = format!("{label} {sum}");
-            resp.widget_info(|| {
-                egui::WidgetInfo::selected(egui::WidgetType::CollapsingHeader, true, open, &full)
-            });
+            resp.widget_info(|| egui::WidgetInfo::selected(egui::Role::Button, true, open, &full));
             let resp = if cut {
                 resp.on_hover_ui(|ui| {
                     ui.label(&label);
@@ -1444,14 +1442,14 @@ fn card_ui(ui: &mut Ui, cx: &SectionCx<'_>, c: &Card, st: &mut FiltersUi, acts: 
             let can_clear = cx.clear.is_ok() && has_cond;
             let err = ui.interact(
                 er,
-                ui.id().with(("clear", &key)),
+                ui.scope_id().with(("clear", &key)),
                 if can_clear { Sense::click() } else { Sense::hover() },
             );
             if err.hovered() && can_clear {
                 ui.painter().rect_filled(er, CornerRadius::same(4), t.pressed);
             }
             icons::paint(ui.painter(), er.shrink(3.0), Icon::Undo, fg_dim, !can_clear);
-            err.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, can_clear, &clear_tip));
+            err.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, can_clear, &clear_tip));
             let err = err.on_hover_text(&clear_tip);
             if err.clicked() && can_clear {
                 let mut p = cx.target.params(&c.field);
@@ -1463,12 +1461,12 @@ fn card_ui(ui: &mut Ui, cx: &SectionCx<'_>, c: &Card, st: &mut FiltersUi, acts: 
             if !c.auto && !cx.reader && cx.clear.is_ok() {
                 let xr = Rect::from_center_size(pos2(head.max.x - 12.0, head.min.y + 10.0), vec2(18.0, 18.0));
                 let tip = format!("{} {label}", l.t("Remove filter on", "Supprimer le filtre sur"));
-                let x = ui.interact(xr, ui.id().with(("remove", &key)), Sense::click());
+                let x = ui.interact(xr, ui.scope_id().with(("remove", &key)), Sense::click());
                 if x.hovered() {
                     ui.painter().rect_filled(xr, CornerRadius::same(4), t.pressed);
                 }
                 icons::paint(ui.painter(), xr.shrink(4.0), Icon::Close, fg_dim, false);
-                x.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, &tip));
+                x.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, &tip));
                 if x.on_hover_text(&tip).clicked() {
                     acts.push(Act::Run(cx.target.scope.clear_cmd(), cx.target.params(&c.field)));
                     st.open.remove(&key);
@@ -1506,7 +1504,7 @@ fn lock_and_eye(
     let eye_rect = Rect::from_center_size(pos2(head.max.x - 78.0, head.min.y + 10.0), vec2(18.0, 18.0));
     if cx.reader {
         if c.locked {
-            let r = ui.interact(lock_rect, ui.id().with(("locked", key)), Sense::hover());
+            let r = ui.interact(lock_rect, ui.scope_id().with(("locked", key)), Sense::hover());
             icons::paint(
                 ui.painter(),
                 lock_rect.shrink(3.0),
@@ -1515,7 +1513,7 @@ fn lock_and_eye(
                 false,
             );
             let tip = format!("{} {label}", l.t("Locked filter:", "Filtre verrouillé :"));
-            r.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Label, true, &tip));
+            r.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Label, true, &tip));
             let _ = r.on_hover_text(&tip);
         }
         return;
@@ -1561,7 +1559,7 @@ fn lock_and_eye(
     for (rect, what, on, icon, tip, param) in toggles {
         let r = ui.interact(
             rect,
-            ui.id().with((what, key)),
+            ui.scope_id().with((what, key)),
             if enabled { Sense::click() } else { Sense::hover() },
         );
         if on {
@@ -1578,7 +1576,7 @@ fn lock_and_eye(
             None => t.text_faint,
         };
         icons::paint(ui.painter(), rect.shrink(3.0), icon, color, !enabled);
-        r.widget_info(|| egui::WidgetInfo::selected(egui::WidgetType::Button, enabled, on, &tip));
+        r.widget_info(|| egui::WidgetInfo::selected(egui::Role::Button, enabled, on, &tip));
         let r = match cx.edit {
             Err(why) => r.on_hover_text(format!("{} {why}", l.t("Read-only:", "Lecture seule :"))),
             Ok(()) => r.on_hover_text(&tip),
@@ -1651,7 +1649,7 @@ fn card_body(ui: &mut Ui, cx: &SectionCx<'_>, c: &Card, key: &str, st: &mut Filt
             card_label(c, l)
         );
         r.response
-            .widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::ComboBox, enabled, &name));
+            .widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, enabled, &name));
     });
     ui.add_space(4.0);
     match d.mode {
@@ -1693,7 +1691,7 @@ fn basic_ui(ui: &mut Ui, cx: &SectionCx<'_>, c: &Card, key: &str, st: &mut Filte
         l.t("Search the values of", "Rechercher les valeurs de"),
         card_label(c, l)
     );
-    r.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::TextEdit, true, &name));
+    r.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, true, &name));
     let q = search.trim().to_lowercase();
     let Some((_, values, cut)) = st.values.get(&c.field) else {
         ui.label(egui::RichText::new(l.t("Reading the values…", "Lecture des valeurs…")).color(t.text_faint));
@@ -1798,7 +1796,7 @@ fn op_combo(ui: &mut Ui, id: (&str, &str, u8), op: &mut String, l: Lang, numeric
             }
         });
     r.response
-        .widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::ComboBox, true, label));
+        .widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, true, label));
 }
 
 fn needs_value(op: &str) -> bool {
@@ -1832,7 +1830,7 @@ fn advanced_ui(ui: &mut Ui, cx: &SectionCx<'_>, c: &Card, d: &mut Draft, acts: &
         if needs_value(&d.op1) {
             let r = ui.add(egui::TextEdit::singleline(&mut d.value1).desired_width(ui.available_width()));
             let lbl = format!("{} 1 {name}", l.t("Value", "Valeur"));
-            r.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::TextEdit, true, &lbl));
+            r.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, true, &lbl));
         }
         ui.horizontal(|ui| {
             ui.radio_value(&mut d.or, false, l.t("And", "Et"));
@@ -1849,7 +1847,7 @@ fn advanced_ui(ui: &mut Ui, cx: &SectionCx<'_>, c: &Card, d: &mut Draft, acts: &
         if needs_value(&d.op2) {
             let r = ui.add(egui::TextEdit::singleline(&mut d.value2).desired_width(ui.available_width()));
             let lbl = format!("{} 2 {name}", l.t("Value", "Valeur"));
-            r.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::TextEdit, true, &lbl));
+            r.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, true, &lbl));
         }
         apply_row(ui, cx, c, d, numeric, acts);
     });
@@ -1871,7 +1869,7 @@ fn top_n_ui(ui: &mut Ui, cx: &SectionCx<'_>, c: &Card, d: &mut Draft, acts: &mut
             ui.radio_value(&mut d.bottom, true, l.t("Bottom", "Bas"));
             let r = ui.add(egui::TextEdit::singleline(&mut d.count).desired_width(48.0));
             let lbl = format!("{} {name}", l.t("Number of items of", "Nombre d'éléments de"));
-            r.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::TextEdit, true, &lbl));
+            r.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, true, &lbl));
         });
         ui.label(
             egui::RichText::new(l.t("By value", "Par valeur"))
@@ -1884,7 +1882,7 @@ fn top_n_ui(ui: &mut Ui, cx: &SectionCx<'_>, c: &Card, d: &mut Draft, acts: &mut
                 .desired_width(ui.available_width()),
         );
         let lbl = format!("{} {name}", l.t("By value of", "Par valeur de"));
-        r.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::TextEdit, true, &lbl));
+        r.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, true, &lbl));
         // a measure or a number column dragged here
         if let Some(Drag::Field(f)) = cx.payload {
             let target = r.rect.expand(4.0);
@@ -1929,7 +1927,7 @@ fn choice_combo(
             }
         });
     r.response
-        .widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::ComboBox, true, label));
+        .widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, true, label));
 }
 
 /// Relative date and relative time filtering: is in the last / this / next, N, the period,
@@ -1969,7 +1967,7 @@ fn relative_ui(ui: &mut Ui, cx: &SectionCx<'_>, c: &Card, d: &mut Draft, acts: &
             if d.rel_range != "this" {
                 let r = ui.add(egui::TextEdit::singleline(&mut d.rel_count).desired_width(48.0));
                 let lbl = format!("{} {name}", l.t("Number of periods of", "Nombre de périodes de"));
-                r.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::TextEdit, true, &lbl));
+                r.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, true, &lbl));
             }
             choice_combo(
                 ui,
@@ -1983,7 +1981,7 @@ fn relative_ui(ui: &mut Ui, cx: &SectionCx<'_>, c: &Card, d: &mut Draft, acts: &
         if !time && d.rel_range != "this" {
             let r = ui.checkbox(&mut d.rel_today, l.t("Include today", "Inclure aujourd'hui"));
             let lbl = format!("{} ({name})", l.t("Include today", "Inclure aujourd'hui"));
-            r.widget_info(|| egui::WidgetInfo::selected(egui::WidgetType::Checkbox, true, d.rel_today, &lbl));
+            r.widget_info(|| egui::WidgetInfo::selected(egui::Role::CheckBox, true, d.rel_today, &lbl));
         }
         apply_row(ui, cx, c, d, false, acts);
     });
@@ -2026,7 +2024,7 @@ fn apply_row(ui: &mut Ui, cx: &SectionCx<'_>, c: &Card, d: &Draft, numeric: bool
         None => egui::Button::new(l.t("Apply filter", "Appliquer le filtre")),
     };
     let b = ui.add_enabled(ready.is_ok(), button);
-    b.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, ready.is_ok(), &label));
+    b.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, ready.is_ok(), &label));
     let b = match &ready {
         Err(why) if !why.is_empty() => b.on_disabled_hover_text(why),
         _ => b,

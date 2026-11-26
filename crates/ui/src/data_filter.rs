@@ -264,7 +264,7 @@ fn test_row(ui: &mut Ui, id: &str, kind: Kind, test: &mut (String, String), opti
                 }
             });
         r.response
-            .widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::ComboBox, true, what));
+            .widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, true, what));
         let needs_value = !test.0.is_empty() && !matches!(test.0.as_str(), "blank" | "not_blank");
         let hint = match kind {
             Kind::Date => "2024-01-31",
@@ -277,7 +277,7 @@ fn test_row(ui: &mut Ui, id: &str, kind: Kind, test: &mut (String, String), opti
                 .hint_text(hint)
                 .desired_width(160.0),
         );
-        r.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::TextEdit, needs_value, &value_label));
+        r.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, needs_value, &value_label));
     });
 }
 
@@ -292,7 +292,7 @@ pub fn window(app: &mut App, ctx: &egui::Context) {
     let mut close = false;
     let mut apply: Option<ColFilter> = None;
     egui::Window::new(l.t("Custom filter", "Filtre personnalisé"))
-        .id(Id::new("bicraft-data-custom-filter"))
+        .id(Id::unique("bicraft-data-custom-filter"))
         .collapsible(false)
         .resizable(false)
         .open(&mut open)

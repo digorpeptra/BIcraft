@@ -167,7 +167,7 @@ pub fn show(app: &mut App, ctx: &egui::Context) {
     let mut go = false;
     let mut cancel = ctx.input(|i| i.key_pressed(egui::Key::Escape));
     egui::Window::new(l.t("Storage mode", "Mode de stockage"))
-        .id(egui::Id::new("bicraft-storage-mode-confirm"))
+        .id(egui::Id::unique("bicraft-storage-mode-confirm"))
         .collapsible(false)
         .resizable(false)
         .open(&mut open)

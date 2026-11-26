@@ -175,7 +175,7 @@ mod tests {
             fd.families[fam]
                 .iter()
                 .find(|k| {
-                    skrifa::FontRef::new(&fd.font_data[*k].font)
+                    skrifa::FontRef::new((*fd.font_data[*k].font).as_ref())
                         .is_ok_and(|f| skrifa::MetadataProvider::charmap(&f).map(c).is_some())
                 })
                 .cloned()

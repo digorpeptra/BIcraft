@@ -19,13 +19,14 @@ bicraft-mlang.workspace = true
 bicraft-locale.workspace = true
 serde_json.workspace = true
 # The UI toolkit, the version DeckCraft uses (MIT OR Apache-2.0); `default_fonts` brings the
-# fallback faces (Hack, Ubuntu Light, Noto Emoji, emoji icon font; crates/ui/src/fonts.rs).
-egui = { version = "0.36", default-features = false, features = ["default_fonts"] }
+# fallback faces (Hack, Ubuntu Light; crates/ui/src/fonts.rs), `monochrome_emoji_fonts` Noto Emoji and
+# the emoji icon font, which egui 0.37 no longer embeds by default.
+egui = { version = "0.37", default-features = false, features = ["default_fonts", "monochrome_emoji_fonts"] }
 # Screenshots of the control channel encoded as PNG (the encoder bicraft-render already uses; BSD-3-Clause).
 tiny-skia = { version = "0.12", default-features = false, features = ["std", "png-format"] }
 
 [dev-dependencies]
-egui_kittest = "0.36"
+egui_kittest = "0.37"
 # `BICRAFT_BLESS=1` rewrites the generated command table (registry_tests.rs).
 bicraft-env.workspace = true
 # Tests build real snapshots with an engine session (never a normal dependency: the crate builds

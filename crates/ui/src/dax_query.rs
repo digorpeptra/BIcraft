@@ -950,7 +950,7 @@ fn editor_ui(app: &mut App, ui: &mut Ui, rect: Rect, lens_list: &[Lens], act: &m
     let Some(tab_id) = v.active_tab().map(|q| q.id) else {
         return;
     };
-    let id = Id::new(("bicraft-dax-query-editor", tab_id));
+    let id = Id::unique(("bicraft-dax-query-editor", tab_id));
     if v.focus {
         ctx.memory_mut(|m| m.request_focus(id));
         v.focus = false;
@@ -1015,7 +1015,7 @@ fn editor_ui(app: &mut App, ui: &mut Ui, rect: Rect, lens_list: &[Lens], act: &m
                         .layouter(&mut layouter)
                         .show(ui);
                     o.response.response.widget_info(|| {
-                        egui::WidgetInfo::labeled(egui::WidgetType::TextEdit, true, l.t("DAX query", "Requête DAX"))
+                        egui::WidgetInfo::labeled(egui::Role::TextInput, true, l.t("DAX query", "Requête DAX"))
                     });
                     out = Some((o.galley_pos, o.galley.clone()));
                 });
@@ -1037,7 +1037,7 @@ fn editor_ui(app: &mut App, ui: &mut Ui, rect: Rect, lens_list: &[Lens], act: &m
         let sense = if apply_ok { Sense::click() } else { Sense::hover() };
         let resp = ui.interact(
             r,
-            Id::new(("bicraft-dax-lens", tab_id, lens.name.as_str())),
+            Id::unique(("bicraft-dax-lens", tab_id, lens.name.as_str())),
             sense,
         );
         let p = ui.painter().with_clip_rect(inner);
@@ -1069,7 +1069,7 @@ fn editor_ui(app: &mut App, ui: &mut Ui, rect: Rect, lens_list: &[Lens], act: &m
             ink,
         );
         let full = lens_label(lens, l);
-        resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, apply_ok, &full));
+        resp.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, apply_ok, &full));
         let tip = format!("{label} {}[{}]", lens.table, lens.name);
         if resp.on_hover_text(tip).clicked() && apply_ok {
             *act = Act::Apply(Some(lens.name.clone()));
@@ -1157,7 +1157,7 @@ fn results_ui(app: &mut App, ui: &mut Ui, rect: Rect) {
     ui.add_space(2.0);
     let max_h = (rect.max.y - ui.cursor().min.y - 32.0).max(answer::ROW_H * 4.0);
     match res.grid.as_mut() {
-        Some(g) => answer::grid(ui, g, Id::new(("bicraft-dax-grid", tab_id, k)), max_h, &t, l),
+        Some(g) => answer::grid(ui, g, Id::unique(("bicraft-dax-grid", tab_id, k)), max_h, &t, l),
         None => {
             ui.label(RichText::new(l.t("(no columns)", "(aucune colonne)")).color(t.text_faint));
         }
@@ -1243,7 +1243,7 @@ fn tab_strip(app: &mut App, ui: &mut Ui) {
                         ));
                         r.widget_info(|| {
                             egui::WidgetInfo::labeled(
-                                egui::WidgetType::TextEdit,
+                                egui::Role::TextInput,
                                 true,
                                 l.t("Query name", "Nom de la requête"),
                             )
@@ -1289,7 +1289,7 @@ fn tab_strip(app: &mut App, ui: &mut Ui) {
                         Lang::En => format!("Close {}", q.name),
                         Lang::Fr => format!("Fermer {}", q.name),
                     };
-                    cresp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, &tip));
+                    cresp.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, &tip));
                     if cresp.on_hover_text(tip.clone()).clicked() {
                         a.close = Some(q.id);
                     }
@@ -1303,7 +1303,7 @@ fn tab_strip(app: &mut App, ui: &mut Ui) {
                 }
                 icons::paint(ui.painter(), pr.shrink(5.0), Icon::Plus, t.text, full);
                 let tip = l.t("New query", "Nouvelle requête");
-                presp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, !full, tip));
+                presp.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, !full, tip));
                 if presp.on_hover_text(tip).clicked() && !full {
                     a.add = true;
                 }

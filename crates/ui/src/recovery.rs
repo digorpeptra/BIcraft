@@ -137,7 +137,7 @@ pub fn prompt(app: &mut App, ctx: &egui::Context) {
     let (mut recover, mut discard) = (false, false);
     let mut later = ctx.input(|i| i.key_pressed(egui::Key::Escape));
     egui::Window::new(l.t("Recover unsaved changes", "Récupérer les modifications non enregistrées"))
-        .id(egui::Id::new("bicraft-recovery-prompt"))
+        .id(egui::Id::unique("bicraft-recovery-prompt"))
         .collapsible(false)
         .resizable(false)
         .anchor(egui::Align2::CENTER_CENTER, Vec2::new(0.0, -40.0))

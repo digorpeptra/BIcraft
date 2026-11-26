@@ -152,7 +152,7 @@ pub fn show(
         })
         .inner;
     let resp = out.response.response.clone();
-    resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::TextEdit, true, label));
+    resp.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, true, label));
     // Tab and the arrows stay with the editor while it has the list
     if resp.has_focus() && b.completion.is_some() {
         ctx.memory_mut(|m| {

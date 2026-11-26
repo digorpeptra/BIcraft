@@ -5,7 +5,7 @@
 | Used for | `metadata.sqlitedb` inside the `DataModel` ABF backup: Analysis Services keeps the tabular model metadata (tables such as `Model`, `Table`, `Column`, `Measure`, `Relationship`, `Annotation`) in it |
 | Crate | `bicraft-sqlite` (layer L0, no workspace dependencies) |
 | Sources | The public-domain format description: <https://www.sqlite.org/fileformat2.html> (file format), <https://www.sqlite.org/datatype3.html> (affinity), <https://www.sqlite.org/lang_createtable.html> (`CREATE TABLE` grammar, rowid aliases, `WITHOUT ROWID`), <https://www.sqlite.org/gencol.html> (generated columns) |
-| Method | Implemented from those documents only. SQLite itself is used as the test oracle (fixtures written and read back through Python's `sqlite3` module); no SQLite code is ported. |
+| Method | Implemented from those documents only. SQLite itself is used as the test oracle (fixtures written and read back through the `rusqlite` dev-dependency, SQLite compiled from its bundled source; never a normal dependency); no SQLite code is ported. |
 | Date | 2026-10-13 |
 
 The reader works on an in-memory image: the file comes out of a decompressed archive, so there is
@@ -79,10 +79,17 @@ Every input is treated as hostile; malformed files produce `Err`, never a panic.
 
 ## Tests
 
-`crates/sqlite/tests/gen_fixtures.py` regenerates the fixtures under `crates/sqlite/tests/fixtures/`
-with Python's `sqlite3` module (the 32-reserved-bytes fixture uses `ctypes` to call
-`sqlite3_file_control(SQLITE_FCNTL_RESERVE_BYTES)` then `VACUUM`). Each `<name>.db` has a
-`<name>.json` with what SQLite reads back: header facts, tables, declared types, and every row
+`crates/sqlite/tests/gen_fixtures.rs` regenerates the fixtures under `crates/sqlite/tests/fixtures/`
+with SQLite through `rusqlite` (the 32-reserved-bytes fixture calls
+`sqlite3_file_control(SQLITE_FCNTL_RESERVE_BYTES)` then `VACUUM`); it is an ignored test,
+`cargo test -p bicraft-sqlite --test gen_fixtures -- --ignored`. The committed files were written
+by SQLite 3.49.1 (Python's `sqlite3` module, the generator's predecessor). Regenerated with SQLite
+3.54.1 (2026-11-26), every `.json` came out the same except `reserved_32.json`, whose rows 1-39
+hold `randomblob(0)` (one random byte each) and so change on every run; the `.db` files differ in
+the header's SQLite version (offsets 98-99), and in `basic.db` two `people.score` values (2.0 and
+0.0) are encoded as 8-byte floats where the committed file has integer serial types (SQLite reads
+the same values). The committed files were kept. Each `<name>.db` has a `<name>.json` with what
+SQLite reads back: header facts, tables, declared types, and every row
 (long text and blobs as length + FNV-1a 64 hash; the 10,000-row table as first/middle/last rows).
 The fixtures cover page sizes 512, 1024, 4096 and 65536, payloads at and around the overflow
 thresholds, UTF-16le/be, auto-vacuum FULL, reserved bytes, indexes, a `WITHOUT ROWID` table, a view,
@@ -172,8 +179,8 @@ source given to `rewrite`. Output is deterministic: the same calls give the same
 ### Writer tests
 
 `crates/sqlite/tests/writer.rs` checks every written file with our reader and with SQLite itself:
-`sqlite_check.py` opens it with Python's `sqlite3` module (`python3`, else `python`; skipped with a
-note when neither is available), requires `PRAGMA integrity_check` = `ok` and an empty
+SQLite opens it (`sqlite_report`, through the `rusqlite` dev-dependency; the check always runs),
+requires `PRAGMA integrity_check` = `ok` and an empty
 `PRAGMA foreign_key_check`, scans every index (`INDEXED BY`) and dumps the schema and all rows as
 JSON. Covered: every value type and integer width, special reals, unicode (including UTF-16le/be
 through `like`), NOCASE/RTRIM/DESC/UNIQUE indexes, automatic indexes (names checked against SQLite

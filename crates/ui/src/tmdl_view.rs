@@ -465,7 +465,7 @@ fn editor_ui(app: &mut App, ui: &mut Ui, rect: Rect) {
     let Some(tab_id) = v.active_tab().map(|q| q.id) else {
         return;
     };
-    let id = Id::new(("bicraft-tmdl-editor", tab_id));
+    let id = Id::unique(("bicraft-tmdl-editor", tab_id));
     if v.focus {
         ctx.memory_mut(|m| m.request_focus(id));
         v.focus = false;
@@ -500,7 +500,7 @@ fn editor_ui(app: &mut App, ui: &mut Ui, rect: Rect) {
                         ))
                         .show(ui);
                     o.response.response.widget_info(|| {
-                        egui::WidgetInfo::labeled(egui::WidgetType::TextEdit, true, l.t("TMDL script", "Script TMDL"))
+                        egui::WidgetInfo::labeled(egui::Role::TextInput, true, l.t("TMDL script", "Script TMDL"))
                     });
                     if let Some(c) = goto {
                         let mut st = o.state.clone();
@@ -594,7 +594,7 @@ fn tab_strip(app: &mut App, ui: &mut Ui) {
                         ));
                         r.widget_info(|| {
                             egui::WidgetInfo::labeled(
-                                egui::WidgetType::TextEdit,
+                                egui::Role::TextInput,
                                 true,
                                 l.t("Script name", "Nom du script"),
                             )
@@ -640,7 +640,7 @@ fn tab_strip(app: &mut App, ui: &mut Ui) {
                         Lang::En => format!("Close {}", q.name),
                         Lang::Fr => format!("Fermer {}", q.name),
                     };
-                    cresp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, &tip));
+                    cresp.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, &tip));
                     if cresp.on_hover_text(tip.clone()).clicked() {
                         a.close = Some(q.id);
                     }
@@ -654,7 +654,7 @@ fn tab_strip(app: &mut App, ui: &mut Ui) {
                 }
                 icons::paint(ui.painter(), pr.shrink(5.0), Icon::Plus, t.text, full);
                 let tip = l.t("New script", "Nouveau script");
-                presp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, !full, tip));
+                presp.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, !full, tip));
                 if presp.on_hover_text(tip).clicked() && !full {
                     a.add = true;
                 }

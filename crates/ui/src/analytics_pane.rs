@@ -822,7 +822,7 @@ fn add_ui(
     let ok = cx.enabled.is_ok() && ready;
     let label = format!("{} {title}", l.t("Add", "Ajouter"));
     let r = ui.add_enabled(ok, egui::Button::new(format!("+ {}", l.t("Add", "Ajouter"))));
-    r.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, ok, &label));
+    r.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, ok, &label));
     let r = match (&cx.enabled, ready) {
         (Err(why), _) => r.on_disabled_hover_text(format!("{} {why}", l.t("Unavailable:", "Indisponible :"))),
         (_, false) => r.on_disabled_hover_text(l.t(
@@ -939,7 +939,7 @@ fn option_ui(ui: &mut Ui, cx: &mut Cx<'_>, i: usize, head: &str, item: &Value, (
                         }
                     });
                 r.response
-                    .widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::ComboBox, ok, &name));
+                    .widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, ok, &name));
             }
             Ctl::Series => {
                 let mut list = cx.series.clone();
@@ -969,7 +969,7 @@ fn option_ui(ui: &mut Ui, cx: &mut Cx<'_>, i: usize, head: &str, item: &Value, (
                         .char_limit(200)
                         .desired_width(140.0),
                 );
-                r.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::TextEdit, ok, &name));
+                r.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, ok, &name));
                 if r.lost_focus() {
                     cx.drafts.remove(&ckey);
                     if text != now && !ui.input(|i| i.key_pressed(egui::Key::Escape)) {
@@ -994,7 +994,7 @@ fn option_ui(ui: &mut Ui, cx: &mut Cx<'_>, i: usize, head: &str, item: &Value, (
                         .speed(speed)
                         .max_decimals(decimals),
                 );
-                r.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Slider, ok, &name));
+                r.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Slider, ok, &name));
                 let busy = r.dragged() || r.has_focus();
                 let done = r.drag_stopped() || r.lost_focus() || (r.changed() && !busy);
                 if done {
@@ -1026,7 +1026,7 @@ fn remove_button(ui: &mut Ui, l: Lang, name: &str, ok: bool) -> bool {
         ok,
         false,
     );
-    r.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, ok, name));
+    r.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, ok, name));
     r.on_hover_text(name).clicked() && ok
 }
 
@@ -1051,7 +1051,7 @@ fn measure_combo(ui: &mut Ui, list: &[String], cur: Option<&str>, name: &str) ->
             }
         });
     r.response
-        .widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::ComboBox, true, name));
+        .widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, true, name));
     picked
 }
 

@@ -115,7 +115,7 @@ pub fn show(app: &mut App, ctx: &egui::Context) {
     let mut open = true;
     let mut close = false;
     egui::Window::new(l.t("Export data", "Exporter les données"))
-        .id(egui::Id::new("bicraft-export-data"))
+        .id(egui::Id::unique("bicraft-export-data"))
         .collapsible(false)
         .resizable(false)
         .open(&mut open)

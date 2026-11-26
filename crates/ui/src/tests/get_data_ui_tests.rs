@@ -176,7 +176,10 @@ fn get_data_connects_a_text_file_previews_it_and_loads_it() {
         .expect("Transform data");
     assert!(!t.accesskit_node().is_disabled());
     // the window keeps its size (a full-height separator in a row made it grow every frame)
-    let window = |h: &Harness<'_, App>| h.ctx.memory(|m| m.area_rect(egui::Id::new("bicraft-get-data")));
+    let window = |h: &Harness<'_, App>| {
+        h.ctx
+            .memory(|m| m.area_rect(egui::Id::unique("bicraft-get-data")))
+    };
     let before = window(&h);
     steps(&mut h, 3);
     assert_eq!(window(&h), before, "the Navigator grows");

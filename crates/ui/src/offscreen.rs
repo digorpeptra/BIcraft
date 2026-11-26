@@ -18,7 +18,7 @@ use std::sync::Arc;
 
 use egui::epaint::{ClippedPrimitive, Primitive, Vertex};
 use egui::{
-    Color32, ColorImage, Event, FullOutput, ImageData, Pos2, RawInput, Rect, TextureFilter, TextureId,
+    Color32, ColorImage, FullOutput, ImageData, Pos2, RawInput, Rect, TextureFilter, TextureId,
     TexturesDelta, Vec2, ViewportCommand, ViewportId,
 };
 
@@ -322,8 +322,6 @@ pub struct Offscreen {
     ppp: f32,
     frames: u64,
     raster: Raster,
-    /// Events for the next frame (the screenshots egui asked for).
-    events: Vec<Event>,
 }
 
 impl Offscreen {
@@ -346,7 +344,6 @@ impl Offscreen {
             ppp,
             frames: 0,
             raster: Raster::default(),
-            events: Vec::new(),
         };
         o.pixels()?;
         Ok(o)
@@ -370,7 +367,6 @@ impl Offscreen {
             time: Some(self.frames as f64 * FRAME_SECS),
             predicted_dt: FRAME_SECS as f32,
             focused: true,
-            events: std::mem::take(&mut self.events),
             ..Default::default()
         };
         if let Some(v) = input.viewports.get_mut(&ViewportId::ROOT) {
@@ -386,10 +382,10 @@ impl Offscreen {
         self.raster.apply(&mut out.textures_delta);
         let shots: Vec<_> = out
             .viewport_output
-            .iter()
-            .flat_map(|(id, v)| {
-                v.commands.iter().filter_map(move |c| match c {
-                    ViewportCommand::Screenshot(data) => Some((*id, data.clone())),
+            .values()
+            .flat_map(|v| {
+                v.commands.iter().filter_map(|c| match c {
+                    ViewportCommand::Screenshot(callback) => Some(callback.clone()),
                     _ => None,
                 })
             })
@@ -398,12 +394,8 @@ impl Offscreen {
             // a failed drawing leaves the request unanswered: the channel's own timeout says so
             if let Ok(img) = self.draw(&out) {
                 let img = Arc::new(img);
-                for (viewport_id, user_data) in shots {
-                    self.events.push(Event::Screenshot {
-                        viewport_id,
-                        user_data,
-                        image: Arc::clone(&img),
-                    });
+                for callback in shots {
+                    callback.complete(Arc::clone(&img));
                 }
                 self.ctx.request_repaint();
             }

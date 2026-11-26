@@ -492,7 +492,7 @@ pub fn show(app: &mut App, ctx: &egui::Context) {
     let mut open = true;
     let mut close = false;
     egui::Window::new(l.t("Quick measures", "Mesures rapides"))
-        .id(egui::Id::new("bicraft-quick-measures"))
+        .id(egui::Id::unique("bicraft-quick-measures"))
         .collapsible(false)
         .resizable(false)
         .open(&mut open)

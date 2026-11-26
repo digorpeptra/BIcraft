@@ -390,7 +390,9 @@ pub fn overlay(app: &mut App, ui: &Ui, rect: Rect, zoom: f32) {
         for (i, m) in c.modes.iter().enumerate() {
             let at = pos2(s.min.x + 2.0 + i as f32 * (ICON + GAP), s.min.y + 2.0);
             let b = Rect::from_min_size(at, vec2(ICON, ICON));
-            let id = ui.id().with(("bicraft-interaction", name(target), m.word()));
+            let id = ui
+                .scope_id()
+                .with(("bicraft-interaction", name(target), m.word()));
             let resp = ui.interact(b, id, Sense::click());
             let marked = !c.mixed && *m == c.current;
             if marked {
@@ -409,7 +411,7 @@ pub fn overlay(app: &mut App, ui: &Ui, rect: Rect, zoom: f32) {
             }
             icons::paint(&painter, b.shrink(3.0), m.icon(), t.text, false);
             let label = icon_label(*m, &target_title, l);
-            resp.widget_info(|| egui::WidgetInfo::selected(egui::WidgetType::Button, true, marked, &label));
+            resp.widget_info(|| egui::WidgetInfo::selected(egui::Role::Button, true, marked, &label));
             let mut tip = if c.shared_default && *m == c.default {
                 format!("{} {}", l.t("Default:", "Par défaut :"), m.label(l))
             } else {

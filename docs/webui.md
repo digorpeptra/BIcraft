@@ -157,7 +157,7 @@ cargo build --release -p bicraft-cli
   the binary it ships, prebuilt ones included. `cargo xtask deploy check` fails when the Dockerfile
   lacks any of these or pins another wasm-bindgen than Cargo.lock, and
   `cargo xtask deploy check --binary PATH` fails on a binary without the app.
-- **MSRV.** egui/eframe 0.36 need Rust 1.95, which is the workspace's `rust-version` since
+- **MSRV.** egui/eframe 0.36 and 0.37 need Rust 1.95, which is the workspace's `rust-version` since
   2026-11-24 (`bicraft-ui`, `bicraft-desktop` and `bicraft-web` inherit it); the CI MSRV job
   builds and tests the whole workspace on it.
 - **CI.** `cargo xtask ci` runs `cargo xtask webui check` (a wasm32 `cargo check` of the app,

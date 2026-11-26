@@ -254,7 +254,7 @@ fn painter_cursor(app: &App, ui: &Ui, resp: &Response) {
     let t = Tokens::of(app.prefs.theme);
     let painter = ui.ctx().layer_painter(egui::LayerId::new(
         egui::Order::Tooltip,
-        egui::Id::new("bicraft-format-painter-cursor"),
+        egui::Id::unique("bicraft-format-painter-cursor"),
     ));
     // the small buttons' icon size (widgets::small_button)
     let r = Rect::from_min_size(p + vec2(14.0, 10.0), vec2(17.0, 17.0));

@@ -1,4 +1,4 @@
-//! `read_sqlitedb` over a synthetic database written by Python's `sqlite3` (see gen_fixture.py).
+//! `read_sqlitedb` over a synthetic database written by SQLite (see gen_fixture.rs).
 
 use bicraft_metadata::{Error, read_sqlitedb, tables_from_sqlitedb};
 use bicraft_model::DataType;

@@ -201,14 +201,18 @@ pub fn show(app: &mut App, ui: &mut Ui) {
                         let (rect, resp) =
                             ui.allocate_exact_size(vec2(w, TABS_H - 6.0), Sense::click_and_drag());
                         rects.push(rect);
-                        let a11y = if p.hidden {
-                            format!("{} ({})", p.label, l.t("hidden", "masquée"))
+                        // a page whose snapshot gives no name still has an accessible one
+                        let name = if p.label.is_empty() {
+                            l.t("Page without a name", "Page sans nom")
                         } else {
-                            p.label.clone()
+                            p.label.as_str()
                         };
-                        resp.widget_info(|| {
-                            egui::WidgetInfo::selected(egui::WidgetType::SelectableLabel, true, on, &a11y)
-                        });
+                        let a11y = if p.hidden {
+                            format!("{name} ({})", l.t("hidden", "masquée"))
+                        } else {
+                            name.to_string()
+                        };
+                        resp.widget_info(|| egui::WidgetInfo::selected(egui::Role::Button, true, on, &a11y));
                         let painter = ui.painter();
                         if on {
                             painter.rect_filled(rect, CornerRadius::same(4), t.card);
@@ -377,7 +381,7 @@ pub fn show(app: &mut App, ui: &mut Ui) {
         // `+`: a new page at the end
         let (r, resp) = ui.allocate_exact_size(vec2(plus_w, TABS_H - 6.0), Sense::click());
         let label = l.t("Add a page", "Ajouter une page");
-        resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, label));
+        resp.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, label));
         if resp.hovered() || resp.has_focus() {
             ui.painter().rect_filled(r, CornerRadius::same(4), t.hover);
         }

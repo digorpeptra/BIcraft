@@ -18,11 +18,11 @@
 //! screenshot is egui's [`egui::ViewportCommand::Screenshot`]: the frame as the GPU drew it, as
 //! PNG, base64 in the reply.
 
-use std::sync::Arc;
 use std::sync::atomic::{AtomicU8, Ordering};
 use std::sync::mpsc::{Receiver, SyncSender, TryRecvError};
+use std::sync::{Arc, Mutex, PoisonError};
 
-use egui::{Event, UserData, ViewportCommand};
+use egui::{ScreenshotCallback, ViewportCommand};
 use serde_json::{Map, Value, json};
 
 use crate::app::{App, Tab as View};
@@ -329,6 +329,8 @@ pub struct Control {
     inbox: Option<Receiver<Job>>,
     waiting: Vec<Waiting>,
     shots: u64,
+    /// The screenshots egui's callbacks delivered, which the next [`pump`] answers.
+    taken: Taken,
 }
 
 impl Control {
@@ -348,9 +350,9 @@ impl Control {
     }
 }
 
-/// The screenshot number carried through egui's [`UserData`].
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct Shot(u64);
+/// The screenshots taken and not yet answered: each one's number and the frame, filled by the
+/// callback of egui's [`ScreenshotCallback`] (on whichever thread the shell reads the pixels).
+type Taken = Arc<Mutex<Vec<(u64, Arc<egui::ColorImage>)>>>;
 
 enum Outcome {
     Done(Result<Value, String>),
@@ -367,20 +369,7 @@ pub fn pump(app: &mut App, ctx: &egui::Context) {
     let now = ctx.input(|i| i.time);
     let frame = ctx.cumulative_frame_nr();
     // screenshots taken since the last frame
-    let shots: Vec<(u64, Arc<egui::ColorImage>)> = ctx.input(|i| {
-        i.raw
-            .events
-            .iter()
-            .filter_map(|e| match e {
-                Event::Screenshot { user_data, image, .. } => user_data
-                    .data
-                    .as_ref()
-                    .and_then(|d| d.downcast_ref::<Shot>())
-                    .map(|s| (s.0, Arc::clone(image))),
-                _ => None,
-            })
-            .collect()
-    });
+    let shots = std::mem::take(&mut *c.taken.lock().unwrap_or_else(PoisonError::into_inner));
     for (n, image) in shots {
         if let Some(pos) = c
             .waiting
@@ -637,7 +626,16 @@ fn handle(app: &mut App, c: &mut Control, ctx: &egui::Context, r: &Request, fram
         "ui.screenshot" => {
             c.shots = c.shots.wrapping_add(1);
             let n = c.shots;
-            ctx.send_viewport_cmd(ViewportCommand::Screenshot(UserData::new(Shot(n))));
+            let (taken, repaint) = (Arc::clone(&c.taken), ctx.clone());
+            ctx.send_viewport_cmd(ViewportCommand::Screenshot(ScreenshotCallback::new(
+                move |image| {
+                    taken
+                        .lock()
+                        .unwrap_or_else(PoisonError::into_inner)
+                        .push((n, image));
+                    repaint.request_repaint();
+                },
+            )));
             ctx.request_repaint();
             Outcome::Later(Wait::Shot(n), SHOT_SECS)
         }

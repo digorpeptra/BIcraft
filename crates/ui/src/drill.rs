@@ -188,10 +188,10 @@ pub fn header(app: &mut App, ui: &Ui, page_rect: Rect, zoom: f32) -> bool {
             Icon::Next | Icon::Expand => flag("can_down"),
         };
         let mode_on = ic == Icon::Mode && flag("mode");
-        let id = ui.id().with(("bicraft-drill-icon", &name, ic.action()));
+        let id = ui.scope_id().with(("bicraft-drill-icon", &name, ic.action()));
         let resp = ui.interact(r, id, if enabled { Sense::click() } else { Sense::hover() });
         let label = ic.label(l, mode_on);
-        resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, enabled, label));
+        resp.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, enabled, label));
         let bg = if mode_on {
             t.accent_soft
         } else if resp.hovered() && enabled {
@@ -342,9 +342,9 @@ pub fn expand_buttons(app: &mut App, ui: &Ui, page_rect: Rect, zoom: f32) -> boo
         } else {
             format!("{} {words}", l.t("Expand", "Développer"))
         };
-        let id = ui.id().with(("bicraft-matrix-pm", &visual, &words));
+        let id = ui.scope_id().with(("bicraft-matrix-pm", &visual, &words));
         let resp = ui.interact(screen, id, Sense::click());
-        resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, &label));
+        resp.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, &label));
         if resp.hovered() {
             on = true;
             ui.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
@@ -614,7 +614,7 @@ pub fn tooltip(app: &mut App, ui: &Ui, resp: &Response, hit: Option<&bicraft_ren
         let (id, size) = (tex.id(), *size);
         let _ = resp.clone().on_hover_ui_at_pointer(|ui| {
             let r = ui.add(egui::Image::new((id, size)));
-            r.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Other, true, "Report page tooltip"));
+            r.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Unknown, true, "Report page tooltip"));
         });
     }
     true

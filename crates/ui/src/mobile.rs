@@ -370,7 +370,7 @@ fn remove_button(app: &mut App, ui: &Ui, rect: Rect, zoom: f32) {
     let l = app.lang;
     let at = pos2(s.right() - 22.0, s.top() + 2.0);
     let mut clicked = false;
-    egui::Area::new(Id::new("bicraft-mobile-remove"))
+    egui::Area::new(Id::unique("bicraft-mobile-remove"))
         .fixed_pos(at)
         .order(egui::Order::Foreground)
         .show(ui.ctx(), |ui| {
@@ -693,7 +693,7 @@ pub fn pane(app: &mut App, ui: &mut Ui) {
                 } else {
                     Sense::click()
                 };
-                let resp = ui.interact(rect, Id::new(("bicraft-page-visual", &r.name)), sense);
+                let resp = ui.interact(rect, Id::unique(("bicraft-page-visual", &r.name)), sense);
                 let on = sel.contains(&r.name);
                 let p = ui.painter();
                 if on {
@@ -762,7 +762,7 @@ pub fn pane(app: &mut App, ui: &mut Ui) {
                 } else {
                     format!("{} ({appearance})", r.label)
                 };
-                resp.widget_info(|| egui::WidgetInfo::selected(egui::WidgetType::Button, true, on, &a11y));
+                resp.widget_info(|| egui::WidgetInfo::selected(egui::Role::Button, true, on, &a11y));
                 if resp.drag_started() && can.is_ok() {
                     DragAndDrop::set_payload(
                         ui.ctx(),
@@ -789,7 +789,7 @@ pub fn pane(app: &mut App, ui: &mut Ui) {
     {
         let painter = ui.ctx().layer_painter(egui::LayerId::new(
             egui::Order::Tooltip,
-            Id::new("bicraft-mobile-drag-chip"),
+            Id::unique("bicraft-mobile-drag-chip"),
         ));
         let galley = painter.layout_no_wrap(clip(&d.label, 40), theme::font(12.0), t.text);
         let r = Rect::from_min_size(pos + vec2(12.0, 10.0), galley.size() + vec2(16.0, 8.0));

@@ -758,7 +758,7 @@ fn pane_ui(app: &mut App, ui: &mut Ui, rect: Rect) {
     );
     r.widget_info(|| {
         egui::WidgetInfo::labeled(
-            egui::WidgetType::TextEdit,
+            egui::Role::TextInput,
             true,
             l.t("Search the tables", "Rechercher les tables"),
         )
@@ -788,7 +788,7 @@ fn pane_ui(app: &mut App, ui: &mut Ui, rect: Rect) {
                 }
                 let on = shown.as_deref() == Some(name.as_str()) && !stat;
                 let r = row(ui, Icon::Table, name, on, *hidden, 0.0, &t);
-                r.widget_info(|| egui::WidgetInfo::selected(egui::WidgetType::Button, true, on, name));
+                r.widget_info(|| egui::WidgetInfo::selected(egui::Role::Button, true, on, name));
                 if r.clicked() {
                     pick_table = Some(name.clone());
                 }
@@ -810,9 +810,7 @@ fn pane_ui(app: &mut App, ui: &mut Ui, rect: Rect) {
                         let icon = if *calc { Icon::Calculator } else { Icon::Column };
                         let r = row(ui, icon, c, con, false, 16.0, &t);
                         let label = format!("{} {name}[{c}]", l.t("Column", "Colonne"));
-                        r.widget_info(|| {
-                            egui::WidgetInfo::selected(egui::WidgetType::Button, true, con, &label)
-                        });
+                        r.widget_info(|| egui::WidgetInfo::selected(egui::Role::Button, true, con, &label));
                         if r.clicked() {
                             pick_column = Some((name.clone(), c.clone()));
                         }
@@ -832,7 +830,7 @@ fn pane_ui(app: &mut App, ui: &mut Ui, rect: Rect) {
                     }
                     let r = row(ui, Icon::List, name, false, false, 0.0, &t);
                     let label = format!("{} {name}", l.t("Preview query", "Aperçu de la requête"));
-                    r.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, &label));
+                    r.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, &label));
                     if r.on_hover_text(l.t(
                         "Preview the query's first rows",
                         "Afficher les premières lignes de la requête",
@@ -1049,7 +1047,7 @@ fn grid(app: &mut App, ui: &mut Ui, t: &Tokens, l: Lang) -> Vec<Act> {
         })
         .collect();
     let total: f32 = widths.iter().sum::<f32>().max(1.0);
-    let salt = Id::new("bicraft-data-grid");
+    let salt = Id::unique("bicraft-data-grid");
     let selected_col = dv.column.clone();
     let sort = dv.sort.clone();
     let filtered: BTreeSet<String> = dv.filters.keys().cloned().collect();
@@ -1087,7 +1085,7 @@ fn grid(app: &mut App, ui: &mut Ui, t: &Tokens, l: Lang) -> Vec<Act> {
                 let sorted = sort.as_ref().filter(|(s, _)| *s == col.name).map(|(_, d)| !*d);
                 let filt = filtered.contains(&col.name);
                 let label = col.name.clone();
-                resp.widget_info(|| egui::WidgetInfo::selected(egui::WidgetType::Button, true, on, &label));
+                resp.widget_info(|| egui::WidgetInfo::selected(egui::Role::Button, true, on, &label));
                 if on {
                     ui.painter().rect_filled(r, CornerRadius::ZERO, t.selected);
                 } else if resp.hovered() {
@@ -1145,7 +1143,7 @@ fn grid(app: &mut App, ui: &mut Ui, t: &Tokens, l: Lang) -> Vec<Act> {
                 if !stat {
                     let ar = ui.interact(arrow, salt.with(("menu", c)), Sense::click());
                     let mname = format!("{} {}", l.t("Sort and filter", "Trier et filtrer"), col.name);
-                    ar.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, &mname));
+                    ar.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, &mname));
                     if ar.hovered() {
                         ui.painter().rect_filled(arrow, CornerRadius::same(3), t.hover);
                     }
@@ -1267,7 +1265,7 @@ fn grid(app: &mut App, ui: &mut Ui, t: &Tokens, l: Lang) -> Vec<Act> {
                         }
                         // the cells of this row for the accessibility tree: the first column's text
                         let first = app.cmd.data.cell(r, 0).map(text).unwrap_or_default();
-                        resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Other, true, &first));
+                        resp.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Unknown, true, &first));
                     }
                 });
         });
@@ -1388,7 +1386,7 @@ fn menu_ui(app: &mut App, ctx: &egui::Context) {
     let mut custom: Option<crate::data_filter::Custom> = None;
     let col = app.cmd.data.columns.iter().find(|c| c.name == m.column).cloned();
     let current = app.cmd.data.filters.get(&m.column).cloned();
-    let resp = egui::Area::new(Id::new("bicraft-data-menu"))
+    let resp = egui::Area::new(Id::unique("bicraft-data-menu"))
         .fixed_pos(m.at)
         .order(egui::Order::Foreground)
         .show(ctx, |ui| {
@@ -1422,7 +1420,7 @@ fn menu_ui(app: &mut App, ctx: &egui::Context) {
                 );
                 r.widget_info(|| {
                     egui::WidgetInfo::labeled(
-                        egui::WidgetType::TextEdit,
+                        egui::Role::TextInput,
                         true,
                         l.t("Search the values", "Rechercher les valeurs"),
                     )
@@ -1626,7 +1624,7 @@ fn picker(
                     }
                 });
             r.response
-                .widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::ComboBox, enabled, label));
+                .widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, enabled, label));
         });
     });
     picked
@@ -1664,7 +1662,7 @@ pub fn column_tools(app: &mut App, ui: &mut Ui) {
                 );
                 r.widget_info(|| {
                     egui::WidgetInfo::labeled(
-                        egui::WidgetType::TextEdit,
+                        egui::Role::TextInput,
                         enabled,
                         l.t("Column name", "Nom de la colonne"),
                     )

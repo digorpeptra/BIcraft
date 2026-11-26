@@ -162,7 +162,7 @@ pub fn show(app: &mut App, ctx: &egui::Context) {
         "Autodetect relationships",
         "Détecter automatiquement les relations",
     ))
-    .id(egui::Id::new("bicraft-autodetect"))
+    .id(egui::Id::unique("bicraft-autodetect"))
     .collapsible(false)
     .resizable(false)
     .open(&mut open)

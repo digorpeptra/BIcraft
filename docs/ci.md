@@ -157,7 +157,7 @@ demand (Actions > Nightly > Run workflow).
 - **Concurrency.** A new push to a pull request cancels its running checks; runs on main always
   finish, since they save the caches.
 - **Pinned actions.** Every `uses:` names a commit SHA, with its tag in a comment
-  (`actions/checkout@<sha> # v5.1.0`); a moved tag cannot change what runs. Dependabot
+  (`actions/checkout@<sha> # v7.0.1`); a moved tag cannot change what runs. Dependabot
   (`.github/dependabot.yml`) proposes the new SHA and tag weekly, all actions in one pull request.
 
 ## Assets and dependencies

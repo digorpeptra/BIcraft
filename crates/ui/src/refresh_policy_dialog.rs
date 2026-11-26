@@ -270,7 +270,7 @@ pub fn show(app: &mut App, ctx: &egui::Context) {
         "Incremental refresh and real-time data",
         "Actualisation incrémentielle et données en temps réel",
     ))
-    .id(egui::Id::new("bicraft-incremental-refresh"))
+    .id(egui::Id::unique("bicraft-incremental-refresh"))
     .collapsible(false)
     .resizable(false)
     .open(&mut open)
@@ -317,7 +317,7 @@ fn units(ui: &mut Ui, id: &str, label: &str, unit: &mut &'static str, enabled: b
                 }
             });
         r.response
-            .widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::ComboBox, enabled, label));
+            .widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, enabled, label));
     });
 }
 
@@ -326,7 +326,7 @@ fn number(ui: &mut Ui, text: &mut String, label: &str, enabled: bool) {
         enabled,
         egui::TextEdit::singleline(text).char_limit(6).desired_width(56.0),
     );
-    r.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::TextEdit, enabled, label));
+    r.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, enabled, label));
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -479,7 +479,7 @@ fn body(
                         }
                     });
                 r.response
-                    .widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::ComboBox, true, label));
+                    .widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, true, label));
             }
         });
     });

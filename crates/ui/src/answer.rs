@@ -660,7 +660,7 @@ pub fn grid(ui: &mut Ui, g: &mut Grid, salt: egui::Id, max_h: f32, t: &Tokens, l
                     None => l.t("click to sort", "cliquer pour trier"),
                 };
                 resp.widget_info(|| {
-                    egui::WidgetInfo::selected(egui::WidgetType::Button, true, sorted.is_some(), name)
+                    egui::WidgetInfo::selected(egui::Role::Button, true, sorted.is_some(), name)
                 });
                 if resp.hovered() {
                     ui.painter().rect_filled(r, CornerRadius::ZERO, t.hover);

@@ -202,10 +202,10 @@ pub fn buttons(app: &mut App, ui: &Ui, page_rect: Rect, zoom: f32) -> bool {
         if !page_rect.intersects(screen) {
             continue;
         }
-        let id = ui.id().with(("bicraft-decomp", &c.visual, k));
+        let id = ui.scope_id().with(("bicraft-decomp", &c.visual, k));
         let resp = ui.interact(screen, id, Sense::click());
         let label = c.label.clone();
-        resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, &label));
+        resp.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, &label));
         if resp.has_focus() {
             let tokens = crate::theme::Tokens::get(ui.ctx());
             ui.painter().rect_stroke(

@@ -15,7 +15,7 @@ use crate::theme::Tokens;
 const MAX_TARGETS: usize = 5_000;
 
 fn id() -> Id {
-    Id::new("bicraft-point-focus")
+    Id::unique("bicraft-point-focus")
 }
 
 /// The focused data point: its visual and its index among the visual's points.
@@ -189,7 +189,7 @@ pub fn paint(app: &App, ui: &Ui, rect: Rect, zoom: f32) {
     if t.tip.is_empty() {
         return;
     }
-    egui::Area::new(Id::new("bicraft-point-tip"))
+    egui::Area::new(Id::unique("bicraft-point-tip"))
         .fixed_pos(r.right_bottom() + vec2(4.0, 4.0))
         .order(egui::Order::Tooltip)
         .interactable(false)

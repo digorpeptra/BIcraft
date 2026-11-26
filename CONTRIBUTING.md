@@ -7,8 +7,9 @@ the rules that keep BIcraft safe to run on hostile files and clean to distribute
 ## Development setup
 
 - **Rust:** stable, 1.95 or newer (the MSRV in `Cargo.toml`, set by egui), with `rustfmt` and `clippy`.
-- **Python 3 (optional):** the SQLite writer tests use Python's `sqlite3` module as an oracle
-  when `python3` or `python` is on `PATH`. Without it they skip those checks with a note.
+- **C compiler:** the SQLite tests use real SQLite as an oracle through the `rusqlite`
+  dev-dependency, which compiles SQLite's bundled source (MSVC Build Tools on Windows, `cc` on
+  Linux). It is a test-only dependency; BIcraft itself does not link SQLite.
 - **Linux:** a change must build and pass its tests on Linux as well as on Windows. On Windows,
   use WSL (an Ubuntu distro with `cargo` installed) and run `cargo xtask wsl ci`.
 - **Build output:** if your checkout lives in a synced folder (OneDrive, Dropbox…), set

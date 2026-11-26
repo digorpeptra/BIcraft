@@ -364,7 +364,7 @@ pub fn page_cards(app: &mut App, ui: &mut Ui) {
                                     });
                                 let a11y = format!("{title} {name}");
                                 r.response.widget_info(|| {
-                                    egui::WidgetInfo::labeled(egui::WidgetType::ComboBox, true, &a11y)
+                                    egui::WidgetInfo::labeled(egui::Role::ComboBox, true, &a11y)
                                 });
                             });
                             (if st.applied { "applied" } else { "available" }, CARD_ROWS)
@@ -404,9 +404,7 @@ pub fn page_cards(app: &mut App, ui: &mut Ui) {
                                 .frame(false),
                         );
                         let a11y = format!("{reset} {title}");
-                        r.widget_info(|| {
-                            egui::WidgetInfo::labeled(egui::WidgetType::Button, state.is_ok(), &a11y)
-                        });
+                        r.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, state.is_ok(), &a11y));
                         if r.clicked() {
                             let mut m = Map::new();
                             m.insert("reset".into(), json!(true));
@@ -485,7 +483,7 @@ fn control(
                     }
                 });
             r.response
-                .widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::ComboBox, true, name));
+                .widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, true, name));
             picked.map(|f| json!(f))
         }
         Ctl::Percent | Ctl::Size => {
@@ -513,7 +511,7 @@ fn control(
                 dv = dv.suffix(" %");
             }
             let r = ui.add(dv);
-            r.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Slider, true, name));
+            r.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Slider, true, name));
             let busy = r.dragged() || r.has_focus();
             let done = r.drag_stopped() || r.lost_focus() || (r.changed() && !busy);
             if done {

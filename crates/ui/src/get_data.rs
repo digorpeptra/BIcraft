@@ -836,7 +836,7 @@ pub fn show(app: &mut App, ctx: &egui::Context) {
         _ => Vec::new(),
     };
     egui::Window::new(title)
-        .id(egui::Id::new("bicraft-get-data"))
+        .id(egui::Id::unique("bicraft-get-data"))
         .collapsible(false)
         .resizable(false)
         .open(&mut open)
@@ -1245,7 +1245,7 @@ fn navigator(ui: &mut Ui, d: &mut GetData, l: Lang, t: &Tokens, acts: &mut Vec<A
                             let check = ui.add_enabled(ok, egui::Checkbox::without_text(&mut on));
                             let label = format!("{} {}", l.t("Load", "Charger"), it.name);
                             check.widget_info(|| {
-                                egui::WidgetInfo::selected(egui::WidgetType::Checkbox, ok, on, &label)
+                                egui::WidgetInfo::selected(egui::Role::CheckBox, ok, on, &label)
                             });
                             if check.changed() {
                                 if on {

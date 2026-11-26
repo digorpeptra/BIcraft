@@ -21,8 +21,9 @@ bicraft-http.workspace = true
 bicraft-ui.workspace = true
 serde_json.workspace = true
 # The window: egui/eframe with the wgpu backend, the versions DeckCraft uses (MIT OR Apache-2.0).
-eframe = { version = "0.36", default-features = false, features = ["default_fonts", "wgpu", "accesskit", "links", "wayland", "x11"] }
-egui = "0.36"
+# `clipboard`: copy, cut and paste in text fields through egui-winit (a feature of its own since 0.37).
+eframe = { version = "0.37", default-features = false, features = ["default_fonts", "wgpu", "accesskit", "clipboard", "links", "wayland", "x11"] }
+egui = "0.37"
 # The OS language for the UI (MIT OR Apache-2.0; its platform calls are the crate's own).
 sys-locale = "0.3"
 
@@ -33,7 +34,7 @@ bicraft-locale = { workspace = true, features = ["clock"] }
 # Remote mode: a blocking HTTPS client (rustls with the bundled Mozilla roots), as crates/auth.
 ureq = { version = "3", default-features = false, features = ["rustls"] }
 # Native file dialogs (MIT; on Linux through the XDG desktop portal).
-rfd = "0.17"
+rfd = "0.18"
 # The Paste button reads the OS clipboard (MIT OR Apache-2.0; already egui-winit's clipboard).
 arboard = { version = "3.6", default-features = false }
 
@@ -42,7 +43,7 @@ arboard = { version = "3.6", default-features = false }
 windows-registry = "0.6"
 
 [dev-dependencies]
-egui_kittest = "0.36"
+egui_kittest = "0.37"
 bicraft-render.workspace = true
 bicraft-mcp.workspace = true
 bicraft-auth.workspace = true

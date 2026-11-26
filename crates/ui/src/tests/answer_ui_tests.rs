@@ -230,6 +230,7 @@ fn a_hundred_thousand_rows_scroll_without_slowing_down() {
     h.step();
     for _ in 0..30 {
         h.event(egui::Event::MouseWheel {
+            source: egui::MouseWheelSource::Wheel,
             unit: egui::MouseWheelUnit::Page,
             delta: egui::vec2(0.0, -2000.0),
             phase: egui::TouchPhase::Move,

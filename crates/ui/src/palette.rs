@@ -251,7 +251,7 @@ pub fn show(app: &mut App, ctx: &egui::Context) {
         chosen = Some((r.id, shift));
     }
     egui::Window::new(l.t("Command palette", "Palette de commandes"))
-        .id(egui::Id::new("bicraft-palette"))
+        .id(egui::Id::unique("bicraft-palette"))
         .title_bar(false)
         .collapsible(false)
         .resizable(false)
@@ -381,9 +381,7 @@ fn row(ui: &mut egui::Ui, r: &Row, selected: bool, t: &Tokens, l: Lang) -> egui:
         );
     }
     let label = r.label;
-    resp.widget_info(|| {
-        egui::WidgetInfo::selected(egui::WidgetType::SelectableLabel, enabled, selected, label)
-    });
+    resp.widget_info(|| egui::WidgetInfo::selected(egui::Role::Button, enabled, selected, label));
     resp
 }
 

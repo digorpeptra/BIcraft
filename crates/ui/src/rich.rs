@@ -1036,7 +1036,7 @@ fn editor_ui(app: &mut App, ui: &mut Ui, screen: Rect, zoom: f32) {
         .map(|c| if c.a() < 255 { Color32::WHITE.blend(c) } else { c })
         .unwrap_or(Color32::WHITE);
     let ctx = ui.ctx().clone();
-    let id = Id::new("bicraft-textbox-editor");
+    let id = Id::unique("bicraft-textbox-editor");
     let Some(ed) = app.cmd.rich.editor.as_mut() else {
         return;
     };
@@ -1323,7 +1323,7 @@ fn buttons_window(app: &mut App, ctx: &egui::Context) {
     let mut open = true;
     let mut picked = None;
     egui::Window::new(l.t("Insert a button", "Insérer un bouton"))
-        .id(Id::new("bicraft-insert-buttons"))
+        .id(Id::unique("bicraft-insert-buttons"))
         .open(&mut open)
         .collapsible(false)
         .anchor(egui::Align2::CENTER_CENTER, egui::vec2(0.0, -20.0))
@@ -1372,7 +1372,7 @@ fn choose_image_window(app: &mut App, ctx: &egui::Context) {
     let mut picked: Option<String> = None;
     let mut relist = false;
     egui::Window::new(l.t("Choose an image", "Choisir une image"))
-        .id(Id::new("bicraft-choose-image"))
+        .id(Id::unique("bicraft-choose-image"))
         .open(&mut open)
         .collapsible(false)
         .anchor(egui::Align2::CENTER_CENTER, egui::vec2(0.0, -20.0))
@@ -1453,7 +1453,7 @@ fn image_window(app: &mut App, ctx: &egui::Context) {
     let mut open = true;
     let (mut apply, mut replace) = (false, false);
     egui::Window::new(l.t("Image", "Image"))
-        .id(Id::new("bicraft-image-options"))
+        .id(Id::unique("bicraft-image-options"))
         .open(&mut open)
         .collapsible(false)
         .anchor(egui::Align2::CENTER_CENTER, egui::vec2(0.0, -20.0))
@@ -1529,7 +1529,7 @@ fn action_window(app: &mut App, ctx: &egui::Context) {
     let mut open = true;
     let (mut apply, mut style) = (false, false);
     egui::Window::new(l.t("Action", "Action"))
-        .id(Id::new("bicraft-action-editor"))
+        .id(Id::unique("bicraft-action-editor"))
         .open(&mut open)
         .collapsible(false)
         .anchor(egui::Align2::CENTER_CENTER, egui::vec2(0.0, -20.0))
@@ -1789,7 +1789,7 @@ fn page_window(app: &mut App, ctx: &egui::Context) {
     let mut pick: Option<bool> = None;
     let mut remove: Option<bool> = None;
     egui::Window::new(l.t("Page format", "Format de la page"))
-        .id(Id::new("bicraft-page-format"))
+        .id(Id::unique("bicraft-page-format"))
         .open(&mut open)
         .collapsible(false)
         .anchor(egui::Align2::CENTER_CENTER, egui::vec2(0.0, -20.0))

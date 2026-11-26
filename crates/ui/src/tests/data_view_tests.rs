@@ -182,6 +182,7 @@ fn the_data_view_pages_a_table_as_it_scrolls() {
     h.hover_at(grid);
     for _ in 0..30 {
         h.event(Event::MouseWheel {
+            source: egui::MouseWheelSource::Wheel,
             unit: egui::MouseWheelUnit::Point,
             delta: egui::vec2(0.0, -2000.0),
             modifiers: Modifiers::NONE,

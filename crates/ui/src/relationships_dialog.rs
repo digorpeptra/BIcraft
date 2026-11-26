@@ -614,7 +614,7 @@ pub fn show(app: &mut App, ctx: &egui::Context) {
         let mut autodetect = false;
         let mut edit_row = None;
         egui::Window::new(l.t("Manage relationships", "Gérer les relations"))
-            .id(egui::Id::new("bicraft-manage-relationships"))
+            .id(egui::Id::unique("bicraft-manage-relationships"))
             .collapsible(false)
             .resizable(false)
             .open(&mut open)
@@ -657,7 +657,7 @@ pub fn show(app: &mut App, ctx: &egui::Context) {
             l.t("New relationship", "Nouvelle relation")
         };
         egui::Window::new(title)
-            .id(egui::Id::new("bicraft-edit-relationship"))
+            .id(egui::Id::unique("bicraft-edit-relationship"))
             .collapsible(false)
             .resizable(false)
             .open(&mut open)
@@ -766,7 +766,7 @@ fn manage_body(
                         let label = format!("{} {from} → {to}", l.t("Active:", "Active :"));
                         let resp = ui.checkbox(&mut a, "");
                         resp.widget_info(|| {
-                            egui::WidgetInfo::selected(egui::WidgetType::Checkbox, true, a, &label)
+                            egui::WidgetInfo::selected(egui::Role::CheckBox, true, a, &label)
                         });
                         if resp.changed() {
                             let mut p = r.reference();
@@ -865,7 +865,7 @@ fn combo(
                 }
             });
         r.response
-            .widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::ComboBox, enabled, label));
+            .widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, enabled, label));
     });
     picked
 }
@@ -1107,12 +1107,7 @@ fn preview_grid(ui: &mut Ui, side: usize, s: &mut Side, columns: &[String], l: L
                                 let label = format!("{}[{c}]", s.table);
                                 let r = ui.selectable_label(on, RichText::new(c).font(theme::bold(12.0)));
                                 r.widget_info(|| {
-                                    egui::WidgetInfo::selected(
-                                        egui::WidgetType::SelectableLabel,
-                                        true,
-                                        on,
-                                        &label,
-                                    )
+                                    egui::WidgetInfo::selected(egui::Role::Button, true, on, &label)
                                 });
                                 if r.clicked() && !on {
                                     s.column = Some(c.clone());

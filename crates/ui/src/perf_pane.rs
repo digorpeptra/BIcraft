@@ -486,7 +486,7 @@ fn row(app: &mut App, ui: &mut Ui, e: &Value, t: &Tokens) {
                 egui::TextStyle::Body.resolve(ui.style()),
                 t.text,
             );
-            r.widget_info(|| egui::WidgetInfo::selected(egui::WidgetType::Button, true, open, &label));
+            r.widget_info(|| egui::WidgetInfo::selected(egui::Role::Button, true, open, &label));
             toggle = r
                 .on_hover_text(l.t("Show the details", "Afficher le détail"))
                 .clicked();

@@ -373,7 +373,7 @@ fn paint(app: &mut App, ctx: &Context) {
             .collect(),
     };
     let t = Tokens::of(app.prefs.theme);
-    let painter = ctx.layer_painter(LayerId::new(Order::Foreground, Id::new("bicraft-key-tips")));
+    let painter = ctx.layer_painter(LayerId::new(Order::Foreground, Id::unique("bicraft-key-tips")));
     let mut drawn: Vec<(String, Rect)> = Vec::new();
     for (code, r) in marks {
         let w = BADGE.x.max(10.0 + 8.0 * code.chars().count() as f32);

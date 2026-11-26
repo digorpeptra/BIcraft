@@ -398,7 +398,7 @@ pub fn show(app: &mut App, ui: &mut Ui) {
                         );
                         let edit_label = format!("{} {}", l.t("Rename", "Renommer"), row.label);
                         edit.widget_info(|| {
-                            egui::WidgetInfo::labeled(egui::WidgetType::TextEdit, true, &edit_label)
+                            egui::WidgetInfo::labeled(egui::Role::TextInput, true, &edit_label)
                         });
                         if focus {
                             edit.request_focus();

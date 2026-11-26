@@ -144,7 +144,7 @@ pub fn show(app: &mut App, ctx: &egui::Context) {
     let mut open = true;
     let mut close = false;
     egui::Window::new(l.t("View as roles", "Afficher en tant que rôles"))
-        .id(egui::Id::new("bicraft-view-as"))
+        .id(egui::Id::unique("bicraft-view-as"))
         .collapsible(false)
         .resizable(false)
         .open(&mut open)

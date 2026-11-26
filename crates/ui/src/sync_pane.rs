@@ -169,7 +169,7 @@ pub fn show(app: &mut App, ui: &mut Ui) {
                 );
                 group.widget_info(|| {
                     egui::WidgetInfo::labeled(
-                        egui::WidgetType::TextEdit,
+                        egui::Role::TextInput,
                         true,
                         l.t("Sync group name", "Nom du groupe de synchronisation"),
                     )
