@@ -21,7 +21,7 @@ bicraft-http.workspace = true
 bicraft-ui.workspace = true
 serde_json.workspace = true
 # The window: egui/eframe with the wgpu backend, the versions DeckCraft uses (MIT OR Apache-2.0).
-eframe = { version = "0.36", default-features = false, features = ["default_fonts", "wgpu", "accesskit", "links", "wayland", "x11"] }
+eframe = { version = "0.37", default-features = false, features = ["default_fonts", "wgpu", "accesskit", "links", "wayland", "x11"] }
 egui = "0.36"
 # The OS language for the UI (MIT OR Apache-2.0; its platform calls are the crate's own).
 sys-locale = "0.3"
