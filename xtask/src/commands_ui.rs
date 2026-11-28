@@ -21,6 +21,7 @@ const TABS: &[(&str, bool)] = &[
     ("Data", false),
     ("Analyze", false),
     ("View", false),
+    ("Optimize", false),
     ("Visual", true),
     ("Table", true),
     ("Measure", true),
@@ -334,10 +335,10 @@ fn render(rows: &[Row]) -> String {
          group of a ribbon tab, a context menu, or the command palette only (Ctrl+Shift+P), with a short UI \
          label and an icon; an optional shortcut; and what the session needs before the button is enabled. \
          The palette lists every command the session's role and server policy allow, whatever its place. \
-         `list_commands` and `bicraft describe` show the same fields (`place`, `shortcut`, `needs`, `form`; \
+         `list_commands` and `bicraft-cli describe` show the same fields (`place`, `shortcut`, `needs`, `form`; \
          with a session also `enabled` and `disabled_reason`), see [mcp.md](mcp.md). The types are in \
          `crates/engine/src/command_ui.rs`; the tabs follow docs/design.md §5 and Power BI \
-         Desktop's ribbon (File backstage, Home, Insert, then Report, Model, Data, Analyze and View, plus the \
+         Desktop's ribbon (File backstage, Home, Insert, then Report, Model, Data, Analyze, View and Optimize, plus the \
          contextual Visual, Table and Measure tabs that appear with a selection).\n\n",
     );
     s.push_str(

@@ -1,8 +1,10 @@
 //! `visual.records`: "See records" of a data point, as Power BI Desktop's right-click on a point
 //! shows the rows behind it (docs/mcp.md "See records"). The point is what the renderer's hit
 //! map gives a click (`[{c, v}]`: a data column of the visual and its value, as `view.interact`
-//! `select` takes it); the rows are those of the table the visual summarizes (the home table of
-//! its first measure, else the table of its first aggregated column, else of its first column)
+//! `select` takes it); the rows are those of the table the visual summarizes (the table its first
+//! measure's expression reads, [`measure_table`], else that measure's home table; else the table
+//! of its first aggregated column, else of its first column; the rows of that measure's detail
+//! rows expression when it has one)
 //! under the point's values, computed by BIcraft's DAX evaluator as
 //! `EVALUATE CALCULATETABLE('Table', <column> = <value>, …)`, so a value of a related table
 //! filters through the model's relationships. A mark that stands for several points (a
@@ -30,6 +32,10 @@ const DEFAULT_LIMIT: u64 = 1_000;
 const MAX_LIMIT: u64 = 10_000;
 /// Most points of one mark (the cap of a `view.interact` selection).
 const MAX_POINTS: usize = 1_000;
+/// Most levels of measures followed to find the table a measure reads.
+const MAX_MEASURE_DEPTH: usize = 8;
+/// Most measures followed to find it.
+const MAX_MEASURES: usize = 256;
 
 fn quote_table(t: &str) -> String {
     format!("'{}'", t.replace('\'', "''"))
@@ -76,14 +82,105 @@ fn literal(v: &Value, ty: DataType) -> Result<Option<String>, String> {
     }))
 }
 
+/// The table a measure's rows come from: of the tables its expression reads (columns, tables;
+/// else those of the measures it calls, a level at a time), the one from which `RELATED`
+/// reaches most of the others (the many side), its home table on a tie, else the first by
+/// name; `None` when it reads no table.
+fn measure_table(model: &SemanticModel, measure: &str) -> Option<String> {
+    use bicraft_dax::deps::{ObjectRef, expression_dependencies};
+    let find = |name: &str| {
+        model.tables.iter().find_map(|t| {
+            t.measures
+                .iter()
+                .find(|m| m.name.eq_ignore_ascii_case(name))
+                .map(|m| (t.name.as_str(), m))
+        })
+    };
+    let (home, _) = find(measure)?;
+    let mut level: Vec<String> = vec![measure.to_string()];
+    let mut seen: Vec<String> = level.clone();
+    for _ in 0..MAX_MEASURE_DEPTH {
+        let mut tables: Vec<String> = Vec::new();
+        let mut next: Vec<String> = Vec::new();
+        for name in &level {
+            let Some((t, m)) = find(name) else { continue };
+            for r in expression_dependencies(model, &m.expression, Some(t), false) {
+                match r {
+                    ObjectRef::Column { table, .. } | ObjectRef::Table { name: table } => {
+                        if !tables.iter().any(|x| x.eq_ignore_ascii_case(&table)) {
+                            tables.push(table);
+                        }
+                    }
+                    ObjectRef::Measure { name, .. } => {
+                        if !seen.iter().any(|x| x.eq_ignore_ascii_case(&name)) && seen.len() < MAX_MEASURES {
+                            seen.push(name.clone());
+                            next.push(name);
+                        }
+                    }
+                    ObjectRef::RowFilter { .. } => {}
+                }
+            }
+        }
+        if !tables.is_empty() {
+            tables.sort();
+            let reach = |t: &str| {
+                tables
+                    .iter()
+                    .filter(|o| !o.eq_ignore_ascii_case(t))
+                    .filter(|o| crate::preview::records::reaches(model, t, o))
+                    .count()
+            };
+            // most reached, then the home table, then the first by name (sorted, kept by max_by)
+            return tables
+                .iter()
+                .rev()
+                .max_by_key(|t| (reach(t), t.eq_ignore_ascii_case(home)))
+                .cloned();
+        }
+        if next.is_empty() {
+            return None;
+        }
+        level = next;
+    }
+    None
+}
+
+/// The detail rows expression of the visual's first measure, when it has a non-empty one.
+fn detail_expression(v: &bicraft_report::Visual, model: &SemanticModel) -> Option<String> {
+    let name = v.fields.iter().find_map(|b| match &b.field {
+        FieldRef::Measure { measure, .. } => Some(measure),
+        _ => None,
+    })?;
+    let m = model
+        .tables
+        .iter()
+        .flat_map(|t| &t.measures)
+        .find(|m| m.name.eq_ignore_ascii_case(name))?;
+    let e = m.extra.get("detailRowsDefinition")?.get("expression")?;
+    // a TMSL expression may be an array of lines
+    let text = match e {
+        Value::String(s) => s.clone(),
+        Value::Array(lines) => lines.iter().filter_map(Value::as_str).collect::<Vec<_>>().join(
+            "
+",
+        ),
+        _ => return None,
+    };
+    let text = text.trim();
+    (!text.is_empty()).then(|| text.to_string())
+}
+
 /// The table whose rows the visual summarizes.
 fn fact_table(v: &bicraft_report::Visual, model: &SemanticModel) -> Option<String> {
     let home = |measure: &str, table: &str| {
-        model
-            .tables
-            .iter()
-            .find(|t| t.measures.iter().any(|m| m.name.eq_ignore_ascii_case(measure)))
-            .map(|t| t.name.clone())
+        measure_table(model, measure)
+            .or_else(|| {
+                model
+                    .tables
+                    .iter()
+                    .find(|t| t.measures.iter().any(|m| m.name.eq_ignore_ascii_case(measure)))
+                    .map(|t| t.name.clone())
+            })
             .or_else(|| (!table.is_empty()).then(|| table.to_string()))
     };
     let fields = || v.fields.iter().map(|b| &b.field);
@@ -200,13 +297,42 @@ pub(crate) fn visual_records(s: &Session, p: &Value) -> Result<Value, String> {
         groups: &groups,
         model,
     };
-    let ctx = crate::preview::records::record_filters(
+    let mut ctx = crate::preview::records::record_filters(
         freport,
         fpage,
         fvisual,
         crate::preview::filters::clock(s),
         &scope,
     );
+    // a card's measure filters: its one value meets them, or the card is blank and has no rows
+    let mut failed = false;
+    for check in std::mem::take(&mut ctx.checks) {
+        let q = format!("EVALUATE ROW(\"Keep\", {check})");
+        match crate::preview::dax_evaluate(s, &json!({"query": q, "max_rows": 1})) {
+            Ok(r) => {
+                let keep = r
+                    .pointer("/results/0/rows/0")
+                    .and_then(Value::as_object)
+                    .and_then(|row| row.values().next())
+                    .is_some_and(|x| x.as_bool() == Some(true));
+                failed |= !keep;
+            }
+            Err(e) => ctx.not_applied.push(format!(
+                "a filter on the measure of a visual without grouping columns: {e}"
+            )),
+        }
+    }
+    if failed {
+        let first = model_table_columns(model, &table)
+            .first()
+            .map(|c| column_ref(&table, &c.name));
+        match first {
+            Some(c) => ctx.args.push(format!("FILTER(ALL({c}), FALSE())")),
+            None => ctx.not_applied.push(format!(
+                "the visual's measure filter fails, but `{table}` has no column to filter"
+            )),
+        }
+    }
     let wrap = |rows: String| {
         let parts: Vec<String> = by_point
             .iter()
@@ -225,14 +351,33 @@ pub(crate) fn visual_records(s: &Session, p: &Value) -> Result<Value, String> {
             _ => format!("EVALUATE UNION({})", parts.join(", ")),
         }
     };
-    let mut query = wrap(quote_table(&table));
-    let mut r = crate::preview::dax_evaluate(s, &json!({"query": query, "max_rows": limit}));
+    // the first measure's detail rows expression, when it has one: its rows instead of the table's
+    let mut detail_rows = false;
+    let mut query = String::new();
+    let mut r = Err(String::new());
+    if let Some(expr) = detail_expression(v, model) {
+        let q = wrap(expr);
+        match crate::preview::dax_evaluate(s, &json!({"query": q, "max_rows": limit})) {
+            Ok(x) => {
+                query = q;
+                r = Ok(x);
+                detail_rows = true;
+            }
+            Err(e) => ctx.not_applied.push(format!(
+                "the measure's detail rows expression, which could not be evaluated: {e}"
+            )),
+        }
+    }
+    if !detail_rows {
+        query = wrap(quote_table(&table));
+        r = crate::preview::dax_evaluate(s, &json!({"query": query, "max_rows": limit}));
+    }
     // calculated columns the data does not hold (added in BIcraft, a literal table's): their
     // expressions computed row by row instead
     let has_calc = model_table_columns(model, &table)
         .iter()
         .any(|c| c.expression.is_some());
-    if r.is_err() && has_calc {
+    if r.is_err() && has_calc && !detail_rows {
         let cols: Vec<String> = model_table_columns(model, &table)
             .iter()
             .map(|c| {
@@ -292,6 +437,7 @@ pub(crate) fn visual_records(s: &Session, p: &Value) -> Result<Value, String> {
         "page": page.name,
         "visual": v.name,
         "table": table,
+        "detail_rows": detail_rows,
         "point": point.iter().map(|pv| json!({"table": pv.table, "column": pv.column, "value": pv.value})).collect::<Vec<_>>(),
         "points": points.len(),
         "query": query,

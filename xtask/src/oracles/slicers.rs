@@ -6,9 +6,9 @@
 //!
 //! ```text
 //! cargo xtask oracle-gen slicers DIR        -> DIR/cmds1.json, DIR/cmds2.json, DIR/layout.json
-//! bicraft run --file DIR/cmds1.json        -> DIR/proj/Synth.pbip
+//! bicraft-cli run --file DIR/cmds1.json        -> DIR/proj/Synth.pbip
 //! cargo xtask oracle-gen slicers DIR patch  -> writes the slicer objects into the project
-//! bicraft run --file DIR/cmds2.json        -> DIR/slicers.pbix
+//! bicraft-cli run --file DIR/cmds2.json        -> DIR/slicers.pbix
 //! ```
 //! then render, capture (pages printed by the first step) and compare as in
 //! tools/render-oracle/README.md. The model culture is fr-FR to match a French Desktop UI.

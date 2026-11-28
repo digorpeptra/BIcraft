@@ -1,5 +1,5 @@
 //! A minimal HTTP/1.1 client for the deployment smoke tests: one request per connection
-//! (`bicraft serve` answers `Connection: close`), MCP Streamable HTTP at revision 2026-07-28, and
+//! (`bicraft-cli serve` answers `Connection: close`), MCP Streamable HTTP at revision 2026-07-28, and
 //! the checks both smoke tests run against a live server.
 
 use std::io::{Read, Write};
@@ -8,7 +8,7 @@ use std::time::{Duration, Instant};
 
 use serde_json::{Value, json};
 
-/// The MCP revision `bicraft serve` speaks over HTTP.
+/// The MCP revision `bicraft-cli serve` speaks over HTTP.
 pub const PROTOCOL: &str = "2026-07-28";
 /// How long one request may take (a DAX query on the tiny fixture takes milliseconds; through the
 /// controller, the first request of an idle workspace also waits for its pod to start).

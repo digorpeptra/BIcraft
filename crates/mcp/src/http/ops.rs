@@ -1,5 +1,5 @@
-//! Operations of `bicraft serve`: the probes, the graceful drain, the idle close of workspaces
-//! and the lazy reopen of their file (`docs/web-deployment.md`, "Operating `bicraft serve`").
+//! Operations of `bicraft-cli serve`: the probes, the graceful drain, the idle close of workspaces
+//! and the lazy reopen of their file (`docs/web-deployment.md`, "Operating `bicraft-cli serve`").
 //!
 //! - `GET /healthz` (liveness) answers 200 while the accept loop dispatches connections, and
 //!   `GET /readyz` (readiness) 200 unless the server drains (or, with
@@ -425,7 +425,7 @@ pub(super) fn remove_temp_dirs(root: &Path) -> usize {
 // ---------------------------------------------------------------------------------------------
 // Shutdown
 
-/// A one-shot shutdown request: raised from a signal handler (`bicraft serve` uses the `ctrlc`
+/// A one-shot shutdown request: raised from a signal handler (`bicraft-cli serve` uses the `ctrlc`
 /// crate) or from a test, awaited by the thread that then calls [`HttpServer::drain`].
 #[derive(Debug, Default)]
 pub struct ShutdownSignal {

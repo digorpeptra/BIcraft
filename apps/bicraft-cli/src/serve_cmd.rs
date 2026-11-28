@@ -1,4 +1,4 @@
-//! `bicraft serve`: the MCP Streamable HTTP endpoint (revision 2026-07-28), one workspace per
+//! `bicraft-cli serve`: the MCP Streamable HTTP endpoint (revision 2026-07-28), one workspace per
 //! subfolder of `--root`, at `http://ADDR/w/<workspace>/mcp` (docs/web-deployment.md).
 //!
 //! Each workspace's session runs in server mode rooted at its folder (`docs/server-mode.md`):
@@ -14,9 +14,9 @@
 //! answer without authentication, and SIGTERM / SIGINT (Ctrl+C) drain the server gracefully:
 //! new requests get 503, running ones get `--shutdown-grace` seconds (default 30), nothing is saved
 //! implicitly. Exit code 0 when nothing was lost, 3 when requests were cancelled or sessions held
-//! unsaved changes (docs/web-deployment.md, "Operating `bicraft serve`").
+//! unsaved changes (docs/web-deployment.md, "Operating `bicraft-cli serve`").
 //!
-//! `bicraft serve token create|hash` prints API tokens and their tokens-file entries.
+//! `bicraft-cli serve token create|hash` prints API tokens and their tokens-file entries.
 
 use std::io::{Read as _, Write as _};
 use std::net::SocketAddr;
@@ -768,8 +768,8 @@ fn drain_summary(r: &DrainReport) -> String {
     s
 }
 
-/// `bicraft serve token create --name N [--role R]... [--group G]...` and
-/// `bicraft serve token hash --name N` (the token on stdin).
+/// `bicraft-cli serve token create --name N [--role R]... [--group G]...` and
+/// `bicraft-cli serve token hash --name N` (the token on stdin).
 fn token(args: &[String]) -> Result<u8, Failure> {
     let (sub, rest) = match args.split_first() {
         Some((s, r)) => (s.as_str(), r),

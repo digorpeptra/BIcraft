@@ -1,7 +1,7 @@
 //! Generators and comparers of the Windows-only oracles (formerly Python scripts under `tools/`):
 //!
 //! - `oracle-gen synth|parts|slicers|states|grids`: the synthetic reports of the render oracle
-//!   (tools/render-oracle), written as `bicraft run` command files plus the layout JSON that
+//!   (tools/render-oracle), written as `bicraft-cli run` command files plus the layout JSON that
 //!   `render-compare` reads;
 //! - `dax-corpus`: the DAX oracle corpus (crates/dax/tests/oracle/corpus.json);
 //! - `metadata-edit`: the TMSL edits of the metadata oracle;
@@ -85,7 +85,7 @@ pub fn cmd_gen(args: &[String]) -> Result<(), String> {
     }
 }
 
-/// A `bicraft run --file` command list.
+/// A `bicraft-cli run --file` command list.
 #[derive(Default)]
 pub struct Cmds(pub Vec<Value>);
 

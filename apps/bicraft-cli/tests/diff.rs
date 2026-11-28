@@ -1,4 +1,4 @@
-//! End-to-end tests of `bicraft diff`: the forms, exit codes, git's textconv and external-diff
+//! End-to-end tests of `bicraft-cli diff`: the forms, exit codes, git's textconv and external-diff
 //! calls, and `--git` on a throwaway repository (skipped when git is not installed).
 
 use std::path::Path;
@@ -19,7 +19,7 @@ const BIM_B: &str = r#"{"name":"M","model":{"tables":[{"name":"Sales",
                 {"name":"Double","expression":"[Revenue] * 2"}]}]}}"#;
 
 fn bicraft(dir: Option<&Path>, args: &[&str]) -> Output {
-    let mut c = Command::new(env!("CARGO_BIN_EXE_bicraft"));
+    let mut c = Command::new(env!("CARGO_BIN_EXE_bicraft-cli"));
     if let Some(d) = dir {
         c.current_dir(d);
     }

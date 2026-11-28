@@ -84,7 +84,7 @@ pub fn recovery_claim_name(ws: &str) -> String {
     format!("bws-{ws}-recovery")
 }
 
-/// Whether `name` can be a workspace name (and so a workspace id of `bicraft serve`).
+/// Whether `name` can be a workspace name (and so a workspace id of `bicraft-cli serve`).
 pub fn valid_name(name: &str) -> bool {
     dns_label(name, MAX_NAME)
 }

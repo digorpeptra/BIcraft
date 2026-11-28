@@ -6,7 +6,7 @@
 //! variants must apply. See docs/formats/visual-options.md, "State selectors".
 //!
 //! ```text
-//! cargo xtask oracle-gen states DIR         -> DIR/cmds.json (bicraft run --file: DIR/states.pbix)
+//! cargo xtask oracle-gen states DIR         -> DIR/cmds.json (bicraft-cli run --file: DIR/states.pbix)
 //! capture.ps1 -File DIR/states.pbix -Out DIR/desktop -Pages <pages printed by the first step>
 //! cargo xtask oracle-gen states DIR check [CAPTURE_DIR]
 //!     -> per test: whether P and L show the target colour (pixels or text colour), and whether

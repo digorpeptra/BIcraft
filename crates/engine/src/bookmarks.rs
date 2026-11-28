@@ -871,6 +871,20 @@ fn state_of(
                 if let Some(e) = &d.expansion {
                     single.insert("expansionStates".into(), e.clone());
                 }
+                // the drill mode: a formatting-object update of BIcraft's own (interact_drill.rs)
+                if d.mode
+                    && let Some(merge) = single
+                        .entry("objects")
+                        .or_insert_with(|| json!({}))
+                        .as_object_mut()
+                        .map(|o| o.entry("merge").or_insert_with(|| json!({})))
+                        .and_then(Value::as_object_mut)
+                {
+                    merge.insert(
+                        crate::interact::drill::DRILL_MODE_OBJECT.into(),
+                        crate::interact::drill::mode_object(),
+                    );
+                }
             }
             if !single.is_empty() {
                 st.insert("singleVisual".into(), Value::Object(single));

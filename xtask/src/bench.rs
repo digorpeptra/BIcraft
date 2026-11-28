@@ -3,7 +3,7 @@
 //! A small harness (no criterion): each case runs once untimed as a warm-up, then up to N timed
 //! runs within a time budget, and reports the median, p95 and throughput. Cases are measured
 //! in-process (calling the crates directly, like the engine does) and end to end through the
-//! release `bicraft` binary (process start included).
+//! release `bicraft-cli` binary (process start included).
 //!
 //! The in-process cases need the workspace crates, which xtask only links with the `bench`
 //! feature, and they are only meaningful in a release build. So `cargo xtask bench` (a debug
@@ -468,7 +468,7 @@ pub fn write_file(path: &Path, bytes: &[u8]) -> Result<(), String> {
 // The CLI binary
 // ---------------------------------------------------------------------------------------------
 
-/// The release `bicraft` binary, built first unless `--no-build`.
+/// The release `bicraft-cli` binary, built first unless `--no-build`.
 pub fn cli_binary(opts: &Opts) -> Result<PathBuf, String> {
     if !opts.no_build {
         crate::run_cargo(&["build", "--release", "--quiet", "-p", "bicraft-cli"])?;
@@ -511,7 +511,7 @@ pub fn cli(bin: &Path, args: &[&str], ok_codes: &[i32]) -> Result<Vec<u8>, Strin
     }
 }
 
-/// Speaks MCP to `bicraft mcp`: `initialize`, then `calls` (tool name, arguments) in one stdio
+/// Speaks MCP to `bicraft-cli mcp`: `initialize`, then `calls` (tool name, arguments) in one stdio
 /// session. Returns the number of tool results that were errors.
 pub fn mcp_session(bin: &Path, calls: &[(String, Value)]) -> Result<usize, String> {
     use std::io::{BufRead as _, BufReader, Write as _};

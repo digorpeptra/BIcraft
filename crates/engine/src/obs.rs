@@ -1,4 +1,4 @@
-//! Process-wide gauges of the engine's background work, read by `bicraft serve`'s `/metrics`
+//! Process-wide gauges of the engine's background work, read by `bicraft-cli serve`'s `/metrics`
 //! (docs/kubernetes.md, "Observability"): the spill files of backups moved out of memory under a
 //! budget (`docs/beyond-ram.md`), and the background aggregation builds. Plain atomics, updated
 //! where the work starts and ends; reading them takes no lock and never touches a session.

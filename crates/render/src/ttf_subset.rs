@@ -27,6 +27,8 @@ pub(crate) struct FaceInfo {
     pub fs_type: u16,
     /// Has `glyf` and `loca` (else CFF outlines: not subset here).
     pub glyf: bool,
+    /// Has a `CFF ` table (OpenType with PostScript outlines: embedded whole).
+    pub cff: bool,
 }
 
 impl FaceInfo {
@@ -37,7 +39,16 @@ impl FaceInfo {
         let restricted = usage == 0x0002;
         !restricted && self.fs_type & 0x0100 == 0 && self.fs_type & 0x0200 == 0
     }
+
+    /// Whether the licence lets a document embed the whole face (a CFF face, which is not
+    /// subset): "no subsetting" allows it; restricted and bitmap-only embedding do not.
+    pub fn embeddable_whole(&self) -> bool {
+        self.fs_type & 0x000f != 0x0002 && self.fs_type & 0x0200 == 0
+    }
 }
+
+/// Largest face embedded whole (bytes of its tables).
+const MAX_WHOLE_FACE: usize = 16 << 20;
 
 fn u16_at(b: &[u8], at: usize) -> Option<u16> {
     let s = b.get(at..at.checked_add(2)?)?;
@@ -180,6 +191,7 @@ pub(crate) fn info(data: &[u8], index: u32) -> Option<FaceInfo> {
         ps_name: ps,
         fs_type: os2.and_then(|o| u16_at(o, 8)).unwrap_or(0),
         glyf: table(&ts, b"glyf").is_some() && table(&ts, b"loca").is_some(),
+        cff: table(&ts, b"CFF ").is_some(),
     })
 }
 
@@ -342,6 +354,33 @@ pub(crate) fn subset(data: &[u8], index: u32, used: &BTreeSet<u16>) -> Option<Ve
     if !out_tables.iter().any(|(t, _)| t == b"post") {
         out_tables.push((*b"post", post));
     }
+    Some(sfnt(0x0001_0000, out_tables))
+}
+
+/// Face `index` of `data` as a file of its own, every table kept: a CFF face is embedded whole
+/// (`FontFile3` of subtype `OpenType`), since it is not subset. `None` when it is not a CFF
+/// face, its tables do not read, or it is larger than 16 MB.
+pub(crate) fn opentype_face(data: &[u8], index: u32) -> Option<Vec<u8>> {
+    let ts = tables(data, index)?;
+    table(&ts, b"CFF ")?;
+    let total = ts.iter().try_fold(0usize, |a, (_, b)| a.checked_add(b.len()))?;
+    if total > MAX_WHOLE_FACE {
+        return None;
+    }
+    let mut tables: Vec<([u8; 4], Vec<u8>)> = ts.iter().map(|(t, b)| (*t, b.to_vec())).collect();
+    // the checksum adjustment is computed again over the new file
+    if let Some((_, head)) = tables.iter_mut().find(|(t, _)| t == b"head")
+        && let Some(s) = head.get_mut(8..12)
+    {
+        s.copy_from_slice(&[0; 4]);
+    }
+    Some(sfnt(u32::from_be_bytes(*b"OTTO"), tables))
+}
+
+/// An OpenType file of `tables` (at most 4,095): the offset table with `version`, the table
+/// directory in tag order, the tables padded to 4 bytes, and `head`'s checksum adjustment.
+pub(crate) fn sfnt(version: u32, mut out_tables: Vec<([u8; 4], Vec<u8>)>) -> Vec<u8> {
+    out_tables.truncate(4095);
     out_tables.sort_by_key(|a| a.0);
     // the file: offset table, directory, tables padded to 4 bytes
     let nt = out_tables.len() as u16;
@@ -351,7 +390,7 @@ pub(crate) fn subset(data: &[u8], index: u32, used: &BTreeSet<u16>) -> Option<Ve
     }
     let sr = (1u16 << es) * 16;
     let mut out: Vec<u8> = Vec::new();
-    out.extend_from_slice(&0x0001_0000u32.to_be_bytes());
+    out.extend_from_slice(&version.to_be_bytes());
     out.extend_from_slice(&nt.to_be_bytes());
     out.extend_from_slice(&sr.to_be_bytes());
     out.extend_from_slice(&es.to_be_bytes());
@@ -380,7 +419,7 @@ pub(crate) fn subset(data: &[u8], index: u32, used: &BTreeSet<u16>) -> Option<Ve
             s.copy_from_slice(&adj.to_be_bytes());
         }
     }
-    Some(out)
+    out
 }
 
 #[cfg(test)]

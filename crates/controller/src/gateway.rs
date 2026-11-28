@@ -38,7 +38,7 @@ use crate::reconcile::{Controller, Phase};
 use crate::render;
 use crate::spec::{Object, WorkspaceSpec, claim_name, recovery_claim_name, resolve};
 
-/// The protected resource metadata path (RFC 9728), as `bicraft serve` serves it.
+/// The protected resource metadata path (RFC 9728), as `bicraft-cli serve` serves it.
 pub const RESOURCE_METADATA_PATH: &str = "/.well-known/oauth-protected-resource";
 /// Largest API request body.
 const MAX_API_BODY: usize = 64 * 1024;
@@ -1176,7 +1176,7 @@ mod tests {
         );
     }
 
-    /// Document views, their MCP endpoints and the UI control channel (`bicraft serve
+    /// Document views, their MCP endpoints and the UI control channel (`bicraft-cli serve
     /// --viewer-control`) go through as they are: paths, queries and the control token's header,
     /// with the checked identity instead of the credential.
     #[test]

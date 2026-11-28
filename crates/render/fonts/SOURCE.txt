@@ -2,8 +2,9 @@ The renderer's bundled fallback faces (after Selawik, in this order): glyph subs
 Noto fonts, made by `cargo xtask font-subset bundle SRC_DIR` (xtask/src/font_subset.rs:
 the release, file and SHA-256 of each source; the Unicode ranges and emoji asked for). Each face keeps
 the characters of those blocks it has that Selawik and the faces before it lack, with its
-glyphs renumbered; cmap of these characters only; post format 3; layout and hinting tables
-dropped; name table kept. Licence: SIL Open Font License 1.1, no Reserved Font Name;
+glyphs renumbered; cmap of these characters only; post format 3; the GPOS kerning between
+the kept glyphs written as a kern table, other layout and hinting tables dropped; name
+table kept. Licence: SIL Open Font License 1.1, no Reserved Font Name;
 copyright The Noto Project Authors (Noto Emoji: Google LLC). The OFL-*.txt files here
 are the upstream OFL.txt files, unmodified.
 
@@ -16,7 +17,7 @@ Archive:   https://github.com/notofonts/latin-greek-cyrillic/releases/download/N
 Source:    NotoSans/unhinted/ttf/NotoSans-Regular.ttf (431364 bytes)
            SHA-256 f3961a9cde016d41a4879aecda1474d3a36d6bf54fa0e4643de029cc2248b0e8
 Licence:   OFL-NotoSans.txt
-Subset:    SHA-256 f1014c6fbc344bdf27ee82f150c0d0c101c1c5210762f8f032396939a8b641d0 (70284 bytes)
+Subset:    SHA-256 ecb1a64242cb8255a424ebb430a7f63efdf982f6ef429967a2751176fbf2b232 (85408 bytes)
 Characters (681): U+00AA U+00BA U+0108-0109 U+0114-0115 U+011C-011D U+0124-0125 U+0128-0129 U+012C-012D
            U+0134-0135 U+0138 U+0149 U+014E-014F U+015C-015D U+0168-0169 U+016C-016D
            U+017F U+018F U+01A0-01B0 U+01CD-01DC U+0259 U+02BB-02BC U+02C8-02D7 U+0305
@@ -34,7 +35,7 @@ Archive:   https://github.com/notofonts/latin-greek-cyrillic/releases/download/N
 Source:    NotoSans/unhinted/ttf/NotoSans-Bold.ttf (432376 bytes)
            SHA-256 87cb2d84472a7d66da659ee47b6cdb9552326e8c128245231f191b6ac72529d9
 Licence:   OFL-NotoSans.txt
-Subset:    SHA-256 df2ce0849242909346657c8ab09d0d1e0ec327cd499147b183fc3d8b52a33cc7 (70108 bytes)
+Subset:    SHA-256 cbbe5c1865063f49d6016550f60f31d939bc4d455a5c8c6ef446919c2969d25d (85384 bytes)
 Characters (681): U+00AA U+00BA U+0108-0109 U+0114-0115 U+011C-011D U+0124-0125 U+0128-0129 U+012C-012D
            U+0134-0135 U+0138 U+0149 U+014E-014F U+015C-015D U+0168-0169 U+016C-016D
            U+017F U+018F U+01A0-01B0 U+01CD-01DC U+0259 U+02BB-02BC U+02C8-02D7 U+0305

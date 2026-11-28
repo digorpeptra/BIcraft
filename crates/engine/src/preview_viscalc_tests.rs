@@ -796,11 +796,102 @@ fn rowpages_walks_the_small_multiples() {
     want("Pages", [100.0, 300.0, 50.0, 150.0]);
     // the rows, then the small multiples: North Bike, North Car, South Ball, South Bike
     want("Both", [100.0, 400.0, 450.0, 500.0]);
-    let reason = d["columns"][col(&d, "Collapse")]["reason"]
-        .as_str()
-        .unwrap_or_default()
-        .to_string();
-    assert!(reason.contains("ROWPAGES"), "{reason}");
+    // the product across the small multiples
+    want("Collapse", [100.0 + 50.0, 300.0, 50.0, 150.0]);
+}
+
+/// A column chart by product (Category) with a small multiple per region: North (Bike 100,
+/// Car 300) and South (Ball 50, Bike 50).
+fn multiples(s: &mut Session) -> String {
+    add_visual(
+        s,
+        "clusteredColumnChart",
+        json!([{"role": "Category", "field": "Sales[Product]"},
+               {"role": "Rows", "field": "Sales[Region]"},
+               {"role": "Y", "field": "Sum(Sales[Amount])"}]),
+    )
+}
+
+/// `(region/product, cell)` of every row of `d` for calculation `name`, sorted.
+fn by_page(d: &Value, name: &str) -> Vec<(String, Value)> {
+    let (product, region, at) = (col(d, "Product"), col(d, "Region"), col(d, name));
+    let mut out: Vec<(String, Value)> = d["rows"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .map(|r| {
+            let k = format!(
+                "{}/{}",
+                r[region].as_str().unwrap_or_default(),
+                r[product].as_str().unwrap_or_default()
+            );
+            (k, r[at].clone())
+        })
+        .collect();
+    out.sort_by(|a, b| a.0.cmp(&b.0));
+    out
+}
+
+#[test]
+fn rowpages_navigates_across_the_small_multiples() {
+    let mut s = shop();
+    let c = multiples(&mut s);
+    for (name, expr) in [
+        ("Running", "RUNNINGSUM([Sum of Amount])"),
+        ("Previous", "PREVIOUS([Sum of Amount])"),
+        ("Across", "COLLAPSE([Sum of Amount], ROWPAGES)"),
+        (
+            "Share",
+            "DIVIDE([Sum of Amount], COLLAPSEALL([Sum of Amount], ROWPAGES))",
+        ),
+        ("To field", "COLLAPSE([Sum of Amount], [Region])"),
+        (
+            "Children",
+            "COLLAPSE(EXPAND(SUM([Sum of Amount]), ROWPAGES), ROWPAGES)",
+        ),
+        ("Grand", "COLLAPSEALL([Sum of Amount], ROWS ROWPAGES)"),
+        (
+            "Bike total",
+            "LOOKUPWITHTOTALS([Sum of Amount], [Product], \"Bike\")",
+        ),
+        (
+            "South total",
+            "LOOKUPWITHTOTALS([Sum of Amount], [Region], \"South\")",
+        ),
+        ("At page", "IF(ISATLEVEL([Region]), 1, 0)"),
+    ] {
+        calc(&mut s, &c, name, expr);
+    }
+    let d = data(&s, &c);
+    let keys = ["North/Bike", "North/Car", "South/Ball", "South/Bike"];
+    let want = |name: &str, w: [Option<f64>; 4]| {
+        let pairs: Vec<(&str, Option<f64>)> = keys.iter().copied().zip(w).collect();
+        assert_cells(&by_page(&d, name), &pairs, name);
+    };
+    // each small multiple is a page of its own: the running sum restarts, PREVIOUS is blank on
+    // a page's first row
+    want("Running", [Some(100.0), Some(400.0), Some(50.0), Some(100.0)]);
+    want("Previous", [None, Some(100.0), None, Some(50.0)]);
+    // up the small multiples: the product over every region
+    want("Across", [Some(150.0), Some(300.0), Some(50.0), Some(150.0)]);
+    want("To field", [Some(150.0), Some(300.0), Some(50.0), Some(150.0)]);
+    want(
+        "Share",
+        [Some(100.0 / 150.0), Some(1.0), Some(1.0), Some(50.0 / 150.0)],
+    );
+    // down again from there: every region's cell of the product
+    want("Children", [Some(150.0), Some(300.0), Some(50.0), Some(150.0)]);
+    want("Grand", [Some(500.0); 4]);
+    // the fields not given are at their total, the small multiples included
+    want("Bike total", [Some(150.0); 4]);
+    want("South total", [Some(100.0); 4]);
+    want("At page", [Some(1.0); 4]);
+    assert!(
+        d["visual_calculations"]
+            .as_array()
+            .is_some_and(|a| a.iter().all(|x| x.get("reason").is_none())),
+        "{d}"
+    );
 }
 
 #[test]
@@ -967,4 +1058,56 @@ fn matchby_and_lookup_inferred_follow_the_matrix() {
             d["columns"]
         );
     }
+}
+
+#[test]
+fn a_preview_evaluates_the_calculation_without_changing_the_report() {
+    let mut s = shop();
+    let t = table(&mut s);
+    let before = s.report.clone();
+    let revision = s.revision;
+    let r = run(
+        &mut s,
+        "visual.calculation.add",
+        json!({"page": "Main", "visual": t, "name": "Running",
+               "expression": "RUNNINGSUM([Sum of Amount])", "preview": true}),
+    );
+    assert_eq!(s.report, before, "a preview changed the report");
+    assert_eq!(s.revision, revision, "a preview is a new revision");
+    let d = &r["data"];
+    assert_eq!(d["status"], "ok", "{d}");
+    assert_cells(
+        &cells(&d["rows"], 1, col(d, "Running")),
+        &[("Ball", Some(50.0)), ("Bike", Some(200.0)), ("Car", Some(500.0))],
+        "previewed running sum",
+    );
+    // an expression that does not bind is refused, still without a change
+    let err = fails(
+        &mut s,
+        "visual.calculation.add",
+        json!({"page": "Main", "visual": t, "expression": "RUNNINGSUM([Nope])", "preview": true}),
+    );
+    assert!(err.contains("Nope"), "{err}");
+    // an edit's preview: the new expression's values, the stored one still on the visual
+    calc(&mut s, &t, "Running", "RUNNINGSUM([Sum of Amount])");
+    let before = s.report.clone();
+    let r = run(
+        &mut s,
+        "visual.calculation.set",
+        json!({"page": "Main", "visual": t, "name": "Running",
+               "expression": "[Sum of Amount] * 2", "preview": true}),
+    );
+    assert_eq!(s.report, before, "a preview changed the report");
+    let d = &r["data"];
+    assert_cells(
+        &cells(&d["rows"], 1, col(d, "Running")),
+        &[("Ball", Some(100.0)), ("Bike", Some(300.0)), ("Car", Some(600.0))],
+        "previewed edit",
+    );
+    let stored = data(&s, &t);
+    assert_cells(
+        &cells(&stored["rows"], 1, col(&stored, "Running")),
+        &[("Ball", Some(50.0)), ("Bike", Some(200.0)), ("Car", Some(500.0))],
+        "the visual after a preview",
+    );
 }

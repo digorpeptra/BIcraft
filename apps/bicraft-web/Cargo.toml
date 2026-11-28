@@ -1,6 +1,6 @@
 [package]
 name = "bicraft-web"
-description = "The BIcraft app in the browser: the browser shell of the BIcraft UI (bicraft-ui) compiled to WebAssembly, served by bicraft view and bicraft serve (docs/webui.md)"
+description = "The BIcraft app in the browser: the browser shell of the BIcraft UI (bicraft-ui) compiled to WebAssembly, served by bicraft-cli view and bicraft-cli serve (docs/webui.md)"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

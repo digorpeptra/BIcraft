@@ -17,8 +17,8 @@ Code: `crates/engine/src/recovery.rs` (journal, replay, commands), `crates/ui/sr
 | Host | Folder | Owner |
 |---|---|---|
 | Desktop app | `%LOCALAPPDATA%\bicraft\recovery` on Windows, `$XDG_STATE_HOME/bicraft/recovery` (else `~/.local/state/bicraft/recovery`) elsewhere; `BICRAFT_RECOVERY_DIR` overrides it | the user |
-| `bicraft serve` | `--recovery-dir DIR` (or `BICRAFT_RECOVERY_DIR`), one subfolder per workspace; **off** without it | a hash of the identity holding the view; none for the workspace's shared session |
-| CLI, `bicraft mcp`, private sessions, tests | none: auto-recovery is off unless the host calls `Session::set_recovery` | — |
+| `bicraft-cli serve` | `--recovery-dir DIR` (or `BICRAFT_RECOVERY_DIR`), one subfolder per workspace; **off** without it | a hash of the identity holding the view; none for the workspace's shared session |
+| CLI, `bicraft-cli mcp`, private sessions, tests | none: auto-recovery is off unless the host calls `Session::set_recovery` | — |
 
 A journal is never written next to the user's file, nor in the repository.
 
@@ -167,7 +167,7 @@ the active tab too; never two saves of one document at once.
 
 - **PBIP projects only.** PBIX and PBIT files are not offered: each save repacks the whole
   package (seconds to minutes on large files); their unsaved edits are still journaled.
-- **Servers** allow it only with `bicraft serve --allow-autosave` (the snapshot's
+- **Servers** allow it only with `bicraft-cli serve --allow-autosave` (the snapshot's
   `view.limits.autosave`); otherwise the preference says why and nothing is saved.
 - The preference is the window's (kept with the other UI preferences, in the browser too).
 

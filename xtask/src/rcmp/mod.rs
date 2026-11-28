@@ -1,4 +1,4 @@
-//! `cargo xtask render-compare`: per-visual comparison of `bicraft render` output with Power BI
+//! `cargo xtask render-compare`: per-visual comparison of `bicraft-cli render` output with Power BI
 //! Desktop's own rendering (tools/render-oracle; method and limits in docs/render.md).
 
 pub(crate) mod img;
@@ -19,7 +19,7 @@ pub const USAGE: &str = "\
 usage: cargo xtask render-compare DESKTOP_DIR OURS_DIR LAYOUT.json [--json] [--diff DIR]
                                   [--min-sim X] [--floors FILE]
   DESKTOP_DIR  capture.ps1 output: NN-<page>.png (+ NN-<page>.json text nodes), in page order
-  OURS_DIR     `bicraft render FILE --out OURS_DIR [--text-json]` output, in page order
+  OURS_DIR     `bicraft-cli render FILE --out OURS_DIR [--text-json]` output, in page order
   LAYOUT.json  the generator's visual list: [{page, page_name, type, x, y, width, height}]
   --json       print the report as JSON
   --diff DIR   write Desktop | bicraft | difference crops per visual

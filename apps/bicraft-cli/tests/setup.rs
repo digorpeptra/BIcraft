@@ -1,4 +1,4 @@
-//! `bicraft setup`: every test runs against a temporary configuration root (`--config-root` or
+//! `bicraft-cli setup`: every test runs against a temporary configuration root (`--config-root` or
 //! `BICRAFT_SETUP_HOME`), never the real home directory.
 
 use std::collections::BTreeMap;
@@ -20,7 +20,7 @@ fn root(name: &str) -> TempDir {
 
 /// The binary, with every variable that could point setup at real files removed.
 fn bicraft() -> Command {
-    let mut c = Command::new(env!("CARGO_BIN_EXE_bicraft"));
+    let mut c = Command::new(env!("CARGO_BIN_EXE_bicraft-cli"));
     for v in ["BICRAFT_SETUP_HOME", "CLAUDE_CONFIG_DIR", "CODEX_HOME"] {
         c.env_remove(v);
     }
@@ -34,7 +34,7 @@ struct Out {
     stdout: String,
 }
 
-/// `bicraft setup --config-root ROOT --platform PLATFORM ARGS... --json`.
+/// `bicraft-cli setup --config-root ROOT --platform PLATFORM ARGS... --json`.
 fn setup_on(root: &Path, platform: &str, args: &[&str]) -> Out {
     let mut cmd = bicraft();
     cmd.arg("setup");

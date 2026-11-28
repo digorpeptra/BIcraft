@@ -1,5 +1,5 @@
 //! Shared runs: read-only commands on a shared `&Session` (`docs/web-deployment.md`,
-//! "Concurrency"). `bicraft serve` runs them under a read lock of the workspace's session, so
+//! "Concurrency"). `bicraft-cli serve` runs them under a read lock of the workspace's session, so
 //! several run at once while a command that may change the session waits for them.
 //!
 //! [`SHARED`] gives each read-only command (by its server policy, [`Effect::ReadOnly`]) a
@@ -112,6 +112,12 @@ static SHARED: &[Entry] = &[
     ("report.render", crate::cache_abf::report_render_shared, SWAPS),
     ("visual.props", crate::visual_props::visual_props, &[]),
     ("visual.records", crate::see_records::visual_records, &[]),
+    ("visual.analyze", crate::visual_analyze::visual_analyze, &[]),
+    (
+        "visual.explain_anomaly",
+        crate::visual_analyze::visual_explain_anomaly,
+        &[],
+    ),
     ("visual.options", crate::visual_catalog::visual_options, &[]),
     (
         "visual.spec_template",
@@ -123,6 +129,7 @@ static SHARED: &[Entry] = &[
     ("dax.validate_query", crate::commands::dax_validate_query, &[]),
     ("dax.queries", crate::dax_queries::dax_queries, &[]),
     ("dax.format", crate::dax_queries::dax_format, &[]),
+    ("dax.define_query", crate::dax_define::dax_define_query, &[]),
     ("dax.cancel", crate::dax_queries::dax_cancel, &[]),
     ("role.check_filter", crate::role_manage::role_check_filter, &[]),
     ("dax.functions", crate::commands::dax_functions, &[]),

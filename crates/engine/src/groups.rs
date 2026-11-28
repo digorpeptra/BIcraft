@@ -127,6 +127,9 @@ pub(crate) const GROUPING_DESIGN_STATE: &str = "GroupingDesignState";
 /// `datetime'2025-01-31T00:00:00'`), as the public `semanticQuery` schema writes literals.
 fn query_literal(v: &Value, t: DataType) -> Option<String> {
     Some(match (v, t) {
+        // a blank listed in a group: the public `semanticQuery` null literal (BIcraft's form, not
+        // compared with a file Desktop saved: Desktop's dialog never lists a blank)
+        (Value::Null, _) => "null".to_string(),
         (Value::String(s), DataType::String) => format!("'{}'", s.replace('\'', "''")),
         (Value::String(s), DataType::DateTime) => {
             let (y, m, d) = date_parts(s)?;
@@ -142,11 +145,17 @@ fn query_literal(v: &Value, t: DataType) -> Option<String> {
 
 /// The `GroupingDesignState` of a list group, as Desktop writes it for its own: the grouped
 /// column through a source alias, a `(Blank)` placeholder item, one item per group with an `In`
-/// of its values, and an `Other` item when `other` is on. `None` when a group lists a blank
-/// (how Desktop writes that is not known).
+/// of its values, and an `Other` item when `other` is on. A group that lists a blank holds it as
+/// an explicit member, the `null` literal in its `In`, and the `(Blank)` placeholder is left out
+/// (the blank is no longer left to it); Desktop's dialog has no such group, so this form is
+/// BIcraft's own (docs/formats/groups.md).
 fn design_state(table: &str, column: &str, dt: DataType, groups: &[Group], other: bool) -> Option<String> {
     let (mut state, col) = design_header(table, column);
-    let mut items = vec![json!({"DisplayName": BLANK_GROUP, "BlankDefaultPlaceholder": true})];
+    let blank_listed = groups.iter().any(|g| g.values.iter().any(Value::is_null));
+    let mut items = Vec::new();
+    if !blank_listed {
+        items.push(json!({"DisplayName": BLANK_GROUP, "BlankDefaultPlaceholder": true}));
+    }
     for g in groups {
         let values = g
             .values
@@ -373,6 +382,65 @@ fn date_format(unit: &str) -> &'static str {
     }
 }
 
+/// The date units from the largest, as a number of bins picks one.
+const DATE_UNITS: &[&str] = &["year", "month", "day", "hour", "minute", "second"];
+
+/// How many `unit`s the dates from `lo` to `hi` (serial numbers) touch, counted on the
+/// boundaries the date bins use (calendar years and months, days, hours, minutes, seconds).
+fn date_span(lo: f64, hi: f64, unit: &str) -> Option<f64> {
+    let ym = |x: f64| {
+        let (y, m, _) = bicraft_locale::calendar::civil_from_serial(x.floor() as i64);
+        (y, m)
+    };
+    let per_day = |k: f64| (hi * k).floor() - (lo * k).floor() + 1.0;
+    let span = match unit {
+        "year" => (ym(hi).0 - ym(lo).0) as f64 + 1.0,
+        "month" => {
+            let ((y0, m0), (y1, m1)) = (ym(lo), ym(hi));
+            ((y1 - y0) * 12 + (m1 - m0)) as f64 + 1.0
+        }
+        "day" => per_day(1.0),
+        "hour" => per_day(24.0),
+        "minute" => per_day(1440.0),
+        _ => per_day(86400.0),
+    };
+    (span.is_finite() && span >= 1.0).then_some(span)
+}
+
+/// The unit and the whole bin size of `count` date bins between serial numbers `lo` and `hi`:
+/// the size is the span in units divided by `count`, rounded up. Without a unit, the largest
+/// unit the span holds `count` times (seconds at least). The bins start on the unit's usual
+/// boundaries (the form of a bin size), so the data may fall into one bin more or fewer than
+/// `count`; the size is fixed when the group is made and does not follow a refresh.
+fn date_count_size(
+    lo: f64,
+    hi: f64,
+    count: f64,
+    unit: Option<&'static str>,
+) -> Result<(&'static str, f64), String> {
+    // serial numbers of years 1 to 9999
+    let valid = |x: f64| (-693_593.0..=2_958_466.0).contains(&x);
+    if !valid(lo) || !valid(hi) || lo > hi {
+        return Err("the column's dates are outside years 1 to 9999".into());
+    }
+    let unit = match unit {
+        Some(u) => u,
+        None => DATE_UNITS
+            .iter()
+            .copied()
+            .find(|u| date_span(lo, hi, u).is_some_and(|n| n >= count))
+            .unwrap_or("second"),
+    };
+    let span = date_span(lo, hi, unit).ok_or("the column's dates have no span")?;
+    let size = (span / count).ceil().max(1.0);
+    if size > 10_000.0 {
+        return Err(format!(
+            "{count} bins of {unit}s over these dates would be over 10000 {unit}s each: pick a larger unit"
+        ));
+    }
+    Ok((unit, size))
+}
+
 /// `column.group {table, column, name?, kind?, groups?, other?, bin_size?, bin_count?, unit?, replace?}`.
 pub(crate) fn group(s: &mut Session, p: &Value) -> Result<Value, String> {
     allow(
@@ -456,16 +524,21 @@ pub(crate) fn group(s: &mut Session, p: &Value) -> Result<Value, String> {
         } else {
             "number"
         };
-        let unit = match opt_str(p, "unit")? {
-            Some(u) => UNITS
-                .iter()
-                .copied()
-                .find(|x| x.eq_ignore_ascii_case(u))
-                .ok_or_else(|| {
-                    format!("unknown unit `{u}` (expected number, year, month, day, hour, minute or second)")
-                })?,
-            None => default_unit,
+        let given_unit = match opt_str(p, "unit")? {
+            Some(u) => Some(
+                UNITS
+                    .iter()
+                    .copied()
+                    .find(|x| x.eq_ignore_ascii_case(u))
+                    .ok_or_else(|| {
+                        format!(
+                            "unknown unit `{u}` (expected number, year, month, day, hour, minute or second)"
+                        )
+                    })?,
+            ),
+            None => None,
         };
+        let mut unit = given_unit.unwrap_or(default_unit);
         if (unit == "number") != is_number(dt) {
             return Err(if is_number(dt) {
                 format!("'{table}'[{column}] is a number: its unit is `number`")
@@ -481,9 +554,25 @@ pub(crate) fn group(s: &mut Session, p: &Value) -> Result<Value, String> {
             _ => {}
         }
         if unit != "number" {
-            if count.is_some() {
-                return Err("`bin_count` bins numbers; dates take `bin_size` units".into());
-            }
+            // a number of bins on dates: a size in units, from the column's minimum and maximum
+            let size = match count {
+                Some(count) => {
+                    if count < 1.0 || count.fract() != 0.0 || count > MAX_BINS {
+                        return Err(format!("`bin_count` must be a whole number from 1 to {MAX_BINS}"));
+                    }
+                    let (lo, hi, _) = crate::preview::column_bounds(s, &table, &column).ok_or_else(|| {
+                        format!(
+                            "'{table}'[{column}] has no dates in the data: a number of bins needs its \
+                             minimum and maximum (pass `bin_size` instead)"
+                        )
+                    })?;
+                    let (u, n) = date_count_size(lo, hi, count, given_unit)?;
+                    unit = u;
+                    result.insert("bin_count".into(), json_number(count));
+                    Some(n)
+                }
+                None => size,
+            };
             let n = size.unwrap_or(1.0);
             if n < 1.0 || n.fract() != 0.0 || n > 10_000.0 {
                 return Err(
@@ -598,6 +687,134 @@ pub(crate) fn group(s: &mut Session, p: &Value) -> Result<Value, String> {
         }
     }
     Ok(Value::Object(result))
+}
+
+/// Longest group name Group data makes from the values it joins.
+const MAX_JOINED_NAME: usize = 120;
+
+/// A group's default name from its values, joined with ` & ` (as Desktop names a group of several
+/// values); a blank is `(Blank)`, a date its day. Long lists keep their first three values.
+fn joined_name(values: &[Value], dt: DataType) -> String {
+    let shown = |v: &Value| match v {
+        Value::Null => BLANK_GROUP.to_string(),
+        Value::String(s) if dt == DataType::DateTime => s.get(..10).unwrap_or(s).to_string(),
+        Value::String(s) => s.clone(),
+        other => other.to_string(),
+    };
+    let all: Vec<String> = values.iter().map(shown).collect();
+    let name = all.join(" & ");
+    if name.chars().count() <= MAX_JOINED_NAME {
+        return name;
+    }
+    let head: Vec<String> = all.iter().take(3).map(|s| s.chars().take(30).collect()).collect();
+    format!("{} & …", head.join(" & "))
+}
+
+/// The key that tells two values of a `dt` column apart as the group's DAX compares them (a date
+/// and its midnight alike).
+fn member_key(v: &Value, dt: DataType) -> String {
+    match literal(v, dt) {
+        Ok(Some(l)) => l.to_lowercase(),
+        Ok(None) => "\u{0}blank".to_string(),
+        Err(_) => value_key(v),
+    }
+}
+
+/// `visual.group_points {page, visual, points?, point?, name?, group?, other?}`: Group data on
+/// the data points selected in a visual (Ctrl+click, then the point's menu): a list group of the
+/// category column holding their values, through [`group`]. When the group column `name` already
+/// groups that column, the new group joins its groups (its values leave the groups that listed
+/// them, a group of the same name takes them).
+pub(crate) fn group_points(s: &mut Session, p: &Value) -> Result<Value, String> {
+    allow(
+        p,
+        &["page", "visual", "points", "point", "name", "group", "other"],
+    )?;
+    let (table, column, values) = crate::interact::point_values(s, p)?;
+    let (column, dt, existing) = {
+        let m = crate::commands::model(s)?;
+        let t = m
+            .table(&table)
+            .ok_or_else(|| format!("no table named `{table}`"))?;
+        let c = t
+            .columns
+            .iter()
+            .find(|c| !c.is_row_number() && c.name.eq_ignore_ascii_case(&column))
+            .ok_or_else(|| format!("table `{table}` has no column `{column}`"))?;
+        let name = match opt_str(p, "name")? {
+            Some(n) => n.to_string(),
+            None => format!("{} (groups)", c.name),
+        };
+        let existing = t
+            .columns
+            .iter()
+            .find(|x| !x.is_row_number() && x.name.eq_ignore_ascii_case(&name))
+            .map(|x| (x.name.clone(), column_definition(x)));
+        (c.name.clone(), c.data_type, (name, existing))
+    };
+    let (name, existing) = existing;
+    let group_name = match opt_str(p, "group")? {
+        Some(g) => g.to_string(),
+        None => joined_name(&values, dt),
+    };
+    let other = opt_bool(p, "other")?;
+    let keys: std::collections::HashSet<String> = values.iter().map(|v| member_key(v, dt)).collect();
+    let (groups, other, replace) = match existing {
+        // a new group column (a column that is not a group: column.group refuses the name)
+        None | Some((_, None)) => (
+            vec![json!({"name": group_name, "values": values})],
+            other.unwrap_or(true),
+            false,
+        ),
+        Some((found, Some(def))) => {
+            let list = def.get("groups").and_then(Value::as_array);
+            let same_column = def
+                .get("column")
+                .and_then(Value::as_str)
+                .is_some_and(|c| c.eq_ignore_ascii_case(&column));
+            let (true, Some(list)) = (same_column && def["kind"] == "list", list) else {
+                return Err(format!(
+                    "`{found}` is not a list group of '{table}'[{column}]: pass another `name`"
+                ));
+            };
+            let mut out: Vec<Value> = Vec::new();
+            let mut placed = false;
+            for g in list {
+                let gname = g.get("name").and_then(Value::as_str).unwrap_or_default();
+                let kept: Vec<Value> = g
+                    .get("values")
+                    .and_then(Value::as_array)
+                    .into_iter()
+                    .flatten()
+                    .filter(|v| !keys.contains(&member_key(v, dt)))
+                    .cloned()
+                    .collect();
+                if gname.eq_ignore_ascii_case(&group_name) {
+                    let mut all = kept;
+                    all.extend(values.iter().cloned());
+                    out.push(json!({"name": gname, "values": all}));
+                    placed = true;
+                } else if !kept.is_empty() {
+                    out.push(json!({"name": gname, "values": kept}));
+                }
+            }
+            if !placed {
+                out.push(json!({"name": group_name, "values": values}));
+            }
+            let was = def.get("other").and_then(Value::as_bool).unwrap_or(true);
+            (out, other.unwrap_or(was), true)
+        }
+    };
+    let mut r = group(
+        s,
+        &json!({"table": table, "column": column, "name": name, "kind": "list",
+                "groups": groups, "other": other, "replace": replace}),
+    )?;
+    if let Some(o) = r.as_object_mut() {
+        o.insert("group".into(), json!(group_name));
+        o.insert("values".into(), Value::Array(values));
+    }
+    Ok(r)
 }
 
 /// The code of a bin unit in `binningMetadata.binSize.unit`, as Power BI Desktop 2.159.1231.0

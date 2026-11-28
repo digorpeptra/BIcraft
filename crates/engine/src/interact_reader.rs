@@ -233,3 +233,104 @@ pub(super) fn apply_nodes(view: &Interactions, data: &mut Report) {
         }
     }
 }
+
+/// The key under which the data report's Gantt carries the reader's expanded and collapsed
+/// categories (`[{path, collapsed}]`), read by the snapshot after the saved `row` entries
+/// (`snapshot_visual`, `gantt_rows`). Never saved: only the derived reports have it.
+pub(crate) const GANTT_STATE: &str = "bicraft.gantt";
+/// Most categories of one Gantt whose state the reader set.
+const MAX_GANTT_PATHS: usize = 500;
+/// Category levels of a Gantt (its `Category` well takes three fields).
+const GANTT_LEVELS: usize = 3;
+
+/// `gantt_toggle {page, visual, path, collapsed}`: the reader expands or collapses one category
+/// of a Gantt (its expand/collapse icon): `path` names the category's members, top level first
+/// (one per `Category` field down to it), `collapsed` its new state. In this view only.
+pub(super) fn gantt_toggle(next: &mut Interactions, r: &Report, p: &Value) -> Result<(), String> {
+    crate::params::allow(p, &["action", "page", "visual", "path", "collapsed"])?;
+    let (page, visual) = find_visual(r, p)?;
+    if !visual
+        .visual_type
+        .as_deref()
+        .is_some_and(|t| t.eq_ignore_ascii_case("ganttChart"))
+    {
+        return Err(format!("visual `{}` is not a Gantt", visual.name));
+    }
+    let levels = visual
+        .fields
+        .iter()
+        .filter(|b| b.role.eq_ignore_ascii_case("Category"))
+        .count()
+        .min(GANTT_LEVELS);
+    let path = p
+        .get("path")
+        .and_then(Value::as_array)
+        .ok_or("`path` (the category's members, top level first) is required")?;
+    if path.is_empty() || path.len() > levels {
+        return Err(format!(
+            "`path` names 1 to {levels} category members (the Gantt's Category fields), not {}",
+            path.len()
+        ));
+    }
+    if path.iter().any(|m| m.is_array() || m.is_object()) {
+        return Err("`path` members are values (text, numbers, dates, true/false or null)".into());
+    }
+    let collapsed = p
+        .get("collapsed")
+        .and_then(Value::as_bool)
+        .ok_or("`collapsed` (true or false) is required")?;
+    let list = next
+        .gantt
+        .entry((page.name.clone(), visual.name.clone()))
+        .or_default();
+    match list.iter().position(|(q, _)| q == path) {
+        Some(i) => {
+            if let Some(e) = list.get_mut(i) {
+                e.1 = collapsed;
+            }
+        }
+        None if list.len() < MAX_GANTT_PATHS => list.push((path.clone(), collapsed)),
+        None => {
+            return Err(format!(
+                "at most {MAX_GANTT_PATHS} categories of one Gantt are kept"
+            ));
+        }
+    }
+    Ok(())
+}
+
+/// The data report's Gantts take the reader's expanded and collapsed categories.
+pub(super) fn apply_gantt(view: &Interactions, data: &mut Report) {
+    for ((pg, vn), list) in &view.gantt {
+        if let Some(v) = data
+            .pages
+            .iter_mut()
+            .find(|p| &p.name == pg)
+            .and_then(|p| p.visuals.iter_mut().find(|v| &v.name == vn))
+        {
+            let rows: Vec<Value> = list
+                .iter()
+                .map(|(path, collapsed)| json!({"path": path, "collapsed": collapsed}))
+                .collect();
+            v.visual_extra.insert(GANTT_STATE.into(), Value::Array(rows));
+        }
+    }
+}
+
+/// The reader's Gantt states (`view.interactions`' `gantt`).
+pub(super) fn gantt_json(view: &Interactions) -> Value {
+    let mut keys: Vec<&(String, String)> = view.gantt.keys().collect();
+    keys.sort();
+    Value::Array(
+        keys.into_iter()
+            .filter_map(|k| {
+                let list = view.gantt.get(k)?;
+                let rows: Vec<Value> = list
+                    .iter()
+                    .map(|(path, collapsed)| json!({"path": path, "collapsed": collapsed}))
+                    .collect();
+                Some(json!({"page": k.0, "visual": k.1, "rows": rows}))
+            })
+            .collect(),
+    )
+}

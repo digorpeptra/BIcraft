@@ -44,6 +44,23 @@ const PROGRESS_SHADE: f32 = 0.35;
 /// Days of the serial range DAX accepts (0100-01-01 to 9999-12-31).
 const SERIAL_MIN: f64 = -657_434.0;
 const SERIAL_MAX: f64 = 2_958_466.0;
+/// Most magnification of the time line (the window then shows 1/512 of it, at least a day).
+pub const MAX_ZOOM: f32 = 512.0;
+/// Thickness of the scroll bars (the rows' on the right, the zoomed time line's at the bottom).
+pub const SCROLL_W: f32 = 8.0;
+
+/// The reader's view of one Gantt: view state the app keeps (`RenderOptions::gantt`), never
+/// written to the file or the snapshot. The default shows the first lines and the whole time
+/// line.
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub struct View {
+    /// Lines scrolled out above the list (clamped so that the last line ends the list).
+    pub first: usize,
+    /// How many times the time line is magnified (1 or less: all of it; at most [`MAX_ZOOM`]).
+    pub zoom: f32,
+    /// Where the zoomed window is: 0 at the time line's start, 1 at its end.
+    pub at: f32,
+}
 
 /// A date unit of the time axis.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -159,6 +176,19 @@ pub struct Layout {
     pub lines: Vec<Line>,
     /// Lines below the body, not drawn.
     pub cut: usize,
+    /// Lines scrolled out above, and every line of the list (shown, above and below).
+    pub first: usize,
+    pub total: usize,
+    /// The bottom of the rows' area (the zoom bar and the bottom axis below it).
+    pub rows_bottom: f32,
+    /// The rows' scroll bar (more lines than fit) and the zoomed time line's bar.
+    pub vbar: bool,
+    pub hbar: bool,
+    /// The whole time line (`domain` is the window shown when zoomed).
+    pub full: Option<(f64, f64)>,
+    /// The magnification and window position applied (1 and 0: not zoomed).
+    pub zoom: f32,
+    pub at: f32,
     /// The task column and each detail column.
     pub task_w: f32,
     pub detail_w: Vec<f32>,
@@ -374,10 +404,29 @@ fn bound(x: &Value) -> Option<f64> {
     }
 }
 
-/// The layout of a Gantt whose snapshot visual is `v` and data `ds`, in a body of `w` × `h`.
+/// The layout of a Gantt whose snapshot visual is `v` and data `ds`, in a body of `w` × `h`,
+/// scrolled to its first line and showing its whole time line.
 pub fn layout(v: &Value, ds: &Dataset, w: f32, h: f32) -> Layout {
+    layout_in(v, ds, w, h, View::default())
+}
+
+/// The auto-scaled unit for `span` days on `width` pixels.
+fn auto_unit(span: f64, width: f32) -> Unit {
+    let per_day = f64::from(width) / span.max(1e-9);
+    if per_day >= 18.0 {
+        Unit::Day
+    } else if per_day * 30.44 >= 34.0 {
+        Unit::Month
+    } else {
+        Unit::Year
+    }
+}
+
+/// [`layout`] under the reader's `view`: the lines from `view.first` on, and the time line's
+/// window when zoomed.
+pub fn layout_in(v: &Value, ds: &Dataset, w: f32, h: f32, view: View) -> Layout {
     let roles = Roles::of(&ds.cols);
-    let mut lines = lines(v, ds, &roles);
+    let lines = lines(v, ds, &roles);
     // the task list: the task column, then each detail column
     let headers_size = number(opt(v, "column_headers", "default_width"), DETAIL_W, 10.0, 2000.0);
     let widths = arr(get(get(v, "format"), "gantt_widths"));
@@ -411,7 +460,7 @@ pub fn layout(v: &Value, ds: &Dataset, w: f32, h: f32) -> Layout {
         }
     }
     let chart_x = panel + if panel > 0.0 { 1.0 } else { 0.0 };
-    let chart_w = (w - chart_x).max(1.0);
+    let mut chart_w = (w - chart_x).max(1.0);
     // the time line: every task's dates (collapsed ones too), or the fixed bounds
     let mut lo: Option<f64> = None;
     let mut hi: Option<f64> = None;
@@ -433,16 +482,9 @@ pub fn layout(v: &Value, ds: &Dataset, w: f32, h: f32) -> Layout {
         (None, Some(b)) => Some((b - 1.0, b)),
         (None, None) => None,
     };
-    let units: Vec<Unit> = if auto {
+    let mut units: Vec<Unit> = if auto {
         let span = domain.map_or(30.0, |(a, b)| (b - a).max(1.0));
-        let per_day = f64::from(chart_w) / span;
-        vec![if per_day >= 18.0 {
-            Unit::Day
-        } else if per_day * 30.44 >= 34.0 {
-            Unit::Month
-        } else {
-            Unit::Year
-        }]
+        vec![auto_unit(span, chart_w)]
     } else {
         let p = Unit::of(sk(gantt_axis(v), "primary_unit")).unwrap_or(Unit::Month);
         match Unit::of(sk(gantt_axis(v), "secondary_unit")) {
@@ -471,6 +513,33 @@ pub fn layout(v: &Value, ds: &Dataset, w: f32, h: f32) -> Layout {
         };
         domain = Some((a, b.max(a + 1.0)));
     }
+    // the reader's zoom: a window of the whole time line, at least a day wide, whose unit
+    // auto-scales again
+    let full = domain;
+    let mut zoom = 1.0f32;
+    let mut at = 0.0f32;
+    if let Some((a, b)) = full
+        && view.zoom.is_finite()
+        && view.zoom > 1.0
+    {
+        let span = b - a;
+        let z = f64::from(view.zoom.min(MAX_ZOOM)).min(span.max(1.0));
+        if z > 1.0 {
+            zoom = z as f32;
+            at = if view.at.is_finite() {
+                view.at.clamp(0.0, 1.0)
+            } else {
+                0.0
+            };
+            let window = span / z;
+            let start = a + f64::from(at) * (span - window);
+            domain = Some((start, start + window));
+            if auto {
+                units = vec![auto_unit(window, chart_w)];
+            }
+        }
+    }
+    let hbar = zoom > 1.0;
     let position = sk(gantt_axis(v), "position");
     let show_axis = flag(opt(v, "axis_tick", "show"), true);
     let (top, bottom) = match position {
@@ -492,22 +561,33 @@ pub fn layout(v: &Value, ds: &Dataset, w: f32, h: f32) -> Layout {
     let bar_h = number(opt(v, "bar", "height"), BAR_H, 2.0, 80.0);
     let value_px = number(opt(v, "column_value", "font_size"), 9.0, 5.0, 40.0) * PT;
     let row_h = (bar_h + 10.0).max(value_px * 1.9).round();
-    let mut y = header_h;
-    let mut kept = 0usize;
-    for l in &mut lines {
-        if y + row_h > h - footer_h + 0.5 {
-            break;
-        }
-        l.y = y;
-        y += row_h;
-        kept += 1;
+    // the rows' area, above the zoom bar and the bottom axis; the reader's scroll position
+    // keeps it full (the last line at its bottom)
+    let rows_bottom = (h - footer_h - if hbar { SCROLL_W } else { 0.0 }).max(header_h);
+    let fit = ((rows_bottom - header_h + 0.5) / row_h).floor().max(0.0) as usize;
+    let total = lines.len();
+    let first = view.first.min(total.saturating_sub(fit));
+    let vbar = total > fit && fit > 0;
+    if vbar {
+        chart_w = (chart_w - SCROLL_W).max(1.0);
     }
-    let cut = lines.len().saturating_sub(kept);
-    lines.truncate(kept);
+    let mut lines: Vec<Line> = lines.into_iter().skip(first).take(fit).collect();
+    for (k, l) in lines.iter_mut().enumerate() {
+        l.y = header_h + k as f32 * row_h;
+    }
+    let cut = total.saturating_sub(first + lines.len());
     Layout {
         roles,
         lines,
         cut,
+        first,
+        total,
+        rows_bottom,
+        vbar,
+        hbar,
+        full,
+        zoom,
+        at,
         task_w,
         detail_w,
         chart_x,
@@ -765,13 +845,30 @@ fn milestone_shape(
     }
 }
 
-/// Draws the Gantt body: the number of lines below the body, not drawn; `None` when it has no
-/// task field to list.
+/// Draws the Gantt body under the reader's view of it (`ctx.gantt`): the number of lines not
+/// drawn (scrolled out above or below the body); `None` when it has no task field to list.
 pub fn gantt_body(cv: &mut Canvas, v: &Value, ds: &Dataset, b: Bx, ctx: &Ctx<'_>) -> Option<usize> {
-    let lay = layout(v, ds, b.w, b.h);
+    let view = ctx.gantt.get(sk(v, "name")).copied().unwrap_or_default();
+    let lay = layout_in(v, ds, b.w, b.h, view);
     lay.roles.task?;
     let (w, h) = (b.w, b.h);
-    let rows_bottom = h - lay.footer_h;
+    let rows_bottom = lay.rows_bottom;
+    // where the app lays its scroll and zoom controls (behind the lines' own regions)
+    if ctx.ix.on() {
+        cv.hit(ctx.ix.hit(
+            HitShape::Rect { x: 0.0, y: 0.0, w, h },
+            ctx.ix.menu(
+                "gantt_view",
+                serde_json::json!({
+                    "first": lay.first, "shown": lay.lines.len(), "total": lay.total,
+                    "header_h": lay.header_h, "rows_bottom": rows_bottom, "row_h": lay.row_h,
+                    "chart_x": lay.chart_x, "chart_w": lay.chart_w, "footer_h": lay.footer_h,
+                    "vbar": lay.vbar, "hbar": lay.hbar, "zoom": lay.zoom, "at": lay.at,
+                }),
+            ),
+            Vec::new(),
+        ));
+    }
     let rows_end = lay
         .lines
         .last()
@@ -859,7 +956,11 @@ pub fn gantt_body(cv: &mut Canvas, v: &Value, ds: &Dataset, b: Bx, ctx: &Ctx<'_>
         let ts = ticks(&lay, u, v, ctx, lay.units.len() == 1);
         // too dense: every k-th
         let step = (ts.len() as f32 * 4.0 / lay.chart_w.max(1.0)).ceil().max(1.0) as usize;
+        let lo = lay.domain.map_or(f64::MIN, |d| d.0);
         for (t, _) in ts.iter().step_by(step) {
+            if *t < lo {
+                continue;
+            }
             let x = lay.x_of(*t);
             cv.line_a(x, lay.header_h, x, rows_end, grid, a, width, dash, false);
         }
@@ -947,7 +1048,7 @@ pub fn gantt_body(cv: &mut Canvas, v: &Value, ds: &Dataset, b: Bx, ctx: &Ctx<'_>
             bands.push(k as f32 * LEVEL_H);
         }
         if lay.bottom {
-            bands.push(rows_bottom + k as f32 * LEVEL_H);
+            bands.push(h - lay.footer_h + k as f32 * LEVEL_H);
         }
         for by in bands {
             for (i, (t, s)) in ts.iter().enumerate() {
@@ -964,7 +1065,7 @@ pub fn gantt_body(cv: &mut Canvas, v: &Value, ds: &Dataset, b: Bx, ctx: &Ctx<'_>
                 let room = if step == 1 { x1 - x0 - 4.0 } else { widest + 4.0 };
                 let s = ctx.fonts.fit(&tick_font, s, room.max(0.0));
                 let tx = (x0 + 3.0).max(lay.chart_x + 2.0);
-                if tx > w - 2.0 {
+                if tx > lay.chart_x + lay.chart_w - 2.0 {
                     continue;
                 }
                 cv.text(
@@ -1153,7 +1254,72 @@ pub fn gantt_body(cv: &mut Canvas, v: &Value, ds: &Dataset, b: Bx, ctx: &Ctx<'_>
                 ctx.ix.select(&pt),
                 tip(&lay, ds, l, ctx),
             ));
+            // the expand/collapse icon, over the row: the reader's gantt_toggle
+            if let Kind::Category { collapsed, .. } = l.kind {
+                let (page, visual) = ctx.ix.page_visual();
+                cv.hit(ctx.ix.hit(
+                    HitShape::Rect {
+                        x: (x - 2.0).max(0.0),
+                        y: l.y,
+                        w: ICON_W + 2.0,
+                        h: lay.row_h,
+                    },
+                    ctx.ix.plain(serde_json::json!({
+                        "action": "gantt_toggle", "page": page, "visual": visual,
+                        "path": l.path, "collapsed": !collapsed,
+                    })),
+                    Vec::new(),
+                ));
+            }
         }
     }
-    Some(lay.cut)
+    scroll_bars(cv, &lay, ctx);
+    Some(lay.first + lay.cut)
+}
+
+/// The rows' scroll bar on the right of the time line and, when zoomed, the window's bar under
+/// the rows: a track and a thumb for the part shown.
+fn scroll_bars(cv: &mut Canvas, lay: &Layout, ctx: &Ctx<'_>) {
+    let thumb = ctx.muted;
+    if lay.vbar {
+        let (x, y0) = (lay.chart_x + lay.chart_w, lay.header_h);
+        let len = (lay.rows_bottom - y0).max(0.0);
+        let total = lay.total.max(1) as f32;
+        let t0 = y0 + len * lay.first as f32 / total;
+        let tl = (len * lay.lines.len() as f32 / total).max(12.0_f32.min(len));
+        cv.rect(x, y0, SCROLL_W, len, ctx.band, 1.0);
+        cv.round_rect(
+            x + 1.5,
+            t0.min(y0 + len - tl),
+            SCROLL_W - 3.0,
+            tl,
+            2.5,
+            Some((thumb, 1.0)),
+            None,
+        );
+    }
+    if lay.hbar
+        && let (Some((a, b)), Some((lo, hi))) = (lay.full, lay.domain)
+    {
+        let (x0, y) = (lay.chart_x, lay.rows_bottom);
+        let span = (b - a).max(1e-9);
+        let k0 = ((lo - a) / span).clamp(0.0, 1.0) as f32;
+        let k1 = ((hi - a) / span).clamp(0.0, 1.0) as f32;
+        let (k0, k1) = if lay.invert {
+            (1.0 - k1, 1.0 - k0)
+        } else {
+            (k0, k1)
+        };
+        let tw = ((k1 - k0) * lay.chart_w).max(12.0_f32.min(lay.chart_w));
+        cv.rect(x0, y, lay.chart_w, SCROLL_W, ctx.band, 1.0);
+        cv.round_rect(
+            (x0 + k0 * lay.chart_w).min(x0 + lay.chart_w - tw),
+            y + 1.5,
+            tw,
+            SCROLL_W - 3.0,
+            2.5,
+            Some((thumb, 1.0)),
+            None,
+        );
+    }
 }

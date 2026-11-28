@@ -9,7 +9,7 @@ pub(crate) const DEF: Def = Def {
     guid: "bicraftSankey7B3D5F1A9C2E4B6D8F0A1C3E",
     name: "bicraftSankey",
     display_name: "BIcraft Sankey",
-    version: "1.3.7.0",
+    version: "1.3.8.0",
     description: "A Sankey diagram: weighted links from sources to destinations as ribbons between nodes in columns (BIcraft, docs/formats/chart-pack.md)",
     roles: &[
         Role {

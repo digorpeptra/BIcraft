@@ -1,4 +1,4 @@
-//! A local file or project: an engine session on the worker thread, as `bicraft view` runs it
+//! A local file or project: an engine session on the worker thread, as `bicraft-cli view` runs it
 //! (`apps/bicraft-cli/src/view_cmd.rs`): the snapshot is published again while visuals wait for
 //! their data, the files are watched ([`bicraft_engine::watch`]) and re-read when they change,
 //! clicks run as `view.interact` on the session (reader state only), and the window's buttons run
@@ -204,6 +204,7 @@ fn serve(
                 open(&mut session, &path, link);
                 left = publish_opened(&session, &mut seq, link);
                 watcher.reloaded(&path, &session);
+                link.send(Update::Status(String::new()));
             }
             Ok(Request::Changed) => {}
             Ok(Request::Stop) | Err(RecvTimeoutError::Disconnected) => break,

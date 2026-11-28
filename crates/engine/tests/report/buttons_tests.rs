@@ -506,3 +506,63 @@ fn a_legacy_layout_and_pbir_parts_keep_states_and_conditional_actions() {
         assert_eq!(b["states"]["press"]["text"], "Go", "{label}: {b}");
     }
 }
+
+/// An action button's glow, shadow and tile shape (Format › Shape, Glow, Shadow by state) and its
+/// fill images and custom icon per state reach the snapshot the readers draw (G52, G55).
+#[test]
+fn a_buttons_effects_shape_and_state_images_reach_the_snapshot() {
+    let mut s = session();
+    let main = page(&s, 0);
+    let bt = add_button(&mut s, &main, "blank");
+    run(
+        &mut s,
+        "visual.format",
+        json!({"page": main, "visual": bt, "objects": [
+            {"object": "shape", "property": "tileShape", "value": "pill"},
+            {"object": "glow", "property": "show", "value": true, "state": "hover"},
+            {"object": "glow", "property": "color", "value": {"color": "#FF0000"}, "state": "hover"},
+            {"object": "shadow", "property": "show", "value": true, "state": "disabled"},
+            {"object": "shadow", "property": "shadowDistance", "value": 8, "state": "disabled"},
+        ]}),
+    );
+    let b = snap_visual(&s, &bt)["button"].clone();
+    assert_eq!(b["shape"]["tile"], "pill", "{b}");
+    assert_eq!(b["states"]["hover"]["show_glow"], true, "{b}");
+    assert_eq!(b["states"]["hover"]["glow"], "#FF0000", "{b}");
+    assert_eq!(b["states"]["disabled"]["show_shadow"], true, "{b}");
+    assert_eq!(b["states"]["disabled"]["shadow_distance"], 8, "{b}");
+    assert!(b.get("show_glow").is_none(), "the default state has none: {b}");
+
+    // a fill image in the press state and a custom icon in the default one (kept from a file)
+    const PNG: &str =
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+    let url = json!({"expr": {"Literal": {"Value": format!("'data:image/png;base64,{PNG}'")}}});
+    let image = json!({"image": {"name": json!({"expr": {"Literal": {"Value": "'dot.png'"}}}),
+                                 "url": url, "scaling": {"expr": {"Literal": {"Value": "'Fit'"}}}}});
+    {
+        let r = s.report.as_mut().unwrap();
+        let v = r.pages[0].visuals.iter_mut().find(|v| v.name == bt).unwrap();
+        let objects = v.visual_extra["objects"].as_object_mut().unwrap();
+        objects
+            .entry("fill")
+            .or_insert_with(|| json!([]))
+            .as_array_mut()
+            .unwrap()
+            .push(json!({"properties": {"image": image}, "selector": {"id": "press"}}));
+        objects.insert(
+            "icon".into(),
+            json!([{"properties": {"shapeType": {"expr": {"Literal": {"Value": "'custom'"}}},
+                                   "image": image}, "selector": {"id": "default"}}]),
+        );
+    }
+    s.revision += 1;
+    let b = snap_visual(&s, &bt)["button"].clone();
+    let press = &b["states"]["press"]["fill_image"];
+    assert_eq!(press["mime"], "image/png", "{b}");
+    assert_eq!(press["fit"], "fit", "{b}");
+    assert_eq!(b["icon"], "custom", "{b}");
+    assert_eq!(b["icon_image"]["id"], press["id"], "{b}");
+    assert!(b.get("fill_image").is_none(), "{b}");
+    let assets = s.snapshot_assets();
+    assert!(assets.iter().any(|a| json!(a.id) == press["id"]));
+}

@@ -309,6 +309,14 @@ pub struct ColFmt {
 
 /// A number, Power BI style (`abbrev`: display units for |n| ≥ 1000).
 pub fn fmt_val(n: f64, col: Option<&ColFmt>, loc: &Locale, abbrev: bool) -> String {
+    // scaling commas or literal text (`#,0.0,"K"`, `0 "units"`): the whole format string, as the
+    // Gauge / KPI+ and Waterfall+ labels write it
+    if !abbrev
+        && let Some(f) = col.map(|c| c.fmt.as_str()).filter(|f| wants_full_format(f))
+        && let Some(s) = crate::chart_pack::gauge::full_format(n, f, loc)
+    {
+        return s;
+    }
     // a negative value under a format with its own negative section (Desktop's dollar currency
     // `\$#,0.00;(\$#,0.00);\$#,0.00` draws -5 as "($5.00)"): the VB `FORMAT` rules
     if n < 0.0
@@ -324,6 +332,51 @@ pub fn fmt_val(n: f64, col: Option<&ColFmt>, loc: &Locale, abbrev: bool) -> Stri
     } else {
         s
     }
+}
+
+/// Whether number format string `f` needs the whole format-string rules: a section with scaling
+/// commas (right after the last digit placeholder before the decimal point, or after the last
+/// decimal) or with literal text other than a currency symbol and spaces (quoted or escaped).
+fn wants_full_format(f: &str) -> bool {
+    const CURS: [&str; 6] = ["€", "$", "£", "¥", "₹", "CHF"];
+    let f: String = f.chars().take(200).collect();
+    if f.trim().is_empty() || bicraft_locale::vb::is_date_format(&f) {
+        return false;
+    }
+    let literal = |s: &str| {
+        let rest = CURS.iter().fold(s.to_string(), |s, c| s.replace(c, ""));
+        rest.chars().any(|c| !c.is_whitespace())
+    };
+    for sec in crate::chart_pack::gauge::scale_commas(&f).split(';') {
+        // the section's characters outside quotes and escapes, and its literal text
+        let (mut plain, mut text) = (Vec::new(), String::new());
+        let (mut quoted, mut esc) = (false, false);
+        for c in sec.chars() {
+            if esc {
+                esc = false;
+                text.push(c);
+            } else if c == '"' {
+                quoted = !quoted;
+            } else if quoted {
+                text.push(c);
+            } else if c == '\\' {
+                esc = true;
+            } else {
+                plain.push(c);
+            }
+        }
+        if literal(&text) {
+            return true;
+        }
+        let int = plain.iter().position(|c| *c == '.').unwrap_or(plain.len());
+        let last = plain
+            .get(..int)
+            .and_then(|p| p.iter().rposition(|c| *c == '0' || *c == '#'));
+        if last.is_some_and(|l| plain.get(l + 1) == Some(&',')) {
+            return true;
+        }
+    }
+    false
 }
 
 /// Whether format string `f` has a non-empty second (negative) section, outside quoted text.
@@ -1000,6 +1053,30 @@ mod tests {
         assert_eq!(vb_number_format("\"E+\"0"), None);
         assert_eq!(vb_number_format("#,0.00"), None);
         assert_eq!(fmt_val(1234.5, Some(&col("#,0.0")), &en, false), "1,234.5");
+    }
+
+    /// A cell or tooltip value under a format string with scaling commas (before the decimal
+    /// point or right after the last decimal) or literal text takes the whole format string.
+    #[test]
+    fn cells_take_scaling_commas_and_literal_text() {
+        let en = Locale::new("en-US");
+        let fr = Locale::new("fr-FR");
+        let cell = |n: f64, f: &str, l: &Locale| fmt_cell(&json_num(n), Some(&col(f)), l, false);
+        assert_eq!(cell(1_234_567.0, "#,0.0,\"K\"", &en), "1,234.6K");
+        assert_eq!(cell(1_234_567.0, "#,##0,\"K\"", &en), "1,235K");
+        assert_eq!(cell(7_500_000.0, "0,,\"M\"", &en), "8M");
+        assert_eq!(cell(-7_433_915.0, "$#,0.00,,\"M\"", &en), "-$7.43M");
+        assert_eq!(cell(1_234_567.0, "#,0.0,\"K\"", &fr), "1\u{a0}234,6K");
+        assert_eq!(cell(1234.0, "#,0 \"units\"", &en), "1,234 units");
+        assert_eq!(cell(12.0, "0\\h", &en), "12h");
+        // a currency or a grouping comma alone keeps the renderer's own path
+        assert_eq!(cell(1234.5, "#,0.00", &en), "1,234.50");
+        assert_eq!(cell(12.5, "#,0.00 \"€\"", &fr), "12,50\u{a0}€");
+        assert_eq!(cell(-40.0, "\\$#,0.00", &en), "-$40.00");
+    }
+
+    fn json_num(n: f64) -> Value {
+        serde_json::Number::from_f64(n).map_or(Value::Null, Value::Number)
     }
 
     /// The format strings Power BI Desktop 2.159.1231.0's Data format card writes

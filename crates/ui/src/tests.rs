@@ -523,7 +523,7 @@ fn pages_use_the_bundled_fonts_everywhere() {
 }
 
 /// The window's pages draw subpixel text below the high-DPI threshold only, and it moves no
-/// text or hit region; above it they are the grayscale pages `bicraft render` draws.
+/// text or hit region; above it they are the grayscale pages `bicraft-cli render` draws.
 #[test]
 fn pages_draw_subpixel_text_below_high_dpi_only() {
     use crate::pages::{Key, LCD_TEXT_BELOW, font_book, lcd_text, render};
@@ -721,6 +721,7 @@ mod filters_ui_tests;
 mod focus_ui_tests;
 mod format_ui_tests;
 mod formula_ui_tests;
+mod gantt_ui_tests;
 mod get_data_ui_tests;
 mod group_ui_tests;
 mod interactions_ui_tests;

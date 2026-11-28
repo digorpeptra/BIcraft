@@ -33,7 +33,7 @@ fn main() {
             std::process::exit(1);
         }
     };
-    println!("bicraft view demo at {}  (Ctrl+C to stop)", view.url());
+    println!("bicraft-cli view demo at {}  (Ctrl+C to stop)", view.url());
     let mut step = 0u64;
     loop {
         view.publish(snapshot(step, big));
@@ -884,7 +884,7 @@ fn gallery(growth: f64, total: f64) -> Value {
         ),
         {
             let mut t = visual(53, Some("textbox"), (690, 470, 290, 70), 13, None, vec![], vec![]);
-            t["text"] = json!("Galerie : chaque type de visuel rendu par bicraft view.");
+            t["text"] = json!("Galerie : chaque type de visuel rendu par bicraft-cli view.");
             t
         },
         with(

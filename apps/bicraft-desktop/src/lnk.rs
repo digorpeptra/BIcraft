@@ -38,7 +38,7 @@ const VT_LPWSTR: u16 = 0x001F;
 /// What the shortcut points to.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Shortcut {
-    /// The target's absolute path (`C:\…\bicraft-desktop.exe`).
+    /// The target's absolute path (`C:\…\bicraft.exe`).
     pub target: String,
     pub working_dir: String,
     pub description: String,
@@ -187,10 +187,10 @@ mod tests {
     #[test]
     fn layout_follows_ms_shllink() {
         let s = Shortcut {
-            target: r"C:\Users\Zoë\AppData\Local\bicraft\bicraft-desktop.exe".into(),
+            target: r"C:\Users\Zoë\AppData\Local\bicraft\bicraft.exe".into(),
             working_dir: r"C:\Users\Zoë\AppData\Local\bicraft".into(),
             description: "BIcraft".into(),
-            icon: r"C:\Users\Zoë\AppData\Local\bicraft\bicraft-desktop.exe".into(),
+            icon: r"C:\Users\Zoë\AppData\Local\bicraft\bicraft.exe".into(),
             app_user_model_id: "BIcraft.Desktop".into(),
         };
         let b = shortcut_bytes(&s);

@@ -7,10 +7,10 @@
 //! `crates/engine/tests/layout_oracle.rs` compares bicraft's conversion (`file.convert` with
 //! `report_format: "pbir"`) with Desktop's, file by file.
 //!
-//! 1. `cargo xtask layout-oracle gen DIR` writes `DIR/cmds.json` (a `bicraft run` command list
+//! 1. `cargo xtask layout-oracle gen DIR` writes `DIR/cmds.json` (a `bicraft-cli run` command list
 //!    building the model and one PBIP project per case) and `DIR/legacy/<case>/` (the legacy
 //!    `report.json` and its `StaticResources/` files).
-//! 2. `bicraft run --file DIR/cmds.json` writes `DIR/<case>/<case>.pbip` (blank PBIR report).
+//! 2. `bicraft-cli run --file DIR/cmds.json` writes `DIR/<case>/<case>.pbip` (blank PBIR report).
 //! 3. `cargo xtask layout-oracle install DIR` replaces each project's report with the legacy one
 //!    (`report.json`, resources; the PBIR `definition/` folder removed).
 //! 4. `tools/layout-oracle/run.ps1` opens each project in Desktop, lets it upgrade the report to
@@ -24,7 +24,7 @@ use super::{Cmds, stable_name, write_json};
 
 pub const USAGE: &str = "\
 usage: cargo xtask layout-oracle <step> DIR   (docs/formats/legacy-layout-bb.md)
-  gen DIR        write DIR/cmds.json (bicraft run: model + one PBIP per case) and DIR/legacy/
+  gen DIR        write DIR/cmds.json (bicraft-cli run: model + one PBIP per case) and DIR/legacy/
   install DIR    replace each DIR/<case>/<case>.Report with the legacy report.json
 ";
 
@@ -87,7 +87,7 @@ fn install(dir: &Path) -> Result<(), String> {
         let report = dir.join(case).join(format!("{case}.Report"));
         if !report.is_dir() {
             return Err(format!(
-                "{} is missing: run `bicraft run --file {}` first",
+                "{} is missing: run `bicraft-cli run --file {}` first",
                 report.display(),
                 dir.join("cmds.json").display()
             ));

@@ -78,7 +78,11 @@ fn session() -> Session {
 }
 
 fn open(caps: Caps) -> Harness<'static, App> {
-    let mut app = App::new("en-US", engine_shell(caps, session)).with_sync_render();
+    open_with(caps, session)
+}
+
+fn open_with(caps: Caps, make: fn() -> Session) -> Harness<'static, App> {
+    let mut app = App::new("en-US", engine_shell(caps, make)).with_sync_render();
     app.open_path(Path::new("shop.pbip"));
     let mut h = Harness::builder()
         .with_size(egui::vec2(1400.0, 860.0))
@@ -513,16 +517,22 @@ fn a_query_preview_shows_in_the_grid() {
     assert!(h.state().status.contains("Pick a query"), "{}", h.state().status);
 }
 
-#[test]
-fn see_records_shows_the_rows_behind_a_data_point() {
+/// Opens the shop, right-clicks its chart's first bar and returns the harness and that point.
+fn right_click_a_point() -> (Harness<'static, App>, Value) {
     let mut h = open(Caps::DESKTOP);
-    until(&mut h, "the chart's data", |a| {
+    let point = right_click(&mut h, &|_| true);
+    (h, point)
+}
+
+/// Right-clicks the first data point `pick` accepts and returns that point.
+fn right_click(h: &mut Harness<'static, App>, pick: &dyn Fn(&Value) -> bool) -> Value {
+    let wanted = |a: &Value| a["action"] == "select" && !a["point"].is_null() && pick(&a["point"]);
+    until(h, "the chart's data", |a| {
         a.shown.as_ref().is_some_and(|(_, img)| {
             img.as_ref().is_ok_and(|i| {
-                i.hits.iter().any(|x| {
-                    x.action_for(false)
-                        .is_some_and(|a| a["action"] == "select" && !a["point"].is_null())
-                })
+                i.hits
+                    .iter()
+                    .any(|x| x.action_for(false).is_some_and(|a| wanted(&a)))
             })
         })
     });
@@ -536,10 +546,7 @@ fn see_records_shows_the_rows_behind_a_data_point() {
             .unwrap()
             .hits
             .iter()
-            .find(|x| {
-                x.action_for(false)
-                    .is_some_and(|a| a["action"] == "select" && !a["point"].is_null())
-            })
+            .find(|x| x.action_for(false).is_some_and(|a| wanted(&a)))
             .unwrap();
         let (x, y, w, hh) = hit.shape.bounds();
         (
@@ -561,8 +568,14 @@ fn see_records_shows_the_rows_behind_a_data_point() {
         });
         h.step();
     }
-    steps(&mut h, 2);
+    steps(h, 2);
     assert_eq!(h.state().cmd.point.as_ref(), Some(&point));
+    point
+}
+
+#[test]
+fn see_records_shows_the_rows_behind_a_data_point() {
+    let (mut h, point) = right_click_a_point();
     h.get_by_label("See records").click();
     until(&mut h, "the records", |a| a.cmd.data.stat.is_some());
     assert_eq!(h.state().tab, Tab::Data);
@@ -576,6 +589,48 @@ fn see_records_shows_the_rows_behind_a_data_point() {
     let k: usize = category.trim_start_matches("Item ").parse().unwrap();
     assert_eq!(s.rows.len(), (1..=ROWS).filter(|n| n % 7 == k).count());
     assert!(s.note.contains("no other filter applies"), "{}", s.note);
+}
+
+/// See records' rows (a grid read once) sort from a header's menu, over the rows read and
+/// without a request; Clear sort shows them in the order they were read (docs/gaps.md G49).
+#[test]
+fn see_records_rows_sort_from_a_headers_menu() {
+    let (mut h, _) = right_click_a_point();
+    h.get_by_label("See records").click();
+    until(&mut h, "the records", |a| a.cmd.data.stat.is_some());
+    steps(&mut h, 2);
+    let amount = |h: &Harness<'_, App>| -> Vec<f64> {
+        let dv = &h.state().cmd.data;
+        let c = dv.cols().iter().position(|c| c.name == "Amount").unwrap();
+        (0..dv.rows().unwrap())
+            .map(|r| dv.cell(r, c).and_then(Value::as_f64).unwrap())
+            .collect()
+    };
+    let read = amount(&h);
+    let reads = |h: &Harness<'_, App>| {
+        h.state()
+            .sent
+            .iter()
+            .filter(|c| ["visual.records", "table.rows"].contains(&c.id))
+            .count()
+    };
+    let calls = reads(&h);
+    let sort = |h: &mut Harness<'_, App>, button: &str| {
+        h.get_by_label("Sort Amount").click();
+        steps(h, 2);
+        h.get_by_label(button).click();
+        steps(h, 2);
+    };
+    sort(&mut h, "Sort descending");
+    let down = amount(&h);
+    assert!(down.windows(2).all(|w| w[0] >= w[1]), "not descending");
+    assert_ne!(down, read, "the rows did not move");
+    sort(&mut h, "Sort ascending");
+    let up = amount(&h);
+    assert!(up.windows(2).all(|w| w[0] <= w[1]), "not ascending");
+    sort(&mut h, "Clear sort");
+    assert_eq!(amount(&h), read);
+    assert_eq!(reads(&h), calls, "a sort sent a request");
 }
 
 /// The desktop's and the browser's shells draw the same Data view: grid, menu, Column tools.
@@ -733,4 +788,91 @@ fn the_error_banner_wraps_and_does_not_cover_the_data_view() {
     steps(&mut h, 3);
     let head = h.get_by_label("Id").rect();
     assert!(head.min.y < 400.0, "the banner grew to {head:?}");
+}
+
+/// Analyze this point (G62) sends the right-clicked point and shows the ranked fields in the
+/// answer window.
+#[test]
+fn analyze_runs_on_the_right_clicked_point() {
+    let (mut h, point) = right_click_a_point();
+    h.get_by_label("Analyze this point").click();
+    until(&mut h, "the analysis", |a| {
+        matches!(&a.cmd.result, Some(("visual.analyze", Some(_))))
+    });
+    assert_eq!(last_params(&h, "visual.analyze")["point"], point);
+    let Some((_, Some(Ok(v)))) = h.state().cmd.result.clone() else {
+        panic!("no answer: {:?}", h.state().cmd.result);
+    };
+    // a categorical axis: where the distribution differs; every candidate listed or skipped
+    assert_eq!(v["kind"], "distribution", "{v}");
+    assert!(v["candidates"].is_array() && v["skipped"].is_array(), "{v}");
+}
+
+/// A line chart of Sales[Total] over twelve days, day 7 a spike, Find anomalies on.
+fn spike_session() -> Session {
+    let mut s = Session::new();
+    let sales = "#table(type table [Day = Int64.Type, Amount = number], {{1, 100}, {2, 102}, {3, 99},                  {4, 101}, {5, 103}, {6, 100}, {7, 190}, {8, 98}, {9, 101}, {10, 102}, {11, 100}, {12, 99}})";
+    for (id, p) in [
+        ("model.new", json!({"name": "Spike"})),
+        (
+            "table.add",
+            json!({"name": "Sales", "partition": {"source_type": "m", "expression": sales}}),
+        ),
+        (
+            "column.add",
+            json!({"table": "Sales", "name": "Day", "data_type": "int64"}),
+        ),
+        (
+            "column.add",
+            json!({"table": "Sales", "name": "Amount", "data_type": "double"}),
+        ),
+        (
+            "measure.add",
+            json!({"table": "Sales", "name": "Total", "expression": "SUM(Sales[Amount])"}),
+        ),
+        ("report.new", json!({})),
+    ] {
+        s.execute(id, &p).unwrap_or_else(|e| panic!("{id}: {e}"));
+    }
+    let page = s.report.as_ref().unwrap().pages[0].name.clone();
+    let v = s
+        .execute(
+            "visual.add",
+            &json!({"page": page, "visual_type": "lineChart", "x": 40, "y": 40, "width": 600, "height": 400,
+                    "fields": [{"role": "Category", "field": "Sales[Day]"}, {"role": "Y", "field": "[Total]"}]}),
+        )
+        .unwrap();
+    s.execute(
+        "visual.analytics",
+        &json!({"page": page, "visual": v["visual"], "lines": [{"kind": "anomaly_detection"}]}),
+    )
+    .unwrap();
+    s.dirty = false;
+    s.report_dirty = false;
+    s
+}
+
+/// Explain the anomaly (G56) shows on the right-clicked anomaly only, sends that point and shows
+/// the ranked fields in the answer window.
+#[test]
+fn explain_the_anomaly_runs_on_the_right_clicked_anomaly() {
+    let at = |day: i64| move |p: &Value| p[0]["v"].as_i64() == Some(day);
+    // an ordinary point: no entry
+    let mut h = open_with(Caps::DESKTOP, spike_session);
+    right_click(&mut h, &at(3));
+    assert!(h.query_by_label("Analyze this point").is_some());
+    assert!(h.query_by_label("Explain the anomaly").is_none());
+    // the spike: the entry, its point sent
+    let mut h = open_with(Caps::DESKTOP, spike_session);
+    let point = right_click(&mut h, &at(7));
+    h.get_by_label("Explain the anomaly").click();
+    until(&mut h, "the explanation", |a| {
+        matches!(&a.cmd.result, Some(("visual.explain_anomaly", Some(_))))
+    });
+    assert_eq!(last_params(&h, "visual.explain_anomaly")["point"], point);
+    let Some((_, Some(Ok(v)))) = h.state().cmd.result.clone() else {
+        panic!("no answer: {:?}", h.state().cmd.result);
+    };
+    assert_eq!(v["anomaly"]["at"], 7, "{v}");
+    assert!(v["candidates"].is_array() && v["skipped"].is_array(), "{v}");
 }

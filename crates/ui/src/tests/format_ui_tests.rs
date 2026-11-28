@@ -1749,7 +1749,10 @@ fn a_navigators_shape_glow_and_shadow_cards_format_it() {
         .iter()
         .map(|c| c.key)
         .collect();
-    assert!(!button.contains(&"glow"), "{button:?}");
+    // an action button has them too (its glow and shadow drawn by state, G55)
+    for k in ["shape", "glow", "shadow"] {
+        assert!(button.contains(&k), "{button:?}");
+    }
     let make = || {
         let mut s = session_with(false);
         let page = s.report.as_ref().unwrap().pages[0].name.clone();

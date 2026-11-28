@@ -1,4 +1,4 @@
-//! End-to-end tests of the live viewer commands: `bicraft view PATH` and `bicraft mcp --view`.
+//! End-to-end tests of the live viewer commands: `bicraft-cli view PATH` and `bicraft-cli mcp --view`.
 
 use std::io::{BufRead, BufReader, Read, Write};
 use std::net::TcpStream;
@@ -13,7 +13,7 @@ mod tempdir;
 use tempdir::TempDir;
 
 fn bicraft() -> Command {
-    Command::new(env!("CARGO_BIN_EXE_bicraft"))
+    Command::new(env!("CARGO_BIN_EXE_bicraft-cli"))
 }
 
 fn temp_dir(name: &str) -> TempDir {

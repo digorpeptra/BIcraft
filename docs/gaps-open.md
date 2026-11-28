@@ -8,11 +8,15 @@ since. The one-line summary of each is in [gaps.md](gaps.md); closed entries are
 
 ### G8. Distribution (M7.1 workflows not run)
 
-- **Status.** `bicraft setup` is done (M7.2): it registers the MCP server with Claude Code,
+- **Status.** `bicraft-cli setup` is done (M7.2): it registers the MCP server with Claude Code,
   Claude Desktop, VS Code, Cursor and Codex, with a dry run, backups, uninstall and
   `setup doctor` (`docs/mcp.md` §"Setup"). The CI (`.github/workflows/ci.yml`: Windows, Ubuntu,
   MSRV) and tag-triggered release (`release.yml`) workflows are prepared. By project policy
-  nothing is pushed or published, so they have not run yet.
+  nothing is pushed or published, so they have not run yet. On 2026-11-27 the binaries were
+  renamed as in DeckCraft (the desktop app `bicraft`, the CLI `bicraft-cli`), both archives of
+  `cargo xtask dist` carry both programs, the Linux archive is a glibc build with the app's desktop
+  integration, and `release.yml` runs `cargo xtask dist` per OS ([releasing.md](releasing.md)), for
+  the first release, v0.1.0.
 - **What is left.**
   - The CI and release workflows have never run on GitHub.
   - No binaries are published.
@@ -454,7 +458,7 @@ since. The one-line summary of each is in [gaps.md](gaps.md); closed entries are
 
 ### G29. Viewer interactivity — first lot done, aligned on the interaction oracle
 
-- **Status.** Done on 2026-10-23 (M8.3, branch `feat/viewer-interactive`): `bicraft view` is a
+- **Status.** Done on 2026-10-23 (M8.3, branch `feat/viewer-interactive`): `bicraft-cli view` is a
   report reader. Slicer clicks (list, dropdown, tiles, list and button slicers, range, relative
   date, text), synced slicers, cross-filtering and highlighting on data points (bars, columns,
   combo columns, line points, pie and donut slices, funnel stages, treemap tiles, table rows) with
@@ -770,29 +774,29 @@ since. The one-line summary of each is in [gaps.md](gaps.md); closed entries are
     `a_write_waits_for_reads_and_later_reads_see_it` runs once, without retried rounds.
 - **Effort.** S each.
 
-### G39. UI control channel (M11.6) — done, on `bicraft serve` too
+### G39. UI control channel (M11.6) — done, on `bicraft-cli serve` too
 
 - **Status.** On 2026-11-05 (branch `feat/m11-control`): agents drive the running app and take
   screenshots through an opt-in channel, the same methods on the desktop
-  (`bicraft-desktop --control PORT`: JSON lines on loopback, a random token per launch in an
-  owner-only file) and in the browser (`bicraft view --control`: the server relays requests to
+  (`bicraft --control PORT`: JSON lines on loopback, a random token per launch in an
+  owner-only file) and in the browser (`bicraft-cli view --control`: the server relays requests to
   the app page over an event stream). Requests run between frames through the code a click runs
-  (`crates/ui/src/control.rs`); screenshots are egui's screenshot command. `bicraft ui` is the
+  (`crates/ui/src/control.rs`); screenshots are egui's screenshot command. `bicraft-cli ui` is the
   client ([desktop.md](desktop.md), [webui.md](webui.md)).
-- **Serve relay.** On 2026-11-05 (branch `feat/control-serve`): `bicraft serve --viewer-control`
+- **Serve relay.** On 2026-11-05 (branch `feat/control-serve`): `bicraft-cli serve --viewer-control`
   relays the same methods to each workspace's app pages (`crates/mcp/src/http/viewer.rs` on the
   shared `bicraft_view::control::Relay`), behind the server's authentication: an editor
   credential plus the control token (`X-Bicraft-Control`), browsers refused; a request reaches
   only the caller's own pages, by default the last connected, by page view, or by document view
   (its file's tab first); `GET …/api/control` lists the caller's views; the server's caps apply.
-  `bicraft ui --serve | --url` is the client ([web-deployment.md](web-deployment.md), "UI
+  `bicraft-cli ui --serve | --url` is the client ([web-deployment.md](web-deployment.md), "UI
   control channel"). The Windows token file now has an explicit owner-only access list
   (`icacls`, before the token is written: the workspace forbids `unsafe`, so no Win32 call).
-  Headless Firefox drove both `bicraft view --control` and `bicraft serve --viewer-control`
-  through `bicraft ui` (`apps/bicraft-cli/tests/browser_control.rs`, ignored by default:
+  Headless Firefox drove both `bicraft-cli view --control` and `bicraft-cli serve --viewer-control`
+  through `bicraft-cli ui` (`apps/bicraft-cli/tests/browser_control.rs`, ignored by default:
   [webui.md](webui.md)), screenshots included.
 - **Headless render.** On 2026-11-26 (branch `feat/g39-headless-render`):
-  `bicraft-desktop FILE --render OUT.png [--size WxH] [--scale N] [--set JSON]` draws the whole
+  `bicraft FILE --render OUT.png [--size WxH] [--scale N] [--set JSON]` draws the whole
   window with no window, GPU or display. The app runs offscreen (`crates/ui/src/offscreen.rs`)
   and is driven by the channel's own `ui.wait`, `ui.set` and `ui.screenshot`; the screenshot is
   egui's triangles filled on the CPU, the same bytes on every run (tested,
@@ -801,7 +805,7 @@ since. The one-line summary of each is in [gaps.md](gaps.md); closed entries are
 - **Left.** No synthetic pointer or key
   input on purpose: requests name commands, tabs, pages and visuals; a click on a slicer item or
   a data point goes through `command view.interact`. The headless render is the desktop
-  binary's (`bicraft ui` has no `render` of its own; the browser app has none). The browser test needs Firefox and an embedded bundle, so it is not in CI.
+  binary's (`bicraft-cli ui` has no `render` of its own; the browser app has none). The browser test needs Firefox and an embedded bundle, so it is not in CI.
   An agent addresses a document view by the id `server.views` lists; the window's own
   `ui.inspect` does not show view ids.
 - **Deployment.** On 2026-11-05 (branch `chore/deploy-followups`): the chart's
@@ -829,7 +833,7 @@ since. The one-line summary of each is in [gaps.md](gaps.md); closed entries are
   "Refresh info table").
 - **Local clock.** On 2026-11-05 (branch `chore/deploy-followups`): `DateTime.LocalNow()` and
   `DateTimeZone.LocalNow()` (the Refresh info table's local column) read the machine's time zone
-  on the desktop and in the CLI, at each evaluation, as Desktop does; `bicraft serve` keeps UTC, as
+  on the desktop and in the CLI, at each evaluation, as Desktop does; `bicraft-cli serve` keeps UTC, as
   the service, unless `--local-offset` or `TZ` says otherwise
   ([formats/data-sources.md](formats/data-sources.md), "Clock").
 - **Left.** Where the INFO functions run and their columns are **documented, not measured**: the
@@ -842,7 +846,7 @@ since. The one-line summary of each is in [gaps.md](gaps.md); closed entries are
 ### G43. Report text glyphs — mostly fixed
 
 - **Status.** On 2026-11-05 (branch `fix/render-glyph-fallback`): a measure named `CA Δ N-1` drew
-  as `CA   N-1` on the app's pages (bundled fonts only) and in `bicraft render` without a system
+  as `CA   N-1` on the app's pages (bundled fonts only) and in `bicraft-cli render` without a system
   font that has Greek: Selawik is Latin only and the character was skipped. The renderer's chain
   now ends with OFL glyph subsets of Noto Sans (Regular, Bold), Noto Sans Mono (box drawing and
   block elements), Noto Sans Symbols 2, Noto Sans Math, Noto Sans Symbols and Noto Emoji
@@ -1029,12 +1033,12 @@ since. The one-line summary of each is in [gaps.md](gaps.md); closed entries are
 - **Status.** Open. The gap review of [target-app-parity.md](target-app-parity.md) ("Gap review
   2026-11-05") rescored [parity-checklist.md](parity-checklist.md) on `main` at ccb96e3 and
   widened it to all of Desktop: authoring 63 of 129 rows done (49%, weighted 68%; on the
-  2026-11-04 rows 57 of 91, 63%, weighted 78%), viewer done share `bicraft render` 59%, web viewer
+  2026-11-04 rows 57 of 91, 63%, weighted 78%), viewer done share `bicraft-cli render` 59%, web viewer
   46%, app 52% (weighted 74%, 61%, 65%). Every command has a button since M11, about half of them
   only through the generic parameters form.
 - **Rescored 2026-11-18** on `main` at 816a4cb, after the lots M11.16–M11.25 (measured by `cargo
   xtask parity`, each row a judgement): authoring 79 of 129 rows done (61%, weighted 78%),
-  `bicraft render` 22 of 33 (67%, weighted 80%), web viewer 26 of 56 (46%, weighted 61%), app 38
+  `bicraft-cli render` 22 of 33 (67%, weighted 80%), web viewer 26 of 56 (46%, weighted 61%), app 38
   of 56 (68%, weighted 81%). Lots 1–10, 13 and 15 of the review landed (lot 7 without print, lot
   9 without the Analytics pane); lot 17 (the Data view, See records, Show as a table, M11.19).
 - **Focus mode, Show as a table and Sort axis (M11.19)** are reader view state (`view.interact`
@@ -1137,14 +1141,23 @@ since. The one-line summary of each is in [gaps.md](gaps.md); closed entries are
   `displayOption`; the status bar's zoom (fit buttons, Zoom out, a 10–400 % slider, Zoom in, the
   percentage) is a view setting of the window over it. The Learn pages describe no page
   thumbnails in Desktop, whose pages are tabs below the canvas (the app's page tabs).
-- **Left.** No Show smart guides switch (the guides are always on; Alt moves freely). The grid is
-  drawn over the page image, not behind the visuals. Lock objects is not compared with Desktop:
-  Learn says the objects cannot be moved or resized, so BIcraft still deletes, cuts and pastes.
-  A group is not refitted to its remaining members after a removal. The clip carries the visuals' records, not the report's image resources, so
-  an image visual pasted into another file loses its picture; bookmarks and sync groups naming
-  the source visuals are not copied (which bookmark or sync group a pasted copy should join is
-  not documented, so it is left open). Snapping uses BIcraft's own threshold (6 screen points) and grid (8 px), not measured in
-  Desktop.
+- **Since 2026-11-27** (branch `feat/g48-canvas`, the parts that need no Desktop). View › Smart
+  guides (on by default, a window preference like Gridlines) turns off snapping to the other
+  visuals' and the page's edges and centres and the dashed guides; Snap to grid and Alt work as
+  before. Gridlines is drawn by the renderer over the page background and image and under the
+  visuals (`RenderOptions::grid`, the page image's key), no longer painted over the page image;
+  the phone canvas keeps its drag-time grid overlay. `visual.copy` puts the report images its
+  visuals show in the clip (`images: [{name, data}]`, base64, at most 4 MB, those left out named
+  in `warnings`) and `visual.paste` registers them in the target (checked as `image.add` checks a
+  file; the same name and bytes reused, another image of that name gets a file of its own), so
+  an image visual pasted into another file keeps its picture. `visual.remove` refits a group to
+  the members it keeps.
+- **Left** (each needs a Desktop observation). Lock objects is not compared with Desktop: Learn
+  says the objects cannot be moved or resized, so BIcraft still deletes, cuts and pastes.
+  Bookmarks and sync groups naming the source visuals are not copied (which bookmark or sync
+  group a pasted copy should join is not documented, so it is left open). Snapping uses
+  BIcraft's own threshold (6 screen points) and grid (8 px), not measured in Desktop; whether
+  Desktop names its guides switch Smart guides and what it turns off is not observed either.
 - **Where.** `crates/ui/src/canvas.rs`, `crates/engine/src/canvas_edit.rs`.
 - **Effort.** S.
 
@@ -1170,7 +1183,7 @@ since. The one-line summary of each is in [gaps.md](gaps.md); closed entries are
   project), one dimension in 0.97 s. <!-- perf-guard: ok (BIcraft against BIcraft) -->
 - **Seen in Desktop (2.160.1151.0, 2026-11-25).** Refreshed PBIX files whose tables hold up to
   1,048,576 rows open with the new data (rows, a measure over a calculated column through
-  `RELATED`, a new key on the one side, a column chart and a table equal to `bicraft dax-query`),
+  `RELATED`, a new key on the one side, a column chart and a table equal to `bicraft-cli dax-query`),
   `--table` and an unchanged refresh too, and Desktop's own Refresh then succeeds and saves.
   A table of more rows was then refused on open by Desktop's consistency check (fixed below).
 - **Desktop open (2.160.1151.0, 2026-11-25, branch `fix/g50-multisegment`).** Desktop refused
@@ -1180,7 +1193,7 @@ since. The one-line summary of each is in [gaps.md](gaps.md); closed entries are
   `SegmentMapStorage.Type` 1, BIcraft wrote 3 (the one-segment value). The writer now takes the
   type from the segment count (test
   `a_partition_of_several_segments_has_segment_map_type_1`); Desktop then opened PBIX files of
-  1,048,577, 2,097,153 and 10,000,000 rows and a `bicraft refresh` from 1,000 to 1,200,000 rows,
+  1,048,577, 2,097,153 and 10,000,000 rows and a `bicraft-cli refresh` from 1,000 to 1,200,000 rows,
   with a card and a table of count and sum measures equal to the expected values
   ([formats/vertipaq.md](formats/vertipaq.md) §11, "Segment map type of a multi-segment
   partition").
@@ -1194,7 +1207,7 @@ since. The one-line summary of each is in [gaps.md](gaps.md); closed entries are
   Databricks are not refreshed; `sources.rebase` still refuses a PBIX with stored rows (it could
   now offer a refresh); no per-table progress while it runs (a spinner).
 - **Effort.** M (done); streaming the encoder M.
-### G53. Export to PDF and of a visual's data (M11.21) — done, with print, outline and tags; PDF/UA left
+### G53. Export to PDF and of a visual's data (M11.21) — done, PDF/UA and PDF/A identified; validator run left
 
 - **Status.** Done 2026-11-06 on `feat/export-pdf-data`. `report.export_pdf` writes report
   pages to one PDF (all pages but hidden ones, the current page, a range, pages by name), one PDF
@@ -1215,21 +1228,45 @@ since. The one-line summary of each is in [gaps.md](gaps.md); closed entries are
   Print (the page choice of Export to PDF): the PDF written to the temporary folder and opened
   with the OS's PDF application on the desktop, printed from a hidden frame with the browser's
   print in the browser ([render.md](render.md), "PDF", "Print").
+  On 2026-11-27 (`feat/g53-pdf`), the parts that need no Desktop: `report.export_pdf` takes
+  `pdf_ua` (default on: an XMP metadata stream with `dc:title` and `pdfuaid:part` 1) and `pdf_a`
+  (default off: `pdfaid` 2B and a `GTS_PDFA1` output intent with an sRGB ICC profile BIcraft
+  builds from IEC 61966-2-1's parameters, `crates/render/src/icc.rs`); the trailer has an `ID`.
+  Table visuals are `Table` / `TR` / `TH` (`Scope Column`) / `TD` structures, empty cells kept;
+  a chart without alt text is a `Figure` labelled with its title, its labels still paragraphs;
+  the visuals' sections are in tab order, then top to bottom and left to right; every glyph has
+  a `ToUnicode` entry (U+FFFD for a ligature). CFF faces are embedded whole (`FontFile3`
+  `OpenType`, `CIDFontType0`, up to 16 MB). The reader checks what it can see
+  (`PdfInfo::ua_issues`, `pdfa_issues`). Export to PDF in the app has an Archival PDF
+  (PDF/A-2b) box. `visual.export_data {kind: "current_layout"}` (XLSX only; the Export data
+  dialog's first choice, EN and FR) writes a matrix with column fields as a cross table (header
+  rows per column field, labels merged over their values) and other visuals as the summarized
+  table, within 150,000 cells of values, as Microsoft Learn's "Export data from
+  visualizations" describes the option. Tests (each seen red with its change undone): render
+  `a_table_visual_is_tagged_as_a_table_of_header_and_data_cells`,
+  `a_chart_without_alt_text_is_a_figure_labelled_with_its_title_and_keeps_its_text`,
+  `the_reading_order_is_the_tab_order_then_top_to_bottom_and_left_to_right`,
+  `the_default_file_is_identified_as_pdf_ua_and_passes_our_checks`,
+  `pdf_a_2b_has_metadata_an_srgb_output_intent_and_an_id`,
+  `a_cff_face_is_embedded_whole_as_opentype` (a CFF face built in the test), `icc::tests`;
+  engine `current_layout_writes_a_matrix_as_a_cross_table`,
+  `pdf_ua_by_default_and_pdf_a_on_request`; kittest `export_pdf_*` (the archival box).
 - **What is left.**
-  - PDF/A and PDF/UA identification, a run of a PDF/UA validator (PAC, veraPDF) on the tagged
-    files, table visuals tagged as `Table` structures (their cells are paragraphs now), reading
-    order beyond the visuals' z-order; Print has no dialog of its own (page setup, printer): the
-    OS's PDF application or the browser prints, and the browser's print from a hidden frame is
-    not checked in every browser (the file is downloaded when it fails to load).
-  - Faces with CFF outlines (`.otf`) and faces whose `fsType` forbids embedding are drawn as
-    outlines with invisible Helvetica text over them (searchable, not selectable as the face);
-    a CFF subsetter would embed the first.
+  - A run of a PDF/UA and PDF/A validator (PAC, veraPDF: none installed here) on the files;
+    until then the identification is BIcraft's claim, checked by its own reader only. A
+    matrix is not tagged as a table (its spanning headers would need `ColSpan`); CFF faces are
+    embedded whole, not subset. Print has no dialog of its own (page setup, printer): the OS's
+    PDF application or the browser prints, and the browser's print from a hidden frame is not
+    checked in every browser (the file is downloaded when it fails to load).
+  - Faces whose `fsType` forbids embedding are drawn as outlines with invisible Helvetica text
+    over them (searchable, not selectable as the face).
   - Underlying data groups the aggregated columns (a row per distinct combination of the columns
     shown) instead of Desktop's flattened row-level export, which adds the other non-hidden
-    columns of the tables of the visual's measures and related tables; the "Data with current
-    layout" export (a matrix's shape in Excel) and the "Applied filters" header row of Desktop's
-    Excel files are not written; values are raw (numbers, ISO dates in CSV) rather than with
-    their format strings.
+    columns of the tables of the visual's measures and related tables (Microsoft Learn
+    describes it; not implemented: it needs the rows of those tables through the evaluator);
+    the "Applied filters" header row of Desktop's Excel files is not written; values are raw
+    (numbers, ISO dates in CSV) rather than with their format strings; the current layout of a
+    table is the summarized table, and its matrix has no subtotals.
   - Export from the web viewer (`page.html`) and Desktop's per-visual "Export data" disable
     switch are not there; a black-box comparison with a PDF and a CSV written by Desktop is to
     do.
@@ -1327,10 +1364,24 @@ since. The one-line summary of each is in [gaps.md](gaps.md); closed entries are
     `whole_visual_conditional_colours_are_drawn`; kittests
     `the_axes_and_legend_colours_have_their_fx`, `the_gauge_and_kpi_colours_have_their_fx`,
     `the_rules_take_percent_bounds`.
-  - Left: these whole-visual and percent shapes are BIcraft's reading of the schemas, **not
-    compared with a file Desktop formatted** (black-box oracle to run); the KPI's neutral colour
-    is evaluated but not drawn (the renderer has no neutral state); the gradient's Percent and
-    Percentile stops (no public shape; Number only); the legacy JavaScript viewer (`page.html`)
+  - On 2026-11-27 **gradient Percent stops and the KPI's neutral colour** (`feat/g54-format`):
+    a gradient's Minimum, Center and Maximum take a Percent (`{color, value, percent: true}`,
+    0 to 100; the dialog's stop type Lowest / Number / Percent), the stop's `value` written as
+    the Percent rules' `Min + (Max - Min) * p/100` expression over the gradient's input (an
+    inference: no public shape) and read back only in that shape; the producer places the stop
+    at that percent of the visual's lowest to highest value, the dialog's preview too. A KPI
+    whose indicator equals its goal is drawn (value, trend area, status mark) in Colour coding's
+    Neutral colour (`status.neutralColor`, or its fx) when one is set, else in the Good colour
+    as before. Tests: engine `gradient_stops_take_percents`, `gradient_percent_stops_are_evaluated`,
+    `preview::format::tests::gradients_and_rules`, the `dialog_conditional_formats_round_trip`
+    PBIP / PBIR PBIX / legacy PBIX round trip; render
+    `the_kpi_at_its_goal_is_drawn_in_the_neutral_colour`; ui
+    `the_gradient_takes_percent_stops` (each seen red with its change undone).
+  - Left: these whole-visual and percent shapes (rules' bounds, gradient stops) are BIcraft's
+    reading of the schemas, **not compared with a file Desktop formatted** (black-box oracle to
+    run); the KPI's neutral colour when none is set (Desktop's default not observed: BIcraft
+    keeps Good) and Colour coding's `direction` (Low is good; BIcraft reads every KPI as High is
+    good), neither compared with Desktop; the gradient's Percentile stops (no public shape); the legacy JavaScript viewer (`page.html`)
     does not draw the new targets; the new card's and button slicer's elements (Microsoft
     Learn's list; the engine takes them as `{object, property}`), icons by Field value (a custom icon from a URL), icon rules
     with an "else", the swatch (and the title's text box) still shown under an active format,
@@ -1421,13 +1472,41 @@ since. The one-line summary of each is in [gaps.md](gaps.md); closed entries are
   `a_measure_filter_on_a_card_is_named_not_applied`, `see_records_follows_a_cross_highlight`,
   `table_rows_reads_a_literal_table_with_a_calculated_column`,
   `a_headers_menu_has_text_and_number_filters`.
-- **Left.** A measure filter on a visual without grouping columns (a card), a measure condition
-  that also reads a column the visual does not group by, and a table `RELATED` cannot reach
-  (many-to-many, a filter through a bidirectional relationship) are still named in
-  `not_applied`; the records' table is the first measure's home table where Desktop follows the
-  measure's columns (or its detail rows expression). The preview and the records are read once
-  (up to 10,000 rows) and are not sortable; the grid has no column statistics (Desktop shows none
-  in the Data view either, but Power Query's profile is G46's row); the filter menu lists the
+- **Cards, unreachable grouping columns, the records' table, sorting (2026-11-27, branch
+  `feat/g49-filters`).** A measure filter on a card (no grouping column the records' table
+  reaches) is computed once under the other filters, as the visual evaluator filters its one
+  row: when it fails the card is blank and the records are empty (`FILTER(ALL(<a column>),
+  FALSE())` in `query`), else every row is kept. Grouping columns the records' table cannot reach
+  through `RELATED` (a table with no relationship, a table on the many side) no longer make the
+  query fail (`SUMMARIZE` refused them): they do not filter the records' rows, and a point of the
+  reached columns is kept when one of its combinations with their values meets the condition
+  (`NOT(ISEMPTY(FILTER(VALUES(<their columns>), <condition>)))`, the measure computed per
+  combination). The records' table is now the table the first measure's expression reads (the
+  one `RELATED` reaches the others from when it reads several, its home table on a tie, the
+  measures it calls followed when it reads no column), so a measure kept in another table than
+  its columns' shows its columns' rows; when the measure has a detail rows expression, the
+  records are that expression's rows under the point and the filters (`detail_rows: true`). A
+  preview's and the records' header menus sort the rows read (view state, no request, Clear
+  sort back to the order read). Tests:
+  `a_measure_filter_on_a_card_keeps_or_drops_its_records`,
+  `a_measure_filter_applies_to_columns_related_cannot_reach`,
+  `see_records_reads_the_table_of_the_measures_columns`,
+  `see_records_shows_a_measures_detail_rows` (engine),
+  `see_records_rows_sort_from_a_headers_menu` (UI). Unobserved in Desktop, BIcraft's choices:
+  the tie rule of the records' table when a measure reads several tables, what Desktop's See
+  records shows for a card whose measure filter fails (BIcraft: no rows), whether Desktop puts a
+  detail rows expression's rows under the visual's filters as BIcraft does, and whether Desktop's
+  records window sorts.
+- **Left.** A measure condition that also reads a column the visual does not group by, and a
+  condition over several tables `RELATED` cannot reach (many-to-many, a filter through a
+  bidirectional relationship), are still named in `not_applied`; grouping columns `RELATED`
+  cannot reach are taken not to filter the records' table, which is wrong when they do through a
+  bidirectional or many-to-many relationship; on a visual grouped only by such columns the check
+  asks whether any of their values meets the condition, not the clicked point's. The records'
+  table follows the first measure, not the measure of the clicked mark (the hit map's point
+  carries grouping columns only). The preview and the records are read once (up to 10,000 rows):
+  a sort orders the rows read, not the whole answer; the grid has no column statistics (Desktop
+  shows none in the Data view either, but Power Query's profile is G46's row); the filter menu lists the
   first 1,000 distinct values (a search narrows them); its Text, Number and Date filters are
   sections of the menu, not Desktop's submenus, and their test names are BIcraft's own, not
   checked against Desktop's menu; sorting or filtering on a calculated column the data does not hold
@@ -1458,7 +1537,7 @@ since. The one-line summary of each is in [gaps.md](gaps.md); closed entries are
     the next step.
   - Bookmark actions are applied since 2026-11-18 (`view.interact` `button` → `Bookmark`,
     `crates/engine/src/interact.rs`, G55); Q&A buttons are refused ("Q&A is not available in
-    BIcraft"; Q&A is out of scope).
+    BIcraft"; Q&A is out of scope, and no small step short of a Q&A engine is open).
   - Button states drawn 2026-11-20 ([formats/buttons.md](formats/buttons.md),
     `crates/render/src/states.rs`, tests `buttons_tests.rs`, `buttons_ui_tests.rs`): the app tells
     the renderer where the pointer is and draws the page again over a button, shape or navigator
@@ -1467,10 +1546,19 @@ since. The one-line summary of each is in [gaps.md](gaps.md); closed entries are
     shows its enabled / disabled tooltip; conditional (fx) destinations and tooltips
     (`visual.set_action {destination_field, tooltip_field}`) are evaluated by the snapshot and
     followed by the readers; the Format pane's "Apply settings to: State" writes the state picked.
-    Left: fill images and custom icons per state, glow and shadow per state (kept, not drawn), the
-    Data function action (Fabric user data functions: out of scope), `page.html` and exports draw
-    no pointer state (`page.html` not the disabled state either), the fx `expr` and the 45 % dim
-    not checked against a Desktop-saved file.
+    Fill images, custom icons, glow and shadow per state and the button's tile shape drawn
+    2026-11-27 ([formats/buttons.md](formats/buttons.md) "Shape, glow and shadow of an action
+    button"; snapshot `button.shape`, `button.show_glow`…, `fill_image`, `icon_image` per state;
+    the Format pane's Shape, Glow and Shadow cards for buttons; render tests
+    `action_buttons_draw_their_state_shadow_glow_and_shape`,
+    `action_buttons_draw_their_state_fill_image_and_custom_icon`, seen red). Left: the Data
+    function action (Fabric user data functions: out of scope); `page.html` (the legacy JS
+    viewer, slated for removal) draws no state at all, not the disabled one either; exports have
+    no pointer, so they draw the default and disabled states only; a custom icon placed above,
+    below or custom, Icon size and the icon margins are not drawn (left or right of the text, at
+    the built-in icon's size); a fill image is not cut to a tile shape; no command writes fill
+    images or custom icons (kept from files); the fx `expr`, the 45 % dim, the effect defaults
+    and the image placement not checked against Desktop.
   - Insert › Shapes landed on 2026-11-19 (`shape.add`, the 23 `tileShape` values of the theme
     schema's `visual-shape`; the Format pane's Shape, Rotation, Fill and Outline cards; the
     renderer draws each tile, `crates/render/src/shapes.rs`). Not checked against Desktop: the
@@ -1527,8 +1615,13 @@ since. The one-line summary of each is in [gaps.md](gaps.md); closed entries are
     the drilled values (`filters.byExpr`, `howCreated` 2), and `bookmark.apply` and
     `view.interact {action: "bookmark"}` restore the view's drill, resetting it on a bookmark
     without one ([pbir.md](formats/pbir.md) "Bookmarks"). Test
-    `a_bookmark_captures_and_restores_the_drill`. Left: the shape is read from the public
-    schemas, not from a file Desktop saved; the drill mode is not captured.
+    `a_bookmark_captures_and_restores_the_drill`. The drill mode since 2026-11-27, as a
+    formatting-object update of BIcraft's own (`singleVisual.objects.merge.bicraftDrill`, valid
+    against the bookmark schema, which has no property for it; [pbir.md](formats/pbir.md)
+    "Bookmarks"), restored on and off by `bookmark.apply` and `view.interact` (test
+    `a_bookmark_round_trips_the_drill_mode`, seen red). Left: the shape is read from the public
+    schemas, not from a file Desktop saved; the drill mode's place is BIcraft's, not seen in a
+    Desktop file.
   - Slicer selections done 2026-11-19 (`crates/engine/src/interact_bookmark.rs`,
     `bookmarks_slicer_tests.rs`, kittest `a_bookmark_captures_and_restores_a_slicer_selection`):
     `bookmark.capture` / `bookmark.update` write each slicer's selection as the session shows it
@@ -1554,8 +1647,8 @@ since. The one-line summary of each is in [gaps.md](gaps.md); closed entries are
     both navigators (EN/FR). Tests: engine `navigator_shape_glow_and_shadow_reach_the_snapshot`,
     render `navigator_buttons_draw_their_shape_shadow_and_glow`, kittest
     `a_navigators_shape_glow_and_shadow_cards_format_it`. Left: these drawing defaults are
-    BIcraft's (no public source gives Desktop's), inner shadows are drawn as outer ones, the
-    action button's glow, shadow and shape are not drawn, text alignment, theme `visualStyles`
+    BIcraft's (no public source gives Desktop's), inner shadows are drawn as outer ones (the
+    action button's glow, shadow and shape are drawn the same way since 2026-11-27, G52), text alignment, theme `visualStyles`
     for navigators, Desktop's own default look; not compared with Desktop 2.159.
   - Sync groups are applied by the readers (checked 2026-11-18; the propagation existed since
     M8.3, this entry was stale): a click on a slicer item reaches every slicer of its group on
@@ -1573,8 +1666,8 @@ since. The one-line summary of each is in [gaps.md](gaps.md); closed entries are
     not from a screenshot: the strips, pane widths, row heights, labels and their order have not been
     compared visually with Power BI Desktop 2.159 in this batch. Only the engine, the kittest checks
     and the CI gate are evidence here.
-- **Effort.** S for what is left (a Desktop-saved drilled bookmark and button effects to
-  compare, the action button's effects); the reader's bookmarks and sync groups landed on
+- **Effort.** S for what is left (a Desktop-saved drilled bookmark, drill mode and button effects
+  to compare: each needs Desktop); the reader's bookmarks and sync groups landed on
   2026-11-18, slicer selections in bookmarks and navigator styles on 2026-11-19, drill states
   in bookmarks and navigator shapes, glow and shadow on 2026-11-25.
 
@@ -1588,10 +1681,21 @@ since. The one-line summary of each is in [gaps.md](gaps.md); closed entries are
   `symmetry_shading` (`plotAreaShading`); the snapshot gives `data.error_bars`. The renderer draws
   error bars on clustered columns and bars and on lines, the line band, the scatter's constant
   and statistic lines, its ratio line and its symmetry shading.
-- **Left.** The `errorRange` shape and the error bars' defaults are BIcraft's reading (no public
-  source; "relative = value + bound" from community notes), not checked against a file Desktop
-  saved. No error bars with a legend, on stacked or 100% charts or on combo columns; no constant X
-  line on a categorical axis.
+- **Error bars per series, stacked and combo (2026-11-27, branch `feat/g56-errorbars`).** With a
+  legend every legend series gets its bars at its own points, in its colour when the bars match
+  the series' colour, else the error-bar formatting (the legend's value holds the one entry,
+  `crates/render/src/data.rs`). On stacked and 100% columns and bars each series' bars sit at the
+  top of its segment, each bound as far from that top as from the series' value: the `error`
+  object has no property that chooses the stack's top or the segment's, so this is BIcraft's
+  reading ([formats/pbir.md](formats/pbir.md) "Chart specifics"). Both combo charts draw them on
+  the columns (clustered or stacked) and on the line. Render tests
+  (`crates/render/src/analytics_tests.rs`) check each series' caps at its own bounds and bar in
+  its colour, no cap inside a stacked segment where its unshifted bounds would be, and both
+  parts of a combo; each failed before the change.
+- **Left.** The `errorRange` shape, the error bars' defaults and the stacked placement are
+  BIcraft's reading (no public source; "relative = value + bound" from community notes), not
+  checked against a file Desktop saved or Desktop's drawing. No error bars on stacked areas or on
+  a combo's line with a legend; no constant X line on a categorical axis.
 - **Anomaly detection (2026-11-19).** `visual.analytics` takes `kind: "anomaly_detection"`
   (`objects.anomalyDetection`, the theme schema's properties, `selector.metadata` the series),
   refused where Microsoft Learn says Power BI has none (not a line chart, a legend, several or
@@ -1601,7 +1705,19 @@ since. The one-line summary of each is in [gaps.md](gaps.md); closed entries are
   residuals' median absolute deviation, `crates/render/src/anomaly.rs`), labelled as such in the
   card, the render note and the data, never Power BI's SR-CNN result. Left: the sensitivity's
   `transform` and the selector are BIcraft's reading, not checked against a file Desktop saved;
-  no explanations (Explain by, the anomaly's pane); the time-series axis is not required.
+  the time-series axis is not required.
+- **Anomaly explanations (2026-11-27, branch `feat/g56-errorbars`).** `visual.explain_anomaly
+  {page, visual, point?, compare?, fields?, top?}` (`crates/engine/src/visual_analyze.rs`,
+  [analyze-point.md](analyze-point.md#explain-an-anomaly)): BIcraft's own explanation, labelled
+  as such. By default each candidate field's values go through the same detection as the line and
+  the field is scored by how much of the deviations from their expected values one value carries
+  (`visual.analyze`'s change score, with the expected value for the previous point); `compare:
+  "previous"` is `visual.analyze`'s change. The app: an anomaly's right-click › Explain the
+  anomaly (EN, FR), shown only on a flagged point. Checked: engine tests on a synthetic star (the
+  planted region ranks first, ahead of the channel and the related table's colour; ordinary
+  points refused) and a kittest (the entry only on the anomaly, its point sent). Left: no
+  comparison with Desktop's explanations, Explain by's fields are not kept in the report, and a
+  left click on the marker only selects the point.
 - **Effort.** S–M.
 
 ### G57. "Show items with no data" (2026-11-18)
@@ -1620,9 +1736,20 @@ since. The one-line summary of each is in [gaps.md](gaps.md); closed entries are
   ([formats/pbir.md](formats/pbir.md) "Show items with no data").
 - **Left.** The two PBIR forms are not compared with a file Desktop saved itself (operand order,
   the scope Desktop writes for a column total, its `queryRef`, the `0.00%` format); `showAll`
-  beside a percent of a column or row total not tried in Desktop. The matrix subtotal levels do not list
-  items with no data. Show value as on hierarchy-level rows leaves them out of the written
-  Scope. Other Show value as kinds of Desktop's menu, if any, are not modelled.
+  beside a percent of a column or row total not tried in Desktop; the subtotal levels' empty
+  members and the hierarchy levels in the Scope (below) not opened in Desktop. Other Show value
+  as kinds of Desktop's menu, if any, are not modelled.
+- **Done (2026-11-27, branch `feat/g57-subtotals`).** A matrix's subtotal levels list the members
+  with no data of their show-all fields (`preview_matrix::levels`), so a collapsed matrix shows
+  an empty category as its leaf rows do. A percent of a column or row total over hierarchy-level
+  rows or columns is accepted and writes every level of the role in the `ScopedEval` Scope as
+  its projection's `HierarchyLevel` expression (the schema says the scope holds columns; a level
+  groups by its column; inferred), read back as the same percentage from PBIP and PBIX (legacy
+  `prototypeQuery`). Per-level subtotals (`subTotals` `perRowLevel` / `perColumnLevel` with
+  `selector.metadata`) were already read, drawn and written (formats/pbir.md "Matrix expansion
+  and per-level subtotals"). Tests: engine `a_matrix_subtotal_level_lists_its_items_with_no_data`
+  and `a_percentage_over_hierarchy_level_rows_writes_the_levels_in_its_scope`, each seen red
+  without its change.
 - **Effort.** S.
 
 ### G58. Get data and the Navigator (2026-11-18)
@@ -1664,14 +1791,37 @@ since. The one-line summary of each is in [gaps.md](gaps.md); closed entries are
     visuals, Optimization presets menu with Customize… opening File › Options and settings at its
     Query reduction section) and the banner "Visual queries are paused" with Refresh and Resume
     visual queries. Tests: engine `optimize_tests` (4), kittests `optimize_ui_tests` (4).
-- **What is left.** No Optimize tab of its own (the group sits in Analyze, next to Performance);
-  no per-visual Refresh in a pending visual (the report banner refreshes all); tooltips and
-  formatting are not blocked while paused, and a slicer's own values (`report_bound`) still
-  evaluate; the slicer Apply buttons and the Filters pane's Apply buttons are written and kept,
-  but BIcraft's slicers and Filters pane do not show them (the page-level "Apply all slicers"
-  button works, M11); a legacy layout keeps the options under `config.slowDataSourceSettings`, a
-  name inferred from the PBIR one, not seen in a Desktop file; the paused visuals' last data is a
-  second copy in memory (bounded by the snapshot's limits).
+- **Done (2026-11-27, branch `feat/g60-optimize`).** From the same Learn pages, described in
+  BIcraft's words:
+  - An **Optimize** ribbon tab after View (`Tab::Optimize`, engine and UI): Pause visuals
+    (Pause visuals, Refresh all visuals), Optimization presets, and the Performance analyzer
+    button (the same pane as Analyze › Performance). The commands left Analyze › Optimize.
+  - `visual.refresh {page, visual}` (read-only): the next view evaluates that visual once, the
+    others staying paused (`PreviewCache::request_refresh_one`, `Pause::only`). UI: each waiting
+    visual (`data.pending` or `status: "pending"`) shows a strip at its top while paused, with a
+    pause icon, the words "Pending changes" and a focusable Refresh visual button; the visual's
+    right-click menu has Refresh visual while paused.
+  - While paused, measure-bound formatting values (`preview::report_bound`: titles, subtitles,
+    button text and fill, text box runs, fx destinations) are not evaluated: the visual keeps the
+    values it last showed, marked `pending`. `view.interact` refuses a report-page `tooltip`, and
+    the app shows no tooltip on a waiting visual.
+  - Query reduction's Apply buttons are honoured: with `isSlicerSelectionsButtonEnabled` every
+    slicer's changes wait (`slicer.pending`, `slicer.apply_button` in the snapshot) until
+    `view.interact` `slicer_apply {page, visual}` (the slicer's Apply button at its bottom right);
+    with `isFilterSelectionsButtonEnabled` a basic Filters pane card's clicks wait in the pane,
+    marked "Not applied", until its Apply filter; with `isApplyAllButtonEnabled` the pane's single
+    Apply all runs every waiting edit.
+  - Tests: engine `optimize_tests` (4 new), kittests `optimize_ui_tests` (6 new), each seen
+    failing with its change undone.
+- **What is left.** Nothing compared with Desktop (no Desktop run). A pure formatting change
+  (a colour) changes the visual's cache key, so a paused visual is marked pending though its data
+  did not need a query (Desktop applies many formatting options at once); per-card Apply covers
+  basic cards only (advanced, Top N and relative cards already wait for their Apply filter); the
+  filters' waiting edits are view state of the window, not of the session, so automation applies
+  a filter by running its command; the status bar does not repeat "Visual queries are paused"; a
+  legacy layout keeps the options under `config.slowDataSourceSettings`, a name inferred from the
+  PBIR one, not seen in a Desktop file; the paused visuals' last data is a second copy in memory
+  (bounded by the snapshot's limits).
 - **Effort.** S.
 
 ### G61. Model explorer and calculation groups in the Model view (2026-11-18)
@@ -1761,8 +1911,25 @@ since. The one-line summary of each is in [gaps.md](gaps.md); closed entries are
 ### G62. Analyze insights on a data point (2026-11-18)
 
 - **What.** "Explain the increase / decrease" and "Find where the distribution is different" on
-  a data point: nothing in BIcraft. Whether Desktop 2.159 still offers them was not re-read.
-- **Effort.** M.
+  a data point. Whether Desktop 2.159 still offers them was not re-read.
+- **Done (2026-11-27, branch `feat/g62-analyze`).** `visual.analyze {page, visual, point, kind?,
+  fields?, top?}` (`crates/engine/src/visual_analyze.rs`, [analyze-point.md](analyze-point.md)):
+  BIcraft's own ranking, never presented as Desktop's. `change` (default on a date or number
+  axis) compares the point with the previous point of its axis and scores each column by the
+  share of the members' changes its top member carries; `distribution` (default on a
+  categorical axis) scores each column by the total variation distance between its shares under
+  the point and the mean of its shares under the other points. Grouped queries through the
+  preview evaluator, so filters, slicers and relationships apply; bounded (40 fields, 100
+  values each, 20,000 rows a query, 60 s), the rest listed in `skipped`; unsupported points
+  are errors. Read-only, shared, allowed to readers and in server mode. UI: a data point's
+  right-click › Analyze this point (EN, FR), the answer window's grid. Tests: engine
+  `analyze_point_tests` (3: the planted field ranks first for an increase, a decrease and a
+  different distribution, through a related table; refusals), kittest
+  `analyze_runs_on_the_right_clicked_point`.
+- **What is left.** The answer is a list, not a visual added to the page. Only the visual's
+  first measure; measures, pairs of fields and binned numeric columns are not candidates. No
+  comparison with Desktop's results.
+- **Effort.** S for what is left.
 
 ### G63. Report settings left (2026-11-18)
 
@@ -1804,13 +1971,27 @@ since. The one-line summary of each is in [gaps.md](gaps.md); closed entries are
   column (`bicraft_report::query::derive`), so the preview follows the slicer. Desktop
   2.159.1231.0 shows the fields and follows its slicer ([formats/parameters.md](formats/parameters.md)
   "Desktop answers, second session").
-- **Left.** The PBIX legacy layout writer does not write the expansion (a PBIR report does); a
-  file opened is rewritten only once edited. Small differences kept: no
-  `formatString: 0` on the what-if measure and order column, `summarizeBy: none` (Desktop:
-  `sum`) on the order column, the `'Single'` mode Desktop does not write for its own slicer.
-  The what-if slicer is drawn as a list, not a slider, in BIcraft. A field
-  parameter's hierarchies (Desktop's auto-expanding axes) are not modelled. No dedicated test of a
-  model edit that succeeds while the slicer fails.
+- **Done (2026-11-27, no Desktop needed).** The legacy layout writer writes a visual bound to a
+  field parameter as the parameter's fields (one `Select` item and projection each, the labels as
+  `columnProperties.displayName`) instead of refusing the save; the `fieldParameters` range is
+  not written (no legacy key for it seen in a Desktop file), and a legacy report opened or read
+  back after a save binds such a run of projections to the parameter again
+  (`field_param_queries::adopt_legacy`). A slicer on a what-if column (`'Single'` mode, or no
+  mode as Desktop writes its own) is drawn as a single-value slider at the selected value or the
+  parameter's default; in the app the track is an accessible slider (drag, click, arrows) that
+  sends `view.interact` `slicer_set`, so the measure follows (`crates/ui/src/value_slider.rs`;
+  [formats/parameters.md](formats/parameters.md)).
+- **Left.** Desktop's own legacy form of a field parameter visual is *not seen in a Desktop
+  file*: a legacy PBIX BIcraft wrote was not opened in Desktop, which may show the fields as
+  plain columns. The what-if slider's value box is not an input, its sizes are the range
+  slicer's, and the HTML viewer (`page.html`) still draws a list. A file opened is rewritten only
+  once edited. Small differences kept: no `formatString: 0` on the what-if measure and order
+  column, `summarizeBy: none` (Desktop: `sum`) on the order column, the `'Single'` mode Desktop
+  does not write for its own slicer. A field parameter's hierarchies (Desktop's auto-expanding
+  axes) are not modelled: the model keeps hierarchies only as raw TOM JSON in a table's `extra`,
+  and no Desktop-written field parameter that lists one, or its auto-expanding axis, has been
+  observed, so there is no shape to implement without Desktop. No
+  dedicated test of a model edit that succeeds while the slicer fails.
 - **Effort.** S–M.
 
 ### G65. View as roles left (2026-11-18)
@@ -1857,9 +2038,26 @@ since. The one-line summary of each is in [gaps.md](gaps.md); closed entries are
   visual, render measured around the renderer's draw, the copy-query `SUMMARIZECOLUMNS` text,
   which runs in `dax.evaluate`); editors only, no revision; the pane is Analyze › Performance
   analyzer (`crates/ui/src/perf_pane.rs`). Never Desktop's times (AGENTS.md §1).
-- **Left.** No render time in the browser (no clock in wasm32); render times come from Refresh
-  visuals only, not from view events; the copy-query text leaves out measure filters, Top N and
-  filters BIcraft ignores; the pane was not run in a live browser (wasm32 check only).
+- **Desktop-free parts (2026-11-27).** Copy query writes every filter the viewer applies: top N
+  filters as `TOPN` tables ranked under the column filters, measure and aggregation filters as a
+  `FILTER` over the rows under the same filter tables (`KEEPFILTERS`), beside the report, page
+  and visual filters, slicer selections, cross-filters and relative dates it already wrote; in
+  `dax.evaluate` it returns the visual's rows under each (`perf_tests.rs`,
+  `the_copied_query_returns_the_visuals_rows_under_every_filter`); View as applies to it as to
+  any evaluation of the session. Render times without Refresh visuals: while a recording runs
+  the snapshot's `perf.unrendered` names the visuals whose latest event has no render time, and
+  the app sends the times of the first drawing of that snapshot (`perf.render`). The browser
+  build times its draws with `web-time` (`performance.now()`; already in the graph through
+  eframe).
+- **Left.** The pane was not run in a live browser (wasm32 check only): that needs
+  `cargo xtask webui` to build the page, `bicraft-cli view FILE --ui egui` and a browser driven
+  through the control channel (`bicraft-cli ui --view …`) to start a recording, interact and read
+  `render_ms` back. The copy-query text is BIcraft's, not compared with Desktop's; a condition
+  mixing columns and measures is not applied by BIcraft and not written; when the evaluator
+  falls back without its filters (an unsupported filter) the text still holds them; a
+  cross-highlighted visual records its full and highlighted evaluations as two events; a
+  snapshot whose drawing is skipped (a newer one drawn first) leaves its visuals without a
+  render time.
 - **Effort.** S.
 
 ### G67. Power Query editor left (2026-11-18)
@@ -2072,22 +2270,32 @@ since. The one-line summary of each is in [gaps.md](gaps.md); closed entries are
   (they must single out the current cell in its partition, else an error in that cell) and
   `LOOKUP … INFERRED` (a field on a supplied field's axis with one value among the matching cells
   is inferred, not taken from the current cell) (`matchby_and_lookup_inferred_follow_the_matrix`).
+  2026-11-27: the small multiples as `ROWPAGES` levels: the visual matrix has levels without the
+  small-multiple fields, so `COLLAPSE`/`COLLAPSEALL`/`EXPAND` along `ROWPAGES` (or to a
+  small-multiple field), `ISATLEVEL` of one and `LOOKUPWITHTOTALS` without a value for each small
+  multiple are evaluated (each was a reason); walks along `ROWS` restart on each multiple
+  (`rowpages_navigates_across_the_small_multiples`, `rowpages_walks_the_small_multiples`). The edit
+  window previews what is typed: `visual.calculation.add`/`set {preview: true}` evaluate the visual
+  with the calculation and change nothing (no undo step, no revision); 400 ms after the last
+  change the window sends it and shows the data in its matrix, or the error under the formula bar
+  (`a_preview_evaluates_the_calculation_without_changing_the_report`, kittest
+  `typing_previews_the_calculation_without_applying_it`).
 - **Left.** **Not checked against the engine**: no Desktop file and no DAX oracle was compared,
-  every expected value (those of 2026-11-23 and 2026-11-24 too) is computed by hand from the
-  Learn pages of the functions. `INFERRED` reads functional dependence from the visual matrix's
+  every expected value (those of 2026-11-23, 2026-11-24 and 2026-11-27 too) is computed by hand from the
+  Learn pages of the functions; the check needs the maintainers' development oracles or Desktop
+  (outside this repository). `COLLAPSE`/`EXPAND` over several axes (`ROWS ROWPAGES`) take
+  levels off the last-named axis first, as for `ROWS COLUMNS` (BIcraft's reading). `INFERRED` reads functional dependence from the visual matrix's
   values along the supplied fields' axes, not from the model (Learn does not say how the engine
   finds it; a field on another axis is never inferred). Not evaluated (the column stays empty
   with its reason): `MATCHBY` of anything but the visual's fields, a model table as a window
-  function's relation, `COLLAPSE`/`EXPAND` along
-  `ROWPAGES` and `LOOKUPWITHTOTALS` without a value for each small multiple (BIcraft's matrix
-  has no level without the small multiples), other DAX functions. `RANK`/`ROWNUMBER` are blank
+  function's relation, other DAX functions. `RANK`/`ROWNUMBER` are blank
   on a total of the walked axes (Learn: blank for total rows; not checked at subtotals); the
   sort-by order is not applied to `ORDERBY` of a field; the axis order ignores the visual's own
   sort (by value); rows beyond the visual's row limit are not in the matrix. The `queryRef` written for a calculation is its name (Desktop's choice is not
   documented). Hiding a matrix's row or column grouping field is drawn by dropping its column
   only (the matrix's levels are not rebuilt without it; not compared with Desktop). The edit
-  window has no live preview while typing (the matrix shows the applied
-  state) and no field-list drag into the calculation.
+  window has no field-list drag into the calculation; its live preview is not compared with
+  Desktop's edit mode.
 - **Effort.** M (LOOKUP and the window functions over the matrix: M).
 
 ### G72. Mobile layout view left (2026-11-19)
@@ -2126,30 +2334,78 @@ since. The one-line summary of each is in [gaps.md](gaps.md); closed entries are
   (engine), `positions_go_to_the_nearest_grid_line_inside_the_phone` (render) and
   `mobile_ui_tests` (324 wide, 3600 high, drops and drags on the 18 × 20 grid), seen red before
   the change.
-- **Left.** The override semantics
+- **Done (2026-11-27): Auto-create, Remove all, copy, paste and duplicate on the phone.**
+  `visual.mobile_auto {page}` lays out the page's shown visuals by BIcraft's own rule, not
+  Desktop's: reading order of the desktop layout, stacked full width with one grid row between
+  rows, the ratio kept between 120 and 480 high, two cards or slicers next in that order sharing
+  a row at half width (60 to 240 high); mobile formatting kept, hidden visuals taken off.
+  `visual.mobile_remove_all {page}` empties the phone layout. Both are View › Mobile layout
+  buttons and canvas menu items, one undo step each. `visual.copy`'s clip carries the copied
+  visuals' phone documents (`mobile`); `visual.paste` and `visual.duplicate` take `mobile:
+  true` (the phone canvas's Ctrl+V, Ctrl+D and menu): the copy is a new visual of the same page
+  that also goes on the phone canvas, at the copied phone place moved one grid cell while taken,
+  with the copied mobile formatting ([desktop.md](desktop.md) "Mobile layout"). Tests:
+  `mobile_auto_create_stacks_the_shown_visuals_inside_the_phone`,
+  `mobile_remove_all_empties_the_layout_in_one_step`,
+  `mobile_paste_and_duplicate_keep_the_visual_on_its_page_and_phone` (engine),
+  `auto_create_and_remove_all_lay_out_and_empty_the_phone_in_one_step_each` and
+  `copy_paste_and_duplicate_on_the_phone_keep_the_visual_on_its_page` (`mobile_ui_tests`), each
+  seen red with the layout, removal or phone flag broken.
+- **Left.** Desktop's grid rounding, whether its canvas grows past 3600 and whether it keeps a
+  visual inside the width are unobserved (above); so are Desktop's own Auto-create result (BIcraft's
+  rule is its own) and what its eraser does to mobile formatting. No group on the phone canvas:
+  the format notes do not say how a visual group appears in a mobile layout, `visual.mobile`
+  refuses a group and the phone canvas draws every visual alone (Ctrl+G says so); no cut there
+  (it would take the visual off the page). The override semantics
   of the other mobile `objects` (per selector, property by property: BIcraft's reading of Learn)
-  are unchecked. No *Auto-create* of a layout, no eraser (remove all), no filter of
+  are unchecked. No filter of
   the Page visuals pane by appearance, no shown/hidden toggle from the pane; the fx dialog and
-  the image's scaling stay the visual's own on the phone; copy, paste, duplicate and group are
-  not offered on the phone canvas; the phone's `tabOrder` is not written; the narrow-window
+  the image's scaling stay the visual's own on the phone; the phone's `tabOrder` is not written; the narrow-window
   option goes by the report area's width only (no device or orientation detection).
 - **Effort.** S–M.
 
+### G73. Themes and high contrast left (2026-11-19)
+
+- **Done (2026-11-19 to 2026-11-20).** The View › Themes gallery of BIcraft's eight own themes,
+  Customize current theme, the high-contrast UI theme and the view-only high-contrast report
+  palette; the summary is in [history](history/gaps-done.md#summary-as-of-2026-11-25).
+- **Done (2026-11-27): high contrast outside the window.** `report.render {high_contrast:
+  true}` and `bicraft-cli render --high-contrast` draw the pages with the app's high-contrast
+  palette (View › High-contrast colours; the report file does not change; [render.md](render.md)
+  "High contrast"), so MCP and the CLI have it too. The desktop reads Windows contrast themes
+  once at start (the per-user high-contrast flags, `windows-registry`'s safe API,
+  `bicraft_desktop::contrast`): when they are on and no theme is stored, the window starts in
+  High contrast with the pages in high contrast, as the browser does with `forced-colors`
+  ([design.md](design.md) §8). Tests: `high_contrast_draws_the_high_contrast_palette` (engine:
+  another picture, every text run at 7:1 or more on the black page) and
+  `the_on_bit_turns_high_contrast_on` (desktop).
+- **Left.** The built-in themes have not been opened in Desktop. The report palette is BIcraft's
+  colour mapping (close hues share a colour, images unchanged), not compared with Power BI's
+  high-contrast rendering. The desktop does not follow a contrast change while it runs, and on
+  Linux it has no detection (winit and eframe expose light and dark only; a desktop
+  environment's contrast preference, such as the XDG portal's, is not read). `report.export_pdf`
+  has no high-contrast option. The HTML viewer (`bicraft-cli view`, page.html) has none either: it
+  draws the visuals in its own script with colours chosen in dozens of places, so the palette
+  would mean porting the mapping and the text-backdrop rule there, for a page slated for removal
+  ([webui.md](webui.md)); the egui app in the browser (`bicraft-cli view --ui egui`) has the theme
+  and follows the system's high contrast.
+- **Effort.** S.
+
 ### G74. Web viewer regression checks left (2026-11-19)
 
-- **Done.** `cargo xtask webcheck record|check` ([webcheck.md](webcheck.md)): `bicraft view` on a
+- **Done.** `cargo xtask webcheck record|check` ([webcheck.md](webcheck.md)): `bicraft-cli view` on a
   completed copy of our synthetic `visuals` fixture, seven walkthroughs of the HTML viewer
   (opening, page tabs, a slicer, a data point, a drill, a bookmark, the page's own tabs) in Craft
   Anything's headless browser, screenshots compared with baselines kept outside the repository,
   a pass/fail table and diff images. Not part of `cargo xtask ci`; skipped without the tool.
-- **Left.** The egui app (`bicraft view --ui egui`, `/app/`): it needs the wasm bundle embedded,
+- **Left.** The egui app (`bicraft-cli view --ui egui`, `/app/`): it needs the wasm bundle embedded,
   and its controls are drawn on a canvas, so Craft Anything's states capture finds nothing to
   click; its gestures would go through the control channel (`--control`) instead. Real clicks
   on the page's visuals: `web_walkthrough_record` reads the page (Deep mode), which is never
   used, so slicer, point, drill and bookmark gestures are sent as the page sends them
   (`POST /api/interact`) and only the click handlers of the tabs are exercised
   (`web_page_states_capture`, which found one tab to open in the proof run). No export
-  walkthrough: `bicraft view` has no export (the download link is `bicraft serve`'s). Baselines
+  walkthrough: `bicraft-cli view` has no export (the download link is `bicraft-cli serve`'s). Baselines
   depend on the machine (the browser's language and colour scheme come from the system; the
   screenshot is the browser's own window size, 750 x 485 in the proof run, not the 1280 x 800
   asked). No run on Linux yet.
@@ -2179,13 +2435,23 @@ since. The one-line summary of each is in [gaps.md](gaps.md); closed entries are
   too. Desktop's Edit groups then opened BIcraft's number, count, month and hour bins and its list
   group with their definitions, without error ([formats/groups.md](formats/groups.md)
   "Re-check"). The evaluator stores numbers as dates in a date/time calculated column.
-- **Left.** No `GroupingDesignState` for a list group listing a blank: Desktop's dialog lists no
-  blank value, so it has no such group. Number, date and boolean values in a list group's design
-  state follow the public literal forms, not a file Desktop saved. A structural PBIX save of a day or
-  time bin (numbers in a date/time column) is not tested. No number
-  of bins on dates. No Group from data points selected
-  on a visual (Ctrl+click › Group). The Data pane's menu says New group on a group column too
-  (the dialog opens as Edit groups).
+- **Done (2026-11-27), without Desktop.** A blank listed in a list group is an explicit member:
+  the design state lists the `semanticQuery` null literal in the group's `In` values and leaves
+  out the `(Blank)` placeholder; it is written, saved to PBIP and read back. A number of bins on
+  dates (`bin_count` on a date column) is written as a bin size in the date form, the data's span
+  in the unit divided by the count and rounded up (without a unit, the largest the span holds
+  that many times). Group data (`visual.group_points`, the menu of a data point) makes a list
+  group of the category values of the points selected in a visual (Ctrl+click), else of the
+  point right-clicked, and adds to an existing group column of the same column. All three are
+  BIcraft's own forms, **not compared with Desktop** (not seen in a Desktop file)
+  ([formats/groups.md](formats/groups.md) "BIcraft's own forms").
+- **Left.** Check the three forms above in Desktop (whether its Edit groups opens a group with a
+  blank member; whether Desktop offers a number of bins on dates and in which form). Group data
+  does not add the group to the visual's Legend as Desktop does (Microsoft Learn). A date bin
+  made from a count keeps its size, it does not follow a refresh. Number, date and boolean values
+  in a list group's design state follow the public literal forms, not a file Desktop saved. A
+  structural PBIX save of a day or time bin (numbers in a date/time column) is not tested. The
+  Data pane's menu says New group on a group column too (the dialog opens as Edit groups).
 - **Effort.** S.
 
 ### G76. Quick measures left (2026-11-19)
@@ -2237,7 +2503,7 @@ since. The one-line summary of each is in [gaps.md](gaps.md); closed entries are
   a TypeScript visual with `getFormattingModel`, CSS, an icon we draw); `visual.build` compiles its
   TypeScript and bundles it with swc (`crates/tsbuild`, Apache-2.0 crates from crates.io) with a
   module registering the class under the guid; `visual.pack` writes the `.pbiviz`;
-  `bicraft visual new|build|pack`; Insert › Visuals › New visual project, Compile a visual, Package a
+  `bicraft-cli visual new|build|pack`; Insert › Visuals › New visual project, Compile a visual, Package a
   visual. A packaged visual imports back through `visual.import_custom` and survives PBIP and PBIX
   round trips (engine tests); [formats/pbiviz.md](formats/pbiviz.md) "Visual projects".
 - **Seen in Desktop (2026-11-23).** A `visual.pack` package embedded by `visual.import_custom`
@@ -2301,19 +2567,65 @@ since. The one-line summary of each is in [gaps.md](gaps.md); closed entries are
   app's source also raises the session's cancel flag as the command is sent. Squiggles: the text
   is checked with `dax.validate_query` 0.35 s after typing stops, the first error underlined and
   told above the results (line, column, message), as the formula bar does.
+- **Done (2026-11-27).** The view's editing tools (`crates/ui/src/dax_query_tools.rs`), pure
+  view state like typing: **Comment** (the tool bar's button, Ctrl+/) puts `// ` before the
+  lines the selection touches at their common indent, or removes the line comments (`//` or
+  `--`) when every non-blank one has one, the selection kept on the lines; **Find and replace**
+  (the tool bar's button, Ctrl+F, Ctrl+H for the replace field): a row above the editor with the
+  match count, previous and next (Shift+Enter, Enter), Match case, Whole word, Replace, Replace
+  all, Esc to close, the matches marked in the editor (background and underline) and the current
+  one scrolled into view; a **Data pane** at the right of the view (the tool bar's Data pane
+  button hides it; a search box): the model's tables with their columns and measures, hidden
+  ones dimmed, Right / Left unroll and roll a table; a click or Enter on a column or a measure
+  inserts `'Table'[Column]` or `[Measure]` at the editor's cursor; the right-click menu
+  (Shift+F10) of a table, a column or a measure writes a **quick query** into a new tab and runs
+  it with `dax.evaluate`: `TOPN(100, 'Table')`, `DISTINCT('Table'[Column]) ORDER BY` it,
+  `ROW("Measure", [Measure])`, or inserts the reference. The shortcuts are in Shift+?'s list
+  (none clashes: the formula bar's Ctrl+H is not shown in this view, the registry declares
+  neither). EN/FR; the controls are named in the accessibility tree. Tests:
+  `dax_query_ui_tests` (comment, find and replace, Data pane, quick queries, French) and
+  `dax_query_tools::tests`, each seen failing with its feature disabled.
+- **Done (2026-11-27, later).** **Define quick queries**: the new read-only command
+  `dax.define_query {table?, measure?, references?}` (`crates/engine/src/dax_define.rs`) writes
+  a `DEFINE` block, one `MEASURE 'Table'[Name] = expression` per measure as the model has it,
+  and `EVALUATE ROW("Name", [Name], …)` of the measures asked for; with `references`, every
+  measure they reference, transitively, after the binder's dependency graph
+  (`bicraft_dax::deps`), each before the measures that use it (an iterative walk, a cycle walked
+  once). The Data pane's menu of a table has **Define all measures**, a measure's **Define with
+  references**; the query goes to a new tab and runs (the palette's entry opens the view; from
+  the control channel with `table` or `measure` it does the same). `dax.evaluate` now accepts a
+  query measure whose text is the model's own (nothing to replace), so these queries evaluate
+  where a model measure uses one of them. The Data pane lists **hierarchies** (Right / Left
+  unroll them; a level inserts its column) and a **calculation group's items** (an item inserts
+  `'Group'[Column] = "Item"`, the group's first visible column). **Drag**: every field row
+  (column, measure, level, item) drags into the editor, a caret shows where it lands and the
+  reference is inserted at the drop point (a click or Enter still inserts at the cursor). The
+  **lenses** sit on their own line above each DEFINE MEASURE, from MEASURE's column: the line's
+  first blank is laid out taller (`dax_query_tools::lift`), so the text drops below the room
+  the lens takes; a line without a blank (`DEFINE MEASURE…` at column 0 with no space) keeps
+  its lens at the right end. EN/FR. Tests: engine
+  `define_query_writes_a_tables_measures_or_a_measure_with_its_references` (the query validates,
+  evaluates and applies back unchanged) and `define_query_with_references_walks_a_cycle_once`;
+  kittests `define_quick_queries_write_the_measures_with_their_references_and_run`,
+  `the_data_pane_lists_hierarchies_and_calculation_items`,
+  `a_field_dragged_into_the_editor_lands_where_it_is_dropped`,
+  `a_lens_sits_on_its_own_line_above_its_measure`; unit test
+  `a_lifted_line_keeps_its_text_and_drops_below_the_room_for_its_lens`.
 - **Left.** A PBIX or PBIT keeps the tabs for the session only (a save warns): no public
-  description of where a package holds them; a thin report's `<Name>.Report/DAXQueries/` is not
-  read; from the desktop app connected to a remote server, Cancel waits behind the running query
-  (that source sends one request at a time; closing the request is what stops a server query
-  there); no Data pane in the view (Desktop's, with its quick queries: Evaluate, Define all
-  measures, Define with references); no Comment or Find and replace; the lenses sit at the right
-  end of the DEFINE MEASURE line, not on a line of their own above it. Desktop's own tab-name
-  rules are not known.
+  description of where a package holds them, so it needs a Desktop observation (save a PBIX with
+  query tabs, read its parts) before BIcraft writes anything there; a thin report's
+  `<Name>.Report/DAXQueries/` is not read; from the desktop app connected to a remote server,
+  Cancel waits behind the running query (that source sends one request at a time; closing the
+  request is what stops a server query there); the Data pane has no Model tab; a query that
+  redefines a model measure with another text, where another model measure uses it, is still
+  refused by the evaluator; Ctrl+F not checked in a browser, which may keep it for its own find;
+  the text cursor on a lens line is as tall as the line and its lens. The Define queries' text is
+  BIcraft's own, not compared with Desktop's. Desktop's own tab-name rules are not known.
 - **Checked in Desktop (2026-11-23, 2.159.1231.0 Store).** A project BIcraft wrote opens with its
   tabs in order and the default tab shown; Desktop's save keeps the unchanged `.dax` files' bytes
   and rewrites `daxQueries.json` in the same shape with CRLF line endings
   ([formats/dax-queries.md](formats/dax-queries.md) "Desktop answers").
-- **Effort.** S (quick queries), M (the Data pane).
+- **Effort.** S (the Model tab), M (PBIX storage, after a Desktop observation).
 
 ### G84. App keyboard navigation left (2026-11-20)
 
@@ -2332,16 +2644,27 @@ since. The one-line summary of each is in [gaps.md](gaps.md); closed entries are
   Shift+? lists the registry's shortcuts and the navigation keys, searchable, EN/FR
   (`crates/ui/src/shortcuts_list.rs`); Shift+F10 opens the focused control's right-click menu (the
   selected visual's on the report page), first item focused, focus back on close; the Model
-  view's Properties and Data panes are sections of their own.
-- **Left.** The Menu (context) key: egui 0.36 gives no event for it, in winit or the browser;
-  Alt+Shift+1 / 9 (collapse / expand all tables); keyboard focus on the canvas's visuals is the
-  Reader tools row ("Keyboard navigation and screen readers on visuals"); Shift+F10 opens nothing
-  on a control without a right-click menu (the Selection pane's rows have none). Key tips are
+  view's Properties and Data panes are sections of their own. Since 2026-11-27
+  ([desktop.md](desktop.md) "Keyboard navigation and screen readers"): the Menu key opens the
+  same menus as Shift+F10 (egui 0.37 reads it as `Key::Menu`, no shell mapping needed); the
+  canvas's visuals take egui's focus one by one (`crates/ui/src/visual_focus.rs`), Tab and
+  Shift+Tab in the report's tab order then reading order, the focused visual selected so the
+  arrows move it, Ctrl+Right enters its points, Delete removes it, Escape returns to the page,
+  each a figure in the AccessKit tree named after its title, selected, with its place in the
+  order and read-only when the session cannot move it; Alt+Shift+1 collapses every table of the
+  Data pane and Alt+Shift+9 expands them all (Desktop's keys; the Report and Model views' Data
+  panes, listed by Shift+?); the status bar's message is a polite live region that names the
+  section Ctrl+F6 or F6 moves to and says when the tables were collapsed or expanded.
+- **Left.** Alt+Shift+1 / 9 do nothing in the DAX query view's Data pane (its own tree).
+  Shift+F10 and the Menu key open nothing on a
+  control without a right-click menu (the Selection pane's rows have none). Key tips are
   painted, not in the AccessKit tree. The name test covers the views and three dialogs, not
   every dialog. Not run with Narrator, NVDA or JAWS (only the AccessKit tree egui builds was
-  read); F6, Ctrl+F6, Alt and F10 not checked in a browser, which may keep them, nor in the
-  running desktop window (whether Windows' Alt / F10 window-menu handling comes first).
-- **Effort.** S (the Menu key needs a shell-side key mapping).
+  read, including the live region); F6, Ctrl+F6, Alt, F10, the Menu key and Alt+Shift+digits
+  not checked in a browser, which may keep them, nor in the running desktop window (whether
+  Windows' Alt / F10 window-menu handling comes first, whether Alt+Shift switches the input
+  language, whether winit delivers the Menu key on this keyboard).
+- **Effort.** S (screen-reader and browser runs).
 
 ### G92. Map visuals left (2026-11-20)
 
@@ -2415,13 +2738,24 @@ since. The one-line summary of each is in [gaps.md](gaps.md); closed entries are
   for cross-filtering, hover shows its fields. Tests:
   `crates/engine/tests/report/gantt_tests.rs`, `crates/render/src/gantt_tests.rs`, the `gantt`
   golden page.
-- **Left.** No scrolling (rows below the visual are counted in the render note), zoom axis or
-  today line; the expand/collapse icons do not toggle on click. Sizes, colours and label formats
-  are BIcraft's choices, not compared with Desktop's drawing; how Desktop saves a per-member
-  collapse and `shadingDays` in PBIR was not observed. The date-only restriction of Start and
-  End is not checked (BIcraft's role kinds have no data type). The Format pane does not offer
-  the schema's enumerations (milestone shapes, date units) as choices.
-- **Effort.** S (scrolling, click to toggle, a Desktop comparison).
+- **Done (2026-11-27, reading).** A category's expand/collapse icon toggles it in the reader's
+  view (`view.interact` `gantt_toggle`, listed last in `format.gantt_rows`; the report not
+  changed, `reset` drops it). Rows that do not fit scroll (a scroll bar on the right of the time
+  line) and the time line zooms (1 to 512 times, auto-scale picking the unit again, a window bar
+  under the rows): both are the app's view state (`RenderOptions::gantt`, never in the file or
+  the snapshot). The app lays labelled controls over them (`crates/ui/src/gantt_ui.rs`):
+  Expand / Collapse buttons, the scroll bar (arrows, Page Up / Down, Home, End, track click,
+  drag), the time line's zoom slider (+, -, left and right arrows, Home), the window bar, the
+  wheel, horizontal scroll and Ctrl+wheel. Tests: render `gantt_tests` (scrolling, zoom, the
+  icon's action), engine `the_readers_expand_collapse_hides_and_shows_a_categorys_tasks_in_the_view_only`,
+  kittest `gantt_ui_tests` (4), each seen failing without its change.
+- **Left.** No today line. Sizes, colours and label formats are BIcraft's choices, not compared
+  with Desktop's drawing; Desktop's zoom slider (`zoomShow`, `zoomMin`, `zoomMax`) is not read;
+  how Desktop saves a per-member collapse and `shadingDays` in PBIR was not observed, so the
+  reader's collapse is not saved. page.html does not draw the Gantt. The date-only restriction of
+  Start and End is not checked (BIcraft's role kinds have no data type). The Format pane does not
+  offer the schema's enumerations (milestone shapes, date units) as choices.
+- **Effort.** S (a Desktop comparison: drawing, zoom slider, saved collapse).
 
 ### G97. DAX user-defined functions left (2026-11-20)
 
@@ -2513,7 +2847,7 @@ since. The one-line summary of each is in [gaps.md](gaps.md); closed entries are
 
 ### G104. Redact secrets left (2026-11-20)
 
-- **Done.** `file.redact {path, out, data?}`, `bicraft redact` and File › Export › Redact a copy
+- **Done.** `file.redact {path, out, data?}`, `bicraft-cli redact` and File › Export › Redact a copy
   for sharing write a PBIX, PBIT or PBIP copy whose connection strings, credentials, servers,
   databases, paths and URLs (also URLs inside report text) are stable placeholders, and with
   `data` the stored text values too. The copy is reopened and every written byte (each part,
@@ -2588,7 +2922,7 @@ since. The one-line summary of each is in [gaps.md](gaps.md); closed entries are
   option on (the org chart compact, a two-set Venn proportional, the Marimekko sorted with its
   width axis, the calendar on months with data and Sunday-first; with the four part A visuals of
   G110 set to cumulative, vertical, horizontal and slope) opened without a message; each of the
-  eight drew the same shapes as `bicraft render` (Desktop's text in French: janv., lun.), and
+  eight drew the same shapes as `bicraft-cli render` (Desktop's text in French: janv., lun.), and
   the format pane showed each new option as a toggle, on (French: Arbre compact; Surfaces selon
   les nombres (deux ensembles); Les plus larges d'abord, Axe des largeurs; Seulement les mois
   avec des données, Semaines commençant le dimanche; Cumulé; Vertical; Horizontal; Graphique de
@@ -2605,7 +2939,7 @@ since. The one-line summary of each is in [gaps.md](gaps.md); closed entries are
   view state (`view.interact` `tree_toggle`).
 - **Left (2026-11-25).** High contrast in Desktop. 1.3.3.0 was seen in Desktop 2.160.1151.0 on
   2026-11-25: left to right, the series colours and the collapse saved in `tree.toggled`, as
-  `bicraft render` draws them ([formats/chart-pack.md](formats/chart-pack.md) "Seen in
+  `bicraft-cli render` draws them ([formats/chart-pack.md](formats/chart-pack.md) "Seen in
   Desktop"). The data roles, in English in a French Desktop
   before `stringResources` were packaged, were seen in French in Desktop 2.159.1231.0 on
   2026-11-24 (1.1.0.0; Id, Id du parent, Étiquette, Valeur; Élément, Ensemble; Catégorie, Série,
@@ -2722,12 +3056,12 @@ since. The one-line summary of each is in [gaps.md](gaps.md); closed entries are
   wrote without any BIcraft visual, the Visualizations pane "…" › Import a visual from a file
   showed Desktop's warning about custom visuals (Import, Cancel, "do not show again"), then the
   Windows Open dialog filtered on `*.pbiviz`; `bicraftHistogram….1.0.2.0.pbiviz` and
-  `bicraftVenn….1.0.2.0.pbiviz` from `bicraft visual export --all` each gave "Import succeeded"
+  `bicraftVenn….1.0.2.0.pbiviz` from `bicraft-cli visual export --all` each gave "Import succeeded"
   and an icon in the pane. Added to the page, the histogram showed its landing page, then drew
   Score's bins (Score dropped on Values; ticking a numeric column put its Sum in Frequency, as
   Desktop does with a measure role), People in Frequency; the Venn took S2 Id and Skill (ticked)
   and drew DAX 6, both 3, SQL 3. Saved from Desktop, the PBIX holds both packages at 1.0.2.0
-  (`report.custom_visuals`: registered, no issue) and `bicraft render` draws them alike. The
+  (`report.custom_visuals`: registered, no issue) and `bicraft-cli render` draws them alike. The
   warning and the success message are an embedded browser control without accessibility
   content: they were answered with posted mouse messages, the Open dialog with window messages.
   The Build pane's wells show the role names in English (Values, Frequency, Item, Set) while
@@ -2769,18 +3103,18 @@ since. The one-line summary of each is in [gaps.md](gaps.md); closed entries are
   in Desktop.
 - **Seen in Desktop (2.159.1231.0, 2026-11-24, the waypoint routing).** Links skipping one and
   two columns under Modern, Bold and Minimal, and visuals 220, 180 and 160 px wide or high: drawn
-  as `bicraft render` draws them. Fixed: Desktop drew the labels at 11 px under Modern where the
+  as `bicraft-cli render` draws them. Fixed: Desktop drew the labels at 11 px under Modern where the
   renderer drew 12 px (and so left out a label Desktop kept), because the packaged Sankey,
   Marimekko, org chart and Venn read an unset `fontSize` as a fixed default; they now take the
   look's text size, the format pane shows it (pack 1.3.2.0, `the_packaged_visuals_run_under_node`,
   seen failing first). 1.3.2.0 not yet opened in Desktop.
 - **Seen in Desktop (2.159.1231.0, 2026-11-24, before the waypoint routing).** Energy flows with a
-  link skipping a column, a cycle page and date nodes: drawn as `bicraft render` drew them then
+  link skipping a column, a cycle page and date nodes: drawn as `bicraft-cli render` drew them then
   (the skipping ribbon behind the middle node, the French cycle note, midnight dates as
   `05/01/2026 00:00:00` like Desktop's table); node and ribbon tooltips; click, background click
   and cross-filtering both ways; the data point menu; Enter and Escape on a focused ribbon; the
   format pane, roles (Source, Destination, Poids) and the Couleur selon drop-down in French,
-  `links.colorBy` saved by Desktop and drawn alike by `bicraft render`
+  `links.colorBy` saved by Desktop and drawn alike by `bicraft-cli render`
   ([formats/chart-pack.md](formats/chart-pack.md) "Seen in Desktop"). Fixed: Ctrl+click on a node
   sharing rows with the selection toggled the shared rows off; the runtime now adds only the ids
   not yet selected (`multiIds`), seen right in Desktop.
@@ -2802,9 +3136,9 @@ since. The one-line summary of each is in [gaps.md](gaps.md); closed entries are
   as before except two deliberate changes listed in `look_minimal_tests.rs` (Sankey routing,
   BIcraft's palette when asked for); 9 more golden cases.
 - **Seen in Desktop (2.159.1231.0, 2026-11-24, first pass).** The ten under Modern, Bold and
-  Minimal and a custom report theme draw as `bicraft render` draws them in the theme's colours;
+  Minimal and a custom report theme draw as `bicraft-cli render` draws them in the theme's colours;
   the entry animation runs on a data update, hovering dims the other points; the Style card and
-  its drop-downs are in French and Desktop's save of a preset is drawn alike by `bicraft render`
+  its drop-downs are in French and Desktop's save of a preset is drawn alike by `bicraft-cli render`
   ([formats/visual-look.md](formats/visual-look.md) "Seen in Desktop"). Fixed: a custom theme
   without a base theme keeps Desktop's classic titles (grey, regular), which the renderer drew
   dark and bold (the resolved theme's `classic`).
@@ -2826,15 +3160,15 @@ since. The one-line summary of each is in [gaps.md](gaps.md); closed entries are
   filtering them when a field is in a measure role; slicers still filter.
 - **Seen in Desktop (2.159.1231.0, 2026-11-24, highlights and second pass).** Edit interactions
   offers Filter, Highlight and None on the nine, Highlight by default (Filter and None on the
-  Venn); a column chart bar or a table row highlights the nine as `bicraft render` draws the same
+  Venn); a column chart bar or a table row highlights the nine as `bicraft-cli render` draws the same
   selection and filters the Venn. A visual of the nine with no field in its measure roles gets
   all its rows and no `highlights` and stays unchanged: fixed, BIcraft filtered it and now leaves
   it as it is (`a_bicraft_visual_without_a_measure_field_is_highlighted_unchanged`, seen failing
   first). The card, value chips, Bold labels and the Spec visual's Style card (French, Fond en
-  carte off saved and drawn alike) draw as `bicraft render` draws them; inside their frames the
+  carte off saved and drawn alike) draw as `bicraft-cli render` draws them; inside their frames the
   dark-surface tokens too ([formats/visual-look.md](formats/visual-look.md) "Seen in Desktop").
 - **Left.** Under a dark custom theme (`#1F1F1F` background, no base theme) Desktop keeps the
-  page canvas and the visual containers white with grey titles, where `bicraft render` paints
+  page canvas and the visual containers white with grey titles, where `bicraft-cli render` paints
   page and containers in the theme's background (the built-in renderer's page and container
   backgrounds, not BIcraft's visuals). The org chart dims a node's card, not its texts, and the
   dimming is hard to see in Desktop and the render alike. The Spec combo template's legend shows
@@ -2863,7 +3197,7 @@ since. The one-line summary of each is in [gaps.md](gaps.md); closed entries are
   format pane in English and French, the runtime's interactions, the Rust twin in
   `report.render`, PDF and the app, registered for the Visualizations pane, `visual.add` and
   `visual.export_bicraft_visual`.
-- **Seen in Desktop (2.160.1151.0, 2026-11-25)** as `bicraft render` draws it, with tooltips,
+- **Seen in Desktop (2.160.1151.0, 2026-11-25)** as `bicraft-cli render` draws it, with tooltips,
   selection both ways, highlights, the French format pane and options saved by Desktop read back
   ([formats/waterfall-gauge.md](formats/waterfall-gauge.md) "Seen in Desktop").
 - **Done (1.0.1.0, 2026-11-25).** The value axis groups its digits by the culture in both drawers
@@ -2891,7 +3225,7 @@ since. The one-line summary of each is in [gaps.md](gaps.md); closed entries are
   with `lowerIsBetter`; a sparkline from an optional trend field; the value in its field's
   format; BIcraft's look, highlights, format pane in English and French, the runtime's
   interactions and the Rust twin, registered like the others.
-- **Seen in Desktop (2.160.1151.0, 2026-11-25)**: arc, bullet and KPI card as `bicraft render`
+- **Seen in Desktop (2.160.1151.0, 2026-11-25)**: arc, bullet and KPI card as `bicraft-cli render`
   draws them, with tooltips, selection, highlights, the French format pane and the style and
   preset saved by Desktop read back ([formats/waterfall-gauge.md](formats/waterfall-gauge.md)
   "Seen in Desktop").

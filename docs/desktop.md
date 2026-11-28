@@ -1,15 +1,15 @@
-# The desktop app (`bicraft-desktop`)
+# The desktop app (`bicraft`)
 
-`bicraft-desktop` is a native report reader for Windows and Linux. It opens a `.pbix`, `.pbit`,
+`bicraft` is a native report reader for Windows and Linux. It opens a `.pbix`, `.pbit`,
 `.pbip` (or a project folder) or `.bim`, or connects to a BIcraft server, and shows the report
 the way the live viewer does: same drawing, same slicers and cross-filtering, same results. It
 uses no web engine: no browser, no Edge, no WebView2. The window is [egui](https://github.com/emilk/egui)
 over wgpu (DirectX 12 on Windows, Vulkan or OpenGL on Linux), like DeckCraft. The pages are drawn
-by `bicraft-render`, the pure-Rust port of the viewer's drawing that `bicraft render` uses
+by `bicraft-render`, the pure-Rust port of the viewer's drawing that `bicraft-cli render` uses
 ([render.md](render.md)).
 
 The UI itself lives in `crates/ui` (`bicraft-ui`), shared with the browser app
-([webui.md](webui.md)); `bicraft-desktop` is its native shell: the worker-thread sources (an
+([webui.md](webui.md)); `bicraft` is its native shell: the worker-thread sources (an
 engine session for local files, the blocking HTTPS client for servers), the Open dialog, the
 settings file, `--register` and the icon.
 
@@ -20,12 +20,12 @@ desktop's engine session for a local file, through the workspace's MCP endpoint
 (`run_command`, editors only) on a server. Everything else stays in the CLI and MCP.
 
 ```text
-bicraft-desktop                                      # the start screen: Open, Connect to server
-bicraft-desktop Sales.pbix                           # a file (or Sales.pbip, a project folder, model.bim)
-bicraft-desktop Sales.pbip --lang fr                 # French UI and French generated text in visuals
-bicraft-desktop --server https://bi.example.com --workspace sales   # a server (token below)
-bicraft-desktop --register                           # Windows: Start menu entry and Open with (per user)
-bicraft-desktop --unregister
+bicraft                                      # the start screen: Open, Connect to server
+bicraft Sales.pbix                           # a file (or Sales.pbip, a project folder, model.bim)
+bicraft Sales.pbip --lang fr                 # French UI and French generated text in visuals
+bicraft --server https://bi.example.com --workspace sales   # a server (token below)
+bicraft --register                           # Windows: Start menu entry and Open with (per user)
+bicraft --unregister
 ```
 
 ## The window
@@ -39,7 +39,7 @@ Light by default; dark from the title row's moon (or Home > Dark), kept in the s
   format (`PBIX`, `PBIP`…), `rev N`, and `model` / `report` with an amber dot when they have
   unsaved edits; at the right the search button (the command palette) and the light/dark toggle.
 - **The ribbon is the command registry** (ROADMAP M11, [commands-ui.md](commands-ui.md)): the tab
-  row has File, Home, Insert, Report, Model, Data, Analyze and View, then the contextual **Visual** (a
+  row has File, Home, Insert, Report, Model, Data, Analyze, View and Optimize, then the contextual **Visual** (a
   visual selected on the canvas), **Table** (a table or column selected in the Model view) and
   **Measure** (a measure selected) tabs. Every engine command the registry places on a tab is a
   button of its group there, with its label in English or French, its code-drawn icon and a
@@ -72,6 +72,16 @@ Light by default; dark from the title row's moon (or Home > Dark), kept in the s
   validation, then storage, DAX, Validate, usage, performance and tests, with the validation
   counts) and **View** (visual text language, translations, as-of date, themes) hold the rest of
   the registry's ribbon commands.
+- **Optimize** (G60, `crates/ui/src/optimize_ui.rs`): Pause visuals (a toggle) and Refresh all
+  visuals, Optimization presets (Query reduction, Interactivity, Customize… opening File ›
+  Options and settings › Query reduction), and the Performance analyzer button. While paused, a
+  banner over the views offers Refresh and Resume visual queries, and each visual with pending
+  changes shows a strip at its top: a pause icon, the words "Pending changes" and Refresh visual
+  (`visual.refresh`, also in the visual's right-click menu while paused), which evaluates that
+  visual alone. A waiting visual shows no tooltip and no report-page tooltip is asked for. With
+  query reduction's Apply button on each slicer, a slicer shows Apply at its bottom right,
+  enabled while a change waits; with Apply buttons on the Filters pane, a basic card's clicks
+  wait, marked "Not applied", for the card's Apply filter or for the pane's single Apply all.
 - **View › Themes** opens the gallery of BIcraft's eight built-in report themes (BIcraft, Harbor,
   Orchard, Ember, Slate, Clear sight, Dusk, High contrast), each a swatch of its background, text
   and data colours, the report's theme ringed; a click installs it (`theme.set {builtin}`, a
@@ -82,7 +92,9 @@ Light by default; dark from the title row's moon (or Home > Dark), kept in the s
 - **View › High-contrast colours** draws the report pages with the high-contrast palette (black
   page, white text, bright series colours; [render.md](render.md), "High contrast"): a view
   option of the window (`report_contrast` in the preferences), the file never changes. Choosing
-  the High contrast app theme turns it on, Light or Dark off.
+  the High contrast app theme turns it on, Light or Dark off. When Windows contrast themes are on
+  at start and no theme is stored, the window starts in High contrast with the pages in high
+  contrast ([design.md](design.md) §8); Linux has no such detection.
 - **Right-click menus** carry the menu-placed commands: a visual (Delete visual, Sort; a click on
   the page selects the topmost visual under the pointer, with a ring, and Escape clears it), a page
   tab (below, plus Open on this page), a model table (Rename, Delete, Delete hierarchy,
@@ -263,7 +275,7 @@ Light by default; dark from the title row's moon (or Home > Dark), kept in the s
   **preview** draws five sample values with the format. OK sends one `visual.conditional
   {target, series?, apply_to?, rule}` (one undo step); **Remove conditional formatting** sends
   `rule: null`. Rules' Percent bounds are not offered (docs/gaps.md G54). A
-  reader has no Format visual tab. `bicraft ui ui.set '{"buildTab": "format"}'` shows it.
+  reader has no Format visual tab. `bicraft-cli ui ui.set '{"buildTab": "format"}'` shows it.
 - **Analytics** (G56, `crates/ui/src/analytics_pane.rs`): the Build pane's third sub-tab, as
   Desktop's Analytics pane. It reads the selected visual's `analytics` from `visual.props` and
   shows one card per analytics kind the type has in the catalogue: X- and Y-axis constant lines,
@@ -274,7 +286,7 @@ Light by default; dark from the title row's moon (or Home > Dark), kept in the s
   markers, marker shape and, on line charts, the band) and **Remove**. Every edit sends one
   `visual.analytics` with the whole list (one undo step). A list entry BIcraft cannot express is
   shown as "Kept as written". A reader has no Analytics tab;
-  `bicraft ui ui.set '{"buildTab": "analytics"}'` shows it.
+  `bicraft-cli ui ui.set '{"buildTab": "analytics"}'` shows it.
 - **Formula bar** under the ribbon, as Desktop's (`crates/ui/src/formula.rs`): it appears when a
   measure, a calculated column or a calculated table is selected: a click on a measure or a
   calculated column in the Data pane or on a measure in a Build well, the model diagram's
@@ -327,9 +339,11 @@ Light by default; dark from the title row's moon (or Home > Dark), kept in the s
   the `ring` outline and their rectangle the **eight resize handles**. **Drag** a selected visual
   to move the selection, a handle to resize it (several visuals scale inside their rectangle);
   the moving edges and centres **snap** to the other visuals' edges and centres and to the page's
-  edges and centre (within 6 screen points), with dashed **smart guides** in the `guide` colour,
-  and, with View › **Snap to grid** on, to an 8 px grid where no guide is near (View ›
-  **Gridlines** shows it); Alt drags freely. View › **Lock objects** stops drags, resizes and
+  edges and centre (within 6 screen points), with dashed **smart guides** in the `guide` colour
+  (View › **Smart guides** turns that snapping and the guides off), and, with View › **Snap to
+  grid** on, to an 8 px grid where no guide is near (View › **Gridlines** shows it: the renderer
+  draws its dots over the page background and under the visuals, `RenderOptions::grid`); Alt
+  drags freely. View › **Lock objects** stops drags, resizes and
   nudges (a click or a rubber band still selects).
   The page image stays as it is during the drag; ghost outlines show where the visuals go and the
   status bar shows `x · y · width × height`; on release one `visual.move` is sent (one undo
@@ -347,7 +361,9 @@ Light by default; dark from the title row's moon (or Home > Dark), kept in the s
   to the in-app clipboard when the OS one is empty; Home > **Paste** and the menus' Paste read the
   OS clipboard (the `arboard` crate) and fall back the same way; Ctrl+D or **Duplicate** runs
   `visual.duplicate`. The pasted visuals are selected; fields the document's model lacks are kept
-  as broken references and the status bar says how many warnings the paste gave. Clipboard text
+  as broken references and the status bar says how many warnings the paste gave. The clip
+  carries the report images its visuals show (up to 4 MB), so an image visual pasted into another
+  document keeps its picture. Clipboard text
   is untrusted: more than 8 MiB, text that is not a clip, or a clip the engine refuses pastes
   nothing and says why. Readers can select and copy, not move, paste or nudge.
 - **Page tabs** at the bottom of the Report view, as in Power BI Desktop: every page, the shown
@@ -390,7 +406,9 @@ Light by default; dark from the title row's moon (or Home > Dark), kept in the s
   rows) and **See records** (right-click a data point of a visual, See records: the rows of the
   table behind the point, `visual.records`, under the report's, page's and visual's filters,
   the slicers, measure filters and a cross-highlight from another visual; the note under the title
-  names what could not be applied), with Close back to the table.
+  names what could not be applied), with Close back to the table. Their header menus sort the
+  rows read (view state, no request; over the first rows only when the answer was cut, the menu
+  says so).
 - **Validation** (Analyze > Show validation, the status bar's view button, Info's Check the file):
   a card for the model (`✓ valid`, or `✕ N invalid objects` with their
   diagnostics) and one for the report (errors and warnings, `⚠` / `✖` per issue), from the
@@ -416,7 +434,7 @@ Light by default; dark from the title row's moon (or Home > Dark), kept in the s
 
 **Language.** English or French chrome, from `--lang` or the system's language. The tag is also
 the session's UI language for local files: the text Power BI generates inside visuals (auto
-titles, "(Blank)", "Total", slicer words) follows it, as `bicraft view --lang` does
+titles, "(Blank)", "Total", slicer words) follows it, as `bicraft-cli view --lang` does
 ([view-snapshot.md](view-snapshot.md), "UI language"). On a server, that text is the server's.
 
 **Settings** (recent files with the date last opened and their pins, recent servers, zoom, light
@@ -456,19 +474,48 @@ of the buttons a key tip presses, as their click does.
   Keyboard shortcuts: every shortcut the registry declares (the browser's chord in a browser),
   then the window's navigation keys, with a search box (keys or text), in English and French; a
   dialog like the others.
-- **Shift+F10** opens the menu of the focused control, the one its right click opens (a Data pane
-  table, column or measure, a page tab, a Build pane well field, a Model view row or layout tab,
-  a Data view table, a Power Query step…; `keyboard::context_menu` replaces
-  `Response::context_menu`). On the report page, focused or with nothing focused, it opens the
-  selected visual's menu at its centre and keeps the selection. The first item takes the focus,
-  the arrows move in the menu, Escape closes it and the focus returns to the control. A control
-  without a right-click menu (a Selection pane row) opens nothing. The Menu key is not read:
-  egui 0.36 maps it to no key event.
+- **Shift+F10 or the Menu key** opens the menu of the focused control, the one its right click
+  opens (a Data pane table, column or measure, a page tab, a Build pane well field, a Model view
+  row or layout tab, a Data view table, a Power Query step…; `keyboard::context_menu` replaces
+  `Response::context_menu`). On the report page, focused or with nothing focused, or on a
+  focused visual, it opens the selected visual's menu at its centre and keeps the selection. The
+  first item takes the focus, the arrows move in the menu, Escape closes it and the focus returns
+  to the control (the visual, on the canvas). A control without a right-click menu (a Selection
+  pane row) opens nothing. egui 0.37 reads the Menu key as `Key::Menu`, from winit's
+  `ContextMenu` key on the desktop and the browser's `ContextMenu` key value.
+- **The canvas's visuals** (`crates/ui/src/visual_focus.rs`): each visual of the page shown is
+  a focusable widget, after the page's own in Tab order. Tab and Shift+Tab visit them in the
+  report's tab order (`tabOrder`, Selection pane › Tab order), then the visuals without one top
+  to bottom, left to right; hidden visuals and groups are skipped. The focused visual is selected,
+  as a click selects it, so the canvas's keys act on it: the arrows move it (Shift: 10 px, one
+  `visual.move`, the same nudge as with nothing focused), Ctrl+Right enters its data points,
+  Shift+F10 or the Menu key opens its menu, Delete removes it (the focus then goes to the page),
+  Ctrl+C, Ctrl+X, Ctrl+D copy, cut and duplicate it. Escape gives the focus back to the page and
+  clears the selection. In the accessibility tree a visual is a figure named after its title,
+  else its automatic title, then its type ("Sales overview, Clustered column chart"), with its
+  selected state, its place in the order (position and size of the set), its alt text as its
+  description, and read-only when the session cannot move it; the page is a group named "Report
+  page: <page name>". Not in focus mode nor on the phone canvas, which keep their own keys.
+- **Alt+Shift+1** collapses every table of the Data pane, **Alt+Shift+9** expands them all
+  (Desktop's keys), in the Report view's Data pane and the Model view's, wherever the focus is;
+  folders and hierarchies keep their state under their table. In another view, or with the Data
+  pane closed, the status bar says there is no Data pane. The digit is read from the physical
+  key, so Shift+1 typing `!` (US) or `1` (AZERTY) works alike. The registry declares no Alt+Shift
+  chord; the page tabs' Alt+Shift+← / → do not use digits. Shift+? lists both.
+- **Live region.** The status bar's message is a polite live region (AccessKit `Status`, drawn
+  even when empty): Ctrl+F6, Ctrl+Shift+F6 and F6 say the section the focus moved into ("Focus:
+  Data pane", "Focus: Report canvas", the panes by name), Alt+Shift+1 / 9 say "All tables
+  collapsed" or "All tables expanded", and every other status message (such as "This visual has
+  no data point to select") is read as it appears, wherever the focus is.
 - **Tab and Shift+Tab move inside a section** and wrap at its ends (Desktop's "Move focus forward /
   backward in a section"). The arrow keys move the focus to the neighbouring control (ribbon
   buttons, page tabs, rows of a list). Enter or Space activates the focused control.
 - **Data pane tree**: Right arrow unrolls the focused table, folder or hierarchy, Left arrow rolls
   it up; Enter and Space toggle it.
+- **DAX query view**: Ctrl+Enter or F5 runs the query, Ctrl+/ comments or uncomments the selected
+  lines (Shift held too, as AZERTY types `/`), Ctrl+F opens find, Ctrl+H find and replace (Enter,
+  Shift+Enter the next and previous match, Esc closes it); its Data pane is a tree like the one
+  above, Enter on a column or a measure inserting its reference (`crates/ui/src/dax_query_tools.rs`).
 - **Dialogs** (every window: Manage relationships, Manage security roles, Customize theme, the
   parameters form, the command palette…) are modal: Tab and Shift+Tab cycle inside the topmost
   one and the window under it takes neither the keyboard nor clicks. Opened from the keyboard, a
@@ -493,14 +540,20 @@ back, the same for Manage security roles and Customize theme, a pointer press hi
 the DAX query view as a section, the Model view's two panes visited by Ctrl+F6, Alt and F10 key
 tips over the tabs and the Model tab's buttons with Escape backing out and Manage relationships
 opened by its letters, in English and French, Shift+? listing and filtering the shortcuts,
-Shift+F10 on a Data pane table and on the selected visual, the accessible names);
+Shift+F10 on a Data pane table and on the selected visual, the accessible names; since
+2026-11-27 the Menu key on a Data pane table and on a focused visual, Tab and Shift+Tab through
+the canvas's visuals in tab order with the focused node, its name and selected state read from
+the accessibility tree, the arrows moving a focused visual, Delete removing it and Escape back to
+the page, the live region naming the section Ctrl+F6 reaches, Alt+Shift+9 and Alt+Shift+1
+expanding and collapsing every table in the Report and Model views' Data panes, in English and
+French with the live region's text);
 `key_tips::tests` (codes unique and prefix-free on every tab in both languages, initials first,
 two characters past 36, badge contrast), `shortcuts_list::tests`; offscreen captures `keyboard-*`
-(`apps/bicraft-desktop/src/tests/keyboard_shots.rs`). Not done: keyboard focus on the visuals of
-the canvas (Ctrl+Right to enter a visual, Alt+Shift+F10 its menu; the "Reader tools" row), the
-Menu key, Alt+Shift+1 / 9. Not checked with Narrator, NVDA or JAWS, nor in a browser (which may
-keep F6, Ctrl+F6, F10 and Alt for itself), nor whether Windows' own Alt / F10 window-menu handling
-reaches the desktop window first; docs/gaps.md G84.
+(`apps/bicraft-desktop/src/tests/keyboard_shots.rs`). Not done: Alt+Shift+1 / 9 in the DAX
+query view's Data pane; the readers' tools on a visual (the "Reader tools" row). Not checked with Narrator, NVDA or JAWS, nor in a browser (which may
+keep F6, Ctrl+F6, F10, Alt and the Menu key for itself), nor in the running desktop window
+(whether Windows' own Alt / F10 window-menu handling comes first, whether Alt+Shift switches the
+input language before the digit arrives, whether Alt+Shift+digits reach a browser page, whether winit delivers the Menu key); docs/gaps.md G84.
 
 ## Insert: text boxes, buttons, shapes, images, page format (M11.20)
 
@@ -692,14 +745,14 @@ The renderer also draws the interaction state the viewer draws: a point the sele
 out at 40 % opacity in its own visual, a table row under a 60 % white veil, and highlighted
 visuals with the full mark at 40 % and the highlighted part opaque over it (columns and bars,
 stacked and 100 % ones, combo columns, funnel stages, pie and donut slices as a share of their
-area, treemap tiles as a share of their height). `bicraft render` shows the same when the session
+area, treemap tiles as a share of their height). `bicraft-cli render` shows the same when the session
 has a reader state.
 
 **Tests** (`apps/bicraft-desktop/src/tests.rs`): pointer clicks on the window (egui_kittest) on a
 slicer item, Ctrl+click, a column and the chart's background; after each, the app's `report`
 snapshot equals that of a separate session that ran the action page.html sends for the same click
 (`slicer_and_data_point_clicks_match_the_viewer`). The page the app draws is byte-identical to
-`bicraft render`'s (`report.render`) at the same scale (`pages_equal_bicraft_render`).
+`bicraft-cli render`'s (`report.render`) at the same scale (`pages_equal_bicraft_render`).
 BIcraft's visuals: `crates/ui/src/tests/own_visuals_ui_tests.rs` (a click, Ctrl+click and the
 keyboard on the BIcraft bullet filtering a table) and
 `crates/engine/tests/report/own_visual_interactions_tests.rs` (each of the ten as the source and
@@ -773,7 +826,7 @@ None and Cancel, French, a reader); screenshots with `--features gpu-tests`
 
 ## Live reload
 
-A local file or project is watched as `bicraft view` watches it (`bicraft_engine::watch`: the
+A local file or project is watched as `bicraft-cli view` watches it (`bicraft_engine::watch`: the
 paths, sizes and modification times of the model and report files, polled every 150 ms; a change
 is re-read once it has been still for 300 ms). The session runs on a worker thread, so the window
 never waits for a read or an evaluation. While visuals wait for their data (a snapshot computes
@@ -801,15 +854,18 @@ the whole file). Without a settings file (the tests' `app(lang, None)`) nothing 
 - **File › Export › Export to PDF** (Backstage; the ribbon's File tab Export group, the palette):
   all pages (hidden ones with *Include hidden pages*), the current page only, or the pages typed
   (`1-3, 5`); the Save dialog picks the file; `report.export_pdf` writes it ([render.md](render.md),
-  "PDF": vector shapes, text with embedded fonts, a bookmark per page, a tagged structure).
+  "PDF": vector shapes, text with embedded fonts, a bookmark per page, a tagged structure
+  identified as PDF/UA-1); *Archival PDF (PDF/A-2b)* asks for `pdf_a`.
 - **File › Export › Print** (the ribbon's File tab, the palette): the same page choice, then
   *Print…*: `report.print` writes the PDF to the temporary folder's `bicraft-print` folder and
   hands it to the OS's PDF application, where it is printed; the task says where it was written
   and that it was opened. Tests inject the session's opener, so nothing is launched.
 - **A visual's Export data**: the selected visual's header has a More options button (⋯, at its
   top right) and its right-click menu an *Export data* item; both open the Export data dialog:
-  summarized data (what the visual shows) or underlying data (greyed unless the report allows
-  it), `.xlsx` (up to 150,000 rows) or `.csv` (up to 30,000), then the Save dialog;
+  data with current layout (the visual's shape, a matrix as a cross table; `.xlsx` only, the
+  `.csv` choice greyed), summarized data (what the visual shows) or underlying data (greyed
+  unless the report allows it), `.xlsx` (up to 150,000 rows) or `.csv` (up to 30,000), then the
+  Save dialog;
   `visual.export_data` writes it and the dialog shows the rows written and a truncation.
 - **File › Export › Export data setting**: the report setting `report.settings {export_data}`
   (Allow summarized data only, summarized and underlying, or nothing), what the dialog honours.
@@ -896,7 +952,25 @@ every edit is an engine command, one undo step.
   for left and right edges and its rows for top and bottom ones (always on, as Learn says a
   dragged visual snaps by default; Alt moves freely). Each sends one
   `visual.mobile {page, visuals: [{visual, x, y, width, height}]}`; the desktop layout never
-  moves. Copy, paste, duplicate and group are the desktop canvas's only.
+  moves.
+- **Copy, paste, duplicate** (Ctrl+C, Ctrl+V, Ctrl+D and the canvas menu): `visual.copy`'s clip
+  also carries the copied visuals' phone documents (`mobile`); on the phone canvas a paste is
+  `visual.paste {mobile: true}` and a duplicate `visual.duplicate {mobile: true}`: the copy is a
+  new visual of the page (on the desktop layout as a desktop paste puts it) and goes on the
+  phone canvas too, on top, at the copied phone place moved one 18 × 20 cell while a visual is
+  there, with the copied mobile formatting; a visual the clip holds no phone place for goes
+  under the layout. Ctrl+X and Ctrl+G say why not in the status bar: a cut would take the visual
+  off the page, and groups are the desktop layout's (the format notes do not say how a visual
+  group shows on the phone; BIcraft draws every visual alone there and `visual.mobile` refuses a
+  group).
+- **Auto-create and Remove all** (View › Mobile layout, beside the toggle, and the canvas
+  menu): `visual.mobile_auto {page}` lays out every shown visual by BIcraft's own rule, not
+  Desktop's (whose result is not observed): the desktop layout's reading order (top to bottom,
+  then left to right), stacked from the top with one grid row between rows, each the phone's
+  full width with its desktop ratio kept between 120 and 480 high, two cards or slicers next in
+  that order sharing a row, half the width each, 60 to 240 high; it keeps a visual's mobile
+  formatting and takes hidden visuals off. `visual.mobile_remove_all {page}` takes every visual
+  off the phone canvas. Each is one undo step.
 - **Remove**: Delete, the X at the selected visual's top right or the menu's *Remove from mobile
   layout* sends `visual.mobile {layout: null}`; the visual stays on the page and in Page visuals.
 - **Format**: with the mobile layout on, the Build pane's Format tab says its settings apply to
@@ -921,27 +995,36 @@ the other panes, as Desktop's: *Start recording* (`perf.start`), *Refresh visual
 first, with its total; a row unrolls to BIcraft's evaluation time, the render time, the rows, why
 it was evaluated (Refresh visuals, or the Report view while recording) and *Copy query*: the DAX
 query BIcraft writes for the visual (`SUMMARIZECOLUMNS` over its grouping columns, its column
-filters as `TREATAS`/`FILTER` tables, its measures and aggregations), with notes on what the text
-leaves out (measure filters applied to the rows, top N, filters BIcraft does not apply).
+filters as `TREATAS`/`FILTER` tables, its top N filters as `TOPN` tables ranked under them, its
+measures and aggregations, and its measure and aggregation filters as a `FILTER` over the rows
+under the same filter tables). Report, page and visual filters, slicer selections, cross-filters
+and relative dates are all in it, so in `dax.evaluate` it returns the visual's rows; View as
+roles are not written (they apply to whatever the session evaluates). Notes name what it leaves
+out: the filters BIcraft does not apply, conditions mixing columns and measures.
 
 - The times are BIcraft's own, from a monotonic clock, in milliseconds: the evaluation is timed
   by the engine around its evaluator (a refresh skips the result cache; decoded columns stay
-  cached), the render by `bicraft-render` around each visual's draw call of the page drawn again
-  after the refresh, handed back with `perf.render`. They are never compared with Desktop's
+  cached), the render by `bicraft-render` around each visual's draw call, handed back with
+  `perf.render`: of the page drawn again after Refresh visuals, and, while a recording runs, of
+  the first drawing of each snapshot for the visuals the viewer evaluated (the snapshot's
+  `perf.unrendered` names those whose latest event has no render time yet). They are never compared with Desktop's
   (AGENTS.md §1), and docs give none.
 - The recording is the session's diagnostics state: no revision, no undo step, never saved; on a
   server the `perf.*` commands are for editors only (the session is shared).
-- The browser: the same pane; its renderer has no clock on wasm32, so the render time reads *not
-  measured*, and Export writes `performance-analyzer.json` in the workspace, then downloads it.
+- The browser: the same pane; its renderer times each visual with `web-time` (the page's
+  `performance.now()`: `std::time::Instant` panics on wasm32), and Export writes
+  `performance-analyzer.json` in the workspace, then downloads it. Not yet run in a live browser
+  (the wasm32 check builds it).
 - Tests: `crates/engine/src/perf_tests.rs` (events, ordering, the query text accepted and
-  evaluated by `dax.evaluate` with the visual's rows, render times, export, hostile parameters),
-  `crates/ui/src/tests/perf_ui_tests.rs` (each button), `apps/bicraft-desktop/src/tests/perf_shots.rs`
+  evaluated by `dax.evaluate` with the visual's rows under each kind of filter, render times,
+  the snapshot's `perf.unrendered`, export, hostile parameters),
+  `crates/ui/src/tests/perf_ui_tests.rs` (each button, render times without Refresh visuals), `apps/bicraft-desktop/src/tests/perf_shots.rs`
   (wgpu screenshots, light, dark, French).
 
 ## Remote mode (a BIcraft server)
 
 Home > Connect to server (or the start screen) asks for the server's URL, the workspace and a token. The server
-(`bicraft serve`, [web-deployment.md](web-deployment.md), [kubernetes.md](kubernetes.md))
+(`bicraft-cli serve`, [web-deployment.md](web-deployment.md), [kubernetes.md](kubernetes.md))
 computes the snapshots and runs the interactions; the app only draws them, with the same renderer
 and hit map, so a click gives the result it gives in a browser.
 
@@ -963,7 +1046,7 @@ POST {url}/w/{ws}/view/api/interact?v=VIEW     a view.interact action, X-Bicraft
   identity headers, never the browser login cookie (a cross-site form could otherwise mint a
   view and read its token). It answers `{"version": 1, "view": "<32 hex>", "token": "<32 hex>",
   "access": "reader" | "editor"}`; the token goes in `X-Bicraft-Token` on `api/interact`.
-- **Authentication**: an API token (`bicraft serve token create`) or an OIDC access token
+- **Authentication**: an API token (`bicraft-cli serve token create`) or an OIDC access token
   obtained by another tool, sent as `Authorization: Bearer`. OIDC device or browser login flows
   are not built in yet. On a server without authentication (loopback only) leave it empty. With
   `--server`, the token comes from `BICRAFT_SERVER_TOKEN`; the dialog fills it in from there too.
@@ -982,7 +1065,7 @@ POST {url}/w/{ws}/view/api/interact?v=VIEW     a view.interact action, X-Bicraft
 - **TLS**: `https://` URLs go through rustls with the bundled Mozilla root certificates (the
   same client as the OIDC and Databricks code); no OpenSSL, no system certificate store.
 
-**Tests** (`apps/bicraft-desktop/src/tests/remote_tests.rs`, an in-process `bicraft serve`
+**Tests** (`apps/bicraft-desktop/src/tests/remote_tests.rs`, an in-process `bicraft-cli serve`
 with API tokens): a reader and an editor connect and see their role; a reader's slicer click
 changes that reader's view only; an editor's window follows MCP edits live while the reader
 keeps the saved state; after a server restart a click opens a new view and works; a wrong
@@ -1002,12 +1085,12 @@ click runs (`crates/ui/src/control.rs`). The browser app has the same channel th
 server ([webui.md](webui.md), "Control channel").
 
 ```text
-bicraft-desktop Sales.pbip --control 0          # a free port; or --control 7990, BICRAFT_CONTROL_PORT
-bicraft ui methods                               # the methods (reads the token file)
-bicraft ui app.open '{"path": "Other.pbix"}'
-bicraft ui ui.set '{"page": "Overview", "ribbonTab": "model"}'
-bicraft ui command measure.add '{"table": "Sales", "name": "Margin", "expression": "[Total] - [Cost]"}'
-bicraft ui ui.screenshot --out window.png
+bicraft Sales.pbip --control 0                       # a free port; or --control 7990, BICRAFT_CONTROL_PORT
+bicraft-cli ui methods                           # the methods (reads the token file)
+bicraft-cli ui app.open '{"path": "Other.pbix"}'
+bicraft-cli ui ui.set '{"page": "Overview", "ribbonTab": "model"}'
+bicraft-cli ui command measure.add '{"table": "Sales", "name": "Margin", "expression": "[Total] - [Cost]"}'
+bicraft-cli ui ui.screenshot --out window.png
 ```
 
 - **Off by default.** `--control PORT` or `BICRAFT_CONTROL_PORT=PORT` turns it on (`0`: a free
@@ -1053,15 +1136,15 @@ bicraft ui ui.screenshot --out window.png
 | `ui.wait` | `{timeout?}` | until the window is idle: no source starting, every command answered, every bound visual's data computed, the page drawn (at most 55 s) |
 | `ui.screenshot` | | the window as the GPU drew it (egui's screenshot viewport command): `{png, width, height}`, PNG in base64 |
 
-- **Client.** `bicraft ui [--control FILE | --view | --serve] [--url URL] [--workspace ID]
+- **Client.** `bicraft-cli ui [--control FILE | --view | --serve] [--url URL] [--workspace ID]
   [--view-id V] METHOD [PARAMS-JSON] [--out FILE.png]` reads the token file
-  (`BICRAFT_CONTROL_FILE`, else the desktop's default; `--view` the default of `bicraft view
-  --control`, `--serve` that of `bicraft serve --viewer-control`), sends one request and prints
+  (`BICRAFT_CONTROL_FILE`, else the desktop's default; `--view` the default of `bicraft-cli view
+  --control`, `--serve` that of `bicraft-cli serve --viewer-control`), sends one request and prints
   the reply. For a server, `--workspace` (or `--url`, the viewer's URL, with the token from
   `BICRAFT_CONTROL_TOKEN` or the file) says where, `--view-id` which view, the server's
   credential comes from `BICRAFT_SERVER_TOKEN`, and `server.views` lists the caller's views
   ([web-deployment.md](web-deployment.md), "UI control channel"); `--out` writes a
-  screenshot's PNG. `bicraft ui command ID [PARAMS]` is short for `command`. Exit 0 on `ok`, 1 on
+  screenshot's PNG. `bicraft-cli ui command ID [PARAMS]` is short for `command`. Exit 0 on `ok`, 1 on
   a refusal, 2 when the app cannot be reached. Any client that writes a JSON line to the socket
   works too.
 - **Tests.** `crates/ui/src/control_tests.rs` (the protocol: requests refused, replies, a
@@ -1086,9 +1169,9 @@ shows (`report.render` draws a report page alone; this draws the whole UI, ribbo
 included).
 
 ```text
-bicraft-desktop Sales.pbip --render shot.png                         # 1366x860 points, scale 1
-bicraft-desktop Sales.pbip --render shot.png --size 1440x900 --scale 2 --lang fr
-bicraft-desktop Sales.pbip --render shot.png --set '{"page": "Overview", "theme": "dark"}'
+bicraft Sales.pbip --render shot.png                         # 1366x860 points, scale 1
+bicraft Sales.pbip --render shot.png --size 1440x900 --scale 2 --lang fr
+bicraft Sales.pbip --render shot.png --set '{"page": "Overview", "theme": "dark"}'
 ```
 
 - **How.** The app runs its frames offscreen (`crates/ui/src/offscreen.rs`, `Offscreen`): a
@@ -1125,22 +1208,22 @@ bicraft-desktop Sales.pbip --render shot.png --set '{"page": "Overview", "theme"
 
 ## Windows integration (`--register`)
 
-`bicraft-desktop.exe --register` (once, from where the executable stays, e.g.
+`bicraft.exe --register` (once, from where the executable stays, e.g.
 `%LOCALAPPDATA%\bicraft\bin`) writes, for the current user only (`HKEY_CURRENT_USER`, no
 administrator rights):
 
 - the Start menu shortcut `%APPDATA%\Microsoft\Windows\Start Menu\Programs\BIcraft Desktop.lnk`,
   whose AppUserModelID is `BIcraft.Desktop`;
-- `HKCU\Software\Classes\Applications\bicraft-desktop.exe`: `FriendlyAppName` "BIcraft",
-  `DefaultIcon`, `shell\open\command` (`"…\bicraft-desktop.exe" "%1"`) and `SupportedTypes`
+- `HKCU\Software\Classes\Applications\bicraft.exe`: `FriendlyAppName` "BIcraft",
+  `DefaultIcon`, `shell\open\command` (`"…\bicraft.exe" "%1"`) and `SupportedTypes`
   (`.pbix`, `.pbit`, `.pbip`, `.bim`), so Explorer offers the app in "Open with";
-- `HKCU\Software\Classes\.<ext>\OpenWithList\bicraft-desktop.exe` for each of these types.
+- `HKCU\Software\Classes\.<ext>\OpenWithList\bicraft.exe` for each of these types.
 
 It never changes the default application of a type: no `ProgId` becomes the default value of
 `.pbix`, `UserChoice` is not touched; Power BI Desktop stays the default if it was. Choosing
 BIcraft as the default is the user's choice, in "Open with > Always". `--unregister` removes
 exactly these keys and the shortcut. Both print what they did (when standard output is
-redirected: `bicraft-desktop.exe --register | more`) and answer with their exit code.
+redirected: `bicraft.exe --register | more`) and answer with their exit code.
 
 The shortcut is written by BIcraft itself from the public specifications [MS-SHLLINK] (Shell
 Link Binary File Format) and [MS-PROPSTORE] (the property store carrying
@@ -1148,16 +1231,28 @@ Link Binary File Format) and [MS-PROPSTORE] (the property store carrying
 the same application id; the executable embeds the icon and version information
 (`build.rs` draws the icon from `assets/logo/bicraft-icon.svg` at 16 to 256 px).
 
-On Linux, add a `.desktop` file by hand if you want a menu entry (`Exec=bicraft-desktop %f`).
+## Linux integration
+
+The Linux release archive carries the app's desktop integration, and its `install.sh` installs it
+under `~/.local` (or another prefix): the menu entry
+`share/applications/io.github.digorpeptra.bicraft.desktop` (`Exec` set to the installed app's
+absolute path), the icon in the hicolor theme at 16 to 256 px and as SVG, the file types `.pbix`,
+`.pbit` and `.pbip` (a shared MIME package) and AppStream metadata
+([releasing.md](releasing.md)). On Linux the window's Wayland app id and X11 class are
+`io.github.digorpeptra.bicraft` (`DESKTOP_ID`), the name of that menu entry, so the desktop shows
+the app's icon and name for its window. As on Windows, `install.sh` sets no default application
+for a type (no `xdg-mime default`). The app has been built and its offscreen render checked in
+WSL Ubuntu, but not yet run in a full Linux desktop session.
 
 ## Building and distribution
 
-`cargo build --release -p bicraft-desktop`. It is a Windows GUI program (no console window). On
-Windows the release archive of `cargo xtask dist` carries `bicraft-desktop.exe` next to
-`bicraft.exe` (statically linked C runtime, icon required), and `install.ps1` copies both; it
-does not run `--register`. `THIRD_PARTY_CRATES.md` lists the crates of both programs, with the
-licences of the fonts egui embeds. The Linux archive keeps only `bicraft` (a static musl binary;
-a window needs the system's graphics stack): build the app from source there.
+`cargo build --release -p bicraft-desktop` builds `bicraft` (`bicraft.exe`). On Windows it is a
+GUI program (no console window). Both release archives of `cargo xtask dist` carry it next to the
+CLI `bicraft-cli` ([releasing.md](releasing.md)): on Windows `bicraft.exe` and `bicraft-cli.exe`
+at the top (statically linked C runtime, icon required), which `install.ps1` copies, without
+running `--register`; on Linux `bin/bicraft` and `bin/bicraft-cli`, linked against glibc, with the
+integration above. `THIRD_PARTY_CRATES.md` lists the crates of both programs, with the licences
+of the fonts egui embeds.
 
 Graphics: on Windows the app asks wgpu for DirectX 12 with the FXC shader compiler that ships
 with Windows (some OpenGL drivers and a stray `dxcompiler.dll` fail before the first frame);
@@ -1184,7 +1279,7 @@ and is not part of `cargo xtask ci`.
 ## Limits
 
 - Reader only: no editing, no saving, no "Open in Power BI Desktop" button yet.
-- The same app runs in the browser (`bicraft view --ui egui`, `/w/<id>/view/app/` on a server): [webui.md](webui.md).
+- The same app runs in the browser (`bicraft-cli view --ui egui`, `/w/<id>/view/app/` on a server): [webui.md](webui.md).
 - What the viewer does not do, the app does not either ([gaps.md](gaps.md) G29): drill down,
   drill through, bookmarks, report-page tooltips, point selection in matrices, scatter,
   waterfall and ribbon charts.

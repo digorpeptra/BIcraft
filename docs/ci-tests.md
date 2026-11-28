@@ -1,6 +1,6 @@
-# CI quality gates: `bicraft test`
+# CI quality gates: `bicraft-cli test`
 
-`bicraft test` runs a Power BI project's quality gates from a declarative test file kept in the
+`bicraft-cli test` runs a Power BI project's quality gates from a declarative test file kept in the
 repository next to the project. It is built for CI pipelines (GitHub Actions, Azure DevOps,
 GitLab, Jenkins) and works the same way for an agent over MCP (`run_tests`) or through the engine
 command `project.test`.
@@ -21,7 +21,7 @@ pipeline-check requests:
 Everything runs on Windows and Linux and needs no Power BI installation.
 
 ```text
-bicraft test [PATH] [--tests FILE] [--format text|json|junit|sarif] [--output FILE]
+bicraft-cli test [PATH] [--tests FILE] [--format text|json|junit|sarif] [--output FILE]
              [--fail-on error|warning]
 ```
 
@@ -182,7 +182,7 @@ Each assertion becomes one query, run by `dax.evaluate`:
 The data comes from where `dax.evaluate` finds it:
 
 - a PBIX's DataModel;
-- a PBIP's BIcraft data snapshot (written by `bicraft refresh`);
+- a PBIP's BIcraft data snapshot (written by `bicraft-cli refresh`);
 - a PBIP's `.pbi/cache.abf`;
 - the tables' partitions that BIcraft can evaluate (DATATABLE, calculated tables, M queries over
   literal data).
@@ -344,10 +344,10 @@ jobs:
           BICRAFT_URL: https://example.com/bicraft/releases   # where you host the archives
           BICRAFT_SHA256: <sha256 of the archive>
       - name: Run the gates
-        run: bicraft test Sales/Sales.pbip --format sarif --output bicraft.sarif
+        run: bicraft-cli test Sales/Sales.pbip --format sarif --output bicraft.sarif
       - name: JUnit report
         if: always()
-        run: bicraft test Sales/Sales.pbip --format junit --output bicraft-junit.xml || true
+        run: bicraft-cli test Sales/Sales.pbip --format junit --output bicraft-junit.xml || true
       - uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
@@ -355,36 +355,36 @@ jobs:
           category: bicraft
 ```
 
-`bicraft test` exits 1 when a gate fails, which fails the step. The SARIF upload runs anyway
+`bicraft-cli test` exits 1 when a gate fails, which fails the step. The SARIF upload runs anyway
 (`if: always()`), so the findings show up on the pull request at their TMDL / PBIR lines.
 
 ### With the Docker image
 
-The image (`deploy/docker/Dockerfile`, `docs/kubernetes.md`) starts `bicraft serve` by default.
+The image (`deploy/docker/Dockerfile`, `docs/kubernetes.md`) starts `bicraft-cli serve` by default.
 Override the entrypoint to run the gates:
 
 ```bash
-docker run --rm -v "$PWD:/work" -w /work --entrypoint /usr/local/bin/bicraft \
+docker run --rm -v "$PWD:/work" -w /work --entrypoint /usr/local/bin/bicraft-cli \
   registry.example.com/bicraft:0.1.0 test Sales/Sales.pbip --format junit --output bicraft-junit.xml
 ```
 
 ### Any CI system
 
 ```bash
-bicraft test path/to/Project.pbip --format junit --output reports/bicraft-junit.xml
+bicraft-cli test path/to/Project.pbip --format junit --output reports/bicraft-junit.xml
 status=$?            # 0 passed, 1 a gate failed, 2 configuration or usage error
 # publish reports/bicraft-junit.xml with the CI's JUnit publisher (Azure DevOps
 # PublishTestResults@2, GitLab artifacts:reports:junit, Jenkins junit step)
 exit $status
 ```
 
-On Windows the same commands work with `bicraft.exe` from the Windows archive.
+On Windows the same commands work with `bicraft-cli.exe` from the Windows archive.
 
 ## MCP and the engine command
 
 - MCP tool `run_tests {path?, tests?, format?, fail_on?, base_dir?}`.
 - Engine command `project.test` takes the same parameters, through `run_command` or
-  `bicraft run --cmd`.
+  `bicraft-cli run --cmd`.
   - `tests` is a file path, or the test object inline: an agent can check a gate without
     writing a file.
   - `format` is one name, or a list rendered once each into `outputs`.

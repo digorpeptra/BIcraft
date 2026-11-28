@@ -21,6 +21,9 @@ ureq = { version = "3", optional = true, default-features = false, features = ["
 # Rust, no unsafe in its parser, MIT OR Apache-2.0; two small new crates (arraydeque, hashlink).
 yaml-rust2 = { version = "0.13", default-features = false }
 tiny-skia = { version = "0.12", default-features = false, features = ["std", "png-format"] }
+# The Linux archive's hicolor icons, drawn from assets/logo/bicraft-icon.svg by `cargo xtask dist`
+# (already in the tree through the desktop app's build script; Apache-2.0 OR MIT).
+resvg = { version = "0.48", default-features = false }
 # In-process benchmarks (`cargo xtask bench` re-runs xtask in release with `--features bench`).
 # Optional so the other xtask commands do not have to build the whole workspace first.
 bicraft-data = { workspace = true, optional = true }

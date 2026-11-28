@@ -25,7 +25,7 @@ fn corpus() -> Option<Value> {
     read_json(&p).ok()
 }
 
-/// The generated report with its data, as `oracle-gen decomp` + `bicraft run` build it.
+/// The generated report with its data, as `oracle-gen decomp` + `bicraft-cli run` build it.
 fn report_session(dir: &TempDir) -> Session {
     let d = dir.path().to_string_lossy().into_owned();
     std::fs::write(dir.path().join("sales.csv"), decomp::sales_csv()).unwrap();

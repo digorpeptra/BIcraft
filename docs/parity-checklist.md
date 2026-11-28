@@ -13,8 +13,8 @@ The row-by-row checklist behind the breadth numbers of
   BIcraft app (one egui UI, desktop and browser) reaches it and how. Since M11 every command has
   a button ([ROADMAP.md](../ROADMAP.md) M11.3), most of them through the generic parameters form.
 - **Viewer**: what Desktop's reading view shows and lets a reader do, for three surfaces:
-  **render** = `bicraft render` / `report.render` (PNG), **web** = the HTML viewer of
-  `bicraft view` (`crates/view/src/page.html`), **app** = the BIcraft egui app (desktop and
+  **render** = `bicraft-cli render` / `report.render` (PNG), **web** = the HTML viewer of
+  `bicraft-cli view` (`crates/view/src/page.html`), **app** = the BIcraft egui app (desktop and
   browser, [webui.md](webui.md)).
 
 Status: **D** done, **P** partial, **M** missing, **O** out of scope (left out of every share),
@@ -28,7 +28,7 @@ Do not edit between the summary markers: change the rows, then run `cargo xtask 
 target-app-parity.md is stale.
 
 <!-- SUMMARY -->
-**Authoring: 127 of 145 items done (88%), weighted parity 95%** (P0 99%, P1 96%, P2 83%); 13 partial, 5 missing, 9 out of scope. 140 of the 140 items BIcraft has (done or partial) have a button in the app.
+**Authoring: 127 of 145 items done (88%), weighted parity 95%** (P0 99%, P1 96%, P2 84%); 14 partial, 4 missing, 9 out of scope. 141 of the 141 items BIcraft has (done or partial) have a button in the app.
 
 | Area | Items | Done | Partial | Missing | Parity |
 |---|---|---|---|---|---|
@@ -48,7 +48,7 @@ target-app-parity.md is stale.
 | Editing | 4 | 4 | 0 | 0 | 100% |
 | Files | 9 | 7 | 2 | 0 | 92% |
 | Pages | 6 | 6 | 0 | 0 | 100% |
-| Visuals | 22 | 17 | 4 | 1 | 93% |
+| Visuals | 22 | 17 | 5 | 0 | 94% |
 | Formatting | 11 | 11 | 0 | 0 | 100% |
 | Filters | 6 | 6 | 0 | 0 | 100% |
 | Interactions | 3 | 3 | 0 | 0 | 100% |
@@ -66,9 +66,9 @@ Open P0 authoring items: Refresh from databases and online services (SQL Server,
 
 | Surface | Items | Done | Partial | Missing | Done share | Weighted parity |
 |---|---|---|---|---|---|---|
-| `bicraft render` (PNG) | 33 | 25 | 4 | 4 | 76% | 89% (P0 100%, P1 85%, P2 55%) |
-| Web viewer (`bicraft view`, page.html) | 56 | 28 | 5 | 23 | 50% | 64% (P0 90%, P1 41%, P2 25%) |
-| BIcraft app (egui, desktop and browser) | 56 | 47 | 5 | 4 | 84% | 92% (P0 100%, P1 84%, P2 79%) |
+| `bicraft-cli render` (PNG) | 33 | 25 | 4 | 4 | 76% | 89% (P0 100%, P1 85%, P2 55%) |
+| Web viewer (`bicraft-cli view`, page.html) | 56 | 28 | 5 | 23 | 50% | 64% (P0 90%, P1 41%, P2 25%) |
+| BIcraft app (egui, desktop and browser) | 56 | 47 | 6 | 3 | 84% | 92% (P0 100%, P1 86%, P2 79%) |
 
 | Area | render | web | app |
 |---|---|---|---|
@@ -77,7 +77,7 @@ Open P0 authoring items: Refresh from databases and online services (SQL Server,
 | Data | 90% | 90% | 90% |
 | Interactions | 100% | 57% | 91% |
 | Navigation | – | 100% | 100% |
-| Reader tools | 0% | 12% | 88% |
+| Reader tools | 0% | 12% | 94% |
 | Export | 100% | 0% | 100% |
 
 Open P0 viewer items in the app: none.
@@ -122,7 +122,7 @@ command reached only through a form is **P**.
 | Columns | Rename and remove columns (DAX follows) | P0 | D | `column.rename`, `column.remove` | yes (menu, Data pane) |
 | Columns | Data type, format string, summarize by, display folder, hidden, description | P0 | D | `column.set` | yes (ribbon, form) |
 | Columns | Sort by column, data category, key column | P1 | D | `column.set {sort_by_column, data_category, is_key}` | yes (ribbon, form) |
-| Columns | Groups and bins | P2 | D | `column.group` (list groups with Other and (Blank), numeric bins by size or count, date bins by years, months, days, hours, minutes or seconds; a calculated column with `GroupingMetadata` and `GroupingDesignState` in the form Desktop saves; Edit groups with `replace`; G75) | yes (Data pane menu New group, Column tools › Data groups, Groups dialog) |
+| Columns | Groups and bins | P2 | D | `column.group` (list groups with Other and (Blank), numeric bins by size or count, date bins by years, months, days, hours, minutes or seconds, or into a number of bins; Group data on selected data points (`visual.group_points`); a calculated column with `GroupingMetadata` and `GroupingDesignState` in the form Desktop saves; Edit groups with `replace`; G75) | yes (Data pane menu New group, Column tools › Data groups, Groups dialog, a data point's Group data) |
 | Columns | Auto date/time variations | P2 | P | `column.remove_variation` (removal only) | yes (ribbon, form) |
 | Measures | Add, edit, rename, move, remove measures (DAX checked, references follow) | P0 | D | `measure.add`, `measure.set`, `measure.rename`, `measure.move`, `measure.remove` | yes (formula bar, ribbon, menu) |
 | Measures | Static and dynamic format strings | P1 | D | `measure.set {format_string, format_string_definition}` | yes (ribbon, form) |
@@ -164,7 +164,7 @@ command reached only through a form is **P**.
 | Views | TMDL view: script objects, edit, apply | P2 | D | `tmdl.script {objects}` (createOrReplace, members under `ref table`), `tmdl.apply {script}` (objects replaced with all their descendants, one undo step; a parse, `ref` or DAX error changes nothing and says `line L, column C`); no Preview diff, Problems pane or `TMDLScripts` folder ([formats/tmdl-view.md](formats/tmdl-view.md), G98) | yes (TMDL view: script tabs, Apply, Script model, Copy, Go to the error; Script TMDL on the Data pane and Model explorer menus; the palette) |
 | Views | Data view: browse a table's rows | P1 | D | `table.rows` (paged, sort and filter as view state, calculated columns computed); Column tools through `column.set` | yes (Data view: virtualized grid, header menus, Column tools, copy as TSV) |
 | Views | Model view and properties pane | P1 | D | `model.get`, `diagram.move`, `relationship.*`, `table.set`, `column.set`, `measure.set` (the diagram is editable, the Properties pane edits the selected object) | yes (Model view, Properties pane) |
-| Views | Optimize ribbon (Pause visuals, Refresh visuals, optimization presets) | P2 | D | `report.pause_visuals` (`settings.pauseQueries`), `report.refresh_visuals`, `report.query_reduction` (`slowDataSourceSettings`; default cross-highlighting off honoured, Apply buttons written only) (G60) | yes (Analyze › Optimize, paused banner, File › Options › Query reduction) |
+| Views | Optimize ribbon (Pause visuals, Refresh visuals, optimization presets) | P2 | D | `report.pause_visuals` (`settings.pauseQueries`), `report.refresh_visuals`, `visual.refresh`, `report.query_reduction` (`slowDataSourceSettings`; default cross-highlighting off, a slicer's own Apply button and the Filters pane's Apply buttons honoured) (G60) | yes (Optimize tab, paused banner, a visual's pending-changes strip, File › Options › Query reduction) |
 | Views | Performance analyzer | P2 | D | `perf.start`, `perf.stop`, `perf.clear`, `perf.refresh`, `perf.results`, `perf.render`, `perf.export` (BIcraft's own times: evaluation, render, copy query) | yes (Analyze › Performance analyzer pane) |
 | Editing | Undo and redo | P0 | D | `edit.undo`, `edit.redo`, `edit.history` | yes (ribbon, Ctrl+Z, Ctrl+Y) |
 | Editing | DAX errors and warnings while editing | P0 | D | `dax.validate`, `model.validate` | yes (formula bar live check, Analyze) |
@@ -203,18 +203,18 @@ command reached only through a form is **P**.
 | Visuals | Group and ungroup visuals | P2 | D | `visual.group`, `visual.ungroup` (groups move and scale their members) | yes (Visual tab Arrange) |
 | Visuals | Layer order and alignment | P1 | D | `visual.order`, `visual.align`, `page.arrange`, `visual.place` | yes (Visual tab Arrange menus, form) |
 | Visuals | Custom visuals (.pbiviz import) | P1 | D | `visual.import_custom {path or data}` (a .pbiviz read as hostile input, stored as Desktop stores an embedded visual), `visual.remove_custom`, `report.custom_visuals`; never run: drawn as a placeholder with its icon and name (G80) | yes (Visualizations pane gallery cell with its icon, … › Import a visual from a file, Remove a custom visual; Insert › Import a visual) |
-| Visuals | Custom visual projects (pbiviz new / package) | P2 | D | `visual.scaffold` (a project with the data roles and format options chosen), `visual.build` (its TypeScript compiled and bundled with swc, no Node), `visual.pack` (the `.pbiviz` that `visual.import_custom` reads), `bicraft visual new`, `build` and `pack` (M11.30); `visual.export_bicraft_visual` and `bicraft visual export` write BIcraft's own visuals as `.pbiviz` files (M12.5); a packaged visual not yet opened in Desktop | yes (Insert › Visuals › New visual project, Compile a visual, Package a visual, Export a BIcraft visual) |
+| Visuals | Custom visual projects (pbiviz new / package) | P2 | D | `visual.scaffold` (a project with the data roles and format options chosen), `visual.build` (its TypeScript compiled and bundled with swc, no Node), `visual.pack` (the `.pbiviz` that `visual.import_custom` reads), `bicraft-cli visual new`, `build` and `pack` (M11.30); `visual.export_bicraft_visual` and `bicraft-cli visual export` write BIcraft's own visuals as `.pbiviz` files (M12.5); a packaged visual not yet opened in Desktop | yes (Insert › Visuals › New visual project, Compile a visual, Package a visual, Export a BIcraft visual) |
 | Visuals | AppSource visuals (Get more visuals) | P1 | O | — (Microsoft's online store: network and a signed-in service, G80) | – |
 | Visuals | Visual calculations | P2 | P | `visual.calculation.add`, `visual.calculation.set` (expression, rename, hide any field), `visual.calculation.remove` (PBIR `NativeVisualCalculation`; axes, resets, window shortcuts, COLLAPSE/EXPAND, ISATLEVEL, RANGE evaluated; LOOKUP and the window functions not, G71) | yes (More options › New calculation: edit window with templates, formula bar, Hide switches, visual matrix) |
 | Visuals | Python and R visuals | P2 | O | — (BIcraft never runs scripts) | – |
 | Visuals | Sparklines in table and matrix cells (Insert › Add a sparkline) | P2 | P | `visual.add_sparkline` (Y axis, summarization, X axis, line or column, colour, width, markers; at most 5 per visual), `visual.edit_sparkline`, removed by `visual.unbind`: a `SparklineData` projection and an `objects.sparklines` entry (public schemas), evaluated per row (at most 52 points) and drawn in the cell by bicraft_render ([formats/sparklines.md](formats/sparklines.md)); the queryRef spelling and marker bits are BIcraft's, not checked against Desktop (G106) | yes (Insert › Sparklines › Add a sparkline; a value field's menu in the Build pane › Add a sparkline…, a sparkline's › Edit sparkline…; Format › Sparklines card) |
-| Visuals | Analyze a data point: explain an increase or decrease, find where a distribution differs (the visual's context menu, seen in Desktop 2.159.1231.0) | P2 | M | — (G62) | no |
+| Visuals | Analyze a data point: explain an increase or decrease, find where a distribution differs (the visual's context menu, seen in Desktop 2.159.1231.0) | P2 | P | `visual.analyze {page, visual, point, kind?}`: BIcraft's own ranking of the model's columns (the change against the previous point of a date or number axis; the distribution under the point against the other points), not Desktop's algorithm and not compared with it; a list, not a visual (G62, [analyze-point.md](analyze-point.md)) | yes (a data point's right-click › Analyze this point, the answer window's list) |
 | Formatting | Title, subtitle, background, border, shadow, padding, header | P0 | D | `visual.set_title`, `visual.format` | yes (Format visual General cards, palette form) |
 | Formatting | Axes, legend, data labels, gridlines, display units | P0 | D | `visual.axis`, `visual.format` | yes (Format visual cards, palette form) |
 | Formatting | Series and category colours, line styles | P0 | D | `visual.series` | yes (Format visual Data colours card, palette form) |
 | Formatting | Any format pane property by name, checked against the type's catalog | P1 | D | `visual.format {objects}`, `visual.options` | yes (ribbon, form, JSON) |
 | Formatting | Conditional formatting: scales, rules, field value, icons, data bars, web URL | P1 | D | `visual.conditional` | yes (Format visual fx buttons, palette form) |
-| Formatting | Analytics lines: constant, average, min, max, median, percentile, trend, forecast, error bars, anomaly detection (BIcraft's estimate), ratio line, symmetry shading | P2 | D | `visual.analytics` | yes (Analytics tab, ribbon, form) |
+| Formatting | Analytics lines: constant, average, min, max, median, percentile, trend, forecast, error bars, anomaly detection (BIcraft's estimate), ratio line, symmetry shading | P2 | D | `visual.analytics`; `visual.explain_anomaly` (an anomaly's explanations, BIcraft's own ranking) | yes (Analytics tab, ribbon, form; an anomaly's right-click › Explain the anomaly) |
 | Formatting | Small multiples | P2 | D | `visual.small_multiples` | yes (ribbon, form) |
 | Formatting | Sort a visual | P1 | D | `visual.set_sort` | yes (menu, form) |
 | Formatting | Format painter | P2 | D | `visual.copy_format {page, from, to}` (one undo step; what the December 2015 Desktop post lists: title but its text, data labels but units and decimals, axes but start and end, legend but its text, colours of the same field, borders, backgrounds, slicers; options the target lacks dropped; fields, filters, size and position kept; [formats/format-painter.md](formats/format-painter.md); not compared with a Desktop run) | yes (Home › Format painter toggle: the next click on a visual applies, Esc cancels; no double-click lock, which Microsoft does not document) |
@@ -247,13 +247,13 @@ command reached only through a form is **P**.
 | Report UI | Visual header in editing: more options, focus mode, sort, show as table | P1 | D | More options (⋯) and right-click menu: `visual.export_data`, Delete, Sort axis (`visual.set_sort`), Focus mode and Show as a table (`view.interact` focus / show_table); the Focus icon in the header | yes (header, menu, Esc) |
 | Report UI | Mobile layout view (phone canvas, drag visuals onto it) | P2 | D | `visual.mobile`, `visual.mobile_format`, `visual.props` `layout` | yes (View › Mobile layout, Page visuals pane, drag, handles, Delete, X, Format pane; G72) |
 | Report UI | Customize theme dialog | P1 | D | `theme.customize` (one undo step): the dialog of Microsoft Learn's Customize current theme, read from the snapshot's theme: Name and colors (name, theme colours with More colours, sentiment, divergent; Advanced: structural colours), Text (General, Title, Cards and KPIs, Tab headers: family, size, colour), Visuals (background, border, header, tooltips), Page (wallpaper, page background), Filter pane (pane, available and applied cards); not compared with Desktop's dialog run (G73) | yes (View › Themes › Customize current theme, ribbon, palette) |
-| Report UI | View options: gridlines, snap to grid, lock objects, zoom slider, page thumbnails | P2 | D | `page.set_display_option` (View › Page view: Fit to page, Fit to width, Actual size, saved as the page's `displayOption`, PBIR and legacy layout); Gridlines, Snap to grid (moves and resizes) and Lock objects (no move, resize or nudge; selection and menus kept) as window preferences, independent, as Microsoft Learn describes them (the report schema has no property for them); the status bar's zoom: Fit page, Fit width, Actual size, Zoom out, the slider (10–400 %), Zoom in, the percentage; page thumbnails: none, Learn describes none in Desktop, whose pages are tabs below the canvas (the page tabs); left in G48 (Show smart guides is always on) | yes (View › Page view menu, View › Gridlines, Snap to grid, Lock objects; status bar) |
+| Report UI | View options: gridlines, snap to grid, lock objects, zoom slider, page thumbnails | P2 | D | `page.set_display_option` (View › Page view: Fit to page, Fit to width, Actual size, saved as the page's `displayOption`, PBIR and legacy layout); Gridlines, Snap to grid (moves and resizes) and Lock objects (no move, resize or nudge; selection and menus kept) as window preferences, independent, as Microsoft Learn describes them (the report schema has no property for them); the status bar's zoom: Fit page, Fit width, Actual size, Zoom out, the slider (10–400 %), Zoom in, the percentage; page thumbnails: none, Learn describes none in Desktop, whose pages are tabs below the canvas (the page tabs); Smart guides (on by default) turns snapping to the other visuals and the page, and the guides, off; the grid is drawn under the visuals | yes (View › Page view menu, View › Gridlines, Snap to grid, Smart guides, Lock objects; status bar) |
 | Model UI | Diagram: drag cards, drag a column onto another to create a relationship | P1 | D | `diagram.move`, `relationship.add`; double-click `relationship.set`, Delete `relationship.remove` | yes (Model view) |
 | Model UI | Model explorer: the semantic model's tree (calculation groups and items, cultures, measures, perspectives, relationships, roles, shared expressions, tables), its menus, calculation items ordered by drag | P2 | P | `calculation_item.set {ordinal}`, `calculation_group.*`, `role.*`, `culture.*`, `expression.*`, `relationship.*`, renames and removals; perspectives listed only, no hierarchies, functions or data sources nodes, no search | yes (Model view, Data / Model pane) |
 | Model UI | Properties pane: edit one or several selected objects in place | P1 | D | `model.set_properties` (Ctrl+click in the diagram, Ctrl or Shift+click in the Data pane; the shared properties, mixed values blank, one change on all in one undo step: description, display folder, is hidden, format, data category, summarize by, sort by column, storage mode), synonyms of one object (Q&A schema), one object or relationship through `table.set`, `column.set`, `measure.set`, `relationship.set` and renames; left: key column, row label, featured table | yes (Properties pane) |
 | Model UI | Manage relationships dialog with a data preview | P1 | D | `relationship.list` (the list: active box, from, to, cardinality, cross filter), `relationship.add` / `relationship.set` with `check: true` (the review as columns are picked: suggested cardinality and direction from the data, duplicates on the one side, no unique side, many-to-many warning, made inactive when ambiguous), `new_from` / `new_to`, `assume_referential_integrity`, `security_filtering`; `table.rows` for the previews; `relationship.remove`, `relationship.autodetect` | yes (Modeling › Manage relationships, New, Edit, Delete, Autodetect; a double click on a line) |
 | Model UI | Manage roles dialog: tables, DAX filter editor, check | P1 | D | Manage security roles (2026-11-20): roles (New, Rename `role.rename`, Delete), Select tables (filtered and hidden marked), Filter data in the default editor (column / condition / value rows, And / Or, written as DAX) or the DAX editor (colours, completion), Check `role.check_filter` (errors and warnings listed, nothing saved), Revert, Save `role.set_filter`; Hide table and columns (`role.set_permission`) | yes (Model explorer, Roles menu › Manage roles, dialog) |
-| Model UI | DAX query view as a view: query tabs, editor, results grid, update the model from DEFINE | P1 | D | the DAX query view (`crates/ui/src/dax_query.rs`): query tabs per document (new, rename, duplicate, close; view state), the DAX editor with the formula bar's colours, Run / Ctrl+Enter / F5 through `dax.evaluate`, the results grid with its row count and errors inline; `dax.apply_define` (Update model: Add new measure / Overwrite measure per DEFINE MEASURE, Update model with changes for all, one undo step); left in G81 (queries not saved into the file, no Data pane or quick queries in the view) | yes (status bar view switcher, Analyze › Run DAX query and Update model, the tool bar's Update model with changes, the lenses) |
+| Model UI | DAX query view as a view: query tabs, editor, results grid, update the model from DEFINE | P1 | D | the DAX query view (`crates/ui/src/dax_query.rs`): query tabs per document (new, rename, duplicate, close; view state), the DAX editor with the formula bar's colours, Run / Ctrl+Enter / F5 through `dax.evaluate`, the results grid with its row count and errors inline; `dax.apply_define` (Update model: Add new measure / Overwrite measure per DEFINE MEASURE, Update model with changes for all, one undo step); the Data pane with insert-on-click and quick queries, Comment (Ctrl+/), Find and replace (`crates/ui/src/dax_query_tools.rs`); Define all measures and Define with references (`dax.define_query`), hierarchies and calculation items, fields dragged into the editor, lenses on their own line; left in G81 (queries not saved into a PBIX, no Model tab) | yes (status bar view switcher, Analyze › Run DAX query and Update model, the tool bar's Update model with changes, the lenses) |
 | Model UI | Editing tools of the DAX query and TMDL editors: format, comment and uncomment, find and replace (their ribbon's Formatting and Editing groups) | P2 | M | — (the command palette exists; the two editors have no format, comment or find and replace) | no |
 | Accessibility | App keyboard navigation and screen readers (chrome, panes, dialogs) | P1 | D | view state (`crates/ui/src/keyboard.rs`, 2026-11-20): Ctrl+F6 / Ctrl+Shift+F6 between the window's sections (ribbon, formula bar, view, each pane, page tabs, status bar), F6 to the Selection pane, Tab / Shift+Tab inside a section, arrows between controls, Right / Left to unroll and roll the Data pane's tables, Enter / Space; dialogs modal (Tab trapped, Escape closes, the focus returns to the opener); a 2 px focus ring at 4.5:1 in every theme; every control of the views and dialogs named in the AccessKit tree (EN, FR); left in G84 (Alt key tips, Shift+?, Shift+F10, not run with a real screen reader); visuals on the canvas: the Reader tools row | yes (shell) |
 | Accessibility | High-contrast mode in the app and for reports | P2 | D | view state, no file change: the high-contrast UI theme (7:1 text tokens; the browser follows the system's `forced-colors` / `prefers-contrast`, the desktop does not detect Windows contrast themes) and report pages drawn with a high-contrast palette | yes (Home › High contrast, View › High-contrast colours) |
@@ -327,7 +327,7 @@ M11.19, G51) follow Microsoft Learn's pages: **documented, not measured** in Des
 | Reader tools | Sort a visual from its header | P1 | – | M | D |
 | Reader tools | Visual header: more options, drill icons | P1 | – | M | D |
 | Reader tools | Mobile (phone) layout | P2 | M | M | D |
-| Reader tools | Keyboard navigation and screen readers on visuals | P1 | – | P | M |
+| Reader tools | Keyboard navigation and screen readers on visuals | P1 | – | P | P |
 | Reader tools | High-contrast rendering | P2 | M | M | D |
 | Export | Export to PDF | P1 | D | M | D |
 | Export | Export a visual's data (CSV, Excel) | P1 | – | M | D |
@@ -340,7 +340,7 @@ M11.19, G51) follow Microsoft Learn's pages: **documented, not measured** in Des
 ## Desktop UI inventory
 
 ROADMAP M11.28 and M11.29. Power BI Desktop **2.159.1231.0** (Microsoft Store edition, French UI)
-read as a black box on **2026-11-23**, on a synthetic one-table report written by `bicraft run`:
+read as a black box on **2026-11-23**, on a synthetic one-table report written by `bicraft-cli run`:
 the web views driven with input events only (DevTools `Input.dispatchMouseEvent` and
 `dispatchKeyEvent`) and read from what they render (the accessibility tree, the rendered
 elements' labels and text, screenshots); the native windows (Options, Get data, the Power Query
@@ -427,7 +427,7 @@ its first page, the Power Query editor's Help tab and the right end of its Home 
 | Panes | Analytics: constant line, min, max, average, median, percentile, error bars | 7 | D | Analytics pane |
 | Panes | Filters: search, on this visual, on this page, on all pages | 4 | D | Filters rows |
 | Panes | Data: search, table tree | 2 | D | Data pane |
-| Menus | A visual's context menu: copy, show as table, analyze, group, summarize, new visual calculation, set up a verified answer | 7 | P | Analyze (M); Summarize and verified answers out of scope |
+| Menus | A visual's context menu: copy, show as table, analyze, group, summarize, new visual calculation, set up a verified answer | 7 | P | Analyze (P, BIcraft's own ranking); Summarize and verified answers out of scope |
 | Menus | A visual's More options: export data, show as table, remove, spotlight, sort by, new visual calculation, set up a verified answer | 7 | P | Visual header; verified answers out of scope |
 | Menus | A table's menu in the Data pane: select, new measure, new column, new quick measure, edit query, incremental refresh, manage aggregations, rename, delete from model, hide, mark as date table, view hidden, show all, collapse all, expand all | 15 | P | User-defined aggregations (M); the rest done |
 | Dialogs | Options › Global: data load, Power Query editor, DirectQuery, R scripting, Python scripting, security, privacy, regional settings, updates, usage data, diagnostics, preview features, save and recover, report settings, Copilot | 15 | P | Options dialog (P) |

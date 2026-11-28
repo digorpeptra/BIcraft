@@ -665,9 +665,11 @@ pub(crate) struct ErrStyle {
     pub band_alpha: f32,
 }
 
-/// The error bars of the series `ser` (matched by their data column).
+/// The error bars of the series `ser`, matched by their data column: with a legend, every
+/// series of the legend's value gets the entry's style, its own colour when the entry matches
+/// the series' colour.
 pub(crate) fn err_styles(f: &Fmt, ser: &[Series], ctx: &Ctx<'_>) -> Vec<ErrStyle> {
-    let mut out = Vec::new();
+    let mut out: Vec<ErrStyle> = Vec::new();
     for l in &f.lines {
         if sk(l, "kind") != "error_bars" {
             continue;
@@ -675,29 +677,28 @@ pub(crate) fn err_styles(f: &Fmt, ser: &[Series], ctx: &Ctx<'_>) -> Vec<ErrStyle
         let Some(col) = l.get("column").and_then(Value::as_u64) else {
             continue;
         };
-        let Some((j, se)) = ser
-            .iter()
-            .enumerate()
-            .find(|(_, s)| s.j == usize::try_from(col).ok() && !s.err.is_empty())
-        else {
-            continue;
-        };
-        let matched = crate::data::get(l, "match_series") == &Value::Bool(true);
-        let color = Rgb::from_value(crate::data::get(l, "color"))
-            .filter(|_| !matched)
-            .unwrap_or(if matched { se.color } else { ctx.fg2 });
-        let shape = sk(l, "marker_shape");
-        out.push(ErrStyle {
-            j,
-            bar: crate::data::get(l, "bar") != &Value::Bool(false),
-            color,
-            width: clampf(nk(l, "width", 2.0) as f32, 0.5, 10.0),
-            caps: crate::data::get(l, "marker") != &Value::Bool(false) && shape != "none",
-            band: crate::data::get(l, "band") == &Value::Bool(true),
-            band_style: sk(l, "band_style").to_string(),
-            band_color: Rgb::from_value(crate::data::get(l, "band_color")).unwrap_or(se.color),
-            band_alpha: 1.0 - clampf(nk(l, "transparency", 70.0) as f32, 0.0, 100.0) / 100.0,
-        });
+        let col = usize::try_from(col).ok();
+        for (j, se) in ser.iter().enumerate() {
+            if se.src != col || se.err.is_empty() || out.iter().any(|e| e.j == j) {
+                continue;
+            }
+            let matched = crate::data::get(l, "match_series") == &Value::Bool(true);
+            let color = Rgb::from_value(crate::data::get(l, "color"))
+                .filter(|_| !matched)
+                .unwrap_or(if matched { se.color } else { ctx.fg2 });
+            let shape = sk(l, "marker_shape");
+            out.push(ErrStyle {
+                j,
+                bar: crate::data::get(l, "bar") != &Value::Bool(false),
+                color,
+                width: clampf(nk(l, "width", 2.0) as f32, 0.5, 10.0),
+                caps: crate::data::get(l, "marker") != &Value::Bool(false) && shape != "none",
+                band: crate::data::get(l, "band") == &Value::Bool(true),
+                band_style: sk(l, "band_style").to_string(),
+                band_color: Rgb::from_value(crate::data::get(l, "band_color")).unwrap_or(se.color),
+                band_alpha: 1.0 - clampf(nk(l, "transparency", 70.0) as f32, 0.0, 100.0) / 100.0,
+            });
+        }
     }
     out
 }
@@ -1020,13 +1021,43 @@ pub fn bar_chart(cv: &mut Canvas, ds: &Dataset, b: Bx, f: &Fmt, ctx: &Ctx<'_>, o
         hi = hi.max(l.x);
         lo = lo.min(l.x);
     }
-    // error bars on clustered bars (stacked and 100 % bars draw none)
-    let errs = if o.pct || o.stacked {
-        Vec::new()
-    } else {
-        err_styles(f, ser, ctx)
+    // error bars: on a clustered bar at its value; on a stacked or 100 % bar at the top of the
+    // series' segment, each bound as far from it as from the series' value (BIcraft's reading,
+    // docs/formats/pbir.md "Chart specifics")
+    let errs = err_styles(f, ser, ctx);
+    let err_at = |j: usize, i: usize| -> Option<(f64, Option<f64>, Option<f64>)> {
+        let se = ser.get(j)?;
+        let (u, d) = *se.err.get(i)?;
+        let x = val(j, i)?;
+        if !o.stacked {
+            return Some((x, u, d));
+        }
+        let raw = se.vals.get(i).copied().flatten()?;
+        if x == 0.0 {
+            return None;
+        }
+        // the segment's base: the earlier series of the same sign, as the stack is drawn
+        let base: f64 = (0..j)
+            .filter_map(|k| val(k, i))
+            .filter(|y| (*y >= 0.0) == (x >= 0.0))
+            .sum();
+        let scale = if o.pct && raw != 0.0 { x / raw } else { 1.0 };
+        let top = base + x;
+        let end = |b: f64| {
+            let e = top + (b - raw) * scale;
+            if o.pct { e.clamp(-1.0, 1.0) } else { e }
+        };
+        Some((top, u.map(end), d.map(end)))
     };
-    err_range(&errs, ser, &mut lo, &mut hi);
+    for e in &errs {
+        for i in 0..n {
+            let Some((_, u, d)) = err_at(e.j, i) else { continue };
+            for x in [u, d].into_iter().flatten() {
+                lo = lo.min(x);
+                hi = hi.max(x);
+            }
+        }
+    }
     let Some(first) = ser.first() else { return };
     let vcol = first.col.cf();
     let vfallback = if o.pct {
@@ -1286,13 +1317,15 @@ pub fn bar_chart(cv: &mut Canvas, ds: &Dataset, b: Bx, f: &Fmt, ctx: &Ctx<'_>, o
             }
         }
         for e in &errs {
-            let Some(se) = ser.get(e.j) else { continue };
-            let bw = bands.bar / m as f32;
+            let bw = if o.stacked {
+                bands.bar
+            } else {
+                bands.bar / m as f32
+            };
+            let k = if o.stacked { 0.0 } else { e.j as f32 };
             for i in 0..bands.n {
-                let (Some((u, d)), Some(x)) = (se.err.get(i), val(e.j, i)) else {
-                    continue;
-                };
-                let c = l + bands.x(i) + e.j as f32 * bw + bw / 2.0;
+                let Some((x, u, d)) = err_at(e.j, i) else { continue };
+                let c = l + bands.x(i) + k * bw + bw / 2.0;
                 whisker(
                     cv,
                     e,
@@ -1608,13 +1641,15 @@ pub fn bar_chart(cv: &mut Canvas, ds: &Dataset, b: Bx, f: &Fmt, ctx: &Ctx<'_>, o
             }
         }
         for e in &errs {
-            let Some(se) = ser.get(e.j) else { continue };
-            let bh = bands.bar / m as f32;
+            let bh = if o.stacked {
+                bands.bar
+            } else {
+                bands.bar / m as f32
+            };
+            let k = if o.stacked { 0.0 } else { e.j as f32 };
             for i in 0..bands.n {
-                let (Some((u, d)), Some(v)) = (se.err.get(i), val(e.j, i)) else {
-                    continue;
-                };
-                let c = t0 + bands.x(i) + e.j as f32 * bh + bh / 2.0;
+                let Some((v, u, d)) = err_at(e.j, i) else { continue };
+                let c = t0 + bands.x(i) + k * bh + bh / 2.0;
                 whisker(
                     cv,
                     e,
@@ -1884,19 +1919,48 @@ pub fn line_chart(cv: &mut Canvas, ds: &Dataset, b: Bx, f: &Fmt, ctx: &Ctx<'_>, 
         h0 = h0.max(l.x);
     }
     let (mut r0, mut r1) = range(&line_s, n, false, false);
-    // error bars on the lines (not on a combo chart's columns, nor stacked or 100 % areas)
-    let errs: Vec<ErrStyle> = if o.stacked || o.pct {
-        Vec::new()
+    // error bars on the lines and on a combo chart's columns (not on stacked or 100 % areas);
+    // a stacked column's at the top of its segment, as on a stacked column chart
+    let (errs, col_errs): (Vec<ErrStyle>, Vec<ErrStyle>) = if o.area && o.stacked {
+        (Vec::new(), Vec::new())
     } else {
         err_styles(f, &cd.series, ctx)
             .into_iter()
-            .filter(|e| !is_col.get(e.j).copied().unwrap_or(false))
-            .collect()
+            .partition(|e| !is_col.get(e.j).copied().unwrap_or(false))
     };
     if col_s.is_empty() {
         err_range(&errs, &cd.series, &mut l0, &mut h0);
     } else {
         err_range(&errs, &cd.series, &mut r0, &mut r1);
+    }
+    let col_err = |j: usize, i: usize| -> Option<(f64, Option<f64>, Option<f64>)> {
+        let at = |k: usize| cd.series.get(k).and_then(|s| s.vals.get(i).copied().flatten());
+        let (u, d) = *cd.series.get(j)?.err.get(i)?;
+        let x = at(j)?;
+        if !o.stacked {
+            return Some((x, u, d));
+        }
+        if x == 0.0 {
+            return None;
+        }
+        let base: f64 = (0..j)
+            .filter(|k| is_col.get(*k).copied().unwrap_or(false))
+            .filter_map(at)
+            .filter(|y| (*y >= 0.0) == (x >= 0.0))
+            .sum();
+        let top = base + x;
+        Some((top, u.map(|b| top + b - x), d.map(|b| top + b - x)))
+    };
+    for e in &col_errs {
+        for i in 0..n {
+            let Some((_, u, d)) = col_err(e.j, i) else {
+                continue;
+            };
+            for x in [u, d].into_iter().flatten() {
+                l0 = l0.min(x);
+                h0 = h0.max(x);
+            }
+        }
     }
     // anomalies: a plain line chart's one series (Power BI offers none with a legend, columns,
     // stacks or several values)
@@ -2181,6 +2245,31 @@ pub fn line_chart(cv: &mut Canvas, ds: &Dataset, b: Bx, f: &Fmt, ctx: &Ctx<'_>, 
                         px: lpx,
                     });
                 }
+            }
+        }
+        // the columns' error bars, over the columns and under the lines
+        for e in &col_errs {
+            let bw = if o.stacked { gw } else { gw / m as f32 };
+            let k = if o.stacked {
+                0.0
+            } else {
+                col_idx.iter().position(|c| *c == e.j).unwrap_or(0) as f32
+            };
+            for i in 0..shown {
+                let Some((x, u, d)) = col_err(e.j, i) else {
+                    continue;
+                };
+                let c = l + bands.x(i) + k * bw + bw / 2.0;
+                whisker(
+                    cv,
+                    e,
+                    c,
+                    u.map(yl),
+                    d.map(yl),
+                    yl(x),
+                    (bw * 0.3).clamp(3.0, 16.0),
+                    false,
+                );
             }
         }
     }

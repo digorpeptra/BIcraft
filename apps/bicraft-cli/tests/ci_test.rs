@@ -1,4 +1,4 @@
-//! End-to-end tests of `bicraft test` (CI quality gates, docs/ci-tests.md): exit codes, formats,
+//! End-to-end tests of `bicraft-cli test` (CI quality gates, docs/ci-tests.md): exit codes, formats,
 //! `--output`, paths relative to the current folder.
 
 use std::process::Command;
@@ -33,7 +33,7 @@ fn setup(name: &str, tests: &str) -> TempDir {
 }
 
 fn bicraft(dir: &TempDir, args: &[&str]) -> (i32, String, String) {
-    let out = Command::new(env!("CARGO_BIN_EXE_bicraft"))
+    let out = Command::new(env!("CARGO_BIN_EXE_bicraft-cli"))
         .current_dir(dir.path())
         .arg("test")
         .args(args)

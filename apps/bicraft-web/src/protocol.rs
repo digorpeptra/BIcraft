@@ -7,7 +7,7 @@
 //!
 //! ```text
 //! page                          API root          view query
-//! http://127.0.0.1:P/app/       /api/…            (none: bicraft view has one view)
+//! http://127.0.0.1:P/app/       /api/…            (none: bicraft-cli view has one view)
 //! https://h/w/sales/view/app/   /w/sales/view/api/…   ?v=<view id from the page>
 //! ```
 
@@ -19,11 +19,11 @@ use serde_json::Value;
 pub struct Config {
     /// `X-Bicraft-Token` of `api/interact` (`None`: a read-only viewer).
     pub interact_token: Option<String>,
-    /// The open-in-Desktop token (`bicraft view` only; not used by the app yet).
+    /// The open-in-Desktop token (`bicraft-cli view` only; not used by the app yet).
     pub open_token: Option<String>,
-    /// The private view (`bicraft serve` only).
+    /// The private view (`bicraft-cli serve` only).
     pub view: Option<String>,
-    /// The page token of the UI control channel's relay (`bicraft view --control`): the app takes
+    /// The page token of the UI control channel's relay (`bicraft-cli view --control`): the app takes
     /// the relayed requests and posts its replies with it. `None`: no control channel.
     pub control_token: Option<String>,
 }
@@ -72,7 +72,7 @@ pub fn wants_webgl(search: &str) -> bool {
 }
 
 /// The workspace of a server page (`/w/<id>/view/app/`): the title, Open > Browse (its file
-/// routes) and the commands (its MCP endpoint); `None` on `bicraft view` (`/app/`), which has
+/// routes) and the commands (its MCP endpoint); `None` on `bicraft-cli view` (`/app/`), which has
 /// none of them.
 pub fn workspace_of(pathname: &str) -> Option<String> {
     let rest = pathname.strip_prefix("/w/")?;
@@ -88,7 +88,7 @@ pub enum Route<'a> {
     Events,
     Interact,
     Asset(&'a str),
-    /// The control channel's request stream and replies (`bicraft view --control`).
+    /// The control channel's request stream and replies (`bicraft-cli view --control`).
     ControlEvents,
     ControlReply,
 }
@@ -141,7 +141,7 @@ pub fn read_interaction(status: u16, body: &[u8]) -> Result<Value, String> {
 /// A relayed control request (the data of an SSE `control` event, `{"seq", "request", "doc"?}`):
 /// its sequence number, the request, checked as the desktop's socket checks a line
 /// (`bicraft_ui::control::parse`), and the workspace file whose document tab it runs in (a
-/// request `bicraft serve` relays to a document view). `Err` holds the seq and the reply to send
+/// request `bicraft-cli serve` relays to a document view). `Err` holds the seq and the reply to send
 /// when the request is not one.
 pub type ControlEvent = (u64, bicraft_ui::control::Request, Option<String>);
 
@@ -171,7 +171,7 @@ pub fn control_reply(seq: u64, reply: &Value) -> String {
     serde_json::json!({"seq": seq, "reply": reply}).to_string()
 }
 
-/// The snapshot carried by an SSE `snapshot` event, when it is inline (`bicraft view` sends
+/// The snapshot carried by an SSE `snapshot` event, when it is inline (`bicraft-cli view` sends
 /// snapshots up to 1 MiB inline; otherwise, and on a server, the app fetches `api/state`).
 pub fn inline_snapshot(data: &str) -> Option<Value> {
     match serde_json::from_str::<Value>(data) {

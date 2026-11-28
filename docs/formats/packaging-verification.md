@@ -24,7 +24,7 @@ the gap is listed.
 | **ORA-x** | Oracle case `x`. A BIcraft-generated file with one fact changed (`cargo xtask pkg-oracle mutate`) was opened in Desktop 2.159.883.0 by `tools/packaging-oracle/run.ps1`. **accept** means the report page appeared and its card showed the value Desktop's engine computed. **refuse** means the page never appeared: Desktop fell back to an empty report, usually with an error dialog. |
 | **G26** | The black-box runs recorded in pbix-package.md §9–11, pbit.md and pbip.md: Desktop opening our files and variants of them, and .NET's public `System.IO.Packaging` API used as an oracle. |
 
-Base files for the ORA cases are made by `bicraft run` from the commands in the oracle steps
+Base files for the ORA cases are made by `bicraft-cli run` from the commands in the oracle steps
 below: a model with one table `T`, three rows, a measure `Total` = 742, and a report with one
 page `Probe` holding a card bound to `Total`. They are saved as PBIX and PBIT, then converted to
 a TMDL / PBIR project with its cache.
@@ -200,8 +200,8 @@ the value did not: the report was read but the model did not answer. Inconclusiv
 ```powershell
 # base files (our own): see "Sources"; $w is any work folder outside the repository
 $w = "$env:TEMP\oracle-reports\pkg"
-bicraft run --file $w\base\cmds.json        # probe.pbix, probe.pbit
-bicraft convert $w\base\probe.pbix $w\base\proj\probe.pbip
+bicraft-cli run --file $w\base\cmds.json    # probe.pbix, probe.pbit
+bicraft-cli convert $w\base\probe.pbix $w\base\proj\probe.pbip
 cargo xtask pkg-oracle mutate $w\base\probe.pbit $w\base\probe.pbix $w\base\proj $w\m
 # takes $env:BICRAFT_LOCKS_DIR\desktop per case and waits 90 s between cases
 tools\packaging-oracle\run.ps1 -Cases $w\m\cases.json -Out $w\results.json [-Only v01,v02]

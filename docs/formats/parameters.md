@@ -27,6 +27,17 @@ Learn notes that the slider shows at most 1,000 values (more are sampled evenly)
 above 1,000 and refuses more than 1,000,000. A visual or measure reads the parameter through the
 measure; the slider's selection filters the table, so `SELECTEDVALUE` returns it.
 
+BIcraft draws a slicer on a what-if column as that single-value slider (since 2026-11-27): one value
+box and a slider with one handle, at the selected value, else the parameter's default (the
+second argument of the table's `SELECTEDVALUE` measure over the column), else the smallest
+value. It does so for the `'Single'` mode BIcraft writes and for a classic slicer without a mode
+whose column carries `ParameterMetadata` without a kind, which is how Desktop writes its own
+(below, "Desktop answers"). In the app the track is a slider in the accessibility tree, named
+after the column with the value shown; a drag, a click on the track, or the arrow keys (Home,
+End) pick one of the column's values (at most 1,000), sent as `view.interact` `slicer_set` with
+that one value, so the measure follows (`crates/ui/src/value_slider.rs`). The value box is
+not an input yet, and the drawing's sizes are the range slicer's, not measured on Desktop's.
+
 ## Field parameter
 
 Desktop's dialog takes a name, an ordered list of columns and measures (with editable labels)
@@ -117,6 +128,17 @@ field parameter, and the project saved; the TMDL and PBIR Desktop wrote read bac
   of the parameter's fields (its table's expression), updates the visual in the same undo step;
   a file opened is not rewritten until it is edited. Regenerating a query after another edit
   keeps the range and moves its `index`; removing the parameter's binding drops the entry.
+- **In a legacy layout** (a PBIX or PBIP whose report is a `Report/Layout` or `report.json`,
+  2026-11-27). The legacy writer (`crates/layout-bb`) writes the range's projections as any
+  projections: one `prototypeQuery.Select` item and one `projections` entry per field, the labels
+  as `columnProperties[queryRef].displayName`. The `fieldParameters` entry itself is not written:
+  no legacy key for it has been seen in a file Desktop saved, so none is invented. When such a
+  report is opened, or read back after a save, a run of a role's projections that is exactly a
+  field parameter's fields, in its order and each labelled as the parameter labels it, is read as
+  bound to the parameter again (`field_param_queries::adopt_legacy`), so BIcraft's preview still
+  follows the slicer. *Not seen in a Desktop file*: how Desktop writes a field parameter in a
+  legacy layout, and whether Desktop shows such a visual as following the parameter (it may show
+  the fields as plain columns).
 - **Checked in Desktop** (2026-11-23, 2.159.1231.0): see "Desktop answers, second session"
   below.
 

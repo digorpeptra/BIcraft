@@ -1,6 +1,6 @@
 //! L4: renders report pages to PNG from a viewer snapshot (`docs/view-snapshot.md`) in pure
 //! Rust, so agents can look at a page without Power BI Desktop (`report.render`,
-//! `bicraft render`). The drawing is a port of the live viewer's (`crates/view/src/page.html`):
+//! `bicraft-cli render`). The drawing is a port of the live viewer's (`crates/view/src/page.html`):
 //! same layout, theme, evaluated data, slicer selections, images, text boxes, titles, conditional
 //! formatting and backgrounds. Rasterization: tiny-skia; glyphs: skrifa over the system's
 //! fonts (Segoe UI…) with the bundled Selawik (SIL OFL) as fallback. See `docs/render.md`.
@@ -31,6 +31,7 @@ mod fonts;
 pub mod gantt;
 pub mod geo;
 pub mod hits;
+mod icc;
 mod imgs;
 mod keyinf;
 pub mod look;
@@ -155,7 +156,28 @@ pub struct RenderOptions {
     /// Where the reader's pointer is: that button, shape or navigator button is drawn in its
     /// hover (or press) state ([`states::Pointer`]); `None` for files and exports.
     pub pointer: Option<states::Pointer>,
+    /// The reader's view of each Gantt on the page, by visual name: its first line shown and
+    /// its time line's zoom ([`gantt::View`]); the app's view state, never written to a file.
+    /// Empty: every Gantt from its first line over its whole time line.
+    pub gantt: HashMap<String, gantt::View>,
+    /// The author's grid (the app's View › Gridlines): dots over the page background and image,
+    /// under the visuals; `None` for files and exports, never written to a file.
+    pub grid: Option<GridDots>,
 }
+
+/// The dots of the author's grid ([`RenderOptions::grid`]), in report pixels.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct GridDots {
+    /// Distance between dots, across and down (at least 1).
+    pub step: (f32, f32),
+    /// Side of a dot.
+    pub dot: f32,
+    /// sRGB colour and alpha of the dots.
+    pub rgba: [u8; 4],
+}
+
+/// Most grid dots drawn on a page; a finer grid is not drawn.
+pub const MAX_GRID_DOTS: usize = 20_000;
 
 impl Default for RenderOptions {
     fn default() -> Self {
@@ -172,6 +194,8 @@ impl Default for RenderOptions {
             lcd_text: false,
             high_contrast: false,
             pointer: None,
+            gantt: HashMap::new(),
+            grid: None,
         }
     }
 }
@@ -189,28 +213,25 @@ pub struct VisualNote {
     pub note: Option<String>,
     /// What the evaluated dataset holds, independent of what was drawn ([`data_state`]).
     pub data: DataState,
-    /// How long drawing it took, in milliseconds (a monotonic clock; `None` where there is none,
-    /// the browser's wasm32): the app's Performance analyzer reports it as BIcraft's render time.
+    /// How long drawing it took, in milliseconds (a monotonic clock, the browser's too; `None` for a
+    /// visual not drawn): the app's Performance analyzer reports it as BIcraft's render time.
     pub render_ms: Option<f64>,
 }
 
-/// The monotonic clock of [`VisualNote::render_ms`] (none on wasm32, where `Instant` panics).
+/// The monotonic clock of [`VisualNote::render_ms`]: `std::time::Instant`, and in the browser
+/// (wasm32, where `std`'s panics) `web-time`'s, over the page's `performance.now()`.
 mod clock {
     #[cfg(not(target_arch = "wasm32"))]
-    pub fn start() -> Option<std::time::Instant> {
-        Some(std::time::Instant::now())
-    }
+    use std::time::Instant;
     #[cfg(target_arch = "wasm32")]
-    pub fn start() -> Option<()> {
-        None
+    use web_time::Instant;
+
+    pub fn start() -> Instant {
+        Instant::now()
     }
-    #[cfg(not(target_arch = "wasm32"))]
-    pub fn elapsed_ms(s: Option<std::time::Instant>) -> Option<f64> {
-        s.map(|s| (s.elapsed().as_secs_f64() * 1_000_000.0).round() / 1000.0)
-    }
-    #[cfg(target_arch = "wasm32")]
-    pub fn elapsed_ms(_: Option<()>) -> Option<f64> {
-        None
+
+    pub fn elapsed_ms(s: Instant) -> f64 {
+        (s.elapsed().as_secs_f64() * 1_000_000.0).round() / 1000.0
     }
 }
 
@@ -306,7 +327,7 @@ pub fn render_page(
     }
 }
 
-pub use crate::pdf::PdfFont;
+pub use crate::pdf::{PdfConformance, PdfFont};
 
 /// One page of a PDF ([`render_pdf`]).
 #[derive(Debug, Clone)]
@@ -343,29 +364,60 @@ pub fn render_pdf(
     opts: &RenderOptions,
     title: &str,
 ) -> Result<PdfDocument, RenderError> {
-    pdf_with_cap(
+    render_pdf_as(
         snapshot,
         pages,
         assets,
         fonts,
         opts,
         title,
-        canvas::MAX_VECTOR_OPS,
+        PdfConformance::default(),
     )
 }
 
-/// [`render_pdf`] with at most `cap` vector operations per canvas.
+/// [`render_pdf`], identified as `conf` says (PDF/UA-1, PDF/A-2b).
+pub fn render_pdf_as(
+    snapshot: &Value,
+    pages: &[usize],
+    assets: &dyn Assets,
+    fonts: &FontBook,
+    opts: &RenderOptions,
+    title: &str,
+    conf: PdfConformance,
+) -> Result<PdfDocument, RenderError> {
+    pdf_with_cap(
+        snapshot,
+        pages,
+        assets,
+        fonts,
+        opts,
+        &PdfJob {
+            title,
+            cap: canvas::MAX_VECTOR_OPS,
+            conf,
+        },
+    )
+}
+
+/// What a PDF is written as: its title, the most vector operations per canvas, what it
+/// claims to conform to.
+struct PdfJob<'a> {
+    title: &'a str,
+    cap: usize,
+    conf: PdfConformance,
+}
+
+/// [`render_pdf`] as `job` says.
 fn pdf_with_cap(
     snap: &Value,
     pages: &[usize],
     assets: &dyn Assets,
     fonts: &FontBook,
     opts: &RenderOptions,
-    title: &str,
-    cap: usize,
+    job: &PdfJob<'_>,
 ) -> Result<PdfDocument, RenderError> {
     match catch_unwind(AssertUnwindSafe(|| {
-        pdf_inner(snap, pages, assets, fonts, opts, title, cap)
+        pdf_inner(snap, pages, assets, fonts, opts, job)
     })) {
         Ok(r) => r,
         Err(_) => Err(RenderError::Internal),
@@ -378,10 +430,9 @@ fn pdf_inner(
     assets: &dyn Assets,
     fonts: &FontBook,
     opts: &RenderOptions,
-    title: &str,
-    cap: usize,
+    job: &PdfJob<'_>,
 ) -> Result<PdfDocument, RenderError> {
-    let _vector = canvas::VectorScope::with_cap(cap);
+    let _vector = canvas::VectorScope::with_cap(job.cap);
     let scale = if opts.scale <= 1.0 {
         2.0
     } else {
@@ -473,7 +524,7 @@ fn pdf_inner(
         })
         .filter(|c| !c.trim().is_empty())
         .unwrap_or_else(|| "en-US".to_string());
-    let (bytes, fonts) = w.finish(title, &lang);
+    let (bytes, fonts) = w.finish(job.title, &lang, job.conf);
     Ok(PdfDocument {
         bytes,
         pages: notes,
@@ -691,6 +742,28 @@ fn render_inner(
     })
 }
 
+/// The author's grid over a `pw` × `ph` page: a dot centred on every step, none when more than
+/// [`MAX_GRID_DOTS`] would be drawn.
+fn grid_dots(cv: &mut Canvas, g: &GridDots, pw: f32, ph: f32) {
+    let (sx, sy) = g.step;
+    if !(sx.is_finite() && sy.is_finite() && g.dot.is_finite()) || sx < 1.0 || sy < 1.0 {
+        return;
+    }
+    let (nx, ny) = ((pw / sx) as usize, (ph / sy) as usize);
+    if nx.saturating_add(1).saturating_mul(ny.saturating_add(1)) > MAX_GRID_DOTS {
+        return;
+    }
+    let [r, gr, b, a] = g.rgba;
+    let (c, alpha) = (Rgb(r, gr, b), f32::from(a) / 255.0);
+    let d = g.dot.clamp(0.01, sx.min(sy));
+    for i in 0..=nx {
+        for j in 0..=ny {
+            let (x, y) = (i as f32 * sx, j as f32 * sy);
+            cv.rect(x - d / 2.0, y - d / 2.0, d, d, c, alpha);
+        }
+    }
+}
+
 /// Opacity of the visuals a spotlight dims: Microsoft Learn says the page's other visuals "fade
 /// to near transparency" ("Add spotlights to Power BI reports"); the amount is BIcraft's choice,
 /// not measured against Power BI.
@@ -725,6 +798,7 @@ fn draw_page(
     cv.set_lcd_text(opts.lcd_text);
     let mut ctx = Ctx::new(snap, fonts, opts.culture.as_deref());
     ctx.pointer = opts.pointer.clone();
+    ctx.gantt = opts.gantt.clone();
     let ctx = ctx;
     ctx.ix.scope.borrow_mut().on = opts.hits;
     let mut images = Images {
@@ -772,6 +846,9 @@ fn draw_page(
             ph,
             opacity_of(get(bi, "transparency")),
         );
+    }
+    if let Some(g) = &opts.grid {
+        grid_dots(&mut cv, g, pw, ph);
     }
 
     // visuals, back to front
@@ -843,10 +920,46 @@ fn draw_page(
             .find(|t| !t.trim().is_empty())
             .unwrap_or("");
         let alt = Some(sk(v, "alt_text")).filter(|a| !a.trim().is_empty());
-        cv.begin_part(title, alt);
+        // a picture-like visual without alt text is still a figure, labelled with its title
+        // (text boxes, tables, slicers, buttons and cards are read as their text)
+        let textual = matches!(
+            render_kind(sk(v, "type")),
+            Some(
+                "text"
+                    | "table"
+                    | "matrix"
+                    | "slicer"
+                    | "slicerList"
+                    | "slicerTiles"
+                    | "slicerText"
+                    | "nav"
+                    | "bmnav"
+                    | "button"
+                    | "shape"
+                    | "card"
+                    | "cardNew"
+                    | "multiRow"
+            )
+        );
+        let label = [sk(v, "title"), sk(v, "auto_title")]
+            .into_iter()
+            .find(|t| !t.trim().is_empty())
+            .filter(|_| !textual);
+        // the reading order: the visuals' tab order (the keyboard's), else top to bottom
+        // and left to right
+        let order = match get(v, "tab_order").as_f64() {
+            Some(t) => (0.0, t as f32, 0.0),
+            None => (1.0, nk(v, "y", 0.0) as f32, nk(v, "x", 0.0) as f32),
+        };
+        cv.begin_part(canvas::Part::Visual {
+            title: title.to_string(),
+            alt: alt.map(str::to_string),
+            label: label.map(str::to_string),
+            order,
+        });
         let mut note = draw_visual(&mut cv, v, &ctx, &mut images, opts, sk(page, "name"), opacity);
         cv.end_part();
-        note.render_ms = clock::elapsed_ms(start);
+        note.render_ms = Some(clock::elapsed_ms(start));
         notes.push(note);
     }
     Ok(Drawn {
@@ -1149,7 +1262,20 @@ fn draw_visual(
                 note.note = Some(format!("`{typ}` is drawn as a labelled box"));
             }
             Some("text") => bodies::text_body(&mut body, v, b, ctx),
-            Some("button") if get(v, "button").is_object() => bodies::button_body(&mut body, v, b, ctx),
+            Some("button") if get(v, "button").is_object() => {
+                // the state's fill image and custom icon (snapshot `button.fill_image`,
+                // `button.icon_image`)
+                let bt = get(v, "button");
+                let fill = img_of(get(bt, "fill_image")).and_then(|r| images.get(&r.id));
+                let icon = img_of(get(bt, "icon_image")).and_then(|r| images.get(&r.id));
+                let imgs = bodies::ButtonImages {
+                    fill: fill.as_deref(),
+                    icon: icon.as_deref(),
+                };
+                bodies::button_body(&mut body, v, b, ctx, imgs);
+                // its shadow and glow, under the visual on the page: they reach past its box
+                bodies::button_effects(page, v, x + pl, y + by, b, ctx);
+            }
             Some("button") => button_fallback(&mut body, v, b, ctx),
             Some("image") => match img_of(get(v, "image")).and_then(|r| images.get(&r.id).map(|i| (r, i))) {
                 Some((_, img)) => draw_image_visual(&mut body, &img, sk(get(v, "image"), "scaling"), b),
@@ -1191,7 +1317,9 @@ fn draw_visual(
                             note.note = Some("a Gantt needs a field in Task".into());
                         }
                         Some(cut) if cut > 0 && note.note.is_none() => {
-                            note.note = Some(format!("{cut} rows below the visual are not drawn"));
+                            note.note = Some(format!(
+                                "{cut} rows outside the visual are not drawn (the reader scrolls to them)"
+                            ));
                         }
                         Some(_) => {}
                     }
@@ -1456,30 +1584,36 @@ fn custom_visual_placeholder(
 /// Image visuals: `normal` keeps the aspect ratio inside the box (Desktop's "Fit"), `fit`
 /// stretches ("Stretch"), `fill` covers.
 fn draw_image_visual(cv: &mut Canvas, img: &imgs::Image, scaling: &str, b: Bx) {
+    draw_image_in(cv, img, scaling, 0.0, 0.0, b.w, b.h);
+}
+
+/// Draws `img` in the `bw` × `bh` box at (`bx`, `by`) as the image visual scales it: `fit`
+/// stretched, `fill` covering the box (cut to it), else (`normal`) whole and centred.
+fn draw_image_in(cv: &mut Canvas, img: &imgs::Image, scaling: &str, bx: f32, by: f32, bw: f32, bh: f32) {
     let (iw, ih) = img.size();
-    if iw <= 0.0 || ih <= 0.0 {
+    if iw <= 0.0 || ih <= 0.0 || bw <= 0.0 || bh <= 0.0 {
         return;
     }
     let (w, h) = match fit_of(scaling) {
-        "fit" => (b.w, b.h),
+        "fit" => (bw, bh),
         "fill" => {
-            let k = (b.w / iw).max(b.h / ih);
+            let k = (bw / iw).max(bh / ih);
             (iw * k, ih * k)
         }
         _ => {
-            let k = (b.w / iw).min(b.h / ih);
+            let k = (bw / iw).min(bh / ih);
             (iw * k, ih * k)
         }
     };
     draw_image(
         cv,
         img,
-        (b.w - w) / 2.0,
-        (b.h - h) / 2.0,
+        bx + (bw - w) / 2.0,
+        by + (bh - h) / 2.0,
         w,
         h,
         1.0,
-        Some((0.0, 0.0, b.w, b.h)),
+        Some((bx, by, bw, bh)),
     );
 }
 

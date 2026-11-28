@@ -122,6 +122,8 @@ const MAX_URL: usize = 2048;
 struct Stop {
     color: [u8; 3],
     value: Option<f64>,
+    /// `value` is a percent (0 to 100) of the range from the lowest to the highest value.
+    percent: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -237,10 +239,12 @@ fn stop(v: &Value) -> Option<Stop> {
         Value::String(s) => Some(Stop {
             color: hex(s)?,
             value: None,
+            percent: false,
         }),
         Value::Object(o) => Some(Stop {
             color: hex(o.get("color")?.as_str()?)?,
             value: num(o.get("value")),
+            percent: o.get("percent").and_then(Value::as_bool).unwrap_or(false),
         }),
         _ => None,
     }
@@ -804,7 +808,8 @@ fn holds(op: &str, x: Option<f64>, b: Option<f64>) -> bool {
     }
 }
 
-/// The gradient color of `x`; stops without a value sit at `lo`, the middle, and `hi`.
+/// The gradient color of `x`; stops without a value sit at `lo`, the middle, and `hi`, a Percent
+/// stop `p` at `lo + (hi - lo) * p / 100`.
 fn gradient(stops: &[Stop], lo: f64, hi: f64, x: f64) -> Option<[u8; 3]> {
     let n = stops.len();
     if n < 2 || !lo.is_finite() || !hi.is_finite() {
@@ -813,9 +818,10 @@ fn gradient(stops: &[Stop], lo: f64, hi: f64, x: f64) -> Option<[u8; 3]> {
     let at: Vec<f64> = stops
         .iter()
         .enumerate()
-        .map(|(i, s)| {
-            s.value
-                .unwrap_or_else(|| lo + (hi - lo) * i as f64 / (n.saturating_sub(1)) as f64)
+        .map(|(i, s)| match (s.value, s.percent) {
+            (Some(p), true) => lo + (hi - lo) * p / 100.0,
+            (Some(v), false) => v,
+            (None, _) => lo + (hi - lo) * i as f64 / (n.saturating_sub(1)) as f64,
         })
         .collect();
     let first = stops.first()?;
@@ -846,15 +852,34 @@ mod tests {
             Stop {
                 color: [0, 0, 0],
                 value: None,
+                percent: false,
             },
             Stop {
                 color: [255, 255, 255],
                 value: None,
+                percent: false,
             },
         ];
         assert_eq!(gradient(&stops, 0.0, 10.0, 5.0), Some([128, 128, 128]));
         assert_eq!(gradient(&stops, 0.0, 10.0, -1.0), Some([0, 0, 0]));
         assert_eq!(gradient(&stops, 0.0, 10.0, 99.0), Some([255, 255, 255]));
+        // Percent stops (G54) at 20 %, 50 % and 80 % of the range 0..10: the value at 50 % gets
+        // the centre colour, values beyond the outer stops clamp to their colours
+        let pct = |c: [u8; 3], p: f64| Stop {
+            color: c,
+            value: Some(p),
+            percent: true,
+        };
+        let stops = vec![
+            pct([200, 0, 0], 20.0),
+            pct([0, 200, 0], 50.0),
+            pct([0, 0, 200], 80.0),
+        ];
+        assert_eq!(gradient(&stops, 0.0, 10.0, 5.0), Some([0, 200, 0]));
+        assert_eq!(gradient(&stops, 0.0, 10.0, 1.0), Some([200, 0, 0]));
+        assert_eq!(gradient(&stops, 0.0, 10.0, 9.5), Some([0, 0, 200]));
+        let between = gradient(&stops, 0.0, 10.0, 6.5);
+        assert!(between.is_some_and(|c| c[1] > 0 && c[2] > 0), "{between:?}");
         assert!(holds(">=", Some(2.0), Some(2.0)));
         assert!(holds("=", None, None));
         assert!(!holds("<", None, Some(1.0)));

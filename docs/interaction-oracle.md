@@ -33,9 +33,9 @@ results.
 ```powershell
 $d = "$env:TEMP\oracle-reports\interactions"   # any folder outside the repository
 cargo xtask oracle-gen interactions $d                   # model.bim, cmds1.json, cmds2.json, plan.json
-bicraft run --file $d\cmds1.json                        # -> $d\proj\Interactions.pbip
+bicraft-cli run --file $d\cmds1.json                    # -> $d\proj\Interactions.pbip
 cargo xtask oracle-gen interactions $d patch             # selections, interactions, sync groups, page filters
-bicraft run --file $d\cmds2.json                        # -> $d\interactions.pbix (data computed by bicraft)
+bicraft-cli run --file $d\cmds2.json                    # -> $d\interactions.pbix (data computed by bicraft)
 powershell -ExecutionPolicy Bypass -File xtask\interaction-oracle\record.ps1 -Dir $d
 cargo xtask oracle-gen interactions $d collect           # -> testsupport\interaction_oracle\
 cargo test -p xtask interaction -- --nocapture

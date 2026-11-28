@@ -406,3 +406,343 @@ fn a_files_tabs_are_loaded_with_its_default_tab_shown() {
     assert_eq!(v.tabs.len(), 1);
     assert_eq!(v.tabs[0].text, "");
 }
+
+fn text(h: &Harness<'_, App>) -> String {
+    h.state().cmd.dax_query.active_tab().unwrap().text.clone()
+}
+
+/// The editor's selection as the view keeps it, in characters (start, end).
+fn editor_selection(h: &Harness<'_, App>) -> Option<(usize, usize)> {
+    let v = &h.state().cmd.dax_query;
+    let (id, r) = v.sel.clone()?;
+    (Some(id) == v.active_tab().map(|q| q.id)).then_some((r.start, r.end))
+}
+
+#[test]
+fn ctrl_slash_and_comment_toggle_the_line_comment_of_the_selected_lines() {
+    let mut h = view("en-US");
+    type_query(&mut h, "EVALUATE\n    ROW(\"a\", 1)");
+    // the cursor's line
+    press(&mut h, Key::Slash, Modifiers::COMMAND);
+    assert_eq!(text(&h), "EVALUATE\n    // ROW(\"a\", 1)");
+    press(&mut h, Key::Slash, Modifiers::COMMAND);
+    assert_eq!(
+        text(&h),
+        "EVALUATE\n    ROW(\"a\", 1)",
+        "a second press uncomments"
+    );
+    // every selected line, at their common indent; the tool bar's button does the same
+    press(&mut h, Key::A, Modifiers::COMMAND);
+    click(&mut h, "Comment");
+    assert_eq!(text(&h), "// EVALUATE\n//     ROW(\"a\", 1)");
+    assert_eq!(
+        editor_selection(&h),
+        Some((0, text(&h).chars().count())),
+        "the lines stay selected"
+    );
+    press(&mut h, Key::Slash, Modifiers::COMMAND);
+    assert_eq!(text(&h), "EVALUATE\n    ROW(\"a\", 1)");
+    // the editor kept the keyboard and the selection: typing replaces the lines
+    h.event(Event::Text("x".into()));
+    steps(&mut h, 2);
+    assert_eq!(text(&h), "x");
+}
+
+#[test]
+fn find_and_replace_counts_steps_and_replaces_with_match_case_and_whole_word() {
+    let mut h = view("en-US");
+    type_query(&mut h, "amount Amount AmountX amount");
+    press(&mut h, Key::F, Modifiers::COMMAND);
+    assert!(
+        h.state().cmd.dax_query.find.is_some(),
+        "Ctrl+F opens the find row"
+    );
+    assert!(h.ctx.memory(|m| m.has_focus(crate::dax_query_tools::find_id())));
+    h.event(Event::Text("amount".into()));
+    steps(&mut h, 3);
+    h.get_by_label("1 of 4");
+    // Enter: the next match, selected in the editor
+    press(&mut h, Key::Enter, Modifiers::NONE);
+    h.get_by_label("2 of 4");
+    assert_eq!(editor_selection(&h), Some((7, 13)));
+    press(&mut h, Key::Enter, Modifiers::SHIFT);
+    h.get_by_label("1 of 4");
+    click(&mut h, "Whole word");
+    h.get_by_label("1 of 3");
+    click(&mut h, "Match case");
+    h.get_by_label("1 of 2");
+    // Ctrl+H: the replace field
+    press(&mut h, Key::H, Modifiers::COMMAND);
+    assert!(
+        h.ctx
+            .memory(|m| m.has_focus(crate::dax_query_tools::replace_id()))
+    );
+    h.event(Event::Text("total".into()));
+    steps(&mut h, 2);
+    click(&mut h, "Replace");
+    assert_eq!(text(&h), "total Amount AmountX amount");
+    click(&mut h, "Whole word");
+    click(&mut h, "Match case");
+    click(&mut h, "Replace all");
+    assert_eq!(text(&h), "total total totalX total");
+    h.get_by_label("No match");
+    // Esc in the find field closes the row; the editor has the keyboard again
+    press(&mut h, Key::F, Modifiers::COMMAND);
+    press(&mut h, Key::Escape, Modifiers::NONE);
+    let id = crate::dax_query::editor_id(h.state().cmd.dax_query.active_tab().unwrap().id);
+    assert!(h.ctx.memory(|m| m.has_focus(id)));
+    assert!(h.state().cmd.dax_query.find.is_none(), "Esc closes the find row");
+    assert_eq!(
+        h.state().sent.iter().filter(|c| c.id == "dax.evaluate").count(),
+        0
+    );
+}
+
+#[test]
+fn the_data_pane_inserts_references_at_the_cursor() {
+    let mut h = view("en-US");
+    h.get_by_label("Data pane");
+    type_query(&mut h, "EVALUATE ROW(\"x\", SUM())");
+    // the cursor inside SUM( )
+    press(&mut h, Key::ArrowLeft, Modifiers::NONE);
+    press(&mut h, Key::ArrowLeft, Modifiers::NONE);
+    click(&mut h, "Sales");
+    click(&mut h, "Amount");
+    assert_eq!(text(&h), "EVALUATE ROW(\"x\", SUM('Sales'[Amount]))");
+    // the editor has the keyboard back, its cursor after the reference
+    assert_eq!(editor_selection(&h), Some((37, 37)));
+    h.event(Event::Text(" + ".into()));
+    steps(&mut h, 2);
+    click(&mut h, "Total");
+    assert_eq!(text(&h), "EVALUATE ROW(\"x\", SUM('Sales'[Amount] + [Total]))");
+    // the search keeps the matching fields, every table unrolled
+    h.get_by_label("Search the fields").click();
+    steps(&mut h, 2);
+    h.event(Event::Text("name".into()));
+    steps(&mut h, 3);
+    h.get_by_label("Name");
+    assert!(h.query_by_label("Amount").is_none());
+    // the tool bar hides the pane
+    click(&mut h, "Data pane");
+    assert!(h.query_by_label("Name").is_none());
+}
+
+/// Right-clicks the Data pane row `label` and picks `item` in its menu.
+fn quick_query(h: &mut Harness<'_, App>, label: &str, item: &str) {
+    let r = h.get_by_label(label).rect();
+    right_click(h, r.center());
+    click(h, item);
+    wait_run(h);
+}
+
+#[test]
+fn quick_queries_open_a_tab_each_and_run() {
+    let mut h = view("en-US");
+    quick_query(&mut h, "Sales", "Evaluate top 100 rows");
+    assert_eq!(names(&h), ["Query 1", "Query 2"]);
+    assert_eq!(text(&h), crate::dax_query_tools::top_rows("Sales"));
+    assert_eq!(last_sent(&h, "dax.evaluate").unwrap()["query"], text(&h));
+    h.get_by_label("3 rows");
+    click(&mut h, "Product");
+    quick_query(&mut h, "Name", "Show distinct values");
+    assert_eq!(names(&h).len(), 3);
+    assert_eq!(
+        text(&h),
+        crate::dax_query_tools::distinct_values("Product", "Name")
+    );
+    h.get_by_label("2 rows");
+    h.get_by_label("Bike");
+    click(&mut h, "Sales");
+    quick_query(&mut h, "Total", "Evaluate measure");
+    assert_eq!(text(&h), crate::dax_query_tools::evaluate_measure("Total"));
+    h.get_by_label("1 row");
+    h.get_by_label("22.0");
+    // Shift+F10 opens a row's menu from the keyboard
+    h.get_by_label("Product").focus();
+    steps(&mut h, 2);
+    press(&mut h, Key::F10, Modifiers::SHIFT);
+    h.get_by_label("Evaluate top 100 rows");
+}
+
+#[test]
+fn the_tools_in_french() {
+    let mut h = view("fr-FR");
+    h.get_by_label("Commenter");
+    h.get_by_label("Volet Données");
+    click(&mut h, "Rechercher et remplacer");
+    h.get_by_label("Mot entier");
+    h.get_by_label("Respecter la casse");
+    h.get_by_label("Tout remplacer");
+    let r = h.get_by_label("Sales").rect();
+    right_click(&mut h, r.center());
+    h.get_by_label("Évaluer les 100 premières lignes");
+    h.get_by_label("Insérer dans la requête");
+}
+
+/// Shop with [Count] and [Average] = DIVIDE([Total], [Count]).
+fn shop_with_measures() -> bicraft_engine::Session {
+    let mut s = super::model_sec_ui_tests::session();
+    for (name, expression) in [
+        ("Count", "COUNTROWS(Sales)"),
+        ("Average", "DIVIDE([Total], [Count])"),
+    ] {
+        s.execute(
+            "measure.add",
+            &serde_json::json!({"table": "Sales", "name": name, "expression": expression}),
+        )
+        .unwrap();
+    }
+    s.dirty = false;
+    s
+}
+
+#[test]
+fn define_quick_queries_write_the_measures_with_their_references_and_run() {
+    let mut h = super::model_sec_ui_tests::app_with("en-US", shop_with_measures);
+    h.state_mut().show_tab(View::Query);
+    steps(&mut h, 4);
+    quick_query(&mut h, "Sales", "Define all measures");
+    let p = last_sent(&h, "dax.define_query").expect("the menu runs dax.define_query");
+    assert_eq!(p, serde_json::json!({"table": "Sales"}));
+    assert_eq!(names(&h), ["Query 1", "Query 2"]);
+    let q = text(&h);
+    for m in ["Total", "Count", "Average"] {
+        assert!(q.contains(&format!("MEASURE 'Sales'[{m}] =")), "{q}");
+    }
+    assert_eq!(last_sent(&h, "dax.evaluate").unwrap()["query"], q, "run");
+    h.get_by_label("1 row");
+    // its lenses: every measure is already in the model
+    h.get_by_label("Update model: Overwrite measure Average");
+    // a measure with the measures it references
+    click(&mut h, "Sales");
+    quick_query(&mut h, "Average", "Define with references");
+    assert_eq!(
+        last_sent(&h, "dax.define_query").unwrap(),
+        serde_json::json!({"measure": "Average", "references": true})
+    );
+    assert_eq!(names(&h).len(), 3);
+    let q = text(&h);
+    let at = |m: &str| q.find(&format!("MEASURE 'Sales'[{m}]")).expect(m);
+    assert!(at("Total") < at("Average") && at("Count") < at("Average"), "{q}");
+    assert!(q.contains("ROW(\"Average\", [Average])"), "{q}");
+    h.get_by_label("1 row");
+    assert!(
+        matches!(
+            h.state().cmd.dax_query.active_tab().unwrap().outcome,
+            Some(crate::dax_query::Outcome::Rows { .. })
+        ),
+        "the query evaluates"
+    );
+}
+
+/// Shop with a hierarchy on Product and a calculation group.
+fn shop_with_groups() -> bicraft_engine::Session {
+    let mut s = super::model_sec_ui_tests::session();
+    for (id, p) in [
+        (
+            "hierarchy.add",
+            serde_json::json!({"table": "Product", "name": "Catalog", "levels": ["Name", "ProductKey"]}),
+        ),
+        ("calculation_group.add", serde_json::json!({"name": "Scale"})),
+        (
+            "calculation_item.add",
+            serde_json::json!({"group": "Scale", "name": "Doubled", "expression": "SELECTEDMEASURE() * 2"}),
+        ),
+    ] {
+        s.execute(id, &p).unwrap();
+    }
+    s.dirty = false;
+    s
+}
+
+#[test]
+fn the_data_pane_lists_hierarchies_and_calculation_items() {
+    let mut h = super::model_sec_ui_tests::app_with("en-US", shop_with_groups);
+    h.state_mut().show_tab(View::Query);
+    steps(&mut h, 4);
+    type_query(&mut h, "EVALUATE ROW(\"x\", 1)");
+    press(&mut h, Key::End, Modifiers::COMMAND);
+    click(&mut h, "Product");
+    click(&mut h, "Catalog");
+    // a level inserts its column
+    let levels: Vec<_> = h.get_all_by_label("Name").collect();
+    assert_eq!(levels.len(), 2, "the column and the hierarchy's level");
+    let level = levels
+        .iter()
+        .map(|n| n.rect())
+        .max_by(|a, b| a.min.y.total_cmp(&b.min.y))
+        .unwrap();
+    h.hover_at(level.center());
+    h.step();
+    for pressed in [true, false] {
+        h.event(Event::PointerButton {
+            pos: level.center(),
+            button: PointerButton::Primary,
+            pressed,
+            modifiers: Modifiers::NONE,
+        });
+    }
+    steps(&mut h, 3);
+    assert_eq!(text(&h), "EVALUATE ROW(\"x\", 1)'Product'[Name]");
+    // a calculation item inserts the filter that picks it
+    click(&mut h, "Scale");
+    click(&mut h, "Doubled");
+    assert_eq!(
+        text(&h),
+        "EVALUATE ROW(\"x\", 1)'Product'[Name]'Scale'[Name] = \"Doubled\""
+    );
+}
+
+#[test]
+fn a_field_dragged_into_the_editor_lands_where_it_is_dropped() {
+    let mut h = view("en-US");
+    type_query(&mut h, "EVALUATE ROW(\"x\", SUM())");
+    click(&mut h, "Sales");
+    let from = h.get_by_label("Amount").rect().center();
+    // the drop point: just after `SUM(` (a little before the boundary, which the drop rounds to),
+    // found from the editor's left edge and its glyph width
+    let editor = h.get_by_label("DAX query").rect();
+    let char_w = h.ctx.fonts_mut(|f| f.glyph_width(&crate::formula::mono(), 'M'));
+    let col = "EVALUATE ROW(\"x\", SUM(".chars().count() as f32;
+    let to = egui::pos2(editor.min.x + 4.0 + char_w * (col - 0.3), editor.min.y + 14.0);
+    h.hover_at(from);
+    h.step();
+    h.event(Event::PointerButton {
+        pos: from,
+        button: PointerButton::Primary,
+        pressed: true,
+        modifiers: Modifiers::NONE,
+    });
+    h.step();
+    for k in 1..=12 {
+        h.event(Event::PointerMoved(from + (to - from) * (k as f32 / 12.0)));
+        h.step();
+    }
+    h.event(Event::PointerButton {
+        pos: to,
+        button: PointerButton::Primary,
+        pressed: false,
+        modifiers: Modifiers::NONE,
+    });
+    steps(&mut h, 4);
+    assert_eq!(text(&h), "EVALUATE ROW(\"x\", SUM('Sales'[Amount]))");
+    assert_eq!(editor_selection(&h), Some((37, 37)), "the cursor after it");
+}
+
+#[test]
+fn a_lens_sits_on_its_own_line_above_its_measure() {
+    let mut h = view("en-US");
+    type_query(
+        &mut h,
+        "DEFINE\n    MEASURE Sales[Count] = COUNTROWS(Sales)\n    MEASURE Sales[Total] = 1\nEVALUATE ROW(\"C\", [Count])",
+    );
+    let editor = h.get_by_label("DAX query").rect();
+    let add = h.get_by_label("Update model: Add new measure Count").rect();
+    let over = h.get_by_label("Update model: Overwrite measure Total").rect();
+    // from the measure's column, not at the right end of its line
+    assert!(add.max.x < editor.center().x, "{add:?} in {editor:?}");
+    assert!((add.min.x - over.min.x).abs() < 1.0, "both at MEASURE's column");
+    // each in a gap of its own: a line of text and a lens between the two
+    let row = h.ctx.fonts_mut(|f| f.row_height(&crate::formula::mono()));
+    assert!(over.min.y - add.max.y > row, "{add:?} {over:?}");
+}

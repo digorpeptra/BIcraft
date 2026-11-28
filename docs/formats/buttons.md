@@ -26,10 +26,10 @@ resources) is in [pbir.md](pbir.md), "Text boxes, images, buttons and page forma
 | Conditional tooltip ("you can conditionally format the Tooltip") | `visual.set_action {tooltip_field}` |
 | Tooltip hidden when it repeats the button's text | the readers leave it out |
 | Drillthrough button disabled without filter context; Enabled tooltip / Disabled tooltip (schema `enabledTooltip`, `disabledTooltip`) | `visual.set_action {enabled_tooltip, disabled_tooltip}`; readers draw the disabled state, take no click, show the tooltip |
-| Button states Default, On hover, On press, Disabled (Loading: data functions only) for Shape and Style (Text, Icon, Outline, Fill, Glow, Shadow) | written by `visual.format {objects: [{…, state}]}` (Format pane › Apply settings to: State; the action editor's Button style); the readers draw text, icon, fill and border per state; glow and shadow per state are kept, not drawn |
+| Button states Default, On hover, On press, Disabled (Loading: data functions only) for Shape and Style (Text, Icon, Outline, Fill, Glow, Shadow) | written by `visual.format {objects: [{…, state}]}` (Format pane › Apply settings to: State, with the Shape, Glow and Shadow cards; the action editor's Button style); the readers draw text, icon, fill, fill image, custom icon, border, glow and shadow per state, and the button's tile shape |
 | Shapes: text inside the shape, fill and outline per state, rotation | Format pane cards (Text, Fill, Outline with the state), `visual.format`; the readers draw the text (upright) and the press / hover fills |
 | Navigators: Pages (show hidden pages, show tooltip pages), Bookmarks (bookmark group, Allow deselection, Launch on deselection, Hide deselection bookmark), Grid layout (Horizontal, Vertical, Grid, Padding), Selected state, Fill, Text, Outline, Shape, Shadow, Glow, Rotation | Format pane cards Grid layout, Pages, Bookmarks, Text, Fill, Border, Accent bar with the state (default, hover, press, selected); readers apply all but shape, shadow, glow and rotation of navigators |
-| Fill images per state; Custom icon with Image fit and Icon placement (left, right, above, below, custom) and Icon size | not built (kept byte for byte when a file has them) |
+| Fill images per state; Custom icon with Image fit and Icon placement (left, right, above, below, custom) and Icon size | no command writes them (kept byte for byte when a file has them); the readers draw the state's fill image and custom icon (placement left or right only, at the built-in icon's size) |
 | Image visual: Image fit Normal / Fit / Fill, an action | `image.add` / `image.set {scaling}`, `visual.set_action` |
 
 ## Conditional destinations (fx)
@@ -81,7 +81,7 @@ The state entries are the ones of [visual-options.md](visual-options.md) ("State
 
 | Visual | Snapshot | States |
 |---|---|---|
-| `actionButton` | `button.states.{hover, press, disabled}`: text, font colour and size, alignment, icon, icon colour and placement, fill, fill transparency, border (`outline`: show, colour, weight, transparency) | hover and press under the pointer, disabled from `interaction.button.enabled` |
+| `actionButton` | `button.states.{hover, press, disabled}`: text, font colour and size, alignment, icon, icon colour and placement, fill, fill transparency, border (`outline`: show, colour, weight, transparency), glow and shadow (the navigators' keys), `fill_image` and `icon_image` (`{id, mime, width, height, fit}`); `button.shape` (`tile`, `adjust`, one for every state) | hover and press under the pointer, disabled from `interaction.button.enabled` |
 | `shape` | `shape.states.{hover, press}`: fill, outline, text | hover and press |
 | `pageNavigator`, `bookmarkNavigator` | `navigator.styles.{default, selected, hover, press}` | per navigator button: press over hover over selected over default |
 
@@ -89,8 +89,31 @@ The front end tells the renderer where the pointer is (`RenderOptions::pointer`:
 navigator button's page or bookmark name, pressed or not) and draws the page again when that
 changes; the app does so only over visuals whose hover or press look differs. A disabled button
 without a disabled look of its own is drawn at 45 % opacity: **BIcraft's choice** (Learn names the
-state, not its default formatting). `bicraft render`, PDF export and the HTML viewer draw no
+state, not its default formatting). `bicraft-cli render`, PDF export and the HTML viewer draw no
 pointer state; the HTML viewer (`page.html`) does not draw the disabled state either.
+
+## Shape, glow and shadow of an action button
+
+The report theme schema's `visual-actionButton` has `shape` (`tileShape` and its adjustments, no
+`$id`), `glow` (`show`, `color`, `shadowBlur`, `transparency`) and `shadow` (`show`, `color`,
+`shadowBlur`, `shadowDistance`, `angle`, `shadowPositionPreset`, `transparency`), the last two
+by state. The snapshot reads them as it reads a navigator's (`button.shape`, `button.show_glow`…,
+the same keys per state). The readers:
+
+- fill and outline the button along its tile shape (`crates/render/src/shapes.rs`, as the shape
+  visual and the navigators draw it), else the rectangle rounded by the visual's border radius;
+- draw the state's shadow and glow on the page under the visual, so they reach past its box,
+  with the navigators' drawing and **BIcraft's defaults** (no public source gives Desktop's):
+  a glow of three widening strokes, 5 px blur, the theme's accent at 50 % transparency; a shadow
+  of the outline moved 3 px at 45° (down right), 5 px blur, black at 70 % transparency; an inner
+  shadow is drawn as an outer one; neither in high contrast;
+- draw the state's fill image (`fill[state].image`) over the fill colour in the button's box,
+  not cut to a tile shape, and a custom icon (`icon.shapeType` `custom` with `icon.image`) in the
+  icon's place; both scaled as the image visual scales (`Normal` whole and centred, `Fit`
+  stretched, `Fill` covering), BIcraft's reading of the schema's `scaling` titles.
+
+Not checked against a file Desktop saved or against Desktop's drawing: where Desktop writes the
+glow and shadow of a button, its default values and the image placement.
 
 ## A shape's text
 

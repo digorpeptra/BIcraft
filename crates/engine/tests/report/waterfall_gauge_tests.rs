@@ -205,6 +205,16 @@ pub(crate) fn cases() -> Vec<(&'static str, &'static str, Value, f64, f64)> {
             480.0,
             280.0,
         ),
+        // scaling commas, after the digits and after the decimals, with quoted text (1.0.4.0)
+        (
+            "wf_scaled",
+            "waterfall",
+            json!({"rows": [
+                ["Jan", null, null, null, 1_234_567], ["Feb", null, null, null, -234_567]
+            ], "formats": ["", "", "", "", "#,0.0,\"K\""]}),
+            480.0,
+            280.0,
+        ),
         // a small fall near the axis's start: its label after the bar, clear of its name (G117)
         (
             "wf_small_fall_horizontal",
@@ -618,6 +628,23 @@ fn waterfall_axis_follows_the_culture_and_fall_labels_clear_the_names() {
     );
 }
 
+/// The Waterfall+'s labels read the scaling commas of their format string, after the digits and
+/// after the decimals (`#,0.0,"K"`), as the Gauge / KPI+ and the runtime's `formatNumber` do.
+#[test]
+fn waterfall_labels_scale_by_their_format() {
+    let r = rust_results();
+    let texts: Vec<&str> = r["wf_scaled"]["prims"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|p| p["t"] == "text")
+        .filter_map(|p| p["text"].as_str())
+        .collect();
+    assert!(texts.iter().any(|s| s.contains("1,234.6K")), "{texts:?}");
+    assert!(texts.iter().any(|s| s.contains("1,000.0K")), "{texts:?}");
+    assert!(!texts.iter().any(|s| s.contains("1,234,567")), "{texts:?}");
+}
+
 /// The Waterfall+'s running totals: each step floats from the total before it, the subtotals
 /// and the total stand on zero at the running total, and the groups close with a subtotal.
 #[test]
@@ -974,7 +1001,7 @@ fn both_visuals_are_added_by_name_drawn_formatted_and_kept() {
         drawn(&mut t, &[&wf, &bridge, &gauge]);
     }
     // both are in the pack and registered with their versions
-    for (kind, version) in [("waterfall", "1.0.3.0"), ("gauge", "1.0.3.0")] {
+    for (kind, version) in [("waterfall", "1.0.4.0"), ("gauge", "1.0.4.0")] {
         let d = find(kind).unwrap();
         assert_eq!(d.version, version);
         assert!(VISUALS.iter().any(|x| x.guid == d.guid));

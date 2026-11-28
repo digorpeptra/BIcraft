@@ -1,4 +1,4 @@
-//! L5: the live viewer page and its loopback server (no engine dependency: `bicraft serve`
+//! L5: the live viewer page and its loopback server (no engine dependency: `bicraft-cli serve`
 //! serves the same page from the MCP HTTP endpoint, [`server_page`]). Serves an embedded web page
 //! on localhost and pushes session
 //! snapshots (docs/view-snapshot.md) to it as they are published.
@@ -79,12 +79,12 @@ const INTERACT_SLOT: &str = r#"<meta name="bicraft-interact-token" content="">"#
 /// Largest interaction body.
 pub const MAX_BODY_BYTES: usize = 64 * 1024;
 
-/// The page's slot for the private view id of server mode (empty: `bicraft view`).
+/// The page's slot for the private view id of server mode (empty: `bicraft-cli view`).
 const VIEW_ID_SLOT: &str = r#"<meta name="bicraft-view-id" content="">"#;
 /// The page's slot for server mode's download link (empty: no link).
 const DOWNLOAD_SLOT: &str = r#"<meta name="bicraft-download" content="">"#;
 
-/// The page as `bicraft serve` serves it under `/w/<id>/view/` (docs/kubernetes.md, "Viewer"):
+/// The page as `bicraft-cli serve` serves it under `/w/<id>/view/` (docs/kubernetes.md, "Viewer"):
 /// the interaction token (`None`: read-only page), the page's private view id, and a download
 /// link of the saved file instead of the "Open in Power BI Desktop" button. Both values must be
 /// 32 lowercase hex digits ([`random_token`]); anything else leaves its slot empty.
@@ -891,7 +891,7 @@ fn interact(stream: &mut TcpStream, shared: &Shared, request: &Request, rest: Ve
 /// stream (GET) and the page's reply (POST, with the page token and this origin).
 fn control_route(stream: &mut TcpStream, shared: &Shared, request: &Request, rest: Vec<u8>) {
     let (Some(relay), Some(token)) = (&shared.control, &shared.token) else {
-        let body = json!({"ok": false, "error": "the control channel is off (bicraft view --control)"});
+        let body = json!({"ok": false, "error": "the control channel is off (bicraft-cli view --control)"});
         let _ = write_response(
             stream,
             Status::NotFound,

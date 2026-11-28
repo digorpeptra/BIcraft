@@ -66,7 +66,9 @@ out.numbers = [
   R.formatNumber(-1234, "$#,0;($#,0)"), R.formatNumber(0, "$#,0;($#,0);\"zero\""), R.formatNumber(1.005, "0.00"),
   R.formatNumber(-0.001, "0.00"), R.formatNumber(1234567, "#,0,\"K\""), R.formatNumber(12345.678, "0.00E+00"),
   R.formatNumber(1234.5, "#,0.00", "fr-FR"), R.formatNumber(1234.5, ""), R.formatNumber(1 / 3, ""),
-  R.formatNumber(0.5, "Percent"), R.formatNumber(5, "00"), R.formatNumber(-7, "0"), R.formatNumber(2.5, "\\#0")
+  R.formatNumber(0.5, "Percent"), R.formatNumber(5, "00"), R.formatNumber(-7, "0"), R.formatNumber(2.5, "\\#0"),
+  R.formatNumber(1234567, "#,##0.0,\"K\""), R.formatNumber(-7433915, "$#,0.00,,\"M\";($#,0.00,,\"M\")"),
+  R.formatNumber(1234567, "#,0.0\",\"")
 ];
 out.values = [
   R.formatValue(null), R.formatValue(undefined, "", "fr-FR"), R.formatValue(true, "", "fr"), R.formatValue("x", "0.00"),
@@ -250,7 +252,11 @@ fn the_runtime_behaves_under_node() {
                 "50.00%",
                 "05",
                 "-7",
-                "#3"
+                "#3",
+                // commas right after the last decimal scale too; a quoted comma does not
+                "1,234.6K",
+                "($7.43M)",
+                "1,234,567.0,"
             ]),
         ),
         (

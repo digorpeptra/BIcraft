@@ -1,4 +1,4 @@
-//! Observability of `bicraft serve` over real sockets (docs/kubernetes.md, "Observability"): the
+//! Observability of `bicraft-cli serve` over real sockets (docs/kubernetes.md, "Observability"): the
 //! JSON request log never carries model data (a query with a distinctive literal, an error that
 //! names it, file names, a path), `/metrics` lives on its own listener only and reports requests,
 //! commands, queue, workspaces, memory and drain state with bounded labels.

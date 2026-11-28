@@ -215,3 +215,44 @@ fn the_pane_speaks_french() {
     }
     h.get_by_label_contains("Enregistrement en cours");
 }
+
+#[test]
+fn the_viewers_own_evaluations_get_their_render_times_without_refresh_visuals() {
+    let mut h = app("en-US");
+    open_pane(&mut h, "Performance analyzer");
+    h.get_by_label("Start recording").click();
+    steps(&mut h, 4);
+    // the reader's change: the viewer evaluates the chart again, no Refresh visuals
+    let page = h.state().page_names()[0].0.clone();
+    let chart = h.state().loaded.as_ref().unwrap().snap["report"]["pages"][0]["visuals"][0]["name"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    h.state_mut().run(
+        crate::actions::Call {
+            id: "visual.filter",
+            params: json!({"page": page, "visual": chart, "field": "Sales[Region]", "in": ["North"]}),
+        },
+        crate::app::Then::Nothing,
+    );
+    steps(&mut h, 10);
+    assert!(!sent(&h).contains(&"perf.refresh"), "{:?}", sent(&h));
+    assert!(sent(&h).contains(&"perf.render"), "{:?}", sent(&h));
+    assert_eq!(last(&h, "perf.render")["page"], json!(page));
+    let ev = events(&h);
+    let viewed: Vec<&Value> = ev
+        .iter()
+        .filter(|e| e["cause"] == "view" && e["visual"] == chart.as_str())
+        .collect();
+    assert!(!viewed.is_empty(), "{ev:?}");
+    assert!(viewed.iter().all(|e| e["render_ms"].as_f64().is_some()), "{ev:?}");
+    // the times went back once: further frames of the same snapshot send nothing more
+    let renders = sent(&h).iter().filter(|c| **c == "perf.render").count();
+    steps(&mut h, 6);
+    assert_eq!(
+        sent(&h).iter().filter(|c| **c == "perf.render").count(),
+        renders,
+        "{:?}",
+        sent(&h)
+    );
+}

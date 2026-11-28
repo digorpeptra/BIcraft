@@ -55,10 +55,18 @@ pub static CARLITO_BOLD_ITALIC: &[u8] = include_bytes!("../fonts/carlito/Carlito
 /// The family name of the bundled Carlito subsets in the book.
 const METRIC_SANS: &str = "bicraft metric sans";
 
-/// Families a missing family is replaced by, in order: faces with the same advance widths
-/// (Carlito for Calibri, as LibreOffice and the Linux font configurations substitute it), so
-/// text measures and wraps as with the font asked for.
-const METRIC_TWINS: &[(&str, &[&str])] = &[("calibri", &["carlito", METRIC_SANS])];
+/// Families a missing family is replaced by, in order: faces with the same advance widths, as
+/// LibreOffice and the Linux font configurations substitute them, so text measures and wraps as
+/// with the font asked for. Only Carlito is bundled (as [`METRIC_SANS`]); the others are used
+/// when installed (Linux distributions ship the Liberation fonts, Caladea and Gelasio).
+const METRIC_TWINS: &[(&str, &[&str])] = &[
+    ("calibri", &["carlito", METRIC_SANS]),
+    ("arial", &["liberation sans", "arimo"]),
+    ("times new roman", &["liberation serif", "tinos"]),
+    ("courier new", &["liberation mono", "cousine"]),
+    ("cambria", &["caladea"]),
+    ("georgia", &["gelasio"]),
+];
 
 /// The family names of the bundled fallback faces, in chain order (each face's `bytes`, weight).
 pub const BUNDLED_FALLBACKS: &[(&str, &[u8], u16)] = &[
@@ -967,6 +975,11 @@ impl FontBook {
             all.extend(index_dir(&d).iter().cloned());
         }
         all.extend(bundled());
+        Self::from_entries(all)
+    }
+
+    /// A book of these faces, in this order.
+    fn from_entries(all: Vec<FaceEntry>) -> Self {
         let din = all.iter().any(|e| e.families.iter().any(|f| f == "din"));
         Self {
             din,
@@ -1469,11 +1482,17 @@ mod tests {
             ("Calibri Light", 400, false, CARLITO_REGULAR),
         ] {
             let f = Font::new(fam, 14.0).weight(w).italic(italic);
-            let got = b.measure(&f, text);
+            // each glyph takes Carlito's advance; the line adds Carlito's kerning ("To")
+            let glyphs: f32 = text.chars().map(|c| b.measure(&f, &c.to_string())).sum();
             let want = advance_sum(face, text, 14.0);
             assert!(
-                (got - want).abs() < 1e-3,
-                "{fam} {w} {italic}: {got} vs Carlito {want}"
+                (glyphs - want).abs() < 1e-3,
+                "{fam} {w} {italic}: {glyphs} vs Carlito {want}"
+            );
+            let got = b.measure(&f, text);
+            assert!(
+                got < want && got > want * 0.98,
+                "{fam} {w} {italic}: {got} vs {want}"
             );
             let selawik = b.measure(&Font::new("Segoe UI", 14.0).weight(w).italic(italic), text);
             assert!((got - selawik).abs() > 1.0, "{fam}: {got} vs Selawik {selawik}");
@@ -1486,6 +1505,79 @@ mod tests {
         // other families keep their chain: Segoe UI text never takes Carlito
         let seg = b.measure(&Font::new("Segoe UI", 14.0), text);
         assert!((seg - advance_sum(SELAWIK_REGULAR, text, 14.0)).abs() < 1e-3);
+    }
+
+    #[test]
+    fn bundled_faces_kern_and_draw_what_they_measure() {
+        let b = FontBook::bundled_only();
+        // Carlito (Calibri text) and Noto Sans (Greek and Cyrillic after Selawik) carry their
+        // fonts' kerning: a kerned pair is narrower than its two glyphs side by side
+        for (fam, pair) in [
+            ("Calibri", "AV"),
+            ("Calibri", "To"),
+            ("Calibri", "Το"),
+            ("Calibri", "То"),
+            ("Segoe UI", "Το"),
+            ("Segoe UI", "То"),
+        ] {
+            let f = Font::new(fam, 20.0);
+            let mut cs = pair.chars();
+            let (a, c) = (cs.next().unwrap().to_string(), cs.next().unwrap().to_string());
+            let apart = b.measure(&f, &a) + b.measure(&f, &c);
+            let kerned = b.measure(&f, pair);
+            assert!(kerned < apart - 0.2, "{fam} {pair}: {kerned} vs {apart}");
+            // the glyphs are drawn at the kerned advances: the second one starts where the
+            // kerned first one ends, and the run is as wide as measured
+            let (g, w) = b.layout(&f, pair);
+            assert!((w - kerned).abs() < 1e-3, "{fam} {pair}");
+            assert!(
+                g.get(1).is_some_and(|g| g.x < b.measure(&f, &a) - 0.2),
+                "{fam} {pair}"
+            );
+        }
+    }
+
+    #[test]
+    fn calibri_greek_cyrillic_and_vietnamese_keep_carlito_widths() {
+        let b = FontBook::bundled_only();
+        for c in "ΔΣΩάβγλμπσωЖДЯБжшщыїґẠếỗợơưỹĐ".chars() {
+            let s = c.to_string();
+            let got = b.measure(&Font::new("Calibri", 14.0), &s);
+            let want = advance_sum(CARLITO_REGULAR, &s, 14.0);
+            assert!((got - want).abs() < 1e-3, "{c}: {got} vs Carlito {want}");
+            let bold = b.measure(&Font::new("Calibri", 14.0).weight(700), &s);
+            assert!(
+                (bold - advance_sum(CARLITO_BOLD, &s, 14.0)).abs() < 1e-3,
+                "{c} bold"
+            );
+        }
+    }
+
+    #[test]
+    fn office_fonts_take_an_installed_metric_twin() {
+        // a book with an installed "Liberation Sans" (any face stands in for its file)
+        let mut all = bundled();
+        all.push(FaceEntry {
+            families: vec!["liberation sans".into()],
+            weight: 400,
+            italic: false,
+            source: FaceSource::Bundled(NOTO_SANS_REGULAR),
+        });
+        let b = FontBook::from_entries(all);
+        let first = |fam: &str| {
+            b.chain(&Font::new(fam, 12.0))
+                .first()
+                .and_then(|i| b.entries.get(*i))
+                .map(|e| e.families.clone())
+        };
+        // Arial (and the generic names that map to it) takes its twin before Selawik
+        for fam in ["Arial", "Helvetica, sans-serif"] {
+            assert_eq!(first(fam), Some(vec!["liberation sans".to_string()]), "{fam}");
+        }
+        // a family without a twin keeps its chain
+        assert!(first("Segoe UI").is_some_and(|f| f.iter().any(|x| x == "selawik")));
+        // and a twin that is not installed is skipped
+        assert!(first("Times New Roman").is_some_and(|f| f.iter().any(|x| x == "selawik")));
     }
 
     #[test]

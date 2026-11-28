@@ -977,6 +977,55 @@ fn whole_visual_targets_write_their_object_without_selector() {
     schema_ok(&mut s);
 }
 
+/// Gradient Percent stops (G54): `{color, value, percent: true}` writes the stop's value as the
+/// Percent rules' bound (inferred shape), reads back as written, and takes 0 to 100 only.
+#[test]
+fn gradient_stops_take_percents() {
+    let mut s = session();
+    let chart = add(
+        &mut s,
+        "clusteredColumnChart",
+        json!([{"role": "Category", "field": "Sales[Region]"}, {"role": "Y", "field": "[Total]"}]),
+    );
+    let rule = json!({"gradient": {"field": "[Total]",
+        "min": {"color": "#FF0000", "value": 20, "percent": true},
+        "mid": {"color": "#FFFF00", "value": 50, "percent": true},
+        "max": {"color": "#00AA00", "value": 1000}}});
+    cond(&mut s, &chart, json!({"target": "data_color", "rule": rule}));
+    let g = &objects(&s, &chart)["dataPoint"][0]["properties"]["fill"]["solid"]["color"]["expr"]["FillRule"]
+        ["FillRule"]["linearGradient3"];
+    let agg = |f: u64| json!({"Aggregation": {"Expression": total(), "Function": f}});
+    // a Percent stop's value is the Percent rules' bound of the gradient's input
+    assert_eq!(
+        g["mid"]["value"],
+        json!({"Arithmetic": {
+            "Left": agg(3),
+            "Right": {"Arithmetic": {
+                "Left": {"Arithmetic": {"Left": agg(4), "Right": agg(3), "Operator": 1}},
+                "Right": lit("0.5D"),
+                "Operator": 2}},
+            "Operator": 0}}),
+        "{g}"
+    );
+    assert_eq!(g["max"]["value"], lit("1000D"), "{g}");
+    let props = extract_props(visual(&s, &chart));
+    assert_eq!(props["conditional"][0]["rule"], rule, "{props}");
+    schema_ok(&mut s);
+    let pg = page(&s);
+    for bad in [
+        json!({"color": "#000000", "value": 120, "percent": true}),
+        json!({"color": "#000000", "percent": true}),
+        json!({"color": "#000000", "value": 5, "percent": 1}),
+    ] {
+        fails(
+            &mut s,
+            "visual.conditional",
+            json!({"page": pg, "visual": chart, "target": "data_color",
+                   "rule": {"gradient": {"field": "[Total]", "min": bad, "max": "#FFFFFF"}}}),
+        );
+    }
+}
+
 /// Rules' Percent bounds (G54): `percent: true` writes each bound as `Min + (Max - Min) * p`
 /// of the rule field, reads back as written, and takes 0 to 100 only.
 #[test]

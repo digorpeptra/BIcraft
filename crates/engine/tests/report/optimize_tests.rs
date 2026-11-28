@@ -326,3 +326,169 @@ fn bad_optimize_params_are_refused() {
         assert!(empty.execute(id, &json!({})).is_err(), "{id}");
     }
 }
+
+#[test]
+fn a_visuals_refresh_evaluates_it_alone_while_paused() {
+    let (mut s, page, card, chart) = shop();
+    let chart_before = data(&s.snapshot(), &chart);
+    run(&mut s, "report.pause_visuals", json!({}));
+    run(
+        &mut s,
+        "measure.set",
+        json!({"name": "Total", "expression": "SUM(Sales[Amount]) * 2"}),
+    );
+    let snap = s.snapshot();
+    assert_eq!(data(&snap, &card)["pending"], true);
+    assert_eq!(data(&snap, &chart)["pending"], true);
+    // the card's own Refresh: the card evaluates, the chart keeps its last state
+    let out = run(&mut s, "visual.refresh", json!({"page": page, "visual": card}));
+    assert_eq!(
+        (out["paused"].as_bool(), out["visual"].as_str()),
+        (Some(true), Some(card.as_str()))
+    );
+    let snap = s.snapshot();
+    assert!(total(&snap, &card) > 155.0);
+    assert!(data(&snap, &card).get("pending").is_none());
+    let chart_now = data(&snap, &chart);
+    assert_eq!(chart_now["pending"], true);
+    assert_eq!(chart_now["rows"], chart_before["rows"]);
+    assert_eq!(snap["report"]["settings"]["paused"], true);
+    // once: the next change waits again
+    run(
+        &mut s,
+        "measure.set",
+        json!({"name": "Total", "expression": "SUM(Sales[Amount]) * 3"}),
+    );
+    assert_eq!(data(&s.snapshot(), &card)["pending"], true);
+    // the report is not changed (no undo step, no unsaved edit)
+    assert!(!bicraft_engine::is_mutating("visual.refresh"));
+    for bad in [
+        json!({"page": page}),
+        json!({"page": page, "visual": "nope"}),
+        json!({"page": "nope", "visual": card}),
+        json!({"page": page, "visual": card, "all": true}),
+    ] {
+        assert!(s.execute("visual.refresh", &bad).is_err(), "{bad}");
+    }
+}
+
+/// The card's title bound to [Total] (a measure-bound formatting value).
+fn bind_title(s: &mut Session, card: &str) {
+    let r = s.report.as_mut().unwrap();
+    let v = r.pages[0].visuals.iter_mut().find(|v| v.name == card).unwrap();
+    v.visual_extra.insert(
+        "visualContainerObjects".into(),
+        json!({"title": [{"properties": {
+            "show": {"expr": {"Literal": {"Value": "true"}}},
+            "text": {"expr": {"Measure": {"Expression": {"SourceRef": {"Entity": "Sales"}}, "Property": "Total"}}}
+        }}]}),
+    );
+}
+
+#[test]
+fn measure_bound_formatting_waits_while_paused() {
+    let (mut s, page, card, _) = shop();
+    bind_title(&mut s, &card);
+    let before = visual(&s.snapshot(), &card)["title"].clone();
+    assert!(before.is_string(), "{before}");
+    run(&mut s, "report.pause_visuals", json!({}));
+    run(
+        &mut s,
+        "measure.set",
+        json!({"name": "Total", "expression": "SUM(Sales[Amount]) * 2"}),
+    );
+    // the bound title is not evaluated: the one shown before stays
+    assert_eq!(visual(&s.snapshot(), &card)["title"], before);
+    run(&mut s, "visual.refresh", json!({"page": page, "visual": card}));
+    assert_ne!(visual(&s.snapshot(), &card)["title"], before);
+}
+
+#[test]
+fn report_page_tooltips_are_off_while_paused() {
+    let (mut s, page, _, chart) = shop();
+    run(&mut s, "page.add", json!({"display_name": "Tip"}));
+    let tip = s.report.as_ref().unwrap().pages[1].name.clone();
+    run(&mut s, "page.set_type", json!({"page": tip, "type": "tooltip"}));
+    run(
+        &mut s,
+        "visual.tooltip_page",
+        json!({"page": page, "visual": chart, "tooltip_page": tip}),
+    );
+    let hover = json!({"action": "tooltip", "page": page, "visual": chart, "point": [{"c": 0, "v": "Toys"}]});
+    run(&mut s, "view.interact", hover.clone());
+    run(&mut s, "report.pause_visuals", json!({}));
+    let e = s.execute("view.interact", &hover).unwrap_err();
+    assert!(e.contains("paused"), "{e}");
+    // hiding a tooltip still works
+    run(
+        &mut s,
+        "view.interact",
+        json!({"action": "tooltip", "page": page, "visual": chart, "point": null}),
+    );
+    run(&mut s, "report.pause_visuals", json!({"paused": false}));
+    run(&mut s, "view.interact", hover);
+}
+
+/// Sales with a Category slicer next to the card.
+fn with_slicer(s: &mut Session, page: &str) -> String {
+    run(
+        s,
+        "visual.add",
+        json!({"page": page, "visual_type": "slicer", "x": 400, "y": 0, "width": 150, "height": 200,
+               "fields": [{"role": "Values", "field": "Sales[Category]"}]}),
+    )["visual"]
+        .as_str()
+        .unwrap()
+        .to_string()
+}
+
+#[test]
+fn query_reductions_slicer_apply_button_holds_a_slicers_changes() {
+    let (mut s, page, card, _) = shop();
+    let slicer = with_slicer(&mut s, &page);
+    let toys = json!({"action": "slicer_toggle", "page": page, "visual": slicer, "value": "Toys"});
+    // instantly: a click filters the card
+    run(&mut s, "view.interact", toys.clone());
+    assert_eq!(total(&s.snapshot(), &card), 5.0);
+    assert!(
+        visual(&s.snapshot(), &slicer)["slicer"]
+            .get("apply_button")
+            .is_none()
+    );
+    run(&mut s, "view.interact", json!({"action": "reset"}));
+    run(
+        &mut s,
+        "report.query_reduction",
+        json!({"slicers": "apply_button"}),
+    );
+    let out = run(&mut s, "view.interact", toys);
+    assert_eq!(out["pending"], true);
+    let snap = s.snapshot();
+    assert_eq!(total(&snap, &card), 155.0, "the change waits");
+    assert_eq!(visual(&snap, &slicer)["slicer"]["apply_button"], true);
+    assert_eq!(visual(&snap, &slicer)["slicer"]["pending"], true);
+    // the slicer's Apply
+    let out = run(
+        &mut s,
+        "view.interact",
+        json!({"action": "slicer_apply", "page": page, "visual": slicer}),
+    );
+    assert_eq!(out["applied"], true);
+    let snap = s.snapshot();
+    assert_eq!(total(&snap, &card), 5.0);
+    assert!(visual(&snap, &slicer)["slicer"].get("pending").is_none());
+    // nothing pending: no change
+    let out = run(
+        &mut s,
+        "view.interact",
+        json!({"action": "slicer_apply", "page": page, "visual": slicer}),
+    );
+    assert_eq!(out["applied"], false);
+    assert!(
+        s.execute(
+            "view.interact",
+            &json!({"action": "slicer_apply", "page": page, "visual": card})
+        )
+        .is_err()
+    );
+}

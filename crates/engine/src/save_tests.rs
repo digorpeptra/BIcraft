@@ -497,7 +497,7 @@ fn mobile_layout_and_format_round_trip_through_pbir_and_pbix() {
 /// Every format the conditional-formatting dialog writes on a table and a matrix (a gradient
 /// with numbers, a middle colour and blank handling, applied to values and totals; rules with
 /// two bounds; icons with their layout and alignment; data bars with both colours, the axis,
-/// right to left and Show bar only; a web URL) reads back the same after a save into a PBIP
+/// right to left and Show bar only; a web URL; a gradient with Percent stops) reads back the same after a save into a PBIP
 /// folder, a PBIX with PBIR parts and a PBIX with a legacy layout.
 #[test]
 fn dialog_conditional_formats_round_trip_through_pbip_and_pbix() {
@@ -518,7 +518,10 @@ fn dialog_conditional_formats_round_trip_through_pbip_and_pbix() {
         {"target": "data_bars", "series": "[Rows]",
          "rule": {"data_bars": {"positive": "#42A5F5", "negative": "#D64550", "axis": "#333333",
                   "reverse": true, "show_bar_only": true, "min": -10.0, "max": 10.0}}},
-        {"target": "web_url", "series": "Calendar[Month]", "rule": {"web_url": {"field": "Calendar[Month]"}}}
+        {"target": "web_url", "series": "Calendar[Month]", "rule": {"web_url": {"field": "Calendar[Month]"}}},
+        {"target": "background", "series": "[Rows]",
+         "rule": {"gradient": {"field": "[Rows]", "min": {"color": "#FFFFFF", "value": 10.0, "percent": true},
+                  "mid": {"color": "#FFFF00", "value": 50.0, "percent": true}, "max": "#00AA00"}}}
     ]);
     let setup = |s: &mut Session, page: &str| -> Vec<String> {
         let fields = json!([{"role": "Values", "field": "Calendar[Month]"},
@@ -558,7 +561,7 @@ fn dialog_conditional_formats_round_trip_through_pbip_and_pbix() {
     let visuals = setup(&mut s, "Overview");
     let before: Vec<Value> = visuals.iter().map(|v| props(&mut s, "Overview", v)).collect();
     for b in &before {
-        assert_eq!(b.as_array().map(Vec::len), Some(5), "{b}");
+        assert_eq!(b.as_array().map(Vec::len), Some(6), "{b}");
     }
     for out in [dir.join("pbip").join("Shop.pbip"), dir.join("Saved.pbix")] {
         run(&mut s, "file.save_as", json!({"path": out}));

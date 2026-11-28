@@ -9,6 +9,9 @@
 //! query; the text is checked a moment after typing stops (`dax.validate_query`), the first error
 //! underlined and told under the editor, as the formula bar does.
 //!
+//! Comment, Find and replace, the Data pane and its quick queries are in
+//! [`crate::dax_query_tools`].
+//!
 //! The tabs, their text and their last results are view state, kept per document
 //! ([`crate::ribbon::DocUi`]). The tabs and their text are also the open file's: they are loaded
 //! from the snapshot's `dax_queries` when a file opens, and handed back with `dax.set_queries` a
@@ -43,6 +46,8 @@ pub const CANCEL: &str = crate::source::CANCEL;
 pub const CHECK: &str = "dax.validate_query";
 /// Hands the tabs to the session (saved with the file).
 pub const SET: &str = "dax.set_queries";
+/// The Define quick queries' text (a table's measures, a measure with its references).
+pub const DEFINE: &str = "dax.define_query";
 /// How long the text stays unchanged before it is checked.
 const CHECK_AFTER: f64 = 0.35;
 /// How long the tabs stay unchanged before they go to the session.
@@ -66,6 +71,8 @@ pub enum Step {
     Format(u64, u64),
     Cancel,
     Sync,
+    /// `dax.define_query`: its query goes to a new tab, run.
+    Define,
 }
 
 /// One EVALUATE's result.
@@ -133,6 +140,15 @@ pub struct QueryView {
     pub focus: bool,
     /// The editor's coloured layout and the key it was built for.
     job: Option<(u64, LayoutJob)>,
+    /// The find and replace row, when open.
+    pub find: Option<crate::dax_query_tools::Find>,
+    /// The Data pane beside the editor.
+    pub data: crate::dax_query_tools::DataPane,
+    /// A character the editor scrolls into view on the next frame (a find match).
+    pub reveal: Option<usize>,
+    /// The editor's selection (tab id, characters) as last seen while it had the keyboard, or
+    /// as a tool left it: egui drops it when the editor loses the keyboard.
+    pub sel: Option<(u64, std::ops::Range<usize>)>,
     /// The snapshot's `dax_queries.generation` the tabs were loaded from.
     loaded: Option<u64>,
     /// The hash of the tabs the session has, and the hash and time of the last change seen.
@@ -516,6 +532,23 @@ pub fn intercept(app: &mut App, id: &str, params: &Value) -> bool {
         flush(app);
         return true;
     }
+    if id == DEFINE {
+        // the Define quick queries: the query in a new tab of the view, run
+        app.show_tab(View::Query);
+        adopt(app);
+        if params.get("table").is_none() && params.get("measure").is_none() {
+            app.status = app
+                .lang
+                .t(
+                    "Right-click a table or a measure in the Data pane to define its measures.",
+                    "Cliquez avec le bouton droit sur une table ou une mesure du volet Données pour définir ses mesures.",
+                )
+                .to_string();
+        } else {
+            crate::dax_query_tools::define(app, params.clone());
+        }
+        return true;
+    }
     if !matches!(id, RUN | APPLY | FORMAT) || params.get("query").is_some() {
         return false;
     }
@@ -676,6 +709,11 @@ pub fn answer(app: &mut App, step: Step, r: Result<Value, String>) {
                 app.status = crate::app::clip(&e, 400);
             }
         }
+        Step::Define => match r.map(|v| v.get("query").and_then(Value::as_str).map(str::to_string)) {
+            Ok(Some(q)) => crate::dax_query_tools::quick(app, q),
+            Ok(None) => {}
+            Err(e) => app.status = crate::app::clip(&e, 400),
+        },
     }
 }
 
@@ -780,19 +818,38 @@ fn applied_text(v: &Value, l: Lang) -> String {
     }
 }
 
-/// Ctrl+Enter and F5 run the tab shown, in the view, even while the editor has the focus.
+/// The editor's id for tab `tab_id`.
+pub fn editor_id(tab_id: u64) -> Id {
+    Id::unique(("bicraft-dax-query-editor", tab_id))
+}
+
+/// The view's keys, even while the editor has the focus: Ctrl+Enter and F5 run the tab shown,
+/// Ctrl+/ comments or uncomments the selected lines, Ctrl+F opens find, Ctrl+H find and
+/// replace.
 pub fn keys(app: &mut App, ui: &Ui) -> bool {
+    use egui::{Key, Modifiers};
     if app.tab != View::Query || app.form.is_some() || app.palette.is_some() || app.confirm.is_some() {
         return false;
     }
-    let hit = ui.input_mut(|i| {
-        i.consume_key(egui::Modifiers::COMMAND, egui::Key::Enter)
-            || i.consume_key(egui::Modifiers::NONE, egui::Key::F5)
+    let (go, comment, find, replace) = ui.input_mut(|i| {
+        (
+            i.consume_key(Modifiers::COMMAND, Key::Enter) || i.consume_key(Modifiers::NONE, Key::F5),
+            // with Shift held too (egui matches logically), as AZERTY types `/`
+            i.consume_key(Modifiers::COMMAND, Key::Slash),
+            i.consume_key(Modifiers::COMMAND, Key::F),
+            i.consume_key(Modifiers::COMMAND, Key::H),
+        )
     });
-    if hit {
+    if go {
         run(app);
     }
-    hit
+    if comment {
+        crate::dax_query_tools::comment(app);
+    }
+    if find || replace {
+        crate::dax_query_tools::open_find(app, replace);
+    }
+    go || comment || find || replace
 }
 
 // --- drawing --------------------------------------------------------------------------------
@@ -804,9 +861,21 @@ enum Act {
     Apply(Option<String>),
     Format,
     Cancel,
+    Comment,
+    Find,
+    DataPane,
+    /// A Data pane field dropped at character `.0`: its reference `.1` inserted there.
+    Drop(usize, String),
 }
 
-/// The view: the tool bar, the editor with its lenses, the results, the tab strip.
+/// Height of the find row.
+const FIND_H: f32 = 34.0;
+/// Width of the Data pane, and the narrowest view that shows it.
+const PANE_W: f32 = 250.0;
+const PANE_MIN_VIEW: f32 = 640.0;
+
+/// The view: the tool bar, the find row, the editor with its lenses, the results, the Data pane,
+/// the tab strip.
 pub fn show(app: &mut App, ui: &mut Ui) {
     let l = app.lang;
     let t = Tokens::of(app.prefs.theme);
@@ -818,10 +887,21 @@ pub fn show(app: &mut App, ui: &mut Ui) {
     let rect = ui.max_rect();
     let bar = Rect::from_min_size(rect.min, vec2(rect.width(), BAR_H));
     let strip = Rect::from_min_max(pos2(rect.min.x, rect.max.y - TABS_H), rect.max);
-    let body = Rect::from_min_max(pos2(rect.min.x, bar.max.y), pos2(rect.max.x, strip.min.y));
-    let editor_h = (body.height() * 0.45).clamp(80.0, 520.0);
+    let middle = Rect::from_min_max(pos2(rect.min.x, bar.max.y), pos2(rect.max.x, strip.min.y));
+    let pane_w = if !app.cmd.dax_query.data.hidden && middle.width() >= PANE_MIN_VIEW {
+        PANE_W
+    } else {
+        0.0
+    };
+    let body = Rect::from_min_max(middle.min, pos2(middle.max.x - pane_w, middle.max.y));
+    let find_h = if app.cmd.dax_query.find.is_some() {
+        FIND_H
+    } else {
+        0.0
+    };
+    let editor_h = ((body.height() - find_h) * 0.45).clamp(80.0, 520.0);
     let editor = Rect::from_min_size(
-        body.min + vec2(12.0, 8.0),
+        body.min + vec2(12.0, 8.0 + find_h),
         vec2((body.width() - 24.0).max(40.0), editor_h),
     );
     let results = Rect::from_min_max(
@@ -840,6 +920,22 @@ pub fn show(app: &mut App, ui: &mut Ui) {
         .hline(bar.x_range(), bar.max.y - 0.5, Stroke::new(1.0, t.separator));
     let mut bui = ui.new_child(egui::UiBuilder::new().max_rect(bar.shrink2(vec2(12.0, 6.0))));
     tool_bar(app, &mut bui, lens_list.len(), &mut act);
+    if find_h > 0.0 {
+        let row = Rect::from_min_size(
+            body.min + vec2(12.0, 4.0),
+            vec2((body.width() - 24.0).max(40.0), find_h - 4.0),
+        );
+        let mut fui = ui.new_child(egui::UiBuilder::new().max_rect(row));
+        crate::dax_query_tools::find_row(app, &mut fui);
+    }
+    if pane_w > 0.0 {
+        let pane = Rect::from_min_max(pos2(body.max.x, middle.min.y), middle.max);
+        ui.painter().rect_filled(pane, CornerRadius::ZERO, t.chrome);
+        ui.painter()
+            .vline(pane.min.x + 0.5, pane.y_range(), Stroke::new(1.0, t.separator));
+        let mut pui = ui.new_child(egui::UiBuilder::new().max_rect(pane.shrink2(vec2(10.0, 8.0))));
+        crate::dax_query_tools::data_pane(app, &mut pui, snap.as_deref());
+    }
     let mut eui = ui.new_child(egui::UiBuilder::new().max_rect(editor));
     editor_ui(app, &mut eui, editor, &lens_list, &mut act);
     let mut rui = ui.new_child(egui::UiBuilder::new().max_rect(results));
@@ -855,6 +951,24 @@ pub fn show(app: &mut App, ui: &mut Ui) {
         Act::Apply(only) => apply(app, only.as_deref()),
         Act::Format => format(app),
         Act::Cancel => cancel(app),
+        Act::Comment => crate::dax_query_tools::comment(app),
+        Act::Find => {
+            if app.cmd.dax_query.find.is_some() {
+                app.cmd.dax_query.find = None;
+            } else {
+                crate::dax_query_tools::open_find(app, false);
+            }
+        }
+        Act::DataPane => {
+            let d = &mut app.cmd.dax_query.data;
+            d.hidden = !d.hidden;
+        }
+        Act::Drop(c, text) => {
+            if let Some(id) = app.cmd.dax_query.active_tab().map(|q| q.id) {
+                app.cmd.dax_query.sel = Some((id, c..c));
+                crate::dax_query_tools::insert(app, &text);
+            }
+        }
     }
 }
 
@@ -923,6 +1037,38 @@ fn tool_bar(app: &mut App, ui: &mut Ui, lenses: usize, act: &mut Act) {
         if r.on_hover_text(tip).clicked() && enabled {
             *act = Act::Format;
         }
+        let r = widgets::small_button(ui, Icon::Edit, l.t("Comment", "Commenter"), true, false);
+        let tip = l.t(
+            "Comment or uncomment the selected lines (Ctrl+/)",
+            "Commenter ou décommenter les lignes sélectionnées (Ctrl+/)",
+        );
+        if r.on_hover_text(tip).clicked() {
+            *act = Act::Comment;
+        }
+        let open = app.cmd.dax_query.find.is_some();
+        let r = widgets::small_button(
+            ui,
+            Icon::Search,
+            l.t("Find and replace", "Rechercher et remplacer"),
+            true,
+            open,
+        );
+        let tip = l.t(
+            "Find and replace in the query (Ctrl+F, Ctrl+H)",
+            "Rechercher et remplacer dans la requête (Ctrl+F, Ctrl+H)",
+        );
+        if r.on_hover_text(tip).clicked() {
+            *act = Act::Find;
+        }
+        let shown = !app.cmd.dax_query.data.hidden;
+        let r = widgets::small_button(ui, Icon::Table, l.t("Data pane", "Volet Données"), true, shown);
+        let tip = l.t(
+            "Show or hide the model's tables, columns and measures",
+            "Afficher ou masquer les tables, colonnes et mesures du modèle",
+        );
+        if r.on_hover_text(tip).clicked() {
+            *act = Act::DataPane;
+        }
         if running {
             let cancel_ok = crate::ribbon::state(app, CANCEL).is_ok();
             let r = widgets::small_button(ui, Icon::Close, l.t("Cancel", "Annuler"), cancel_ok, false);
@@ -939,8 +1085,9 @@ fn tool_bar(app: &mut App, ui: &mut Ui, lenses: usize, act: &mut Act) {
     });
 }
 
-/// The editor of the tab shown, its colours from the formula bar's, and a lens at the right end
-/// of each DEFINE MEASURE line.
+/// The editor of the tab shown, its colours from the formula bar's, a lens on its own line above
+/// each DEFINE MEASURE (at the line's right end when the line has no blank to make room), and
+/// the Data pane's fields dropped where they are released.
 fn editor_ui(app: &mut App, ui: &mut Ui, rect: Rect, lens_list: &[Lens], act: &mut Act) {
     let l = app.lang;
     let t = Tokens::of(app.prefs.theme);
@@ -950,16 +1097,33 @@ fn editor_ui(app: &mut App, ui: &mut Ui, rect: Rect, lens_list: &[Lens], act: &m
     let Some(tab_id) = v.active_tab().map(|q| q.id) else {
         return;
     };
-    let id = Id::unique(("bicraft-dax-query-editor", tab_id));
-    if v.focus {
+    let id = editor_id(tab_id);
+    // a click elsewhere (a Data pane row, a tool bar button) takes the focus in its own frame:
+    // the editor takes it back on the next one
+    let clicking = ctx.input(|i| i.pointer.any_pressed() || i.pointer.any_released());
+    if v.focus && clicking {
+        ctx.request_repaint();
+    } else if v.focus {
         ctx.memory_mut(|m| m.request_focus(id));
         v.focus = false;
+        // the selection a tool left, or the one the editor had before it lost the keyboard
+        if let Some((_, r)) = v.sel.clone().filter(|(t, _)| *t == tab_id) {
+            crate::dax_query_tools::select(&ctx, id, r);
+        }
     }
     let focused = ctx.memory(|m| m.has_focus(id));
     let dark = t.dark;
     let QueryView {
-        tabs, active, job, ..
+        tabs,
+        active,
+        job,
+        find,
+        reveal,
+        sel,
+        ..
     } = v;
+    let find = find.clone();
+    let reveal = reveal.take();
     let Some(tab) = tabs.get_mut(*active) else {
         return;
     };
@@ -980,9 +1144,21 @@ fn editor_ui(app: &mut App, ui: &mut Ui, rect: Rect, lens_list: &[Lens], act: &m
         wrap.to_bits().hash(&mut hs);
         dark.hash(&mut hs);
         under.hash(&mut hs);
+        find.hash(&mut hs);
         let key = hs.finish();
         if job.as_ref().is_none_or(|(k, _)| *k != key) {
-            *job = Some((key, crate::formula::job(s, &Tokens::get(ui.ctx()), under, wrap)));
+            let t = Tokens::get(ui.ctx());
+            let marks = crate::dax_query_tools::marks(find.as_ref(), s, &t);
+            let mut j = crate::formula::job_marked(s, &t, under, wrap, &marks);
+            // room above each DEFINE MEASURE line for its lens
+            let lifts: Vec<std::ops::Range<usize>> = lenses(s, None)
+                .iter()
+                .filter_map(|x| crate::dax_query_tools::lift_range(s, x.at))
+                .collect();
+            let tall =
+                ui.fonts_mut(|f| f.row_height(&crate::formula::mono())) + crate::dax_query_tools::LENS_GAP;
+            crate::dax_query_tools::lift(&mut j, &lifts, tall);
+            *job = Some((key, j));
         }
         let laid = job.as_ref().map(|(_, j)| j.clone()).unwrap_or_default();
         ui.fonts_mut(|f| f.layout_job(laid))
@@ -1017,6 +1193,35 @@ fn editor_ui(app: &mut App, ui: &mut Ui, rect: Rect, lens_list: &[Lens], act: &m
                     o.response.response.widget_info(|| {
                         egui::WidgetInfo::labeled(egui::Role::TextInput, true, l.t("DAX query", "Requête DAX"))
                     });
+                    if focused && let Some(r) = o.cursor_range {
+                        let (a, b) = (r.secondary.index.0, r.primary.index.0);
+                        *sel = Some((tab_id, a.min(b)..a.max(b)));
+                    }
+                    if let Some(c) = reveal {
+                        let at = o.galley.pos_from_cursor(CCursor::new(c));
+                        ui.scroll_to_rect(at.translate(o.galley_pos.to_vec2()).expand(8.0), None);
+                    }
+                    // a Data pane field dragged in: a caret where it would land, and dropped,
+                    // its reference inserted there
+                    let resp = &o.response.response;
+                    let at_pointer = |p: egui::Pos2| o.galley.cursor_from_pos(p - o.galley_pos);
+                    if resp
+                        .dnd_hover_payload::<crate::dax_query_tools::FieldDrag>()
+                        .is_some()
+                        && let Some(p) = ctx.pointer_hover_pos()
+                    {
+                        let r = o
+                            .galley
+                            .pos_from_cursor(at_pointer(p))
+                            .translate(o.galley_pos.to_vec2());
+                        ui.painter()
+                            .vline(r.min.x, r.y_range(), Stroke::new(2.0, t.ring));
+                    }
+                    if let Some(drag) = resp.dnd_release_payload::<crate::dax_query_tools::FieldDrag>()
+                        && let Some(p) = ctx.pointer_interact_pos()
+                    {
+                        *act = Act::Drop(at_pointer(p).index.0, drag.0.clone());
+                    }
                     out = Some((o.galley_pos, o.galley.clone()));
                 });
         });
@@ -1032,8 +1237,17 @@ fn editor_ui(app: &mut App, ui: &mut Ui, rect: Rect, lens_list: &[Lens], act: &m
         }
         let label = lens_text(lens.exists, l);
         let w = ui.fonts_mut(|f| f.layout_no_wrap(label.to_string(), font.clone(), t.text).size().x) + 30.0;
-        let lh = (row.height() - 1.0).clamp(12.0, 20.0);
-        let r = Rect::from_min_size(pos2(inner.max.x - w - 16.0, y - lh / 2.0), vec2(w, lh));
+        let r = if crate::dax_query_tools::lift_range(&text, lens.at).is_some() {
+            // on its own line above the measure, from MEASURE's column
+            let gap = crate::dax_query_tools::LENS_GAP;
+            Rect::from_min_size(pos2(at.x + row.min.x, at.y + row.min.y + 1.0), vec2(w, gap - 3.0))
+        } else {
+            let lh = (row.height() - 1.0).clamp(12.0, 20.0);
+            Rect::from_min_size(pos2(inner.max.x - w - 16.0, y - lh / 2.0), vec2(w, lh))
+        };
+        if r.min.y < inner.min.y - 2.0 {
+            continue;
+        }
         let sense = if apply_ok { Sense::click() } else { Sense::hover() };
         let resp = ui.interact(
             r,

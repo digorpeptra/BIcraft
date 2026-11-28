@@ -231,3 +231,78 @@ fn a_gantt_carries_its_formatting_and_row_states_and_is_drawn() {
     let note = &r["pages"][0]["visuals"][0];
     assert_eq!(note["status"], "drawn", "{note}");
 }
+
+/// The texts `report.render` draws on the Gantt's page.
+fn drawn_texts(s: &mut Session, page: &str) -> Vec<String> {
+    let r = run(
+        s,
+        "report.render",
+        json!({"page": page, "system_fonts": false, "text_dump": true}),
+    );
+    r["pages"][0]["texts"]
+        .as_array()
+        .map(|t| {
+            t.iter()
+                .filter_map(|x| x["t"].as_str().map(str::to_string))
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+#[test]
+fn the_readers_expand_collapse_hides_and_shows_a_categorys_tasks_in_the_view_only() {
+    let (mut s, page, v) = plan();
+    let saved = s.report.as_ref().unwrap().pages[0].visuals[0].clone();
+    assert!(drawn_texts(&mut s, &page).contains(&"Design".to_string()));
+    let toggle = |collapsed: bool| json!({"action": "gantt_toggle", "page": page, "visual": v, "path": ["Build"], "collapsed": collapsed});
+    run(&mut s, "view.interact", toggle(true));
+    let vis = snapshot_visual(&s, &v);
+    assert_eq!(
+        vis["format"]["gantt_rows"],
+        json!([{"path": [{"c": 4, "v": "Build"}], "collapsed": true}])
+    );
+    let texts = drawn_texts(&mut s, &page);
+    assert!(texts.contains(&"Build".to_string()), "{texts:?}");
+    assert!(!texts.contains(&"Design".to_string()) && !texts.contains(&"Code".to_string()));
+    assert!(
+        texts.contains(&"Ship".to_string()),
+        "the other phase stays open: {texts:?}"
+    );
+    // opened again: one entry for the category, the tasks back
+    run(&mut s, "view.interact", toggle(false));
+    let vis = snapshot_visual(&s, &v);
+    assert_eq!(
+        vis["format"]["gantt_rows"],
+        json!([{"path": [{"c": 4, "v": "Build"}], "collapsed": false}])
+    );
+    assert!(drawn_texts(&mut s, &page).contains(&"Design".to_string()));
+    // the report is not changed; reset drops the reader's state
+    assert_eq!(s.report.as_ref().unwrap().pages[0].visuals[0], saved);
+    let state = run(&mut s, "view.interact", toggle(true))["state"].clone();
+    assert_eq!(state["gantt"][0]["rows"][0]["path"], json!(["Build"]), "{state}");
+    run(&mut s, "view.interact", json!({"action": "reset"}));
+    assert!(snapshot_visual(&s, &v)["format"]["gantt_rows"].is_null());
+    // refused: a path deeper than the categories, no state, another visual type
+    for bad in [
+        json!({"action": "gantt_toggle", "page": page, "visual": v, "path": ["Build", "Design"], "collapsed": true}),
+        json!({"action": "gantt_toggle", "page": page, "visual": v, "path": [], "collapsed": true}),
+        json!({"action": "gantt_toggle", "page": page, "visual": v, "path": [["x"]], "collapsed": true}),
+        json!({"action": "gantt_toggle", "page": page, "visual": v, "path": ["Build"]}),
+        json!({"action": "gantt_toggle", "page": page, "visual": v, "path": ["Build"], "collapsed": true, "nope": 1}),
+    ] {
+        assert!(s.execute("view.interact", &bad).is_err(), "{bad}");
+    }
+    let card = run(
+        &mut s,
+        "visual.add",
+        json!({"page": page, "visual_type": "card", "x": 0, "y": 320, "width": 200, "height": 100}),
+    )["visual"]
+        .clone();
+    assert!(
+        s.execute(
+            "view.interact",
+            &json!({"action": "gantt_toggle", "page": page, "visual": card, "path": ["Build"], "collapsed": true}),
+        )
+        .is_err()
+    );
+}

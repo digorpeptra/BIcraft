@@ -1,16 +1,17 @@
 # syntax=docker/dockerfile:1
 #
-# The `bicraft serve` image: one static musl binary on an empty base (docs/kubernetes.md).
+# The `bicraft-cli serve` image: one static musl binary on an empty base (docs/kubernetes.md).
 #
 #   docker build -f deploy/docker/Dockerfile -t bicraft:0.1.0 .
 #
 # builds the binary from the checked-out sources (`cargo build --profile dist --locked`, the
-# profile of the release archives, docs/releasing.md). To package a binary built beforehand by
-# `cargo xtask dist` instead (the `bicraft` file from the linux-x64 archive), pass its folder as a
-# named build context:
+# profile of the release archives, docs/releasing.md). To package a static `bicraft-cli` built
+# beforehand instead (`cargo build --profile dist --locked -p bicraft-cli --bin bicraft-cli --target
+# x86_64-unknown-linux-musl`; the release archive's `bin/bicraft-cli` links glibc dynamically and
+# does not run on this empty base), pass the folder holding it as a named build context:
 #
 #   docker build -f deploy/docker/Dockerfile --build-arg BINARY_SOURCE=prebuilt \
-#     --build-context prebuilt=/path/to/bicraft-0.1.0-linux-x64 -t bicraft:0.1.0 .
+#     --build-context prebuilt=/path/to/folder -t bicraft:0.1.0 .
 #
 # The final image holds the binary, its licence notices (/usr/share/doc/bicraft: LICENSE-MIT,
 # LICENSE-APACHE, NOTICE, THIRD_PARTY_NOTICES.md and licenses/, as in the release archives; `bicraft
@@ -42,16 +43,16 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
     triple="$(rustc -vV | sed -n 's/^host: //p')"; \
     BICRAFT_WEBUI_TOOLS=/tools cargo xtask webui --out /webui; \
     export BICRAFT_WEBUI_DIR=/webui BICRAFT_REQUIRE_WEBUI=1; \
-    cargo build --profile dist --locked -p bicraft-cli --bin bicraft --target "$triple"; \
+    cargo build --profile dist --locked -p bicraft-cli --bin bicraft-cli --target "$triple"; \
     mkdir -p /out; \
-    cp "target/$triple/dist/bicraft" /out/bicraft
+    cp "target/$triple/dist/bicraft-cli" /out/bicraft-cli
 FROM scratch AS bin-source
-COPY --from=build-source /out/bicraft /bicraft
+COPY --from=build-source /out/bicraft-cli /bicraft-cli
 
 # ---------------------------------------------------------------------------------------------
 # Or package a prebuilt static binary (named build context `prebuilt`, see above).
 FROM scratch AS bin-prebuilt
-COPY --from=prebuilt bicraft /bicraft
+COPY --from=prebuilt bicraft-cli /bicraft-cli
 
 FROM bin-${BINARY_SOURCE} AS bin
 
@@ -60,18 +61,18 @@ FROM bin-${BINARY_SOURCE} AS bin
 # volumes (a PersistentVolumeClaim per workspace, a disk-backed emptyDir for /tmp) and the root
 # file system is read-only.
 FROM rust:1.99.1-alpine3.22@sha256:731f64e16c12af70970d9a3655eecb1eecab4898352f09688a8e5ca2ab8b77c5 AS layout
-COPY --from=bin /bicraft /layout/usr/local/bin/bicraft
+COPY --from=bin /bicraft-cli /layout/usr/local/bin/bicraft-cli
 # The notices the licences of the embedded third-party material require (THIRD_PARTY_NOTICES.md).
 COPY LICENSE-MIT LICENSE-APACHE NOTICE THIRD_PARTY_NOTICES.md /layout/usr/share/doc/bicraft/
 COPY licenses/ /layout/usr/share/doc/bicraft/licenses/
 # The checks: the binary runs, and it embeds the browser app (docs/webui.md; a release binary
 # without it is refused, prebuilt ones too).
 RUN set -eu; \
-    /layout/usr/local/bin/bicraft --version; \
-    /layout/usr/local/bin/bicraft build-info | grep -q '"embedded":true'; \
+    /layout/usr/local/bin/bicraft-cli --version; \
+    /layout/usr/local/bin/bicraft-cli build-info | grep -q '"embedded":true'; \
     mkdir -p /layout/srv/bicraft /layout/tmp; \
     chown 65532:65532 /layout/srv/bicraft; \
-    chmod 0755 /layout/usr/local/bin/bicraft /layout/srv/bicraft; \
+    chmod 0755 /layout/usr/local/bin/bicraft-cli /layout/srv/bicraft; \
     chmod -R a+rX,go-w /layout/usr/share/doc/bicraft; \
     chmod 1777 /layout/tmp
 
@@ -87,9 +88,9 @@ USER 65532:65532
 ENV TMPDIR=/tmp \
     BICRAFT_SPILL_DIR=/tmp
 EXPOSE 7878
-# `bicraft serve` refuses a non-loopback address until authentication is configured
+# `bicraft-cli serve` refuses a non-loopback address until authentication is configured
 # (BICRAFT_API_TOKENS_FILE, BICRAFT_OIDC_ISSUERS, BICRAFT_TRUSTED_PROXIES or BICRAFT_AUTH_CONFIG,
 # plus BICRAFT_AUTH_GRANTS and BICRAFT_ALLOWED_HOSTS or BICRAFT_PUBLIC_URL: docs/auth.md). The
 # default command serves the subfolders of /srv/bicraft on every interface.
-ENTRYPOINT ["/usr/local/bin/bicraft", "serve"]
+ENTRYPOINT ["/usr/local/bin/bicraft-cli", "serve"]
 CMD ["--root", "/srv/bicraft", "--listen", "0.0.0.0:7878"]

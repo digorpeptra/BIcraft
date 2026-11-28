@@ -85,11 +85,11 @@ commands:
                   time and peak memory of the CSV ingestion over the engine bench's Ventes.csv
                   (re-runs xtask in release with --features bench; docs/benchmarks.md)
   concurrency-bench --bin BICRAFT --data FILE.pbix [--base-bin B] [--parallel N] [--rounds R]
-                  N identical queries at once on one workspace of `bicraft serve`, reads
+                  N identical queries at once on one workspace of `bicraft-cli serve`, reads
                   serialized against side by side, answers compared (docs/benchmarks.md)
   render-compare DESKTOP_DIR OURS_DIR LAYOUT.json [--json] [--diff DIR]
                   [--min-sim X] [--floors FILE]
-                  per-visual scores of `bicraft render` against Power BI Desktop
+                  per-visual scores of `bicraft-cli render` against Power BI Desktop
                   captures (tools/render-oracle; docs/render.md)
   oracle-gen synth|grids|parts|slicers|expand|kpis|states|interactions ARGS
                   synthetic reports of the render oracle (tools/render-oracle/README.md)
@@ -107,7 +107,7 @@ commands:
   tmdl-model [LEVEL] [--out FILE]
                   the synthetic TMSL model of the TMDL oracle (docs/formats/tmdl.md)
   oracle-gen uilang OUT.pbix COMMANDS.json LAYOUT.json [CULTURE]
-                  write the UI-language oracle report's `bicraft run` commands
+                  write the UI-language oracle report's `bicraft-cli run` commands
                   (auto titles, aggregation names, (Blank), Total, empty visuals, formats)
   layout-oracle gen|install DIR
                   synthetic legacy reports for the legacy -> PBIR oracle (G13;
@@ -121,11 +121,11 @@ commands:
                   Microsoft publishes (network; exit 0 ok, 1 action needed, 2 failure;
                   docs/schema-watch.md)
   deploy check|smoke|kind-smoke|controller-smoke [ARGS]
-                  Kubernetes packaging of `bicraft serve`: static checks of deploy/, a
+                  Kubernetes packaging of `bicraft-cli serve`: static checks of deploy/, a
                   container-free smoke test, the kind/Helm flow, the workspace controller in
                   kind (docs/kubernetes.md)
   dist [--out DIR] [--only windows|linux] [--no-build] [--no-smoke]
-                  release archives (zip, tar.gz, SHA256SUMS) of the bicraft binary in a
+                  release archives (zip, tar.gz, SHA256SUMS) of the bicraft-cli binary in a
                   folder outside the repo (default ~/bicraft-dist); Linux built in WSL;
                   smoke-tested from the extracted archives (docs/releasing.md)
   wsl [ci|test|layers|heavy] [ARGS]

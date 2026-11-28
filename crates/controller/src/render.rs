@@ -11,7 +11,7 @@ use crate::config::{
 };
 use crate::spec::{Workspace, claim_name, object_name, recovery_claim_name};
 
-/// Where `bicraft serve` keeps its workspaces in the pod.
+/// Where `bicraft-cli serve` keeps its workspaces in the pod.
 pub const ROOT: &str = "/srv/bicraft";
 /// Where the recovery journals' volume is mounted (`--recovery-dir`; the server writes
 /// `<dir>/<workspace>/`): outside [`ROOT`], so no file listing or download reaches them.

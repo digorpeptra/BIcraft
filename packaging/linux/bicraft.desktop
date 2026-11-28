@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=BIcraft
+GenericName=Report reader
+Comment=Open, read and edit Power BI reports and models
+Exec=bicraft %f
+TryExec=bicraft
+Icon=io.github.digorpeptra.bicraft
+Terminal=false
+Categories=Office;Development;
+MimeType=application/x-pbix;application/x-pbit;application/x-pbip;
+Keywords=pbix;pbit;pbip;report;dashboard;DAX;
+StartupWMClass=io.github.digorpeptra.bicraft

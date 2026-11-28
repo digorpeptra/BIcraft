@@ -10,5 +10,5 @@ documentation text or message is stored here.
   Value.Type, Type.FunctionParameters, Type.FunctionRequiredParameters, Type.FunctionReturn,
   Type.IsNullable and Type.Is against the primitive types; a second query listed every name of
   #shared with its kind and parameter counts. Desktop opened the file, refreshed it (Home >
-  Refresh) and saved it; BIcraft read the loaded tables back (bicraft dax-query). Desktop was
+  Refresh) and saved it; BIcraft read the loaded tables back (bicraft-cli dax-query). Desktop was
   used as a black box: our input, the file it wrote. See docs/dax-oracle.md "M signatures".

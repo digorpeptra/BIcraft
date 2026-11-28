@@ -2,7 +2,7 @@
 // Power BI Desktop highlights, rather than filters, when a data point of another visual is
 // selected. Windows only, development aid.
 //   node highlight_probe.mjs gen DIR MODEL.bim   -> DIR\{model.bim, cmds1.json, cmds2.json, plan.json}
-//   bicraft run --file DIR\cmds1.json; bicraft run --file DIR\cmds2.json   -> DIR\interactions.pbix
+//   bicraft-cli run --file DIR\cmds1.json; bicraft-cli run --file DIR\cmds2.json   -> DIR\interactions.pbix
 //   powershell -File xtask\interaction-oracle\record.ps1 -Dir DIR -Settle 10000
 //   node highlight_probe.mjs verdicts DIR > verdicts.json
 // One page holds a source bar chart (Product[Category]) and one target per type, each with a

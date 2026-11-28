@@ -1,51 +1,51 @@
-//! The `bicraft` command-line tool.
+//! The `bicraft-cli` command-line tool.
 //!
 //! ```text
-//! bicraft commands [FILTER]                                # list commands (JSON)
-//! bicraft describe ID                                      # one command (JSON)
-//! bicraft run [--open PATH] --cmd 'ID[={JSON}]' [--cmd ...] [--file PATH] [--save] [--no-atomic]
+//! bicraft-cli commands [FILTER]                            # list commands (JSON)
+//! bicraft-cli describe ID                                  # one command (JSON)
+//! bicraft-cli run [--open PATH] --cmd 'ID[={JSON}]' [--cmd ...] [--file PATH] [--save] [--no-atomic]
 //!                                                           # run commands in order (JSON);
 //!                                                           # --file: a JSON array of
 //!                                                           # {command, params} (- for stdin);
 //!                                                           # --save runs file.save at the end;
 //!                                                           # all or nothing unless --no-atomic
-//! bicraft dax-query PATH (QUERY | --file PATH) [--max-rows N] [--timeout-ms N] [--no-cache-abf] [--as-of DATE] [--cache-abf F]
+//! bicraft-cli dax-query PATH (QUERY | --file PATH) [--max-rows N] [--timeout-ms N] [--no-cache-abf] [--as-of DATE] [--cache-abf F]
 //!                                                           # dax.evaluate over the file's data
-//! bicraft refresh PATH [--allow-connector databricks]... [--table T]... [--external-links] [--data-root DIR]
+//! bicraft-cli refresh PATH [--allow-connector databricks]... [--table T]... [--external-links] [--data-root DIR]
 //!                                                           # model.refresh (token: BICRAFT_DATABRICKS_TOKEN)
-//! bicraft new-project DIR NAME [--format tmdl|tmsl] [--open PATH]
+//! bicraft-cli new-project DIR NAME [--format tmdl|tmsl] [--open PATH]
 //!                                                           # project.new (from PATH's model)
-//! bicraft inspect PATH                                     # file.open + file.inspect
-//! bicraft convert IN OUT [--format F] [--report-format keep|pbir] [--no-cache] [--empty-tables]
+//! bicraft-cli inspect PATH                                 # file.open + file.inspect
+//! bicraft-cli convert IN OUT [--format F] [--report-format keep|pbir] [--no-cache] [--empty-tables]
 //!                  [--data-root DIR] [--overwrite] [--strict]
 //!                                                           # file.convert (PBIX/PBIT/PBIP/bim)
-//! bicraft diff A B [--json|--markdown] [--model-only|--report-only] [--ignore-formatting]
+//! bicraft-cli diff A B [--json|--markdown] [--model-only|--report-only] [--ignore-formatting]
 //!              [--ignore-positions] [--ignore-whitespace] [--exit-code]
 //!                                                           # file.diff (any formats; docs/diff.md)
-//! bicraft diff --git REV1 [REV2] PATH [options]            # a project between git revisions
-//! bicraft diff --textconv FILE                             # git textconv (file.textconv)
-//! bicraft validate-dax EXPRESSION [--model PATH] [--table T]
-//! bicraft validate-dax-query (QUERY | --file PATH) [--model PATH]
-//! bicraft validate-m (EXPRESSION | --file PATH) [--model PATH]
+//! bicraft-cli diff --git REV1 [REV2] PATH [options]        # a project between git revisions
+//! bicraft-cli diff --textconv FILE                         # git textconv (file.textconv)
+//! bicraft-cli validate-dax EXPRESSION [--model PATH] [--table T]
+//! bicraft-cli validate-dax-query (QUERY | --file PATH) [--model PATH]
+//! bicraft-cli validate-m (EXPRESSION | --file PATH) [--model PATH]
 //!                                                           # dax.validate_query
-//! bicraft validate-model PATH
-//! bicraft analyze PATH [--rules FILE]... [--no-default-rules] [--rule-id ID]... [--severity-min S]
+//! bicraft-cli validate-model PATH
+//! bicraft-cli analyze PATH [--rules FILE]... [--no-default-rules] [--rule-id ID]... [--severity-min S]
 //!                                                           # model.analyze (best-practice rules)
-//! bicraft usage PATH [OBJECT] [--kind K] [--report P]... [--no-graph]   # model.usage
-//! bicraft unused PATH [--report P]... [--allow PATTERN]... [--ignore-metadata] [--remove [--object O]... [--dry-run] [--force] [--save]]
+//! bicraft-cli usage PATH [OBJECT] [--kind K] [--report P]... [--no-graph]   # model.usage
+//! bicraft-cli unused PATH [--report P]... [--allow PATTERN]... [--ignore-metadata] [--remove [--object O]... [--dry-run] [--force] [--save]]
 //!                                                           # model.unused / model.remove_unused
-//! bicraft validate-report PATH                             # report.validate (fields vs model)
-//! bicraft test [PATH] [--tests F] [--format text|json|junit|sarif] [--output F] [--fail-on error|warning]
+//! bicraft-cli validate-report PATH                         # report.validate (fields vs model)
+//! bicraft-cli test [PATH] [--tests F] [--format text|json|junit|sarif] [--output F] [--fail-on error|warning]
 //!                                                           # project.test (CI quality gates)
-//! bicraft sources PATH | sources rebase PATH --from A [--to B] [--param P] [--server O=N]... [--dry-run]
+//! bicraft-cli sources PATH | sources rebase PATH --from A [--to B] [--param P] [--server O=N]... [--dry-run]
 //!                                                           # sources.list / sources.rebase (saves)
-//! bicraft env apply|check PATH PROFILE [--env-file F] [--dry-run]   # env.apply / env.check
-//! bicraft render PATH [--page P] [--out F.png|DIR] [--scale N] [--lang TAG] [--culture NAME]
+//! bicraft-cli env apply|check PATH PROFILE [--env-file F] [--dry-run]   # env.apply / env.check
+//! bicraft-cli render PATH [--page P] [--out F.png|DIR] [--scale N] [--lang TAG] [--culture NAME]
 //!                 [--format-culture NAME] [--as-of DATE]    # report.render
-//! bicraft export-pdf PATH [--out F.pdf] [--pages all|current|2-4|NAMES] [--hidden]  # report.export_pdf
-//! bicraft mcp                                              # MCP server on stdio
-//! bicraft mcp --view [--view-port N] [--open] [--lang TAG] [--no-open-button]  # ... plus the live viewer
-//! bicraft serve --root DIR [--listen ADDR] [--allow-network] [--allow-origin O]... [--max-body-bytes N] [--queue N]
+//! bicraft-cli export-pdf PATH [--out F.pdf] [--pages all|current|2-4|NAMES] [--hidden]  # report.export_pdf
+//! bicraft-cli mcp                                          # MCP server on stdio
+//! bicraft-cli mcp --view [--view-port N] [--open] [--lang TAG] [--no-open-button]  # ... plus the live viewer
+//! bicraft-cli serve --root DIR [--listen ADDR] [--allow-network] [--allow-origin O]... [--max-body-bytes N] [--queue N]
 //!               [auth flags: --auth-config F, --public-url U, --oidc-issuer U, --api-tokens F,
 //!               --trusted-proxy CIDR, --grant SUBJECT=WORKSPACES, --reader-grant ..., ... (docs/auth.md)]
 //!                                                           # MCP over Streamable HTTP (2026-07-28),
@@ -54,27 +54,27 @@
 //!               [--max-upload-bytes N] [--shutdown-grace SECS] [--idle-timeout SECS]
 //!               [--ready-memory-percent P] [--drain-on-stdin-close]  # files at /w/<id>/files/, /healthz, /readyz,
 //!                                                           # graceful drain on SIGTERM / Ctrl+C
-//! bicraft serve token create --name NAME [--role R]... [--group G]...  # a new API token (hash entry)
-//! bicraft serve token hash                                 # hash entry of a token read on stdin
-//! bicraft controller --config F [--listen ADDR] [--kube-api URL] [--namespace NS] [--admin SUBJECT]...
+//! bicraft-cli serve token create --name NAME [--role R]... [--group G]...  # a new API token (hash entry)
+//! bicraft-cli serve token hash                             # hash entry of a token read on stdin
+//! bicraft-cli controller --config F [--listen ADDR] [--kube-api URL] [--namespace NS] [--admin SUBJECT]...
 //!                    [--interval SECS] [--shutdown-grace SECS] [auth flags of serve]
 //!                                                           # Kubernetes workspace controller + gateway
-//! bicraft vpax PATH OUT.vpax [--overwrite] [--no-model-bim] [--cache-abf F]  # model.export_vpax
-//! bicraft redact PATH OUT [--data] [--overwrite]          # file.redact: a copy without secrets
-//! bicraft visual new DIR NAME [--role R]... [--format F]... | build DIR [--out F] | pack DIR [--out F]
-//! bicraft visual export NAME... | --all [--out F.pbiviz|DIR]       # visual.export_bicraft_visual
+//! bicraft-cli vpax PATH OUT.vpax [--overwrite] [--no-model-bim] [--cache-abf F]  # model.export_vpax
+//! bicraft-cli redact PATH OUT [--data] [--overwrite]      # file.redact: a copy without secrets
+//! bicraft-cli visual new DIR NAME [--role R]... [--format F]... | build DIR [--out F] | pack DIR [--out F]
+//! bicraft-cli visual export NAME... | --all [--out F.pbiviz|DIR]   # visual.export_bicraft_visual
 //!                                                           # visual.scaffold / build / pack (swc, no Node)
-//! bicraft view PATH [--port N] [--open] [--data-root DIR] [--lang TAG] [--culture NAME]  # live viewer,
+//! bicraft-cli view PATH [--port N] [--open] [--data-root DIR] [--lang TAG] [--culture NAME]  # live viewer,
 //!                                                           # re-read when it changes on disk;
 //!                                                           # M queries may read files under DIR;
 //!                                                           # slicers, cross-filtering, navigation
 //!                                                           # (session only; --read-only: off)
-//! bicraft setup [--client ID]... [--dry-run] [--yes] [--json] [--uninstall]
-//!                                                           # register `bicraft mcp` with agents
-//! bicraft setup doctor [--client ID]... [--json]           # handshake + registration check
-//! bicraft licenses                                        # licence and third-party notices
-//! bicraft build-info                                      # version, commit, embedded browser app (JSON)
-//! bicraft --version | help
+//! bicraft-cli setup [--client ID]... [--dry-run] [--yes] [--json] [--uninstall]
+//!                                                           # register `bicraft-cli mcp` with agents
+//! bicraft-cli setup doctor [--client ID]... [--json]       # handshake + registration check
+//! bicraft-cli licenses                                    # licence and third-party notices
+//! bicraft-cli build-info                                  # version, commit, embedded browser app (JSON)
+//! bicraft-cli --version | help
 //! ```
 //!
 //! JSON goes to stdout, errors to stderr. Exit codes: 0 success / valid, 1 invalid or a command
@@ -122,133 +122,133 @@ mod test_cmd;
 mod ui_cmd;
 mod view_cmd;
 
-const USAGE: &str = "usage: bicraft commands [FILTER]
-       bicraft describe COMMAND
-       bicraft run [--open PATH] [--cmd 'ID[={JSON}]']... [--file COMMANDS.json] [--save] [--no-atomic]
-       bicraft dax-query PATH (QUERY | --file QUERY.dax) [--max-rows N] [--timeout-ms N] [--no-cache-abf]
-                          [--as-of YYYY-MM-DD[THH:MM:SS]] [--cache-abf CACHE.abf]
-       bicraft refresh PATH [--allow-connector databricks]... [--table TABLE]... [--external-links]
-                        [--data-root DIR] [--backup]
-                        (PBIX: writes the new rows into the file's DataModel; PBIP: into
-                        .pbi/bicraft-data.bin; the Databricks token comes from BICRAFT_DATABRICKS_TOKEN,
-                        else a masked prompt, never an argument)
-       bicraft new-project DIR NAME [--format tmdl|tmsl] [--open PATH]
-       bicraft inspect PATH
-       bicraft convert IN OUT [--format pbix|pbit|pbip-tmdl|pbip-tmsl|bim]
-                        [--report-format keep|pbir] [--no-cache] [--empty-tables]
-                        [--data-root DIR] [--overwrite] [--strict]
-                        (IN may be an Excel .xlsx/.xlsm workbook with a Power Pivot data model)
-       bicraft diff A B [--json|--markdown|--text] [--model-only|--report-only] [--ignore-formatting]
-                    [--ignore-positions] [--ignore-whitespace] [--exit-code]
-       bicraft diff --git REV1 [REV2] PATH [diff options]   (REV2 omitted: the working tree)
-       bicraft diff --textconv FILE
-       bicraft import SOURCE TARGET [--measure SEL]... [--table SEL]... [--column TABLE[COLUMN]]...
-                      [--calculation-group SEL]... [--function SEL]... [--expression SEL]... [--role SEL]...
-                      [--page SEL]... [--visual PAGE/VISUAL]... [--target-page PAGE] [--bookmark SEL]... [--theme]
-                      [--on-conflict fail|skip|replace|rename] [--rename-suffix S] [--into-table TABLE]
-                      [--no-dependencies] [--no-relationships] [--allow-broken] [--dry-run] [--no-backup] [--json]
-                      (copies objects from SOURCE into TARGET with what they use, then saves TARGET;
-                      selectors are names, Table[Name] or * ? patterns: docs/mcp.md, Importing objects)
-       bicraft diff PATH OLD-FILE OLD-HEX OLD-MODE NEW-FILE NEW-HEX NEW-MODE   (git external diff)
-                    (semantic diff of PBIX/PBIT/PBIP/model.bim, metadata only: docs/diff.md;
-                    --exit-code: exit 1 when the files differ)
-       bicraft validate-dax EXPRESSION [--model PATH] [--table TABLE]
-       bicraft validate-dax-query (QUERY | --file PATH) [--model PATH]
-       bicraft validate-m (EXPRESSION | --file PATH) [--model PATH]
-       bicraft validate-model PATH
-       bicraft analyze PATH [--rules FILE]... [--no-default-rules] [--no-report-rules] [--rule-id ID]...
-                        [--severity-min 1-5|info|warning|error] [--max-findings N]
-       bicraft usage PATH [OBJECT] [--kind table|column|measure|expression] [--report PATH]... [--no-graph]
-                        (where OBJECT is used: DAX, RLS, relationships, the report; every object without it)
-       bicraft unused PATH [--report PATH]... [--allow PATTERN]... [--ignore-metadata]
-                        [--remove [--object OBJECT]... [--dry-run] [--force] [--save]]
-                        (unused measures, columns, calculated tables, M expressions; exit 1 when some are;
-                        --ignore-metadata: perspectives, translations, Q&A keep nothing; --remove
-                        removes them in one edit, --save writes the file)
-       bicraft validate-report PATH
-       bicraft test [PATH] [--tests FILE] [--format text|json|junit|sarif] [--output FILE]
-                    [--fail-on error|warning]
-                    (CI quality gates from bicraft.tests.yaml: docs/ci-tests.md; exit 0 passed,
-                    1 a test failed, 2 usage error, invalid test file or unreadable project)
-       bicraft sources PATH
-       bicraft sources rebase PATH [--from ROOT] [--to ROOT] [--param NAME] [--server OLD=NEW]...
-                    [--database OLD=NEW]... [--host OLD=NEW]... [--http-path OLD=NEW]... [--url OLD=NEW]...
-                    [--dry-run]   (M data sources; rebase saves unless --dry-run: docs/sources-env.md)
-       bicraft env apply PATH PROFILE [--env-file FILE] [--dry-run]
-       bicraft env check PATH PROFILE [--env-file FILE]
-                    (profiles of bicraft.env.yaml; check exits 1 when the profile leaves gaps)
-       bicraft mcp [--view [--view-port N] [--open] [--lang TAG] [--no-open-button]]
-       bicraft serve --root DIR [--listen 127.0.0.1:7878] [--allow-network] [--allow-origin ORIGIN]...
-                     [--max-body-bytes N] [--queue N]
-                     [--auth-config FILE] [--public-url URL] [--allow-host HOST]...
-                     [--oidc-issuer URL]... [--oidc-audience AUD]... [--oidc-scope SCOPE]...
-                     [--api-tokens FILE] [--trusted-proxy CIDR]... [--proxy-user-header H]
-                     [--proxy-email-header H] [--proxy-groups-header H] [--grant SUBJECT=WORKSPACES]...
-                     [--reader-grant SUBJECT=WORKSPACES]...
-                     [--max-upload-bytes N] [--shutdown-grace SECS] [--idle-timeout SECS]
-                     [--ready-memory-percent P] [--drain-on-stdin-close]
-                     [--no-viewer] [--viewer-copies N] [--max-viewers N]
-                     [--max-concurrent-reads N] [--max-views-per-user N] [--max-views N] [--view-idle SECS]
-                     [--recovery-dir DIR] [--allow-autosave]
-                     [--viewer-control [--viewer-control-file F]] [--local-offset ±HH:MM|MIN|UTC|machine]
-                     (MCP over Streamable HTTP, revision 2026-07-28, at /w/<WORKSPACE>/mcp, one workspace
-                     per subfolder of DIR, tool paths confined to it; loopback only unless an
-                     authentication mode is configured: docs/auth.md; files at /w/<WORKSPACE>/files/,
-                     the live viewer at /w/<WORKSPACE>/view/ (private views; readers see saved files),
-                     --viewer-control: the UI control channel relayed to editors' app pages,
-                     probes /healthz and /readyz, graceful drain on SIGTERM or Ctrl+C:
-                     docs/web-deployment.md)
-       bicraft serve token create --name NAME [--role ROLE]... [--group GROUP]...
-       bicraft serve token hash   (reads a token on stdin, prints its tokens-file entry)
-       bicraft controller --config FILE [--listen 127.0.0.1:7979] [--kube-api URL] [--namespace NS]
-                     [--admin SUBJECT]... [--interval SECS] [--shutdown-grace SECS] [auth flags of serve]
-                     (the Kubernetes workspace controller: reconciles BicraftWorkspace resources, gateway
-                     with wake on request and idle scale to zero, admin API: docs/kubernetes.md)
-       bicraft vpax PATH OUT.vpax [--overwrite] [--no-model-bim] [--cache-abf CACHE.abf]
-       bicraft redact PATH OUT [--data] [--overwrite]
-                      (a copy of a PBIX, PBIT or PBIP for bug reports: connection strings, credentials,
-                      servers, databases, paths and URLs replaced by stable placeholders; --data: the
-                      stored text values too; every written byte checked)
-       bicraft visual new DIR NAME [--display-name N] [--guid G] [--author A] [--overwrite]
-                      [--role NAME:Grouping|Measure|GroupingOrMeasure]... [--format OBJECT.PROP:bool|color|numeric|text]...
-       bicraft visual build DIR [--out FILE.js]
-       bicraft visual pack DIR [--out FILE.pbiviz]
-                      (custom visual projects: the TypeScript compiled and bundled with swc, no Node;
-                      pack writes the .pbiviz that visual.import_custom reads: docs/formats/pbiviz.md)
-       bicraft visual export NAME... | --all [--out FILE.pbiviz|DIR]
-                      (BIcraft's own visuals as .pbiviz files for Desktop's Import a visual from a file
-                      and organizational visuals; default --out: the current folder, each file named
-                      GUID.VERSION.pbiviz; several names or --all write into a folder)
-       bicraft view PATH [--port N] [--open] [--data-root DIR] [--lang TAG] [--culture NAME]
-                     [--as-of YYYY-MM-DD] [--cache-abf CACHE.abf] [--no-open-button] [--read-only]
-                     [--ui html|egui] [--control [--control-file F]]
-                     (egui: the desktop app's UI in the browser at /app/, docs/webui.md; --control:
-                     the UI control channel relayed to that page, its token in an owner-only file)
-       bicraft ui [--control FILE | --view | --serve] [--url URL] [--workspace ID] [--view-id V]
-                     METHOD [PARAMS-JSON] [--out FILE.png]
-                     (drives a running app through its control channel: bicraft-desktop --control,
-                     bicraft view --control, bicraft serve --viewer-control (credential:
-                     BICRAFT_SERVER_TOKEN); `bicraft ui methods` lists them; docs/desktop.md)
-       bicraft render PATH [--page NAME|INDEX] [--out FILE.png|DIR] [--scale N]
-                       [--font-dir DIR]... [--no-system-fonts] [--no-badges] [--data-root DIR]
-                       [--lang TAG] [--culture NAME] [--format-culture NAME] [--text-json] [--lcd-text]
-                       [--as-of YYYY-MM-DD] [--cache-abf CACHE.abf] [--fail-on-empty]
-                       [--key-influencers placeholder|estimate]
-       bicraft export-pdf PATH [--out FILE.pdf] [--pages all|current|2-4|NAME,NAME] [--hidden]
-                       [--title TEXT] [--scale N] [--font-dir DIR]... [--no-system-fonts]
-                       [--data-root DIR] [--lang TAG] [--format-culture NAME] [--as-of DATE]
+const USAGE: &str = "usage: bicraft-cli commands [FILTER]
+       bicraft-cli describe COMMAND
+       bicraft-cli run [--open PATH] [--cmd 'ID[={JSON}]']... [--file COMMANDS.json] [--save] [--no-atomic]
+       bicraft-cli dax-query PATH (QUERY | --file QUERY.dax) [--max-rows N] [--timeout-ms N] [--no-cache-abf]
+                              [--as-of YYYY-MM-DD[THH:MM:SS]] [--cache-abf CACHE.abf]
+       bicraft-cli refresh PATH [--allow-connector databricks]... [--table TABLE]... [--external-links]
+                            [--data-root DIR] [--backup]
+                            (PBIX: writes the new rows into the file's DataModel; PBIP: into
+                            .pbi/bicraft-data.bin; the Databricks token comes from BICRAFT_DATABRICKS_TOKEN,
+                            else a masked prompt, never an argument)
+       bicraft-cli new-project DIR NAME [--format tmdl|tmsl] [--open PATH]
+       bicraft-cli inspect PATH
+       bicraft-cli convert IN OUT [--format pbix|pbit|pbip-tmdl|pbip-tmsl|bim]
+                            [--report-format keep|pbir] [--no-cache] [--empty-tables]
+                            [--data-root DIR] [--overwrite] [--strict]
+                            (IN may be an Excel .xlsx/.xlsm workbook with a Power Pivot data model)
+       bicraft-cli diff A B [--json|--markdown|--text] [--model-only|--report-only] [--ignore-formatting]
+                        [--ignore-positions] [--ignore-whitespace] [--exit-code]
+       bicraft-cli diff --git REV1 [REV2] PATH [diff options]   (REV2 omitted: the working tree)
+       bicraft-cli diff --textconv FILE
+       bicraft-cli import SOURCE TARGET [--measure SEL]... [--table SEL]... [--column TABLE[COLUMN]]...
+                          [--calculation-group SEL]... [--function SEL]... [--expression SEL]... [--role SEL]...
+                          [--page SEL]... [--visual PAGE/VISUAL]... [--target-page PAGE] [--bookmark SEL]... [--theme]
+                          [--on-conflict fail|skip|replace|rename] [--rename-suffix S] [--into-table TABLE]
+                          [--no-dependencies] [--no-relationships] [--allow-broken] [--dry-run] [--no-backup] [--json]
+                          (copies objects from SOURCE into TARGET with what they use, then saves TARGET;
+                          selectors are names, Table[Name] or * ? patterns: docs/mcp.md, Importing objects)
+       bicraft-cli diff PATH OLD-FILE OLD-HEX OLD-MODE NEW-FILE NEW-HEX NEW-MODE   (git external diff)
+                        (semantic diff of PBIX/PBIT/PBIP/model.bim, metadata only: docs/diff.md;
+                        --exit-code: exit 1 when the files differ)
+       bicraft-cli validate-dax EXPRESSION [--model PATH] [--table TABLE]
+       bicraft-cli validate-dax-query (QUERY | --file PATH) [--model PATH]
+       bicraft-cli validate-m (EXPRESSION | --file PATH) [--model PATH]
+       bicraft-cli validate-model PATH
+       bicraft-cli analyze PATH [--rules FILE]... [--no-default-rules] [--no-report-rules] [--rule-id ID]...
+                            [--severity-min 1-5|info|warning|error] [--max-findings N]
+       bicraft-cli usage PATH [OBJECT] [--kind table|column|measure|expression] [--report PATH]... [--no-graph]
+                            (where OBJECT is used: DAX, RLS, relationships, the report; every object without it)
+       bicraft-cli unused PATH [--report PATH]... [--allow PATTERN]... [--ignore-metadata]
+                            [--remove [--object OBJECT]... [--dry-run] [--force] [--save]]
+                            (unused measures, columns, calculated tables, M expressions; exit 1 when some are;
+                            --ignore-metadata: perspectives, translations, Q&A keep nothing; --remove
+                            removes them in one edit, --save writes the file)
+       bicraft-cli validate-report PATH
+       bicraft-cli test [PATH] [--tests FILE] [--format text|json|junit|sarif] [--output FILE]
+                        [--fail-on error|warning]
+                        (CI quality gates from bicraft.tests.yaml: docs/ci-tests.md; exit 0 passed,
+                        1 a test failed, 2 usage error, invalid test file or unreadable project)
+       bicraft-cli sources PATH
+       bicraft-cli sources rebase PATH [--from ROOT] [--to ROOT] [--param NAME] [--server OLD=NEW]...
+                        [--database OLD=NEW]... [--host OLD=NEW]... [--http-path OLD=NEW]... [--url OLD=NEW]...
+                        [--dry-run]   (M data sources; rebase saves unless --dry-run: docs/sources-env.md)
+       bicraft-cli env apply PATH PROFILE [--env-file FILE] [--dry-run]
+       bicraft-cli env check PATH PROFILE [--env-file FILE]
+                        (profiles of bicraft.env.yaml; check exits 1 when the profile leaves gaps)
+       bicraft-cli mcp [--view [--view-port N] [--open] [--lang TAG] [--no-open-button]]
+       bicraft-cli serve --root DIR [--listen 127.0.0.1:7878] [--allow-network] [--allow-origin ORIGIN]...
+                         [--max-body-bytes N] [--queue N]
+                         [--auth-config FILE] [--public-url URL] [--allow-host HOST]...
+                         [--oidc-issuer URL]... [--oidc-audience AUD]... [--oidc-scope SCOPE]...
+                         [--api-tokens FILE] [--trusted-proxy CIDR]... [--proxy-user-header H]
+                         [--proxy-email-header H] [--proxy-groups-header H] [--grant SUBJECT=WORKSPACES]...
+                         [--reader-grant SUBJECT=WORKSPACES]...
+                         [--max-upload-bytes N] [--shutdown-grace SECS] [--idle-timeout SECS]
+                         [--ready-memory-percent P] [--drain-on-stdin-close]
+                         [--no-viewer] [--viewer-copies N] [--max-viewers N]
+                         [--max-concurrent-reads N] [--max-views-per-user N] [--max-views N] [--view-idle SECS]
+                         [--recovery-dir DIR] [--allow-autosave]
+                         [--viewer-control [--viewer-control-file F]] [--local-offset ±HH:MM|MIN|UTC|machine]
+                         (MCP over Streamable HTTP, revision 2026-07-28, at /w/<WORKSPACE>/mcp, one workspace
+                         per subfolder of DIR, tool paths confined to it; loopback only unless an
+                         authentication mode is configured: docs/auth.md; files at /w/<WORKSPACE>/files/,
+                         the live viewer at /w/<WORKSPACE>/view/ (private views; readers see saved files),
+                         --viewer-control: the UI control channel relayed to editors' app pages,
+                         probes /healthz and /readyz, graceful drain on SIGTERM or Ctrl+C:
+                         docs/web-deployment.md)
+       bicraft-cli serve token create --name NAME [--role ROLE]... [--group GROUP]...
+       bicraft-cli serve token hash   (reads a token on stdin, prints its tokens-file entry)
+       bicraft-cli controller --config FILE [--listen 127.0.0.1:7979] [--kube-api URL] [--namespace NS]
+                         [--admin SUBJECT]... [--interval SECS] [--shutdown-grace SECS] [auth flags of serve]
+                         (the Kubernetes workspace controller: reconciles BicraftWorkspace resources, gateway
+                         with wake on request and idle scale to zero, admin API: docs/kubernetes.md)
+       bicraft-cli vpax PATH OUT.vpax [--overwrite] [--no-model-bim] [--cache-abf CACHE.abf]
+       bicraft-cli redact PATH OUT [--data] [--overwrite]
+                          (a copy of a PBIX, PBIT or PBIP for bug reports: connection strings, credentials,
+                          servers, databases, paths and URLs replaced by stable placeholders; --data: the
+                          stored text values too; every written byte checked)
+       bicraft-cli visual new DIR NAME [--display-name N] [--guid G] [--author A] [--overwrite]
+                          [--role NAME:Grouping|Measure|GroupingOrMeasure]... [--format OBJECT.PROP:bool|color|numeric|text]...
+       bicraft-cli visual build DIR [--out FILE.js]
+       bicraft-cli visual pack DIR [--out FILE.pbiviz]
+                          (custom visual projects: the TypeScript compiled and bundled with swc, no Node;
+                          pack writes the .pbiviz that visual.import_custom reads: docs/formats/pbiviz.md)
+       bicraft-cli visual export NAME... | --all [--out FILE.pbiviz|DIR]
+                          (BIcraft's own visuals as .pbiviz files for Desktop's Import a visual from a file
+                          and organizational visuals; default --out: the current folder, each file named
+                          GUID.VERSION.pbiviz; several names or --all write into a folder)
+       bicraft-cli view PATH [--port N] [--open] [--data-root DIR] [--lang TAG] [--culture NAME]
+                         [--as-of YYYY-MM-DD] [--cache-abf CACHE.abf] [--no-open-button] [--read-only]
+                         [--ui html|egui] [--control [--control-file F]]
+                         (egui: the desktop app's UI in the browser at /app/, docs/webui.md; --control:
+                         the UI control channel relayed to that page, its token in an owner-only file)
+       bicraft-cli ui [--control FILE | --view | --serve] [--url URL] [--workspace ID] [--view-id V]
+                         METHOD [PARAMS-JSON] [--out FILE.png]
+                         (drives a running app through its control channel: bicraft --control,
+                         bicraft-cli view --control, bicraft-cli serve --viewer-control (credential:
+                         BICRAFT_SERVER_TOKEN); `bicraft-cli ui methods` lists them; docs/desktop.md)
+       bicraft-cli render PATH [--page NAME|INDEX] [--out FILE.png|DIR] [--scale N]
+                           [--font-dir DIR]... [--no-system-fonts] [--no-badges] [--data-root DIR]
+                           [--lang TAG] [--culture NAME] [--format-culture NAME] [--text-json] [--lcd-text]
+                           [--high-contrast] [--as-of YYYY-MM-DD] [--cache-abf CACHE.abf] [--fail-on-empty]
+                           [--key-influencers placeholder|estimate]
+       bicraft-cli export-pdf PATH [--out FILE.pdf] [--pages all|current|2-4|NAME,NAME] [--hidden]
+                           [--title TEXT] [--scale N] [--font-dir DIR]... [--no-system-fonts]
+                           [--data-root DIR] [--lang TAG] [--format-culture NAME] [--as-of DATE]
        --cache-abf: a PBIP's data is read from CACHE.abf (read-only, never written) instead of its
-                    own .pbi/cache.abf, e.g. from a throwaway copy of a project
+                        own .pbi/cache.abf, e.g. from a throwaway copy of a project
        render/view languages: --lang TAG = generated text (auto titles, (Blank), Total);
-                    --format-culture NAME = numbers and dates (default: the model's culture);
-                    --culture NAME = the model translation whose captions name fields (one
-                    without translations, or the model's own, shows the stored names + a warning)
-       bicraft setup [--client ID]... [--all-detected] [--scope user|project]
-                      [--dry-run] [--yes] [--json] [--uninstall]   (see `bicraft setup --help`)
-       bicraft setup doctor [--client ID]... [--json]
-       bicraft licenses                 (licence and third-party notices, plain text)
-       bicraft build-info               (JSON: version, commit, whether the browser app is embedded)
-       bicraft --version | help
+                        --format-culture NAME = numbers and dates (default: the model's culture);
+                        --culture NAME = the model translation whose captions name fields (one
+                        without translations, or the model's own, shows the stored names + a warning)
+       bicraft-cli setup [--client ID]... [--all-detected] [--scope user|project]
+                          [--dry-run] [--yes] [--json] [--uninstall]   (see `bicraft-cli setup --help`)
+       bicraft-cli setup doctor [--client ID]... [--json]
+       bicraft-cli licenses                 (licence and third-party notices, plain text)
+       bicraft-cli build-info               (JSON: version, commit, whether the browser app is embedded)
+       bicraft-cli --version | help
 
 Exit codes: 0 success/valid, 1 invalid or a command failed, 2 usage or I/O error.";
 
@@ -296,16 +296,16 @@ fn main() -> ExitCode {
     ExitCode::from(code)
 }
 
-/// `bicraft 0.1.0 (commit 0123456789ab)`; the commit comes from `build.rs` and is left out when
+/// `bicraft-cli 0.1.0 (commit 0123456789ab)`; the commit comes from `build.rs` and is left out when
 /// the build had no git checkout.
 fn version_line() -> String {
     match option_env!("BICRAFT_GIT_COMMIT") {
-        Some(c) => format!("bicraft {} (commit {c})", env!("CARGO_PKG_VERSION")),
-        None => format!("bicraft {}", env!("CARGO_PKG_VERSION")),
+        Some(c) => format!("bicraft-cli {} (commit {c})", env!("CARGO_PKG_VERSION")),
+        None => format!("bicraft-cli {}", env!("CARGO_PKG_VERSION")),
     }
 }
 
-/// `bicraft build-info`: what this binary was built with. Release checks (`cargo xtask dist`, the
+/// `bicraft-cli build-info`: what this binary was built with. Release checks (`cargo xtask dist`, the
 /// container image, `cargo xtask deploy check --binary`) require `webui.embedded`.
 fn build_info() -> String {
     let (js, wasm, gzip) = bicraft_view::webui::sizes();
@@ -421,7 +421,7 @@ fn describe(args: &[String]) -> Result<u8, Failure> {
     let id = args.first().ok_or_else(|| usage("describe needs a COMMAND id"))?;
     no_more(args.get(1..).unwrap_or(&[]))?;
     let cmd = bicraft_engine::find_command(id)
-        .ok_or_else(|| usage(format!("unknown command `{id}` (see `bicraft commands`)")))?;
+        .ok_or_else(|| usage(format!("unknown command `{id}` (see `bicraft-cli commands`)")))?;
     let v = serde_json::to_value(cmd.info()).map_err(|e| (USAGE_ERROR, e.to_string()))?;
     print_json(&v);
     Ok(OK)
@@ -780,7 +780,7 @@ fn validate_dax(args: &[String]) -> Result<u8, Failure> {
     })
 }
 
-/// `bicraft validate-m`: m.validate (syntax and undefined names, nothing evaluated), against
+/// `bicraft-cli validate-m`: m.validate (syntax and undefined names, nothing evaluated), against
 /// the queries and parameters of `--model` when given. Exit 1 when invalid.
 fn validate_m(args: &[String]) -> Result<u8, Failure> {
     let mut expression: Option<String> = None;
@@ -827,7 +827,7 @@ fn validate_m(args: &[String]) -> Result<u8, Failure> {
     })
 }
 
-/// `bicraft redact PATH OUT [--data] [--overwrite]`: file.redact.
+/// `bicraft-cli redact PATH OUT [--data] [--overwrite]`: file.redact.
 fn redact(args: &[String]) -> Result<u8, Failure> {
     let mut positional = Vec::new();
     let (mut data, mut overwrite) = (false, false);
@@ -853,7 +853,7 @@ fn redact(args: &[String]) -> Result<u8, Failure> {
     Ok(OK)
 }
 
-/// `bicraft vpax PATH OUT.vpax`: model.export_vpax on a file.
+/// `bicraft-cli vpax PATH OUT.vpax`: model.export_vpax on a file.
 fn vpax(args: &[String]) -> Result<u8, Failure> {
     let mut positional = Vec::new();
     let mut overwrite = false;
@@ -884,10 +884,10 @@ fn vpax(args: &[String]) -> Result<u8, Failure> {
     Ok(OK)
 }
 
-/// `bicraft visual new DIR NAME [--display-name N] [--guid G] [--role R]... [--format F]...
-/// [--overwrite]`, `bicraft visual build DIR [--out F.js]`, `bicraft visual pack DIR [--out
+/// `bicraft-cli visual new DIR NAME [--display-name N] [--guid G] [--role R]... [--format F]...
+/// [--overwrite]`, `bicraft-cli visual build DIR [--out F.js]`, `bicraft-cli visual pack DIR [--out
 /// F.pbiviz]`: visual.scaffold, visual.build, visual.pack (custom visual projects, no Node);
-/// `bicraft visual export NAME... | --all [--out F.pbiviz|DIR]`: visual.export_bicraft_visual.
+/// `bicraft-cli visual export NAME... | --all [--out F.pbiviz|DIR]`: visual.export_bicraft_visual.
 fn visual(args: &[String]) -> Result<u8, Failure> {
     let (sub, rest) = args
         .split_first()
@@ -984,7 +984,7 @@ fn open_model(session: &mut Session, path: &str) -> Result<(), Failure> {
     Ok(())
 }
 
-/// `bicraft usage PATH [OBJECT] [--kind K] [--report P]... [--no-graph]`: model.usage.
+/// `bicraft-cli usage PATH [OBJECT] [--kind K] [--report P]... [--no-graph]`: model.usage.
 fn usage_cmd(args: &[String]) -> Result<u8, Failure> {
     let path = args.first().ok_or_else(|| usage("usage needs a PATH"))?;
     let mut params = serde_json::Map::new();
@@ -1025,7 +1025,7 @@ fn usage_cmd(args: &[String]) -> Result<u8, Failure> {
     Ok(OK)
 }
 
-/// `bicraft unused PATH [--report P]... [--allow PATTERN]... [--remove [--object O]... [--dry-run]
+/// `bicraft-cli unused PATH [--report P]... [--allow PATTERN]... [--remove [--object O]... [--dry-run]
 /// [--force] [--save]]`: model.unused (exit 1 when something is unused), or model.remove_unused.
 fn unused_cmd(args: &[String]) -> Result<u8, Failure> {
     let path = args.first().ok_or_else(|| usage("unused needs a PATH"))?;
@@ -1101,7 +1101,7 @@ fn unused_cmd(args: &[String]) -> Result<u8, Failure> {
     Ok(OK)
 }
 
-/// `bicraft analyze`: exit 1 when a rule of severity error (3+) fires.
+/// `bicraft-cli analyze`: exit 1 when a rule of severity error (3+) fires.
 fn analyze(args: &[String]) -> Result<u8, Failure> {
     let path = args.first().ok_or_else(|| usage("analyze needs a PATH"))?;
     let mut rules = Vec::new();

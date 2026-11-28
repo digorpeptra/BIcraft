@@ -11,14 +11,19 @@
 //! visual is checked (type, position, size, counts), names are always new, groups are re-linked
 //! only inside the clip, and keys the typed record writes itself are dropped from the unmodelled
 //! ones. Fields the target model lacks are kept as they are (broken references, as Desktop keeps
-//! them) and each one is reported in `warnings`.
+//! them) and each one is reported in `warnings`. The clip also carries, in `images: [{name,
+//! data}]` (base64, at most [`MAX_CLIP_IMAGE_BYTES`]), the report images its visuals show
+//! (an image visual's picture, a visual's background image), so a paste into another report
+//! keeps them: each one is checked as `image.add` checks a file, reused when the target has the
+//! same name with the same bytes, else registered under a file of its own.
 //!
 //! **Groups** (`visualGroup` containers, `parentGroupName` members): member positions are page
-//! positions, as PBIR writes them; a group's rectangle is refitted to its members after they move.
+//! positions, as PBIR writes them; a group's rectangle is refitted to its members after they move
+//! and after some of them are removed.
 
 use std::collections::{HashMap, HashSet};
 
-use bicraft_report::{FieldRef, Page, Position, Visual};
+use bicraft_report::{FieldRef, Page, Position, Report, Visual};
 use serde_json::{Map, Value, json};
 
 use crate::Session;
@@ -38,6 +43,11 @@ pub const MAX_CLIP_VISUALS: usize = 500;
 const MAX_LIST: usize = 2000;
 /// Longest visual name accepted in a clip (names are only used to re-link groups).
 const MAX_NAME: usize = 200;
+/// Most bytes of images one clip carries (before base64): the clip stays well under the app's
+/// 8 MB of clipboard text (`crates/ui`, `canvas::MAX_CLIP_TEXT`).
+pub const MAX_CLIP_IMAGE_BYTES: usize = 4 << 20;
+/// Most images one clip carries.
+const MAX_CLIP_IMAGES: usize = 100;
 /// How far a paste moves when the position is taken (report pixels, right and down).
 pub const PASTE_OFFSET: f64 = 20.0;
 /// Most offset steps a paste tries before it keeps the last position.
@@ -160,7 +170,7 @@ fn bounds(rects: impl Iterator<Item = Position>) -> Option<(f64, f64, f64, f64)>
 
 /// Sets every group above the visuals in `touched` (lowercased names) to the rectangle of its
 /// members, innermost first. Groups in `keep` (moved themselves) are left alone.
-fn refit_groups(page: &mut Page, touched: &HashSet<String>, keep: &HashSet<String>) {
+pub(crate) fn refit_groups(page: &mut Page, touched: &HashSet<String>, keep: &HashSet<String>) {
     let parent = parents(page);
     let mut groups: Vec<(usize, String)> = Vec::new();
     for t in touched {
@@ -248,6 +258,125 @@ fn clip_of(page: &Page, names: &[String]) -> Result<Value, String> {
     }))
 }
 
+/// Puts in `clip.images` the registered images its visuals show (`{name, data}`, the bytes in
+/// base64), so a paste into another report keeps their pictures; those past
+/// [`MAX_CLIP_IMAGE_BYTES`] or [`MAX_CLIP_IMAGES`] are left out and named in `warnings`.
+fn clip_images(r: &Report, clip: &mut Value, warnings: &mut Vec<String>) {
+    let mut wanted = Vec::new();
+    if let Some(v) = clip.get("visuals") {
+        crate::rich::referenced(v, &mut wanted, 0);
+    }
+    let mut seen = HashSet::new();
+    let mut total = 0usize;
+    let mut out = Vec::new();
+    for item in wanted {
+        if !seen.insert(item.clone()) {
+            continue;
+        }
+        let Some((name, bytes)) = crate::rich::image_item_bytes(r, &item) else {
+            continue;
+        };
+        if out.len() >= MAX_CLIP_IMAGES || total.saturating_add(bytes.len()) > MAX_CLIP_IMAGE_BYTES {
+            warnings.push(format!(
+                "image `{name}` ({} bytes) is not in the clip, which carries at most {MAX_CLIP_IMAGES} images and {} MB: pasted into another report, its visuals show no picture",
+                bytes.len(),
+                MAX_CLIP_IMAGE_BYTES >> 20
+            ));
+            continue;
+        }
+        total += bytes.len();
+        out.push(json!({"name": name, "data": crate::render::base64(bytes)}));
+    }
+    if !out.is_empty()
+        && let Some(o) = clip.as_object_mut()
+    {
+        o.insert("images".into(), Value::Array(out));
+    }
+}
+
+/// A clip's `images` (untrusted): at most [`MAX_CLIP_IMAGES`], [`MAX_CLIP_IMAGE_BYTES`] in all,
+/// each `{name, data: base64}`. The bytes are checked as images when they are registered.
+fn parse_clip_images(clip: &Value) -> Result<Vec<(String, Vec<u8>)>, String> {
+    let list = match clip.get("images") {
+        None | Some(Value::Null) => return Ok(Vec::new()),
+        Some(Value::Array(a)) => a,
+        Some(_) => return Err("`clip.images` must be a list".into()),
+    };
+    if list.len() > MAX_CLIP_IMAGES {
+        return Err(format!("`clip.images` holds more than {MAX_CLIP_IMAGES} images"));
+    }
+    let too_big = || {
+        format!(
+            "`clip.images` carries more than {} MB",
+            MAX_CLIP_IMAGE_BYTES >> 20
+        )
+    };
+    let mut total = 0usize;
+    let mut out = Vec::with_capacity(list.len());
+    for (i, x) in list.iter().enumerate() {
+        let at = format!("clip.images[{i}]");
+        let name = x
+            .get("name")
+            .and_then(Value::as_str)
+            .filter(|n| !n.is_empty() && n.chars().count() <= MAX_NAME)
+            .ok_or_else(|| format!("{at}.name must be 1 to {MAX_NAME} characters"))?;
+        let data = x
+            .get("data")
+            .and_then(Value::as_str)
+            .ok_or_else(|| format!("{at}.data must be the image's bytes in base64"))?;
+        if data.len() > MAX_CLIP_IMAGE_BYTES / 3 * 4 + 8 {
+            return Err(too_big());
+        }
+        let bytes = crate::images::base64(data).ok_or_else(|| format!("{at}.data is not valid base64"))?;
+        total = total.saturating_add(bytes.len());
+        if total > MAX_CLIP_IMAGE_BYTES {
+            return Err(too_big());
+        }
+        out.push((name.to_string(), bytes));
+    }
+    Ok(out)
+}
+
+/// Registers the clip's `images` that the pasted `visuals` show, and points the visuals at them:
+/// an image this report has with the same name and bytes is reused, another one gets a file of
+/// its own and the visuals its new name. An image that fails the checks is left out and named in
+/// `warnings`.
+fn paste_images(
+    r: &mut Report,
+    visuals: &mut [Visual],
+    images: Vec<(String, Vec<u8>)>,
+    warnings: &mut Vec<String>,
+) {
+    if images.is_empty() {
+        return;
+    }
+    let mut wanted = Vec::new();
+    for v in visuals.iter() {
+        for x in v.visual_extra.values().chain(v.extra.values()) {
+            crate::rich::referenced(x, &mut wanted, 0);
+        }
+    }
+    let mut renamed: HashMap<String, String> = HashMap::new();
+    for (name, bytes) in images {
+        let key = name.to_ascii_lowercase();
+        if !wanted.contains(&key) || renamed.contains_key(&key) {
+            continue;
+        }
+        match crate::rich::register_pasted_image(r, &name, bytes, warnings) {
+            Ok(Some(new)) => {
+                renamed.insert(key, new);
+            }
+            Ok(None) => {}
+            Err(e) => warnings.push(format!("image `{name}` of the clip is not pasted: {e}")),
+        }
+    }
+    for v in visuals.iter_mut() {
+        for x in v.visual_extra.values_mut().chain(v.extra.values_mut()) {
+            crate::rich::rename_items(x, &renamed, 0);
+        }
+    }
+}
+
 pub(crate) fn visual_copy(s: &Session, p: &Value) -> Result<Value, String> {
     allow(p, &["page", "visual", "visuals"])?;
     let key = str_param(p, "page")?;
@@ -255,9 +384,59 @@ pub(crate) fn visual_copy(s: &Session, p: &Value) -> Result<Value, String> {
     let r = report_ref(s)?;
     let pi = page_index(r, key)?;
     let page = r.pages.get(pi).ok_or("internal: page index out of range")?;
-    let clip = clip_of(page, &names)?;
+    let mut clip = clip_with_mobile(r, page, &names)?;
+    let mut warnings = Vec::new();
+    clip_images(r, &mut clip, &mut warnings);
     let count = clip.get("visuals").and_then(Value::as_array).map_or(0, Vec::len);
-    Ok(json!({"page": page.name, "count": count, "clip": clip}))
+    let images = clip.get("images").and_then(Value::as_array).map_or(0, Vec::len);
+    Ok(json!({"page": page.name, "count": count, "images": images, "clip": clip, "warnings": warnings}))
+}
+
+/// [`clip_of`] with the copied visuals' phone layout (`mobile`: their `mobile.json` documents by
+/// name), when some are on it, so a paste on the phone canvas keeps their place and format.
+fn clip_with_mobile(r: &bicraft_report::Report, page: &Page, names: &[String]) -> Result<Value, String> {
+    let mut clip = clip_of(page, names)?;
+    let copied: Vec<String> = clip
+        .get("visuals")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(|v| v.get("name").and_then(Value::as_str))
+        .map(str::to_string)
+        .collect();
+    let docs = crate::visual_extras::clip_mobile_docs(r, &page.name, copied.iter().map(String::as_str));
+    if !docs.is_empty()
+        && let Some(o) = clip.as_object_mut()
+    {
+        o.insert("mobile".into(), Value::Object(docs));
+    }
+    Ok(clip)
+}
+
+/// After a paste on page `pi` with `mobile: true`: the pasted visuals (`out`'s `visuals`, in
+/// the clip's order) placed on the phone layout too, with the clip's phone documents `docs`;
+/// `out` gets their phone places (`mobile`).
+fn paste_on_phone(
+    s: &mut Session,
+    pi: usize,
+    docs: Vec<Option<Value>>,
+    out: &mut Value,
+) -> Result<(), String> {
+    let names: Vec<String> = out
+        .get("visuals")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_str)
+        .map(str::to_string)
+        .collect();
+    let pasted: Vec<(String, Option<Value>)> = names.into_iter().zip(docs).collect();
+    let (_, r) = parts(s)?;
+    let placed = crate::visual_extras::place_pasted(r, pi, &pasted)?;
+    if let Some(o) = out.as_object_mut() {
+        o.insert("mobile".into(), Value::Array(placed));
+    }
+    Ok(())
 }
 
 /// `visual.cut {page, visual? | visuals?}`: the clip `visual.copy` gives, and the visuals removed
@@ -382,12 +561,14 @@ fn paste_into(
     s: &mut Session,
     pi: usize,
     mut visuals: Vec<Visual>,
+    images: Vec<(String, Vec<u8>)>,
     at: Option<(f64, f64)>,
 ) -> Result<Value, String> {
     let (model, r) = parts(s)?;
     let measures = crate::report_measures::report_measures(r);
-    let page = page_at_mut(r, pi)?;
     let mut warnings: Vec<String> = Vec::new();
+    paste_images(r, &mut visuals, images, &mut warnings);
+    let page = page_at_mut(r, pi)?;
     // names: always new ones, unique on the page and in the paste
     let mut taken: HashSet<String> = page.visuals.iter().map(|v| lower(&v.name)).collect();
     let mut rename: HashMap<String, String> = HashMap::new();
@@ -552,14 +733,18 @@ fn paste_into(
 }
 
 pub(crate) fn visual_paste(s: &mut Session, p: &Value) -> Result<Value, String> {
-    allow(p, &["page", "clip", "x", "y"])?;
+    allow(p, &["page", "clip", "x", "y", "mobile"])?;
     let key = str_param(p, "page")?;
+    let mobile = crate::params::opt_bool(p, "mobile")?.unwrap_or(false);
     let clip = p
         .get("clip")
         .ok_or("missing parameter `clip` (what visual.copy returned)")?;
     // `clip` may be visual.copy's whole answer
     let clip = clip.get("clip").filter(|c| c.is_object()).unwrap_or(clip);
     let visuals = parse_clip(clip)?;
+    let images = parse_clip_images(clip)?;
+    let names: Vec<String> = visuals.iter().map(|v| v.name.clone()).collect();
+    let docs = crate::visual_extras::clip_mobile(clip, &names)?;
     let x = opt_num(p, "x")?.map(|v| check_coordinate("x", v)).transpose()?;
     let y = opt_num(p, "y")?.map(|v| check_coordinate("y", v)).transpose()?;
     let at = match (x, y) {
@@ -569,19 +754,30 @@ pub(crate) fn visual_paste(s: &mut Session, p: &Value) -> Result<Value, String> 
     };
     let r = report_ref(s)?;
     let pi = page_index(r, key)?;
-    paste_into(s, pi, visuals, at)
+    let mut out = paste_into(s, pi, visuals, images, at)?;
+    if mobile {
+        paste_on_phone(s, pi, docs, &mut out)?;
+    }
+    Ok(out)
 }
 
 pub(crate) fn visual_duplicate(s: &mut Session, p: &Value) -> Result<Value, String> {
-    allow(p, &["page", "visual", "visuals"])?;
+    allow(p, &["page", "visual", "visuals", "mobile"])?;
     let key = str_param(p, "page")?;
+    let mobile = crate::params::opt_bool(p, "mobile")?.unwrap_or(false);
     let names = listed_names(p)?;
     let r = report_ref(s)?;
     let pi = page_index(r, key)?;
     let page = r.pages.get(pi).ok_or("internal: page index out of range")?;
-    let clip = clip_of(page, &names)?;
+    let clip = clip_with_mobile(r, page, &names)?;
     let visuals = parse_clip(&clip)?;
-    paste_into(s, pi, visuals, None)
+    let copied: Vec<String> = visuals.iter().map(|v| v.name.clone()).collect();
+    let docs = crate::visual_extras::clip_mobile(&clip, &copied)?;
+    let mut out = paste_into(s, pi, visuals, Vec::new(), None)?;
+    if mobile {
+        paste_on_phone(s, pi, docs, &mut out)?;
+    }
+    Ok(out)
 }
 
 // ---------------------------------------------------------------------------------------------

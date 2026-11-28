@@ -17,10 +17,17 @@
 //! - **The focus ring**: while the focus moves by the keyboard (Tab, F6, the arrows) a 2 px ring
 //!   in the theme's `focus` token is drawn around the focused control; a pointer press hides it.
 //!
-//! - **Context menus**: Shift+F10 opens the focused control's menu, the one a right click opens
-//!   ([`context_menu`] in place of `Response::context_menu`); on the report page (focused, or
-//!   nothing focused) the selected visual's. Its first item takes the focus; closed, the focus
-//!   returns to the control.
+//! - **Context menus**: Shift+F10 or the Menu key opens the focused control's menu, the one a
+//!   right click opens ([`context_menu`] in place of `Response::context_menu`); on the report
+//!   page (focused, or nothing focused) or a focused visual of the canvas, the selected visual's.
+//!   Its first item takes the focus; closed, the focus returns to the control.
+//! - **Live region**: when Ctrl+F6 or F6 moves the focus into a section, the status bar, a
+//!   polite live region ([`live_region`]), names it ("Focus: Data pane").
+//! - **Data pane tables**: Alt+Shift+1 collapses every table, Alt+Shift+9 expands them all
+//!   (Desktop's keys), in the Report view's Data pane and the Model view's; the live region says
+//!   so.
+//! - **The canvas's visuals** take the focus one by one, in the report's tab order
+//!   (`crate::visual_focus`).
 //!
 //! Arrow keys move the focus between neighbouring controls (egui's own focus directions), and
 //! Enter or Space activates the focused one (egui's click from the keyboard). The ribbon's key
@@ -86,11 +93,20 @@ pub struct KeyboardUi {
     pub tips: crate::key_tips::Tips,
     /// The shortcuts list, while it is open (Shift+?; `crate::shortcuts_list`).
     pub shortcuts: Option<crate::shortcuts_list::List>,
-    /// The report page's widget drawn in the last frame (Shift+F10 on it opens the selected
+    /// The report page's widget drawn in this frame (Shift+F10 on it opens the selected
     /// visual's menu).
-    page: Option<Id>,
-    /// The control Shift+F10 opened a menu for, to give the focus back when it closes.
-    menu_owner: Option<Id>,
+    pub(crate) page: Option<Id>,
+    /// The report page's widget drawn in the last frame.
+    pub(crate) page_prev: Option<Id>,
+    /// The control Shift+F10 opened a menu for, to give the focus back when it closes, and the
+    /// menu's popup.
+    menu_owner: Option<(Id, Id)>,
+    /// The canvas's visuals drawn in this frame, in keyboard order (`crate::visual_focus`).
+    pub(crate) visuals: Vec<(Id, String)>,
+    /// Those of the last frame.
+    pub(crate) prev_visuals: Vec<(Id, String)>,
+    /// The side panes drawn in this frame, by name (the live region says them).
+    regions: Vec<(Region, LayerId, Rect)>,
 }
 
 impl KeyboardUi {
@@ -98,6 +114,71 @@ impl KeyboardUi {
     pub fn in_dialog(&self) -> bool {
         !self.dialogs.is_empty()
     }
+}
+
+/// A side pane, named when Ctrl+F6 or F6 moves the focus into it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Region {
+    Filters,
+    Build,
+    Data,
+    Bookmarks,
+    Sync,
+    Properties,
+}
+
+impl Region {
+    /// Its name in `l`.
+    pub fn name(self, l: crate::i18n::Lang) -> &'static str {
+        match self {
+            Region::Filters => l.t("Filters pane", "Volet Filtres"),
+            Region::Build => l.t("Visualizations pane", "Volet Visualisations"),
+            Region::Data => l.t("Data pane", "Volet Données"),
+            Region::Bookmarks => l.t("Bookmarks pane", "Volet Signets"),
+            Region::Sync => l.t("Sync slicers pane", "Volet Synchroniser les segments"),
+            Region::Properties => l.t("Properties pane", "Volet Propriétés"),
+        }
+    }
+}
+
+/// Registers side pane `region` drawn in `rect` of `ui`'s layer: a section of its own (Ctrl+F6)
+/// named by the live region when the focus moves into it.
+pub fn pane(app: &mut App, ui: &egui::Ui, region: Region, rect: Rect) {
+    section(app, ui, Section::Pane, rect);
+    if rect.is_positive() {
+        app.keyboard.regions.push((region, ui.layer_id(), rect));
+    }
+}
+
+/// The name of section `i`, said by the live region when the focus moves into it.
+fn section_name(app: &App, i: usize) -> &'static str {
+    let l = app.lang;
+    let Some(&(s, layer, rect)) = app.keyboard.sections.get(i) else {
+        return "";
+    };
+    match s {
+        Section::Ribbon => l.t("Ribbon", "Ruban"),
+        Section::Formula => l.t("Formula bar", "Barre de formule"),
+        Section::Main => match app.tab {
+            crate::app::Tab::Report => l.t("Report canvas", "Canevas du rapport"),
+            _ => l.t("View", "Vue"),
+        },
+        Section::Selection => l.t("Selection pane", "Volet Sélection"),
+        Section::PageTabs => l.t("Page tabs", "Onglets de page"),
+        Section::Status => l.t("Status bar", "Barre d'état"),
+        Section::Pane => app
+            .keyboard
+            .regions
+            .iter()
+            .find(|(_, l, r)| *l == layer && *r == rect)
+            .map_or(l.t("Side pane", "Volet latéral"), |(p, _, _)| p.name(l)),
+    }
+}
+
+/// Says through the live region (the status bar) that the focus moved into section `i`.
+fn announce_section(app: &mut App, i: usize) {
+    let name = section_name(app, i);
+    app.status = app.lang.t("Focus: {}", "Focus : {}").replace("{}", name);
 }
 
 /// Where Shift+F10 opens a menu in this frame, and where the menu it opened stays: kept in the
@@ -158,14 +239,31 @@ pub fn context_menu<R>(
     popup.show(add)
 }
 
+/// Makes widget `id` (the status bar's message, showing `text`) a polite live region named by
+/// its text: a screen reader reads the new text when it changes, wherever the focus is.
+pub fn live_region(ctx: &Context, id: Id, text: &str) {
+    ctx.accesskit_node_builder(id, |n| {
+        n.set_role(egui::accesskit::Role::Status);
+        n.set_live(egui::accesskit::Live::Polite);
+        if text.is_empty() {
+            n.clear_label();
+        } else {
+            n.set_label(text.to_string());
+        }
+    });
+}
+
 /// Notes the report page's widget (Shift+F10 on it, or with nothing focused, opens the selected
 /// visual's menu).
 pub fn canvas_page(app: &mut App, resp: &egui::Response) {
     app.keyboard.page = Some(resp.id);
+    let name = crate::visual_focus::page_label(app);
+    resp.widget_info(|| egui::WidgetInfo::labeled(egui::accesskit::Role::Group, true, &name));
 }
 
-/// Shift+F10: the focused control's menu opens in this frame (the report page's at the selected
-/// visual); nothing focused on the report page with a visual selected, the visual's.
+/// Shift+F10 or the Menu key: the focused control's menu opens in this frame (the report page's
+/// at the selected visual, also from a focused visual of the canvas); nothing focused on the
+/// report page with a visual selected, the visual's.
 fn context_key(app: &mut App, ctx: &Context) {
     let mut m = key_menu(ctx);
     m.target = None;
@@ -175,10 +273,17 @@ fn context_key(app: &mut App, ctx: &Context) {
     {
         m.open = None;
     }
-    let hit =
+    let shift_f10 =
         ctx.input(|i| i.modifiers.shift && !i.modifiers.ctrl && !i.modifiers.alt && i.key_pressed(Key::F10));
-    if hit && app.keyboard.dialogs.is_empty() {
-        ctx.input_mut(|i| i.consume_key(egui::Modifiers::SHIFT, Key::F10));
+    let menu_key = ctx.input(|i| i.modifiers.is_none() && i.key_pressed(Key::Menu));
+    if (shift_f10 || menu_key) && app.keyboard.dialogs.is_empty() {
+        ctx.input_mut(|i| {
+            if shift_f10 {
+                i.consume_key(egui::Modifiers::SHIFT, Key::F10);
+            } else {
+                i.consume_key(egui::Modifiers::NONE, Key::Menu);
+            }
+        });
         app.keyboard.keyboard = true;
         let focus = ctx.memory(|mem| mem.focused());
         let prev = |id: Id| {
@@ -191,8 +296,9 @@ fn context_key(app: &mut App, ctx: &Context) {
             .clone()
             .filter(|_| app.tab == crate::app::Tab::Report);
         let page = app.keyboard.page;
+        let on_visual = focus.is_some_and(|f| crate::visual_focus::is_visual(app, f));
         let target = match (focus, page) {
-            (Some(f), Some(p)) if f == p => visual_center(app, visual.as_ref()).map(|c| (p, c)),
+            (Some(f), Some(p)) if f == p || on_visual => visual_center(app, visual.as_ref()).map(|c| (p, c)),
             (None, Some(p)) => visual_center(app, visual.as_ref()).map(|c| (p, c)),
             _ => None,
         }
@@ -203,7 +309,9 @@ fn context_key(app: &mut App, ctx: &Context) {
         });
         if let Some((id, pos)) = target {
             m.target = Some((id, pos));
-            app.keyboard.menu_owner = Some(id);
+            // the focus comes back to the visual, not the page, when the menu closes
+            let owner = focus.filter(|_| on_visual).unwrap_or(id);
+            app.keyboard.menu_owner = Some((owner, id.with("popup")));
             app.keyboard.tips.menu = Some((id.with("popup"), crate::key_tips::MENU_FRAMES));
         }
     }
@@ -234,8 +342,8 @@ fn menu_focus(app: &mut App, ctx: &Context) {
             }
         }
     }
-    if let Some(owner) = app.keyboard.menu_owner
-        && !egui::Popup::is_id_open(ctx, owner.with("popup"))
+    if let Some((owner, popup)) = app.keyboard.menu_owner
+        && !egui::Popup::is_id_open(ctx, popup)
         && app.keyboard.tips.menu.is_none()
     {
         app.keyboard.menu_owner = None;
@@ -276,11 +384,13 @@ pub fn section(app: &mut App, ui: &egui::Ui, s: Section, rect: Rect) {
 /// keyboard (a navigation key) or the pointer (a button press).
 pub fn begin(app: &mut App, ctx: &Context) {
     app.keyboard.sections.clear();
+    app.keyboard.regions.clear();
+    app.keyboard.prev_visuals = std::mem::take(&mut app.keyboard.visuals);
     crate::key_tips::input(app, ctx);
     crate::shortcuts_list::keys(app, ctx);
     // the page of the last frame: this frame's registers itself again
     context_key(app, ctx);
-    app.keyboard.page = None;
+    app.keyboard.page_prev = app.keyboard.page.take();
     ctx.input(|i| {
         for e in &i.events {
             match e {
@@ -305,6 +415,7 @@ pub fn finish(app: &mut App, ctx: &Context) {
     dialogs(app, ctx);
     menu_focus(app, ctx);
     if app.keyboard.dialogs.is_empty() {
+        tables_keys(app, ctx);
         sections_keys(app, ctx);
         tab_wrap(app, ctx);
     } else {
@@ -420,6 +531,7 @@ fn move_section(app: &mut App, ctx: &Context, back: bool) -> bool {
         let Some(&i) = order.get(k) else { continue };
         if let Some(&first) = controls(app, ctx, i).first() {
             ctx.memory_mut(|m| m.request_focus(first));
+            announce_section(app, i);
             return true;
         }
     }
@@ -454,10 +566,68 @@ fn sections_keys(app: &mut App, ctx: &Context) {
             && let Some(&first) = controls(app, ctx, i).first()
         {
             ctx.memory_mut(|m| m.request_focus(first));
+            announce_section(app, i);
             return;
         }
     }
     move_section(app, ctx, shift);
+}
+
+/// Alt+Shift+1 collapses every table of the Data pane, Alt+Shift+9 expands them all (Desktop's
+/// keys; the Report view's Data pane and the Model view's), wherever the focus is; the live
+/// region says so. The digit is read from the physical key, so a layout where Shift+1 types
+/// another character (US `!`) or the digit (AZERTY) works alike.
+fn tables_keys(app: &mut App, ctx: &Context) {
+    let hit = ctx.input(|i| {
+        i.events.iter().find_map(|e| match e {
+            Event::Key {
+                key,
+                physical_key,
+                pressed: true,
+                modifiers,
+                ..
+            } if modifiers.alt && modifiers.shift && !modifiers.ctrl && !modifiers.command => {
+                [(Key::Num1, false), (Key::Num9, true)]
+                    .into_iter()
+                    .find(|(d, _)| physical_key.map_or(d == key, |p| p == *d))
+                    .map(|(_, open)| open)
+            }
+            _ => None,
+        })
+    });
+    let Some(open) = hit else { return };
+    app.keyboard.keyboard = true;
+    let l = app.lang;
+    let tables: Vec<String> = app
+        .loaded
+        .as_ref()
+        .and_then(|d| d.snap.pointer("/model/tables"))
+        .and_then(serde_json::Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(|t| t.get("name")?.as_str().map(|n| format!("t:{n}")))
+        .take(10_000)
+        .collect();
+    let set = match app.tab {
+        crate::app::Tab::Report if app.prefs.panes.data => &mut app.panes.open,
+        crate::app::Tab::Model => &mut app.model_view.explorer.open,
+        _ => {
+            app.status = l
+                .t("No Data pane in this view", "Pas de volet Données dans cette vue")
+                .to_string();
+            return;
+        }
+    };
+    set.retain(|k| !k.starts_with("t:"));
+    if open {
+        set.extend(tables);
+    }
+    app.status = if open {
+        l.t("All tables expanded", "Toutes les tables développées")
+    } else {
+        l.t("All tables collapsed", "Toutes les tables réduites")
+    }
+    .to_string();
 }
 
 /// Tab and Shift+Tab stay in the section: when the focus leaves the section Tab was pressed

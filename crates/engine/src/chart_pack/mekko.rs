@@ -9,7 +9,7 @@ pub(crate) const DEF: Def = Def {
     guid: "bicraftMarimekko5D7F9B1E3A6C8E0B2D4F6A",
     name: "bicraftMarimekko",
     display_name: "BIcraft Marimekko",
-    version: "1.3.5.0",
+    version: "1.3.6.0",
     description: "A Marimekko chart: 100 % stacked columns whose widths are the categories' shares of the total (BIcraft, docs/formats/chart-pack.md)",
     roles: &[
         Role {

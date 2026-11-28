@@ -9,7 +9,7 @@ pub(crate) const DEF: Def = Def {
     guid: "bicraftVenn9A2E4C6B8D1F3A5E7C9B0D2F",
     name: "bicraftVenn",
     display_name: "BIcraft Venn",
-    version: "1.3.4.0",
+    version: "1.3.5.0",
     description: "A Venn diagram of two or three sets from an item and set membership table, with the count of items in each region (BIcraft, docs/formats/chart-pack.md)",
     roles: &[
         Role {

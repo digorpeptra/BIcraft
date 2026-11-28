@@ -455,7 +455,7 @@ pub fn dns_subdomain(s: &str) -> bool {
     !s.is_empty() && s.len() <= 253 && s.split('.').all(|l| dns_label(l, 63))
 }
 
-/// The forms `bicraft serve --local-offset` takes (it checks the value again at start).
+/// The forms `bicraft-cli serve --local-offset` takes (it checks the value again at start).
 fn offset_text(s: &str) -> bool {
     let t = s.trim();
     if ["utc", "z", "machine", "local"]

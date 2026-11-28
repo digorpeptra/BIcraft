@@ -11,13 +11,13 @@ cargo xtask webcheck check      # after a change: compare with the baselines
 
 ## What it does
 
-1. Builds `bicraft` (`cargo build -p bicraft-cli`, debug; `--bicraft PATH` takes a binary
+1. Builds `bicraft-cli` (`cargo build -p bicraft-cli`, debug; `--bicraft PATH` takes a binary
    instead).
 2. Copies our synthetic fixture `crates/engine/tests/fixtures/layout-oracle/visuals/legacy` (three
    pages: Charts, Tables with two slicers, Shapes; its `SOURCE.txt` says how it was made) to
-   `<dir>/work/` and adds a bookmark to it with `bicraft run --cmd bookmark.capture … --save`
+   `<dir>/work/` and adds a bookmark to it with `bicraft-cli run --cmd bookmark.capture … --save`
    (saved as PBIR). No client file is ever used.
-3. Starts `bicraft view <dir>/work/visuals.pbip --port 0 --no-open-button --lang en
+3. Starts `bicraft-cli view <dir>/work/visuals.pbip --port 0 --no-open-button --lang en
    --as-of 2026-01-01`: a free loopback port, read from its "live viewer at" line, and no
    "Open in Power BI Desktop" button.
 4. Starts Craft Anything's MCP server (`craft-anything-cli --allow-run --clean-room mcp`) and,
@@ -48,8 +48,8 @@ docs/view-snapshot.md): the screenshots check how the HTML viewer draws each sta
 Craft Anything's scripted clicks (`web_walkthrough_record`) read the page, which its restricted mode
 does not allow, and `--deep` is not used, so the page's own click handlers are
 exercised only by `states`. `web_walkthrough_check` and `web_snapshots_compare` are therefore not
-used either (the second also needs Deep mode). The HTML viewer has no export in `bicraft view`
-(the download link is `bicraft serve`'s), so there is no export walkthrough.
+used either (the second also needs Deep mode). The HTML viewer has no export in `bicraft-cli view`
+(the download link is `bicraft-cli serve`'s), so there is no export walkthrough.
 
 ## Running it
 
@@ -68,8 +68,8 @@ used either (the second also needs Deep mode). The HTML viewer has no export in 
   (default 16 of 255); a step passes when at most `--max-diff` of its pixels changed (default
   0.0005, 0.05 %). Each step waits 3.5 s for the snapshot and the "changed" highlight (2.4 s) to
   settle; the first load waits 5 s.
-- A `check` takes about three minutes, `bicraft` already built (measured 2026-11-19, Windows,
-  debug `bicraft`): mostly the waits after each step. The screenshots are the browser's own
+- A `check` takes about three minutes, `bicraft-cli` already built (measured 2026-11-19, Windows,
+  debug `bicraft-cli`): mostly the waits after each step. The screenshots are the browser's own
   window, 750 x 485 pixels on the proof machine (the 1280 x 800 asked of `web_site_open` is not
   what it captures).
 

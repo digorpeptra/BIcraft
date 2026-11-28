@@ -1,4 +1,4 @@
-//! `cargo xtask concurrency-bench`: parallel reads on one workspace of `bicraft serve`
+//! `cargo xtask concurrency-bench`: parallel reads on one workspace of `bicraft-cli serve`
 //! (`docs/web-deployment.md`, "Concurrency on one workspace"; `docs/benchmarks.md`).
 //!
 //! On a PBIX of the engine bench (`engine-bench gen`, e.g. 10 M rows), for each query: N
@@ -22,7 +22,7 @@ usage: cargo xtask concurrency-bench --bin BICRAFT --data FILE.pbix [--base-bin 
                                      [--parallel N] [--rounds R] [--queries Q01,Q03,...]
                                      [--queries-file FILE] [--json OUT]
 
-  --bin         the bicraft binary to measure (a release build)
+  --bin         the bicraft-cli binary to measure (a release build)
   --base-bin    another build (e.g. main) for the single-query latency A/B
   --data        an engine-bench PBIX (xtask/engine-bench; regenerate with engine-bench gen)
   --parallel    identical queries sent at once (default 4)
@@ -91,7 +91,7 @@ fn parse(args: &[String]) -> Result<Opts, String> {
     Ok(o)
 }
 
-/// A running `bicraft serve` on a temporary root holding one workspace with the data file.
+/// A running `bicraft-cli serve` on a temporary root holding one workspace with the data file.
 struct Server {
     child: Child,
     ep: Endpoint,
@@ -140,7 +140,7 @@ fn start(bin: &Path, root: &Path, reads: usize) -> Result<Server, String> {
     });
     let addr = rx
         .recv_timeout(Duration::from_secs(30))
-        .map_err(|_| "bicraft serve printed no endpoint".to_owned())?;
+        .map_err(|_| "bicraft-cli serve printed no endpoint".to_owned())?;
     let ep = Endpoint {
         addr: addr.parse().map_err(|e| format!("{addr}: {e}"))?,
         host: addr.clone(),

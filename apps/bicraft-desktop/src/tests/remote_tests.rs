@@ -1,4 +1,4 @@
-//! Remote mode against an in-process `bicraft serve` with API tokens: a reader and an editor
+//! Remote mode against an in-process `bicraft-cli serve` with API tokens: a reader and an editor
 //! connect, see the saved report and click on it (their views only); a wrong token is a clear
 //! 401; a server restart is survived.
 

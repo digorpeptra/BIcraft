@@ -13,7 +13,8 @@
 //!   selected with a click (Shift extends), Ctrl+C or the menu copies them as tab-separated text.
 //! - The same grid shows a **query preview** (`query.preview`: Home › Queries, the pane's query
 //!   entries) and **See records** of a data point (`visual.records`, the visual's right-click
-//!   menu), read once, with a Close button back to the table.
+//!   menu), read once, with a Close button back to the table; a header's menu sorts the rows
+//!   read (view state, no request).
 //!
 //! The row count is in the status bar. Nothing here changes the model: the Column tools run
 //! `column.set`, New column and New measure open the formula bar.
@@ -103,7 +104,8 @@ impl Col {
     }
 }
 
-/// A grid read once: a query preview or See records.
+/// A grid read once: a query preview or See records. Its sort is view state over the rows read
+/// (no request): `order` lists the rows in the order shown, empty when unsorted.
 #[derive(Debug, Clone, Default)]
 pub struct Static {
     pub title: String,
@@ -111,6 +113,63 @@ pub struct Static {
     pub rows: Vec<Vec<Value>>,
     pub truncated: bool,
     pub note: String,
+    pub sort: Option<(String, bool)>,
+    pub order: Vec<usize>,
+}
+
+impl Static {
+    /// The row shown at display row `r`.
+    pub fn row(&self, r: usize) -> Option<&Vec<Value>> {
+        let i = if self.order.is_empty() {
+            r
+        } else {
+            *self.order.get(r)?
+        };
+        self.rows.get(i)
+    }
+
+    /// Sorts the rows shown on `sort` (`None`: the order they were read in).
+    fn sort_on(&mut self, sort: Option<(String, bool)>) {
+        self.order.clear();
+        if let Some((name, desc)) = &sort
+            && let Some(c) = self.columns.iter().position(|x| x.name == *name)
+        {
+            let mut order: Vec<usize> = (0..self.rows.len()).collect();
+            let at = |i: usize| self.rows.get(i).and_then(|r| r.get(c)).unwrap_or(&Value::Null);
+            // stable: equal values keep the order they were read in
+            order.sort_by(|a, b| {
+                let o = cmp_cells(at(*a), at(*b));
+                if *desc { o.reverse() } else { o }
+            });
+            self.order = order;
+        }
+        self.sort = sort;
+    }
+}
+
+/// The order of two cells: blanks first, then booleans, numbers, and text (case-insensitive,
+/// then exact).
+fn cmp_cells(a: &Value, b: &Value) -> std::cmp::Ordering {
+    let rank = |v: &Value| match v {
+        Value::Null => 0,
+        Value::Bool(_) => 1,
+        Value::Number(_) => 2,
+        Value::String(_) => 3,
+        _ => 4,
+    };
+    match (a, b) {
+        (Value::Bool(x), Value::Bool(y)) => x.cmp(y),
+        (Value::Number(x), Value::Number(y)) => x
+            .as_f64()
+            .unwrap_or(f64::NAN)
+            .total_cmp(&y.as_f64().unwrap_or(f64::NAN)),
+        (Value::String(x), Value::String(y)) => {
+            x.to_lowercase().cmp(&y.to_lowercase()).then_with(|| x.cmp(y))
+        }
+        _ => rank(a)
+            .cmp(&rank(b))
+            .then_with(|| a.to_string().cmp(&b.to_string())),
+    }
 }
 
 /// The filter and sort menu of a column.
@@ -189,7 +248,7 @@ impl DataView {
     /// The cell at display row `r`, column `c`.
     pub fn cell(&self, r: usize, c: usize) -> Option<&Value> {
         if let Some(s) = &self.stat {
-            return s.rows.get(r)?.get(c);
+            return s.row(r)?.get(c);
         }
         let start = r / PAGE * PAGE;
         self.pages.get(&start)?.get(r - start)?.get(c)
@@ -535,6 +594,7 @@ pub fn answer(app: &mut App, step: Step, r: Result<Value, String>) {
                         rows,
                         truncated,
                         note,
+                        ..Static::default()
                     });
                     dv.sel = None;
                     dv.error = None;
@@ -1049,8 +1109,15 @@ fn grid(app: &mut App, ui: &mut Ui, t: &Tokens, l: Lang) -> Vec<Act> {
     let total: f32 = widths.iter().sum::<f32>().max(1.0);
     let salt = Id::unique("bicraft-data-grid");
     let selected_col = dv.column.clone();
-    let sort = dv.sort.clone();
-    let filtered: BTreeSet<String> = dv.filters.keys().cloned().collect();
+    let sort = match &dv.stat {
+        Some(s) => s.sort.clone(),
+        None => dv.sort.clone(),
+    };
+    let filtered: BTreeSet<String> = if stat {
+        BTreeSet::new()
+    } else {
+        dv.filters.keys().cloned().collect()
+    };
     let sel = dv.sel;
     let in_sel = |r: usize, c: usize| {
         sel.is_some_and(|((r0, c0), (r1, c1))| {
@@ -1139,10 +1206,16 @@ fn grid(app: &mut App, ui: &mut Ui, t: &Tokens, l: Lang) -> Vec<Act> {
                     g,
                     color,
                 );
-                // the menu's arrow, with the sort and the filter marks
-                if !stat {
+                // the menu's arrow, with the sort and the filter marks (a grid read once: its
+                // sort only)
+                {
                     let ar = ui.interact(arrow, salt.with(("menu", c)), Sense::click());
-                    let mname = format!("{} {}", l.t("Sort and filter", "Trier et filtrer"), col.name);
+                    let what = if stat {
+                        l.t("Sort", "Trier")
+                    } else {
+                        l.t("Sort and filter", "Trier et filtrer")
+                    };
+                    let mname = format!("{what} {}", col.name);
                     ar.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, &mname));
                     if ar.hovered() {
                         ui.painter().rect_filled(arrow, CornerRadius::same(3), t.hover);
@@ -1298,6 +1371,17 @@ fn triangle(ui: &Ui, c: egui::Pos2, up: bool, color: egui::Color32) {
 
 /// Opens the sort and filter menu of `column` (and asks for its values).
 pub fn open_menu(app: &mut App, column: &str, at: egui::Pos2) {
+    if app.cmd.data.stat.is_some() {
+        // a grid read once: its sort, nothing to ask
+        app.cmd.data.menu = Some(Menu {
+            column: column.to_string(),
+            at,
+            checked: BTreeSet::new(),
+            search: String::new(),
+            fresh: true,
+        });
+        return;
+    }
     let Some(table) = app.cmd.data.table.clone() else {
         return;
     };
@@ -1340,9 +1424,16 @@ pub fn open_menu(app: &mut App, column: &str, at: egui::Pos2) {
     }
 }
 
-/// Sorts the view on `column` (`None`: no sort).
+/// Sorts the view on `column` (`None`: no sort); a grid read once sorts the rows it holds.
 pub fn set_sort(app: &mut App, sort: Option<(String, bool)>) {
     let dv = &mut app.cmd.data;
+    if let Some(s) = &mut dv.stat {
+        if s.sort != sort {
+            s.sort_on(sort);
+            dv.sel = None;
+        }
+        return;
+    }
     if dv.sort != sort {
         dv.sort = sort;
         dv.reset();
@@ -1386,6 +1477,8 @@ fn menu_ui(app: &mut App, ctx: &egui::Context) {
     let mut custom: Option<crate::data_filter::Custom> = None;
     let col = app.cmd.data.columns.iter().find(|c| c.name == m.column).cloned();
     let current = app.cmd.data.filters.get(&m.column).cloned();
+    let stat = app.cmd.data.stat.is_some();
+    let truncated = app.cmd.data.stat.as_ref().is_some_and(|s| s.truncated);
     let resp = egui::Area::new(Id::unique("bicraft-data-menu"))
         .fixed_pos(m.at)
         .order(egui::Order::Foreground)
@@ -1405,6 +1498,20 @@ fn menu_ui(app: &mut App, ctx: &egui::Context) {
                 }
                 if ui.button(l.t("Clear sort", "Effacer le tri")).clicked() {
                     sort = Some(None);
+                }
+                if stat {
+                    // a grid read once: its sort only, over the rows read
+                    if truncated {
+                        ui.label(
+                            RichText::new(l.t(
+                                "Sorts the rows read, not every row",
+                                "Trie les lignes lues, pas toutes les lignes",
+                            ))
+                            .small()
+                            .color(t.text_dim),
+                        );
+                    }
+                    return;
                 }
                 ui.separator();
                 if ui.button(l.t("Clear filter", "Effacer le filtre")).clicked() {

@@ -259,11 +259,31 @@ fn result(page: &str, v: &Visual, at: usize, warnings: Vec<String>) -> Value {
     })
 }
 
-/// `visual.calculation.add {page, visual, expression, name?, role?, hidden?, force?}`.
+/// `preview: true`'s answer: the command's result for `nv` (the visual as the command would leave
+/// it, not stored) with the data `nv` would show; the report is unchanged.
+fn previewed(s: &Session, page: &str, nv: &Visual, at: usize, warnings: Vec<String>) -> Value {
+    let mut out = result(page, nv, at, warnings);
+    if let Some(o) = out.as_object_mut() {
+        o.insert("preview".into(), json!(true));
+        o.insert("data".into(), crate::preview::visual_data(s, page, nv));
+    }
+    out
+}
+
+/// `visual.calculation.add {page, visual, expression, name?, role?, hidden?, force?, preview?}`.
 pub(crate) fn add(s: &mut Session, p: &Value) -> Result<Value, String> {
     allow(
         p,
-        &["page", "visual", "expression", "name", "role", "hidden", "force"],
+        &[
+            "page",
+            "visual",
+            "expression",
+            "name",
+            "role",
+            "hidden",
+            "force",
+            "preview",
+        ],
     )?;
     let page = str_param(p, "page")?;
     let visual = str_param(p, "visual")?;
@@ -272,6 +292,7 @@ pub(crate) fn add(s: &mut Session, p: &Value) -> Result<Value, String> {
     let role = name_param(p, "role")?;
     let hide = opt_bool(p, "hidden")?.unwrap_or(false);
     let force = force(p)?;
+    let preview = opt_bool(p, "preview")?.unwrap_or(false);
     let (_, r) = parts(s)?;
     let (page, v) = visual_mut(r, page, visual)?;
     let t = v.visual_type.clone().unwrap_or_default();
@@ -320,6 +341,9 @@ pub(crate) fn add(s: &mut Session, p: &Value) -> Result<Value, String> {
     if hide {
         set_hidden(&mut nv, at, true)?;
     }
+    if preview {
+        return Ok(previewed(s, &page, &nv, at, warnings));
+    }
     *v = nv;
     let out = result(&page, v, at, warnings);
     s.report_dirty = true;
@@ -343,7 +367,8 @@ fn set_hidden(v: &mut Visual, at: usize, hide: bool) -> Result<(), String> {
     Ok(())
 }
 
-/// `visual.calculation.set {page, visual, name, expression?, new_name?, hidden?, force?}`.
+/// `visual.calculation.set {page, visual, name, expression?, new_name?, hidden?, force?,
+/// preview?}`.
 pub(crate) fn set(s: &mut Session, p: &Value) -> Result<Value, String> {
     allow(
         p,
@@ -355,6 +380,7 @@ pub(crate) fn set(s: &mut Session, p: &Value) -> Result<Value, String> {
             "new_name",
             "hidden",
             "force",
+            "preview",
         ],
     )?;
     let page = str_param(p, "page")?;
@@ -364,6 +390,7 @@ pub(crate) fn set(s: &mut Session, p: &Value) -> Result<Value, String> {
     let new_name = name_param(p, "new_name")?;
     let hide = opt_bool(p, "hidden")?;
     let force = force(p)?;
+    let preview = opt_bool(p, "preview")?.unwrap_or(false);
     if expression.is_none() && new_name.is_none() && hide.is_none() {
         return Err("nothing to change: give `expression`, `new_name` or `hidden`".into());
     }
@@ -429,6 +456,9 @@ pub(crate) fn set(s: &mut Session, p: &Value) -> Result<Value, String> {
     }
     if query::derive(nv.visual_extra.get("query")) != nv.fields {
         return Err("internal: the visual's query no longer matches its fields".into());
+    }
+    if preview {
+        return Ok(previewed(s, &page, &nv, at, warnings));
     }
     *v = nv;
     let out = result(&page, v, at, warnings);

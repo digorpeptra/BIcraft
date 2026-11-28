@@ -139,12 +139,12 @@ saved read back.
   `true`, `datetime'…'` — and Other when on; the source alias is the table name's first letter
   in lower case, as Desktop's `s` for `Sales`). Only text values were seen in Desktop's file; the
   other literal kinds follow the public `semanticQuery` literal forms. A group that lists a blank
-  gets no annotation: Desktop's dialog has no form for it (below).
+  holds it as an explicit member (BIcraft's form since 2026-11-27, below).
 - **A blank in a list group** (second session, same day): on a text column with a null row
   (the row loaded, its other columns binned), Desktop's Ungrouped values listed only the
   non-blank values; the blank is never a value a group can take, only the `(Blank)` placeholder
   item the SWITCH sends it to. BIcraft's `values: [null]` (a blank grouped with other values) has
-  no Desktop equivalent, so its design state stays unwritten.
+  no Desktop equivalent; its design state is BIcraft's own form (below).
 - **Bins (first session).** Edit groups on BIcraft's number bins opened with the type Bin but an
   empty bin type: Desktop did not read BIcraft's `binningMetadata`. Opening Edit groups on the
   date bins showed an empty dialog, after which Desktop reported an error rendering the report.
@@ -167,7 +167,26 @@ BIcraft's evaluator stores a calculated column's numbers as dates when the colum
 (`preview_eval_rows.rs` `as_declared`), as the engine does for Desktop's day and time bins,
 whose DAX returns serial numbers.
 
-## Not done
+## BIcraft's own forms (2026-11-27, not compared with Desktop)
 
-- A number of bins on dates (whether Desktop offers it, and its form, were not checked).
-- Grouping data points selected on a visual (Ctrl+click › Group).
+- **A blank listed in a list group** is an explicit member of its group: the SWITCH branch is
+  `ISBLANK(c) || c IN {…}` (above), and the design state lists the public `semanticQuery` null
+  literal, `[{"Literal": {"Value": "null"}}]`, among the group's `In` values, with no `(Blank)`
+  placeholder item (the blank is no longer left to it). The other choice, the blank sent to
+  Other, would lose the group's member on a round trip. Desktop's dialog never lists a blank, so
+  no Desktop file has this form; BIcraft writes and reads it back (PBIP tested).
+- **A number of bins on dates** (`column.group {kind: bin, bin_count: n, unit?}` on a date
+  column) is written as a bin size of the date form above: the span of the data's dates in the
+  unit (calendar years or months touched, days, hours, minutes or seconds) divided by `n`,
+  rounded up. Without a unit, the largest unit the span holds `n` times. The size is fixed when
+  the group is made (it does not follow a refresh, unlike the numbers' `Discretize`), and the
+  bins start on the unit's usual boundaries, so the data may fall into one bin more or fewer
+  than `n`. Whether Desktop offers a number of bins on dates, and its form, were not checked; no
+  `binCount` or other metadata is added.
+- **Group data** (`visual.group_points`, the menu of a data point): the data points selected in
+  a visual (Ctrl+click), else the point right-clicked, give the values of their category column
+  (the first grouping value of the first point); `column.group` makes a list group of them,
+  named by joining the values with ` & ` as Desktop names a group of several values, in the
+  column `<column> (groups)`. When that column already groups the same column, the new group joins
+  its groups (its values leave the groups that listed them). Desktop also adds the group to the
+  visual's Legend (Microsoft Learn); BIcraft leaves the visual's fields as they are.

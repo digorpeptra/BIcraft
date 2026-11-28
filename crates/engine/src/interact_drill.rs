@@ -1003,9 +1003,19 @@ pub(crate) fn through_json(m: &HashMap<String, Through>) -> Vec<Value> {
 // filter, howCreated: 2}` (2 being `Drill` in the filter schema's `howCreated` order; the
 // bookmark schema numbers it without naming it). The shape follows the schemas; how Desktop
 // fills it is not observed.
+//
+// The drill mode (a click drills into the point) has no property in the bookmark schema
+// (`SingleVisualConfigState` is closed; its `isDrillDisabled` turns drilling off, a different
+// thing). BIcraft writes it as a formatting-object update of its own, which the schema allows:
+// `singleVisual.objects.merge.bicraftDrill[0].properties.drillMode` = `true`
+// ([`DRILL_MODE_OBJECT`]). Not seen in a Desktop file; Desktop is expected to ignore an object no
+// visual declares.
 
 /// The `howCreated` number of a drill filter in a bookmark (`Auto`, `User`, `Drill`… in order).
 const BOOKMARK_DRILL: u64 = 2;
+/// The formatting object of BIcraft's own that carries the drill mode in a bookmark
+/// (`singleVisual.objects.merge.<this>[0].properties.drillMode`).
+pub(crate) const DRILL_MODE_OBJECT: &str = "bicraftDrill";
 
 /// What a bookmark container holds of a visual's drill state.
 pub(crate) struct Captured {
@@ -1015,6 +1025,24 @@ pub(crate) struct Captured {
     pub expansion: Option<Value>,
     /// `filters.byExpr` entries: the values drilled into.
     pub filters: Vec<Value>,
+    /// The drill mode is on (`singleVisual.objects.merge.bicraftDrill`).
+    pub mode: bool,
+}
+
+/// The `objects.merge` entry that carries the drill mode in a bookmark container.
+pub(crate) fn mode_object() -> Value {
+    json!([{"properties": {"drillMode": {"expr": {"Literal": {"Value": "true"}}}}}])
+}
+
+/// Whether bookmark container `c` turns the drill mode on.
+fn mode_of(c: &Value) -> bool {
+    c.pointer("/singleVisual/objects/merge")
+        .and_then(|m| m.get(DRILL_MODE_OBJECT))
+        .and_then(Value::as_array)
+        .and_then(|l| l.first())
+        .and_then(|e| e.pointer("/properties/drillMode/expr/Literal/Value"))
+        .and_then(Value::as_str)
+        == Some("true")
 }
 
 /// The drill state of visual `v` of `page` the session shows, as a bookmark holds it (`None`:
@@ -1046,6 +1074,7 @@ pub(crate) fn capture(view: &Interactions, page: &str, v: &Visual) -> Option<Cap
         active: Value::Object(active),
         expansion,
         filters,
+        mode: d.mode,
     })
 }
 
@@ -1066,7 +1095,8 @@ fn from_container(v: &Visual, hier: &Hier, c: &Value) -> Option<Drill> {
         .take(MAX_LEVELS)
         .filter(|f| f.get("howCreated").and_then(Value::as_u64) == Some(BOOKMARK_DRILL))
         .collect();
-    if active.is_none() && expansion.is_none() && drilled.is_empty() {
+    let mode = mode_of(c);
+    if active.is_none() && expansion.is_none() && drilled.is_empty() && !mode {
         return None;
     }
     let mut shown = v.clone();
@@ -1122,6 +1152,7 @@ fn from_container(v: &Visual, hier: &Hier, c: &Value) -> Option<Drill> {
         }
     }
     let mut d = stored(&shown, hier);
+    d.mode = mode;
     if hier.matrix
         && let Some(e) = expansion
     {

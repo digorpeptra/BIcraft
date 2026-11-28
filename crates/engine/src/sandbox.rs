@@ -117,7 +117,7 @@ pub struct ServerPolicy {
     pub effect: Effect,
 }
 
-/// What a command does, as read-only callers (`reader` grants of `bicraft serve`,
+/// What a command does, as read-only callers (`reader` grants of `bicraft-cli serve`,
 /// `docs/auth.md` "Roles") see it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Effect {
@@ -316,7 +316,7 @@ impl ServerConfig {
     }
 
     /// The network setting alone from the environment (`BICRAFT_SERVER_NETWORK`; unset: off), for
-    /// servers that pick their roots themselves (`bicraft serve`: one root per workspace).
+    /// servers that pick their roots themselves (`bicraft-cli serve`: one root per workspace).
     pub fn network_from_env() -> Result<bool, String> {
         Self::network_from_lookup(&bicraft_env::var_os)
     }

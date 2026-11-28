@@ -2,7 +2,7 @@
 //!
 //! The preview state ([`State`]) is one mutex, held for a whole evaluation: its caches (decoded
 //! columns, storage-engine caches, aggregations, memory accounting) are updated as the query
-//! runs. When `bicraft serve` runs read-only commands side by side on one session
+//! runs. When `bicraft-cli serve` runs read-only commands side by side on one session
 //! (`Session::execute_shared`), a second evaluation would wait for the first. Instead it
 //! **forks**:
 //!

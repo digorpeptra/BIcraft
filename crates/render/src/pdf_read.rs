@@ -68,6 +68,13 @@ pub struct FontInfo {
     /// A font file (`FontFile`, `FontFile2` or `FontFile3`) is embedded.
     pub embedded: bool,
     pub to_unicode: bool,
+    /// The embedded font file's key, with its `Subtype` when it has one (`FontFile2`,
+    /// `FontFile3/OpenType`).
+    pub file: Option<String>,
+    /// The descendant font's subtype for a `Type0` font (`CIDFontType2`, `CIDFontType0`).
+    pub cid_subtype: Option<String>,
+    /// Every text shown with it is invisible (render mode 3), so it is not drawn.
+    pub invisible_only: bool,
 }
 
 /// One page.
@@ -109,6 +116,59 @@ pub struct StructNode {
     pub page: Option<usize>,
     /// The text of its own marked content.
     pub text: String,
+    /// Its `Scope` attribute (a table header cell's `Column` or `Row`).
+    pub scope: Option<String>,
+}
+
+/// The ICC profile of an output intent: what its header says.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct IccInfo {
+    /// The profile's major version.
+    pub version: u8,
+    /// Device class (`mntr`) and data colour space (`RGB `).
+    pub class: String,
+    pub colour_space: String,
+    /// The stream's `N` (its number of components).
+    pub n: Option<usize>,
+    /// The size its header gives is its length.
+    pub size_ok: bool,
+}
+
+/// An output intent of the catalog.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct OutputIntentInfo {
+    /// Its `S` (`GTS_PDFA1`).
+    pub subtype: String,
+    pub profile: Option<IccInfo>,
+}
+
+/// What a file says it conforms to, and what PDF/A and PDF/UA look at.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct Conformance {
+    /// The catalog's XMP metadata packet.
+    pub xmp: Option<String>,
+    /// The metadata stream is filtered (PDF/A forbids it).
+    pub xmp_filtered: bool,
+    /// The metadata's `dc:title` (its default language).
+    pub xmp_title: Option<String>,
+    /// `pdfaid:part` and `pdfaid:conformance` (`"2B"`).
+    pub pdf_a: Option<String>,
+    /// `pdfuaid:part` (`"1"`).
+    pub pdf_ua: Option<String>,
+    /// The metadata describes the PDF/UA identification schema (an extension schema).
+    pub ua_schema_described: bool,
+    /// The information dictionary's `Producer`, and the metadata's `pdf:Producer`.
+    pub producer: Option<String>,
+    pub xmp_producer: Option<String>,
+    /// The viewer is asked to show the title (`ViewerPreferences` `DisplayDocTitle`).
+    pub display_doc_title: bool,
+    pub output_intents: Vec<OutputIntentInfo>,
+    /// The trailer has a file identifier (`ID`).
+    pub file_id: bool,
+    /// The trailer has an `Encrypt` dictionary.
+    pub encrypted: bool,
+    /// The header's second line is a comment of bytes 128 and above.
+    pub binary_comment: bool,
 }
 
 /// What [`inspect`] found.
@@ -133,6 +193,131 @@ pub struct PdfInfo {
     /// What does not hold together in the structure tree: a marked-content reference that the
     /// parent tree does not map back to its element, or that no content has.
     pub structure_issues: Vec<String>,
+    pub conformance: Conformance,
+}
+
+impl PdfInfo {
+    /// The fonts that are drawn without being embedded (a font only shown invisibly is not
+    /// drawn).
+    fn unembedded_drawn(&self) -> Vec<String> {
+        self.fonts
+            .iter()
+            .filter(|f| !f.embedded && !f.invisible_only)
+            .map(|f| format!("font {} is drawn but not embedded", f.base_font))
+            .collect()
+    }
+
+    /// What breaks the machine-checkable PDF/UA-1 requirements this reader can see (ISO 14289-1
+    /// §7: identification, title, language, tagged content, alternative text, tables, fonts).
+    /// Empty when none does; it is not a full validator (the meaning of the tags, the colours'
+    /// contrast and the like need a person or a validator such as veraPDF or PAC).
+    pub fn ua_issues(&self) -> Vec<String> {
+        let c = &self.conformance;
+        let mut out = Vec::new();
+        if c.pdf_ua.as_deref() != Some("1") {
+            out.push("no PDF/UA-1 identification (pdfuaid:part) in the metadata".to_string());
+        }
+        if c.xmp_title.as_deref().is_none_or(|t| t.trim().is_empty()) {
+            out.push("the metadata has no dc:title".into());
+        }
+        if !c.display_doc_title {
+            out.push("DisplayDocTitle is not true".into());
+        }
+        if !self.marked {
+            out.push("MarkInfo does not say the file is tagged".into());
+        }
+        if self.lang.as_deref().is_none_or(|l| l.trim().is_empty()) {
+            out.push("the catalog has no Lang".into());
+        }
+        if self.structure.is_empty() {
+            out.push("no structure tree".into());
+        }
+        out.extend(self.structure_issues.iter().cloned());
+        for (i, p) in self.pages.iter().enumerate() {
+            if !p.untagged_text.is_empty() {
+                out.push(format!("page {i}: text outside marked content"));
+            }
+            if p.unbalanced_marks {
+                out.push(format!("page {i}: marked content does not nest"));
+            }
+        }
+        // the parent of each element (the tree is depth first)
+        let mut stack: Vec<&str> = Vec::new();
+        for n in &self.structure {
+            stack.truncate(n.depth);
+            let parent = stack.last().copied().unwrap_or("");
+            match n.role.as_str() {
+                "Figure" if n.alt.as_deref().is_none_or(|a| a.trim().is_empty()) => {
+                    out.push("a Figure without alternative text".into());
+                }
+                "TR" if !matches!(parent, "Table" | "THead" | "TBody" | "TFoot") => {
+                    out.push(format!("a TR under {parent}"));
+                }
+                "TH" | "TD" if parent != "TR" => {
+                    out.push(format!("a {} under {parent}", n.role));
+                }
+                _ => {}
+            }
+            if n.role == "TH" && n.scope.is_none() {
+                out.push("a TH without Scope".into());
+            }
+            stack.push(n.role.as_str());
+        }
+        out.extend(self.unembedded_drawn());
+        for f in &self.fonts {
+            if f.embedded && !f.to_unicode {
+                out.push(format!("font {} has no ToUnicode map", f.base_font));
+            }
+        }
+        out
+    }
+
+    /// What breaks the PDF/A-2b requirements this reader can see (ISO 19005-2: identification
+    /// and metadata, the output intent and its profile, the file identifier, encryption, fonts
+    /// embedded). Empty when none does; not a full validator.
+    pub fn pdfa_issues(&self) -> Vec<String> {
+        let c = &self.conformance;
+        let mut out = Vec::new();
+        if c.pdf_a.as_deref() != Some("2B") {
+            out.push("no PDF/A-2b identification (pdfaid) in the metadata".to_string());
+        }
+        if c.xmp_filtered {
+            out.push("the metadata stream is filtered".into());
+        }
+        if c.pdf_ua.is_some() && !c.ua_schema_described {
+            out.push("pdfuaid is used without its extension schema".into());
+        }
+        if self.title.is_some() && self.title != c.xmp_title {
+            out.push("the information dictionary's Title differs from dc:title".into());
+        }
+        if c.producer.is_some() && c.producer != c.xmp_producer {
+            out.push("the information dictionary's Producer differs from pdf:Producer".into());
+        }
+        let ok_intent = c.output_intents.iter().any(|o| {
+            o.subtype == "GTS_PDFA1"
+                && o.profile.as_ref().is_some_and(|p| {
+                    p.size_ok
+                        && (2..=4).contains(&p.version)
+                        && p.colour_space == "RGB "
+                        && p.n == Some(3)
+                        && matches!(p.class.as_str(), "mntr" | "prtr" | "scnr")
+                })
+        });
+        if !ok_intent {
+            out.push("no GTS_PDFA1 output intent with an RGB ICC profile".into());
+        }
+        if !c.file_id {
+            out.push("the trailer has no ID".into());
+        }
+        if c.encrypted {
+            out.push("the file is encrypted".into());
+        }
+        if !c.binary_comment {
+            out.push("the header has no binary comment line".into());
+        }
+        out.extend(self.unembedded_drawn());
+        out
+    }
 }
 
 /// A PDF text string: UTF-16BE after its byte order mark, else bytes as Latin-1.
@@ -663,6 +848,7 @@ impl Walk<'_, '_> {
             _ => HashMap::new(),
         };
         let two = subtype == "Type0";
+        let mut cid_subtype = None;
         let descriptor = if two {
             let desc = self.f.get(fo, "DescendantFonts")?;
             let first = match &desc {
@@ -673,13 +859,25 @@ impl Walk<'_, '_> {
                     .unwrap_or(Obj::Null),
                 _ => Obj::Null,
             };
+            cid_subtype = first.get("Subtype").and_then(Obj::name).map(str::to_string);
             self.f.get(&first, "FontDescriptor")?
         } else {
             self.f.get(fo, "FontDescriptor")?
         };
-        let embedded = ["FontFile", "FontFile2", "FontFile3"]
-            .iter()
-            .any(|k| matches!(descriptor.get(k), Some(Obj::Ref(..))));
+        let file_key = ["FontFile", "FontFile2", "FontFile3"]
+            .into_iter()
+            .find(|k| matches!(descriptor.get(k), Some(Obj::Ref(..))));
+        let embedded = file_key.is_some();
+        let file = match file_key {
+            Some(k) => {
+                let ff = self.f.get(&descriptor, k)?;
+                Some(match ff.get("Subtype").and_then(Obj::name) {
+                    Some(st) => format!("{k}/{st}"),
+                    None => k.to_string(),
+                })
+            }
+            None => None,
+        };
         self.fonts.insert(
             key.to_string(),
             FontInfo {
@@ -688,6 +886,9 @@ impl Walk<'_, '_> {
                 subtype,
                 embedded,
                 to_unicode: matches!(tu, Obj::Stream(..)),
+                file,
+                cid_subtype,
+                invisible_only: true,
             },
         );
         let d = std::rc::Rc::new(Decoder { two, map });
@@ -733,6 +934,10 @@ impl Walk<'_, '_> {
         let mut lx = Lexer { b: data, i: 0 };
         let mut stack: Vec<Obj> = Vec::new();
         let mut font: Option<std::rc::Rc<Decoder>> = None;
+        // the font's key, and the text render mode with the ones `q` saved
+        let mut font_key: Option<String> = None;
+        let mut mode = 0i64;
+        let mut saved: Vec<i64> = Vec::new();
         let mut line_y: Option<f64> = None;
         let mut guard = 0usize;
         while lx.i < data.len() {
@@ -759,6 +964,13 @@ impl Walk<'_, '_> {
                 lx.i += 1;
                 continue;
             }
+            // text shown visibly: its font is drawn
+            if matches!(op, b"Tj" | b"'" | b"\"" | b"TJ")
+                && mode != 3
+                && let Some(fi) = font_key.as_ref().and_then(|k| self.fonts.get_mut(k))
+            {
+                fi.invisible_only = false;
+            }
             match op {
                 b"Tf" => {
                     if let Some(Obj::Name(n)) = stack.first() {
@@ -774,8 +986,14 @@ impl Walk<'_, '_> {
                             fi.resource = n.clone();
                         }
                         font = Some(d);
+                        font_key = Some(key);
                     }
                 }
+                b"Tr" => {
+                    mode = stack.first().and_then(Obj::num).map_or(0, |m| m as i64);
+                }
+                b"q" if saved.len() < 1024 => saved.push(mode),
+                b"Q" => mode = saved.pop().unwrap_or(0),
                 b"Tj" | b"'" | b"\"" => {
                     if let (Some(Obj::Str(s)), Some(d)) = (stack.last(), &font) {
                         let t = d.text(s);
@@ -1052,7 +1270,9 @@ pub fn inspect(bytes: &[u8]) -> Result<PdfInfo, String> {
         &walk.mcid_text,
         &mut issues,
     )?;
+    let conformance = conformance(&f, bytes, &trailer, &root)?;
     Ok(PdfInfo {
+        conformance,
         version,
         objects: ids.len(),
         pages,
@@ -1064,6 +1284,93 @@ pub fn inspect(bytes: &[u8]) -> Result<PdfInfo, String> {
         structure,
         structure_issues: issues,
     })
+}
+
+/// The text between `<tag>` (or `<tag …>`) and `</tag>` in `xml`, unescaped; or the value of
+/// an attribute `tag="…"`.
+fn xml_value(xml: &str, tag: &str) -> Option<String> {
+    let unescape = |v: &str| {
+        v.replace("&lt;", "<")
+            .replace("&gt;", ">")
+            .replace("&quot;", "\"")
+            .replace("&apos;", "'")
+            .replace("&amp;", "&")
+    };
+    let open = format!("<{tag}");
+    if let Some(at) = xml.find(&open) {
+        let rest = xml.get(at + open.len()..)?;
+        if rest.starts_with('>') || rest.starts_with(' ') {
+            let body = rest.get(rest.find('>')? + 1..)?;
+            let end = body.find(&format!("</{tag}>"))?;
+            return Some(unescape(body.get(..end)?.trim()));
+        }
+    }
+    let attr = format!("{tag}=\"");
+    let at = xml.find(&attr)? + attr.len();
+    let rest = xml.get(at..)?;
+    Some(unescape(rest.get(..rest.find('"')?)?))
+}
+
+/// What the file says it conforms to (its metadata), and the parts PDF/A and PDF/UA look at.
+fn conformance(f: &File<'_>, bytes: &[u8], trailer: &Obj, root: &Obj) -> Result<Conformance, String> {
+    let mut c = Conformance {
+        file_id: matches!(trailer.get("ID"), Some(Obj::Array(a)) if a.len() == 2),
+        encrypted: trailer.get("Encrypt").is_some(),
+        binary_comment: bytes.split(|b| *b == b'\n').nth(1).is_some_and(|l| {
+            l.first() == Some(&b'%') && l.len() >= 5 && l.iter().skip(1).take(4).all(|b| *b >= 128)
+        }),
+        display_doc_title: f.get(&f.get(root, "ViewerPreferences")?, "DisplayDocTitle")? == Obj::Bool(true),
+        producer: text_of(&f.get(&f.get(trailer, "Info")?, "Producer")?),
+        ..Conformance::default()
+    };
+    let meta = f.get(root, "Metadata")?;
+    if let Obj::Stream(d, _) = &meta {
+        c.xmp_filtered = d.contains_key("Filter");
+        let x = String::from_utf8_lossy(&f.decode(&meta)?).into_owned();
+        c.xmp_title = x
+            .find("<dc:title")
+            .and_then(|at| x.get(at..))
+            .and_then(|t| xml_value(t, "rdf:li"));
+        c.xmp_producer = xml_value(&x, "pdf:Producer");
+        c.pdf_a = match (xml_value(&x, "pdfaid:part"), xml_value(&x, "pdfaid:conformance")) {
+            (Some(p), Some(l)) => Some(format!("{p}{l}")),
+            (Some(p), None) => Some(p),
+            _ => None,
+        };
+        c.pdf_ua = xml_value(&x, "pdfuaid:part");
+        c.ua_schema_described =
+            x.contains("<pdfaSchema:namespaceURI>http://www.aiim.org/pdfua/ns/id/</pdfaSchema:namespaceURI>");
+        c.xmp = Some(x);
+    }
+    if let Obj::Array(intents) = f.get(root, "OutputIntents")? {
+        for i in intents.iter().take(64) {
+            let i = f.resolve(i)?;
+            let prof = f.get(&i, "DestOutputProfile")?;
+            let profile = match &prof {
+                Obj::Stream(..) => {
+                    let b = f.decode(&prof)?;
+                    let tag =
+                        |at: usize| String::from_utf8_lossy(b.get(at..at + 4).unwrap_or(&[])).into_owned();
+                    let size = b
+                        .get(0..4)
+                        .map(|s| u32::from_be_bytes([s[0], s[1], s[2], s[3]]) as usize);
+                    Some(IccInfo {
+                        version: b.get(8).copied().unwrap_or(0),
+                        class: tag(12),
+                        colour_space: tag(16),
+                        n: prof.get("N").and_then(Obj::num).map(|n| n as usize),
+                        size_ok: size == Some(b.len()) && b.get(36..40) == Some(b"acsp"),
+                    })
+                }
+                _ => None,
+            };
+            c.output_intents.push(OutputIntentInfo {
+                subtype: i.get("S").and_then(Obj::name).unwrap_or("").to_string(),
+                profile,
+            });
+        }
+    }
+    Ok(c)
 }
 
 /// The page a destination goes to (an explicit destination: `[page …]`).
@@ -1231,6 +1538,18 @@ fn structure(
                 ));
             }
         }
+        // the Scope of its attributes (a dictionary, or an array of them)
+        let attrs = match e.get("A") {
+            Some(a) => f.resolve(a)?,
+            None => Obj::Null,
+        };
+        let scope = match &attrs {
+            Obj::Array(a) => a
+                .iter()
+                .filter_map(|x| f.resolve(x).ok())
+                .find_map(|d| d.get("Scope").and_then(Obj::name).map(str::to_string)),
+            d => d.get("Scope").and_then(Obj::name).map(str::to_string),
+        };
         out.push(StructNode {
             depth,
             role: e.get("S").and_then(Obj::name).unwrap_or("").to_string(),
@@ -1238,6 +1557,7 @@ fn structure(
             alt: e.get("Alt").and_then(text_of),
             page: pg.as_ref().and_then(page_of),
             text,
+            scope,
         });
         for c in children.into_iter().rev() {
             todo.push((c, depth + 1));

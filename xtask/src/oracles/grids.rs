@@ -5,7 +5,7 @@
 //! French Desktop UI (render with `{"ui_language": "fr-FR"}`).
 //!
 //! `cargo xtask oracle-gen grids OUT.pbix CMDS.json LAYOUT.json`, then
-//! `bicraft run --file CMDS.json` writes OUT.pbix.
+//! `bicraft-cli run --file CMDS.json` writes OUT.pbix.
 
 use std::fmt::Write;
 use std::path::Path;

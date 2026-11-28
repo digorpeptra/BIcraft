@@ -1,10 +1,10 @@
 //! Canvas editing (ROADMAP M11.16, as Power BI Desktop's report canvas): the selection of one or
 //! several visuals (click, Ctrl+click, a rubber band on the empty page, Ctrl+A), dragging them,
 //! the eight resize handles, snapping to the other visuals' edges and centres with smart guides
-//! (and to an 8 px grid with View › Snap to grid; View › Gridlines shows it, View › Lock objects
-//! stops moves and resizes), arrow-key nudges, and the clipboard: Ctrl+C,
-//! Ctrl+X, Ctrl+V, Ctrl+D and the menus' Copy, Cut, Paste and Duplicate, across pages and open
-//! documents.
+//! (View › Smart guides turns them off; to an 8 px grid with View › Snap to grid; View ›
+//! Gridlines shows it under the visuals, View › Lock objects stops moves and resizes),
+//! arrow-key nudges, and the clipboard: Ctrl+C, Ctrl+X, Ctrl+V, Ctrl+D and the menus' Copy,
+//! Cut, Paste and Duplicate, across pages and open documents.
 //!
 //! Every gesture is one engine command, so one undo step: a drag or a nudge is `visual.move`,
 //! the clipboard is `visual.copy` / `visual.paste` / `visual.duplicate`. While a drag runs the
@@ -381,7 +381,7 @@ pub fn select(app: &mut App, page: &str, names: &[String]) {
 }
 
 /// Whether the canvas may change the report (the session lets `visual.move` run).
-fn editable(app: &App) -> bool {
+pub(crate) fn editable(app: &App) -> bool {
     // the phone canvas edits the mobile layout (crate::mobile)
     let id = if crate::mobile::drawn(app) {
         "visual.mobile"
@@ -447,7 +447,7 @@ fn covered(items: &[Item], sel: &[String], name: &str) -> bool {
     chain(items, name).iter().any(|x| sel.contains(x))
 }
 
-fn to_screen(page: Rect, zoom: f32, r: Rect) -> Rect {
+pub(crate) fn to_screen(page: Rect, zoom: f32, r: Rect) -> Rect {
     Rect::from_min_size(page.min + r.min.to_vec2() * zoom, r.size() * zoom)
 }
 
@@ -630,7 +630,7 @@ pub fn pointer(app: &mut App, ui: &Ui, resp: &Response, rect: Rect, zoom: f32) {
             to_report(p),
             &others,
             size,
-            SNAP / zoom,
+            (!app.prefs.hide_guides).then_some(SNAP / zoom),
             grid.filter(|_| !free),
             mods,
         );
@@ -644,14 +644,15 @@ pub fn pointer(app: &mut App, ui: &Ui, resp: &Response, rect: Rect, zoom: f32) {
 }
 
 /// Moves the gesture to report point `p`: the rectangles follow, snapped to `others`' edges and
-/// centres and the page's (or the grid), kept on the page. Alt (`mods.alt`) moves freely, without
-/// snapping; Shift (`mods.shift`) keeps the aspect ratio of a resize.
+/// centres and the page's within `snap` (`None`: View › Smart guides is off), else to the
+/// grid, kept on the page. Alt (`mods.alt`) moves freely, without snapping; Shift
+/// (`mods.shift`) keeps the aspect ratio of a resize.
 pub fn update(
     g: &mut Gesture,
     p: Pos2,
     others: &[Rect],
     page: Vec2,
-    snap: f32,
+    snap: Option<f32>,
     grid: Option<Vec2>,
     mods: Modifiers,
 ) {
@@ -667,8 +668,14 @@ pub fn update(
             let b = b0.translate(d);
             let (mut dx, mut dy) = (d.x, d.y);
             if !free {
-                let (sx, gx) = snap_axis(&[b.min.x, b.center().x, b.max.x], others, page.x, snap, true);
-                let (sy, gy) = snap_axis(&[b.min.y, b.center().y, b.max.y], others, page.y, snap, false);
+                let (sx, gx) = match snap {
+                    Some(snap) => snap_axis(&[b.min.x, b.center().x, b.max.x], others, page.x, snap, true),
+                    None => (None, Vec::new()),
+                };
+                let (sy, gy) = match snap {
+                    Some(snap) => snap_axis(&[b.min.y, b.center().y, b.max.y], others, page.y, snap, false),
+                    None => (None, Vec::new()),
+                };
                 match sx {
                     Some(s) => dx += s,
                     None => {
@@ -719,7 +726,11 @@ pub fn update(
                     return v;
                 }
                 let lim = if vertical { page.x } else { page.y };
-                match snap_axis(&[v], others, lim, snap, vertical) {
+                let snapped = match snap {
+                    Some(snap) => snap_axis(&[v], others, lim, snap, vertical),
+                    None => (None, Vec::new()),
+                };
+                match snapped {
                     (Some(s), gs) => {
                         guides.extend(gs);
                         v + s
@@ -962,8 +973,39 @@ fn round(r: Rect) -> Rect {
     )
 }
 
+/// The author's grid under the visuals (View › Gridlines) for a page shown at `zoom` screen points
+/// per report pixel: the renderer draws it over the page background and under the visuals
+/// ([`bicraft_render::RenderOptions::grid`]), with the step doubled until the dots are at least
+/// 10 points apart. `None` when Gridlines is off, the session cannot edit, in focus mode and on
+/// the phone canvas (which shows its own grid during a drag, [`paint`]).
+pub fn grid_under(app: &App, zoom: f32) -> Option<bicraft_render::GridDots> {
+    if !app.prefs.show_gridlines || crate::mobile::drawn(app) || crate::focus::active(app) || !editable(app) {
+        return None;
+    }
+    if !(zoom.is_finite() && zoom > 0.0) {
+        return None;
+    }
+    let step = dot_step(Vec2::splat(GRID), zoom);
+    let c = Tokens::of(app.prefs.theme).border.gamma_multiply(0.7);
+    Some(bicraft_render::GridDots {
+        step: (step.x, step.y),
+        dot: 1.5 / zoom,
+        rgba: c.to_srgba_unmultiplied(),
+    })
+}
+
+/// `step` doubled until its dots are at least 10 screen points apart at `zoom`.
+fn dot_step(step: Vec2, zoom: f32) -> Vec2 {
+    let mut step = step.max(Vec2::splat(1.0));
+    while step.min_elem() * zoom < 10.0 && step.max_elem() < 1024.0 {
+        step *= 2.0;
+    }
+    step
+}
+
 /// Draws the selection (rings, the handles), the drag's ghost outlines, smart guides, the band
-/// and the grid (View › Gridlines).
+/// and the phone canvas's grid while a drag runs (the page's grid is drawn under the visuals,
+/// [`grid_under`]).
 pub fn paint(app: &mut App, ui: &Ui, rect: Rect, zoom: f32) {
     let Some((_, size, items)) = page_items(app) else {
         return;
@@ -972,16 +1014,18 @@ pub fn paint(app: &mut App, ui: &Ui, rect: Rect, zoom: f32) {
     let p = ui.painter().with_clip_rect(rect.expand(HANDLE));
     let sel = selection(app);
     let screen = |r: Rect| to_screen(rect, zoom, r);
-    // View › Gridlines, for the author (the phone canvas shows its grid while a drag runs)
+    // the phone canvas shows its grid while a drag runs
     let g = app.canvas.gesture.clone();
     let dragging = g.as_ref().is_some_and(|g| !matches!(g.kind, Kind::Band { .. }));
-    if (app.prefs.show_gridlines && editable(app)) || (crate::mobile::drawn(app) && dragging) {
-        let step = if crate::mobile::drawn(app) {
-            crate::mobile::GRID
-        } else {
-            Vec2::splat(GRID)
-        };
-        grid(&p, rect, zoom, size, step, t.border.gamma_multiply(0.7));
+    if crate::mobile::drawn(app) && dragging {
+        grid(
+            &p,
+            rect,
+            zoom,
+            size,
+            crate::mobile::GRID,
+            t.border.gamma_multiply(0.7),
+        );
     }
     for i in items.iter().filter(|i| sel.contains(&i.name)) {
         p.rect_stroke(
@@ -1134,10 +1178,7 @@ pub(crate) fn previews(app: &App) -> Option<Vec<Preview>> {
 
 /// Grid dots every `step` (report pixels, per axis; doubled until they are 10 points apart).
 fn grid(p: &egui::Painter, rect: Rect, zoom: f32, size: Vec2, step: Vec2, col: egui::Color32) {
-    let mut step = step.max(Vec2::splat(1.0));
-    while step.min_elem() * zoom < 10.0 && step.max_elem() < 1024.0 {
-        step *= 2.0;
-    }
+    let step = dot_step(step, zoom);
     let (nx, ny) = ((size.x / step.x) as usize, (size.y / step.y) as usize);
     if nx.saturating_mul(ny) > MAX_DOTS {
         return;
@@ -1175,8 +1216,10 @@ pub fn status(app: &App) -> Option<String> {
 // Keyboard and clipboard
 // ---------------------------------------------------------------------------------------------
 
-/// The canvas's keys on the Report view, when nothing else takes the keyboard: Ctrl+C and Ctrl+V
-/// (the shells' copy and paste events), Ctrl+A, the arrows (Shift: 10 px), Escape (drops a drag).
+/// The canvas's keys on the Report view, when nothing else takes the keyboard (or a visual has
+/// the keyboard focus, `crate::visual_focus`): Ctrl+C and Ctrl+V (the shells' copy and paste
+/// events), Ctrl+A, the arrows (Shift: 10 px), Escape (drops a drag; on a focused visual, back
+/// to the page).
 pub fn keys(app: &mut App, ui: &Ui) {
     if let Some(text) = app.canvas.os_copy.take() {
         ui.ctx().copy_text(text);
@@ -1186,22 +1229,83 @@ pub fn keys(app: &mut App, ui: &Ui) {
         ui.ctx()
             .request_repaint_after(std::time::Duration::from_millis(50));
     }
+    // a visual focused from the keyboard takes the canvas keys as the selection does
+    // (crate::visual_focus)
+    let on_visual = crate::visual_focus::focused(app, ui.ctx()).is_some();
     // focus mode is a reading view: no editing of the canvas (crate::focus); the open Enter data
     // grid takes Ctrl+V itself (crate::enter_data)
     if app.tab != View::Report
-        || ui.ctx().egui_wants_keyboard_input()
+        || (ui.ctx().egui_wants_keyboard_input() && !on_visual)
         || crate::focus::active(app)
         || app.cmd.enter_data.is_some()
     {
         app.canvas.paste_wait = 0;
         return;
     }
+    clipboard_keys(app, ui);
     // the phone canvas has keys of its own (crate::mobile)
     if crate::mobile::editing(app) {
-        app.canvas.paste_wait = 0;
         crate::mobile::keys(app, ui);
         return;
     }
+    if app.canvas.gesture.is_some() && ui.input(|i| i.key_pressed(Key::Escape)) {
+        app.canvas.gesture = None;
+    }
+    // Esc turns the format painter off
+    if app.canvas.painter.is_some() && ui.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape)) {
+        app.canvas.painter = None;
+    }
+    let focused = ui.ctx().memory(|m| m.focused().is_some()) && !on_visual;
+    if focused || app.form.is_some() || app.palette.is_some() || app.confirm.is_some() {
+        return;
+    }
+    if ui.input_mut(|i| i.consume_key(Modifiers::COMMAND, Key::A))
+        && let Some((page, _, items)) = page_items(app)
+    {
+        let mut all: Vec<&Item> = items.iter().filter(|i| i.pickable).collect();
+        all.sort_by(|a, b| b.z.total_cmp(&a.z));
+        let names: Vec<String> = all.into_iter().map(|i| i.name.clone()).collect();
+        select(app, &page, &names);
+    }
+    // a visual's data points from the keyboard (Ctrl+Right, the arrows, Enter, Escape)
+    if app.canvas.gesture.is_none() && crate::point_keys::keys(app, ui) {
+        return;
+    }
+    // Escape on a focused visual: back to the page
+    if on_visual
+        && app.canvas.gesture.is_none()
+        && ui.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape))
+    {
+        crate::visual_focus::leave(app, ui.ctx());
+        return;
+    }
+    if app.cmd.visual.is_none() || app.canvas.gesture.is_some() {
+        return;
+    }
+    let mut d = Vec2::ZERO;
+    for (key, v) in [
+        (Key::ArrowLeft, vec2(-1.0, 0.0)),
+        (Key::ArrowRight, vec2(1.0, 0.0)),
+        (Key::ArrowUp, vec2(0.0, -1.0)),
+        (Key::ArrowDown, vec2(0.0, 1.0)),
+    ] {
+        // Shift first: a plain chord matches with Shift held too
+        if ui.input_mut(|i| i.consume_key(Modifiers::SHIFT, key)) {
+            d += v * NUDGE_BIG;
+        }
+        if ui.input_mut(|i| i.consume_key(Modifiers::NONE, key)) {
+            d += v * NUDGE;
+        }
+    }
+    if d != Vec2::ZERO {
+        nudge(app, d);
+    }
+}
+
+/// The clipboard keys of the report and phone canvases: Ctrl+C copies, Ctrl+X cuts (not on the
+/// phone canvas, where a visual stays on its page), Ctrl+V pastes (on the phone canvas, onto the
+/// mobile layout too).
+fn clipboard_keys(app: &mut App, ui: &Ui) {
     let (copy, cut, pasted, ctrl_v) = ui.input(|i| {
         let mut copy = false;
         let mut cut = false;
@@ -1235,7 +1339,9 @@ pub fn keys(app: &mut App, ui: &Ui) {
         }
         (copy, cut, pasted, ctrl_v)
     });
-    if cut {
+    if cut && crate::mobile::editing(app) {
+        app.status = crate::mobile::no_cut_text(app.lang).to_string();
+    } else if cut {
         self::cut(app);
     } else if copy {
         self::copy(app);
@@ -1254,50 +1360,6 @@ pub fn keys(app: &mut App, ui: &Ui) {
         if app.canvas.paste_wait == 0 {
             paste_in_app(app);
         }
-    }
-    if app.canvas.gesture.is_some() && ui.input(|i| i.key_pressed(Key::Escape)) {
-        app.canvas.gesture = None;
-    }
-    // Esc turns the format painter off
-    if app.canvas.painter.is_some() && ui.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape)) {
-        app.canvas.painter = None;
-    }
-    let focused = ui.ctx().memory(|m| m.focused().is_some());
-    if focused || app.form.is_some() || app.palette.is_some() || app.confirm.is_some() {
-        return;
-    }
-    if ui.input_mut(|i| i.consume_key(Modifiers::COMMAND, Key::A))
-        && let Some((page, _, items)) = page_items(app)
-    {
-        let mut all: Vec<&Item> = items.iter().filter(|i| i.pickable).collect();
-        all.sort_by(|a, b| b.z.total_cmp(&a.z));
-        let names: Vec<String> = all.into_iter().map(|i| i.name.clone()).collect();
-        select(app, &page, &names);
-    }
-    // a visual's data points from the keyboard (Ctrl+Right, the arrows, Enter, Escape)
-    if app.canvas.gesture.is_none() && crate::point_keys::keys(app, ui) {
-        return;
-    }
-    if app.cmd.visual.is_none() || app.canvas.gesture.is_some() {
-        return;
-    }
-    let mut d = Vec2::ZERO;
-    for (key, v) in [
-        (Key::ArrowLeft, vec2(-1.0, 0.0)),
-        (Key::ArrowRight, vec2(1.0, 0.0)),
-        (Key::ArrowUp, vec2(0.0, -1.0)),
-        (Key::ArrowDown, vec2(0.0, 1.0)),
-    ] {
-        // Shift first: a plain chord matches with Shift held too
-        if ui.input_mut(|i| i.consume_key(Modifiers::SHIFT, key)) {
-            d += v * NUDGE_BIG;
-        }
-        if ui.input_mut(|i| i.consume_key(Modifiers::NONE, key)) {
-            d += v * NUDGE;
-        }
-    }
-    if d != Vec2::ZERO {
-        nudge(app, d);
     }
 }
 
@@ -1483,7 +1545,12 @@ pub fn paste(app: &mut App, clip: Value) {
         return;
     }
     let mut params = json!({"page": page, "clip": clip});
-    if let Some(at) = app.canvas.paste_at.take() {
+    let at = app.canvas.paste_at.take();
+    if crate::mobile::editing(app) {
+        // on the phone canvas: onto the mobile layout too, at the copied phone place (a menu's
+        // point is the phone's, not the page's)
+        params["mobile"] = json!(true);
+    } else if let Some(at) = at {
         params["x"] = json!(at.x.round().max(0.0));
         params["y"] = json!(at.y.round().max(0.0));
     }
@@ -1548,10 +1615,14 @@ pub fn duplicate(app: &mut App) {
         app.status = why;
         return;
     }
+    let mut params = json!({"page": page, "visuals": sel});
+    if crate::mobile::editing(app) {
+        params["mobile"] = json!(true);
+    }
     app.run(
         Call {
             id: "visual.duplicate",
-            params: json!({"page": page, "visuals": sel}),
+            params,
         },
         Then::SelectPasted,
     );
@@ -1649,16 +1720,15 @@ pub fn run_menu_item(app: &mut App, c: &'static crate::registry::Cmd, to: &str) 
 }
 
 /// The View tab's Page options (Microsoft Learn, "Apply page size and settings in a Power BI
-/// report"): Gridlines, Snap to grid and Lock objects, independent of each other. Pure view state
-/// of the author's window, kept in the preferences: the report's published schemas have no
-/// property for them, and readers are not affected.
+/// report"): Gridlines, Snap to grid, Smart guides and Lock objects, independent of each
+/// other. Pure view state of the author's window, kept in the preferences: the report's
+/// published schemas have no property for them, and readers are not affected.
 pub fn view_group(app: &mut App, ui: &mut Ui) {
     use crate::icons::Icon;
     let l = app.lang;
     crate::widgets::group(ui, |ui| {
-        crate::widgets::rows(ui, |ui| {
-            let p = &app.prefs;
-            let items: [(Icon, &str, &str, bool); 3] = [
+        let p = &app.prefs;
+        let items: [(Icon, &str, &str, bool); 4] = [
                 (
                     Icon::Grid,
                     l.t("Gridlines", "Quadrillage"),
@@ -1678,6 +1748,15 @@ pub fn view_group(app: &mut App, ui: &mut Ui) {
                     p.snap_grid,
                 ),
                 (
+                    Icon::Move,
+                    l.t("Smart guides", "Repères intelligents"),
+                    l.t(
+                        "Moved and resized visuals snap to the other visuals' and the page's edges and centres, shown by dashed guides",
+                        "Les visuels déplacés ou redimensionnés s'aimantent aux bords et aux centres des autres visuels et de la page, signalés par des repères en pointillés",
+                    ),
+                    !p.hide_guides,
+                ),
+                (
                     Icon::Lock,
                     l.t("Lock objects", "Verrouiller les objets"),
                     l.t(
@@ -1687,22 +1766,30 @@ pub fn view_group(app: &mut App, ui: &mut Ui) {
                     p.lock_objects,
                 ),
             ];
-            for (i, (icon, label, tip, on)) in items.into_iter().enumerate() {
-                let r = crate::widgets::small_button(ui, icon, label, true, on).on_hover_text(tip);
-                if r.clicked() {
-                    let p = &mut app.prefs;
-                    match i {
-                        0 => p.show_gridlines = !on,
-                        1 => p.snap_grid = !on,
-                        _ => {
-                            p.lock_objects = !on;
-                            app.canvas.gesture = None;
+        // three rows a column: Gridlines, Snap to grid and Lock objects, then Smart guides
+        for column in [&[0usize, 1, 3][..], &[2]] {
+            crate::widgets::rows(ui, |ui| {
+                for &i in column {
+                    let Some(&(icon, label, tip, on)) = items.get(i) else {
+                        continue;
+                    };
+                    let r = crate::widgets::small_button(ui, icon, label, true, on).on_hover_text(tip);
+                    if r.clicked() {
+                        let p = &mut app.prefs;
+                        match i {
+                            0 => p.show_gridlines = !on,
+                            1 => p.snap_grid = !on,
+                            2 => p.hide_guides = on,
+                            _ => {
+                                p.lock_objects = !on;
+                                app.canvas.gesture = None;
+                            }
                         }
+                        app.save_prefs();
                     }
-                    app.save_prefs();
                 }
-            }
-        });
+            });
+        }
     });
     // the report pages in high contrast: a view option of this window, never written to the file
     crate::widgets::group(ui, |ui| {

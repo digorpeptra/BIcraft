@@ -2,10 +2,10 @@
 
 Status: plan, 2026-10-25, written against `main` 62998b0. Implemented since (2026-10-26): the path
 sandbox and command policy (`docs/server-mode.md`), the shared `std` HTTP crate, MCP over
-Streamable HTTP at `2026-07-28`, the cancel flag, `bicraft serve` with the sandbox wired in, and
-authentication with a workspace ACL, which lets `bicraft serve` leave loopback (`docs/auth.md`,
+Streamable HTTP at `2026-07-28`, the cancel flag, `bicraft-cli serve` with the sandbox wired in, and
+authentication with a workspace ACL, which lets `bicraft-cli serve` leave loopback (`docs/auth.md`,
 branch `feat/auth`), and the operations lot: file upload and download per workspace, the probes,
-the graceful drain on SIGTERM and the idle close (section "Operating `bicraft serve`", branch
+the graceful drain on SIGTERM and the idle close (section "Operating `bicraft-cli serve`", branch
 `feat/serveops`), and the Kubernetes packaging (2026-10-27, branch `feat/deploy`): the image, the Helm
 chart, plain manifests and their checks (`docs/kubernetes.md`). Stage 1 is complete except the
 viewer (moved to stage 2). Stage 2 so far: reader access (2026-10-27, branch `feat/roles`, `docs/auth.md`
@@ -31,7 +31,7 @@ en lecture seule. État au 2026-10-26 (étape 1, réservée aux agents) :
    absolus, `..`, liens qui sortent : refusés) ; `file.open_in_desktop` est interdit et le
    connecteur Databricks n'a le réseau que si l'opérateur l'autorise.
 2. **MCP sur HTTP** (Streamable HTTP, révision `2026-07-28`, la plus récente, sans sessions de
-   protocole) : `bicraft serve --root DIR`, un espace de travail par sous-dossier, à l'URL
+   protocole) : `bicraft-cli serve --root DIR`, un espace de travail par sous-dossier, à l'URL
    `/w/<espace>/mcp` ; une session moteur par espace, appels sérialisés avec file bornée, espaces
    en parallèle, annulation quand le client ferme le flux.
 3. **Authentification** (`docs/auth.md`), trois modes combinables : jetons JWT OIDC / OAuth 2.1
@@ -42,7 +42,7 @@ en lecture seule. État au 2026-10-26 (étape 1, réservée aux agents) :
    la CI. Une ACL associe identités, groupes et rôles aux espaces de travail ; un espace interdit
    répond comme un espace inexistant. Sans authentification, le serveur reste limité au loopback ;
    avec, il peut écouter sur le réseau (derrière un ingress TLS).
-4. **Exploitation** (section « Operating `bicraft serve` ») : téléversement et téléchargement des
+4. **Exploitation** (section « Operating `bicraft-cli serve` ») : téléversement et téléchargement des
    fichiers par espace (`/w/<espace>/files/`, mêmes authentification et ACL, écrits en flux puis
    renommés atomiquement, jamais de lien créé, pas d'écrasement sans `Overwrite: T`), projet PBIP
    zippé extrait sans risque (zip-slip, liens, bombes refusés) ; sondes `/healthz` et `/readyz`
@@ -96,7 +96,7 @@ this section wins.
 
 Revised stage 1 (agents only): path sandbox and command policy; `std` HTTP module; MCP Streamable
 HTTP at the latest revision with the workspace in the URL; the three auth modes; cancel flag;
-`bicraft serve` with upload, download and probes; Dockerfile and Helm chart; a kind/k3d smoke test.
+`bicraft-cli serve` with upload, download and probes; Dockerfile and Helm chart; a kind/k3d smoke test.
 Stage 2 adds the viewer's server mode, the workspace controller, ACL and metrics.
 
 ## Data governance first
@@ -121,8 +121,8 @@ plan:
 
 | Part | Code | Network posture today |
 |---|---|---|
-| MCP server | `crates/mcp` (L6), `bicraft mcp` | stdio only: newline-delimited JSON-RPC, hand-written, no async runtime. Revisions `2025-06-18`, `2025-03-26`, `2024-11-05` (`PROTOCOL_VERSION`, `SUPPORTED_VERSIONS`). One `Server` owns one `Session`; messages are handled strictly in order. `notifications/cancelled` is accepted and ignored. Lines capped at 64 MiB (`MAX_LINE_BYTES`). |
-| Live viewer | `crates/view` (L6), `bicraft view PATH`, `bicraft mcp --view` | plain `std` HTTP/1.1, `TcpListener`, one capped thread per connection. `start_with` **refuses non-loopback addresses**; every request needs a localhost `Host` (`host_allowed`, DNS-rebinding guard). POST routes need a per-run random token (`X-Bicraft-Token`) plus same-origin `Origin`/`Sec-Fetch-Site`. Bodies ≤ 64 KiB, read deadlines, write timeouts, connection caps, SSE keepalive every 15 s. No user authentication. |
+| MCP server | `crates/mcp` (L6), `bicraft-cli mcp` | stdio only: newline-delimited JSON-RPC, hand-written, no async runtime. Revisions `2025-06-18`, `2025-03-26`, `2024-11-05` (`PROTOCOL_VERSION`, `SUPPORTED_VERSIONS`). One `Server` owns one `Session`; messages are handled strictly in order. `notifications/cancelled` is accepted and ignored. Lines capped at 64 MiB (`MAX_LINE_BYTES`). |
+| Live viewer | `crates/view` (L6), `bicraft-cli view PATH`, `bicraft-cli mcp --view` | plain `std` HTTP/1.1, `TcpListener`, one capped thread per connection. `start_with` **refuses non-loopback addresses**; every request needs a localhost `Host` (`host_allowed`, DNS-rebinding guard). POST routes need a per-run random token (`X-Bicraft-Token`) plus same-origin `Origin`/`Sec-Fetch-Site`. Bodies ≤ 64 KiB, read deadlines, write timeouts, connection caps, SSE keepalive every 15 s. No user authentication. |
 | Engine session | `crates/engine` `Session` | one source, one model, one report, undo history, `data_root`, `cache_abf`, display settings. Commands run through `Session::execute`, inside `catch_unwind`. Nothing global stops several `Session`s per process; the memory budget is **per session** (`preview_memory.rs`), the scan thread pool is per process. |
 | Settings | `crates/env` | every `BICRAFT_*` variable read through one place. Server-relevant: `BICRAFT_MEMORY_BUDGET`, `BICRAFT_SPILL_DIR`, `BICRAFT_SCAN_THREADS`, `BICRAFT_AGG_THREADS`, `BICRAFT_AGGREGATIONS`, `BICRAFT_AGG_SYNC`, `BICRAFT_DATABRICKS_TOKEN`. |
 | Release build | `cargo xtask dist`, `docs/releasing.md` | `x86_64-unknown-linux-musl`, static-pie, 22.0 MB binary, 8.1 MB archive; GitHub workflow also builds Linux arm64. TLS client only (rustls, Databricks). |
@@ -293,7 +293,7 @@ Stage 1, lot 2 (2026-10-26, branch `feat/mcphttp`):
   counter next to the deadline and fails with `cancelled by the client`. Nothing more is written
   for a cancelled request. Limits: a client that half-closes its sending side after the request
   is treated as gone; only DAX evaluation stops early (render, save and open run to completion).
-- **`bicraft serve --root DIR [--listen 127.0.0.1:7878] [--allow-network] [--allow-origin O]...
+- **`bicraft-cli serve --root DIR [--listen 127.0.0.1:7878] [--allow-network] [--allow-origin O]...
   [--max-body-bytes N] [--queue N] [auth flags]`**: binds loopback (127.0.0.1:7878 by default);
   a non-loopback `--listen` needs an authentication mode and `--public-url` or `--allow-host`
   (since the authentication lot, `docs/auth.md`; `HttpServer::start` itself refuses a
@@ -329,9 +329,9 @@ Stage 1, lot 2 (2026-10-26, branch `feat/mcphttp`):
   `/.well-known/oauth-protected-resource[/w/<id>/mcp]` serves the RFC 9728 metadata.
 
 Left for the next lots: `notifications/progress` on the SSE stream; cancellation of render and save.
-Upload/download, the probes, the SIGTERM drain and the idle close: "Operating `bicraft serve`" below.
+Upload/download, the probes, the SIGTERM drain and the idle close: "Operating `bicraft-cli serve`" below.
 
-## Operating `bicraft serve`
+## Operating `bicraft-cli serve`
 
 Stage 1, operations lot (2026-10-26, branch `feat/serveops`). Code: `crates/mcp/src/http/files.rs`
 (files), `crates/mcp/src/http/ops.rs` (probes, drain, idle close), `crates/opc/src/extract.rs`
@@ -411,7 +411,7 @@ reason of a 503 (`draining`, `memory`, `stopping`): never a workspace name or co
 
 ### Graceful shutdown
 
-`bicraft serve` installs a handler with the `ctrlc` crate (3.5, MIT OR Apache-2.0; its signal and
+`bicraft-cli serve` installs a handler with the `ctrlc` crate (3.5, MIT OR Apache-2.0; its signal and
 console calls are the crate's own, BIcraft's crates keep `unsafe_code = "forbid"`): SIGTERM,
 SIGINT and SIGHUP on Unix, Ctrl+C and Ctrl+Break on Windows. The first signal starts
 `HttpServer::drain(grace)`; a second one exits at once (code 130). On Windows, closing the console
@@ -466,7 +466,7 @@ before it, so a 10 s DAX query blocked everyone, readers on the clean editor ses
 - A write waits for the running reads and then runs alone. **Writers do not starve**: a waiting
   write stops new reads from entering (writer-preferring gate, not the platform's lock, whose
   fairness is unspecified); the reads behind it see its change.
-- Local `bicraft mcp` (stdio) and the CLI are unchanged: one call at a time, `Session::execute`.
+- Local `bicraft-cli mcp` (stdio) and the CLI are unchanged: one call at a time, `Session::execute`.
 
 **In the engine.** Read-only commands have a second entry point, `Session::execute_shared(&self)`
 (`crates/engine/src/shared.rs`): a table gives each read-only command a function taking
@@ -573,13 +573,13 @@ cannot arrive through uploads (ZIP has no such entry, and `PUT` writes new files
 
 ## The live viewer on a network
 
-**Implemented** (stage 2, 2026-10-28, branch `feat/viewer`): `bicraft serve` serves the viewer
+**Implemented** (stage 2, 2026-10-28, branch `feat/viewer`): `bicraft-cli serve` serves the viewer
 itself, under each workspace's prefix, rather than letting `crates/view` leave loopback (`bicraft
 view` is unchanged: loopback only, no authentication). Operations: `docs/kubernetes.md`, "Viewer";
 browser credentials and CSRF: `docs/auth.md`, "The viewer in a browser"; what readers see:
 `docs/auth.md`, "Roles".
 
-| Item | `bicraft view` (local, unchanged) | `bicraft serve` (server mode) |
+| Item | `bicraft-cli view` (local, unchanged) | `bicraft-cli serve` (server mode) |
 |---|---|---|
 | Bind address | 127.0.0.1 only (`start_with` refuses others) | the MCP listener: no second port |
 | `Host` check | localhost names only | the server's allow-list (`--public-url`, `--allow-host`), DNS rebinding still refused |
@@ -600,7 +600,7 @@ browser credentials and CSRF: `docs/auth.md`, "The viewer in a browser"; what re
    saved file. Memory is one model (two while an editor holds unsaved edits), whatever the number
    of readers; evaluated visuals are cached per session and reused by every view with the same
    filters. Rejected: a copy per reader (N times a 100 M-row model) and the session's own view
-   state (one viewer's click changing everyone's page, as `bicraft view` does locally).
+   state (one viewer's click changing everyone's page, as `bicraft-cli view` does locally).
 2. *A reader opening a file must not drop an editor's undo history.* A reader's `file.open` is
    private: it names the file that reader reads (served from the shared copy of its saved state)
    and never runs on the editor session.
@@ -621,17 +621,17 @@ and pages, the palette and the forms, `ui.screenshot`. Off by default; off, the 
 answer 404 and the app page has no control slot.
 
 ```text
-bicraft serve --root R --viewer-control [--viewer-control-file F]   # token in F (owner-only)
+bicraft-cli serve --root R --viewer-control [--viewer-control-file F]   # token in F (owner-only)
 BICRAFT_SERVER_TOKEN=<an editor's API token> \
-  bicraft ui --serve --workspace sales ui.inspect                   # the default token file
-bicraft ui --url https://bi.example.com/w/sales/view/ server.views  # BICRAFT_CONTROL_TOKEN
-bicraft ui --serve --workspace sales --view-id <view> ui.screenshot --out page.png
+  bicraft-cli ui --serve --workspace sales ui.inspect                   # the default token file
+bicraft-cli ui --url https://bi.example.com/w/sales/view/ server.views  # BICRAFT_CONTROL_TOKEN
+bicraft-cli ui --serve --workspace sales --view-id <view> ui.screenshot --out page.png
 ```
 
 | Request | Who | Effect |
 |---|---|---|
 | `POST /w/<id>/view/api/control[?v=<view>]`, the request object as the body | the agent: an editor credential (bearer or proxy headers, never the viewer cookie) and `X-Bicraft-Control: <control token>` | relayed to one of the caller's app pages; the answer is the page's reply |
-| `GET /w/<id>/view/api/control` | the same | the caller's views: `{pages: [{view, connected, docs: [{view, file}]}]}` (`bicraft ui … server.views`) |
+| `GET /w/<id>/view/api/control` | the same | the caller's views: `{pages: [{view, connected, docs: [{view, file}]}]}` (`bicraft-cli ui … server.views`) |
 | `GET /w/<id>/view/api/control/events?v=<page view>` | the app page (its viewer credentials, the cookie included) | Server-Sent Events, the requests for this page |
 | `POST /w/<id>/view/api/control/reply?v=<page view>` | the app page: the view's token in `X-Bicraft-Token`, same origin | the reply to a request this page took |
 
@@ -705,7 +705,7 @@ Storage layout per workspace: `/<root>/<workspace-id>/` holding the PBIX or PBIP
 `.pbi/` local files (`cache.abf` when present), renders and exports. Files arrive through an
 **upload endpoint** (multipart or raw PUT, size-capped, streamed to disk, never buffered whole) and
 leave through a download endpoint; the agent then calls `file.open {path: "model.pbix"}`. **Implemented**
-(raw `PUT`, streamed, capped; zipped projects by `POST`): "Operating `bicraft serve`", "Files".
+(raw `PUT`, streamed, capped; zipped projects by `POST`): "Operating `bicraft-cli serve`", "Files".
 
 Backing store options (open question 2): a `PersistentVolumeClaim` per workspace
 (`ReadWriteOnce`, simplest, survives pod restarts), or object storage (S3/Azure Blob/MinIO) synced
@@ -731,7 +731,7 @@ the HTTPS clients use the Mozilla roots compiled into the binary (`webpki-roots`
 - **Threads**: set `BICRAFT_SCAN_THREADS` to the pod's CPU limit explicitly (Rust's
   `available_parallelism` reads the cgroup quota on Linux, but an explicit value is
   reproducible), `BICRAFT_AGG_THREADS` to a quarter of it.
-- **Probes** (implemented, "Operating `bicraft serve`"): `GET /healthz` for liveness, `GET /readyz`
+- **Probes** (implemented, "Operating `bicraft-cli serve`"): `GET /healthz` for liveness, `GET /readyz`
   for readiness (503 while draining; optionally while reserved memory is above a share of
   `BICRAFT_MEMORY_LIMIT`). Neither touches model data.
 - **Graceful shutdown** (implemented): on `SIGTERM`, `/readyz` and new requests answer 503, running
@@ -746,7 +746,7 @@ the HTTPS clients use the Mozilla roots compiled into the binary (`webpki-roots`
 workspace) and `deploy/manifests/`. **Stage 2 implemented** (`feat/controller`): the controller, see
 "Workspace controller (stage 2)" below.
 
-**One pod per open workspace (recommended).** Each pod runs `bicraft serve` (new subcommand) with
+**One pod per open workspace (recommended).** Each pod runs `bicraft-cli serve` (new subcommand) with
 one `Session`, the model warm in memory, its own memory limit sized from the table above, and its
 own volume. Routing: the ingress maps `/w/<id>/` to that pod's Service. Isolation between
 customers is the pod boundary, memory accounting is the cgroup, and a crash or OOM loses one
@@ -789,7 +789,7 @@ Design chosen 2026-10-27 (branch `feat/controller`). Goal: workspaces are create
 routed, stopped when idle (scale to zero) and deleted on demand, instead of one Helm release
 declared by hand per workspace.
 
-### Choice: a CRD reconciled by `bicraft controller`, which is also the gateway
+### Choice: a CRD reconciled by `bicraft-cli controller`, which is also the gateway
 
 - **A `BicraftWorkspace` custom resource** (`bicraft.dev/v1alpha1`, namespaced, short name
   `bws`; the group `bicraft.dev` is a placeholder until the project's domain is chosen, and is
@@ -824,13 +824,13 @@ declared by hand per workspace.
   nothing: whether a workspace is awake is read back from its Deployment's replica count.
 - **The controller is also the gateway** (router + activator): one `Ingress`/`HTTPRoute` sends
   `/w/…`, `/api/…` and `/.well-known/oauth-protected-resource…` to the controller's Service. It
-  authenticates the request with the same code and the same three modes as `bicraft serve`
+  authenticates the request with the same code and the same three modes as `bicraft-cli serve`
   (`bicraft-auth`), checks the `Host`, checks the workspace's grants, then forwards the request to
   `bws-<id>:7878` and streams both directions without buffering (SSE, 4 GiB uploads, downloads;
-  one request per connection, as `bicraft serve` answers `Connection: close`).
+  one request per connection, as `bicraft-cli serve` answers `Connection: close`).
   - **Nobody bypasses the gateway inside the cluster.** The forwarded head carries no credential
     (`Authorization` and identity headers removed); the identity the gateway checked travels in
-    `X-Bicraft-Gateway-User`/`-Email`/`-Groups`. Workspace pods run `bicraft serve` in
+    `X-Bicraft-Gateway-User`/`-Email`/`-Groups`. Workspace pods run `bicraft-cli serve` in
     trusted-header mode only, trusting those headers from the controller pod's address (`POD_IP`,
     or admin-set CIDRs), with the grants `group:bicraft-gateway-editor=<id>` and
     `group:bicraft-gateway-reader=<id>` (reader access, `docs/auth.md` "Roles"): the gateway enforces
@@ -851,7 +851,7 @@ declared by hand per workspace.
     ingress controller or Gateway implementation (one static route), wake-up needs no
     ingress-specific fallback, activity needs no extra signal from the pod, and network policy can
     say "only the controller reaches workspace pods". Cost: one extra hop and the bytes copied
-    once more by a `std` thread per connection (the same model as `bicraft serve`).
+    once more by a `std` thread per connection (the same model as `bicraft-cli serve`).
 - **Admin/agent API** (same authentication; creating and deleting needs an admin subject, from
   `--admin` / `BICRAFT_CONTROLLER_ADMINS`): `GET /api/v1/workspaces` (the ones the caller may
   open; all for admins), `POST /api/v1/workspaces` (a JSON body shaped like `spec` plus `name`),
@@ -867,7 +867,7 @@ declared by hand per workspace.
   watch can come later without changing the design).
 - **Code**: crate `bicraft-controller` (L6, beside the MCP server and the viewer; depends on
   `bicraft-auth`, `bicraft-http`, `serde`, `serde_json`, `ureq`; no async runtime, no
-  engine), subcommand `bicraft controller` in the same binary and image (one image to build,
+  engine), subcommand `bicraft-cli controller` in the same binary and image (one image to build,
   scan and sign). The reconciler talks to a `Kube` trait, so `cargo xtask ci` tests it against an
   in-memory fake; the gateway is tested against a fake upstream.
 - **Deployment**: chart `deploy/helm/bicraft-controller` (the CRD as a template, so its group follows
@@ -898,7 +898,7 @@ declared by hand per workspace.
 4. **Hostile files**: inputs are already treated as hostile (fuzzing, `docs/fuzzing.md`); a server
    makes that the main attack surface. Keep the fuzz smoke in CI and add the HTTP parser to it.
 5. **Authentication and ACL**: identity from the ingress, a workspace ACL (owner, readers,
-   editors), viewer read-only for readers (`--read-only` exists for `bicraft view`). **Done for
+   editors), viewer read-only for readers (`--read-only` exists for `bicraft-cli view`). **Done for
    MCP** (stage 1): `docs/auth.md` (three modes, ACL with editor grants); **readers done for MCP and
    files** (stage 2, `docs/auth.md` "Roles"); **the viewer for readers and editors done** (stage 2,
    `feat/viewer`); an owner level remains.
@@ -918,7 +918,7 @@ declared by hand per workspace.
 | Cancel flag checked with the evaluator deadline (done), render and save loops | `engine` `preview_eval.rs`, `render.rs`, `save.rs` | 1 |
 | Streamable HTTP transport, `2026-07-28` only (decision 7) (done) | `mcp` `http.rs` + `bicraft-http` (L0) | 1 |
 | Viewer server mode: host allow-list, public origin, identity header and login cookie, no open route, private views, readers on saved files (done) | `mcp` `http/viewer.rs`, `http/readview.rs`, `engine` `snapshot_view`, `view` page | 2 |
-| `bicraft serve` subcommand: MCP + upload/download + probes + signal handling (done); viewer | `apps/bicraft-cli` | 1 |
+| `bicraft-cli serve` subcommand: MCP + upload/download + probes + signal handling (done); viewer | `apps/bicraft-cli` | 1 |
 | Upload/download endpoints (streamed, capped) (done) | `mcp` `http/files.rs`, `opc` `extract.rs` | 1 |
 | Authentication (OIDC, trusted header, API tokens), workspace ACL with editor grants | `bicraft-auth` (L0), `mcp` `http.rs`, `serve` | 1, done (`docs/auth.md`) |
 | Reader access level (done, `docs/auth.md` "Roles"), per-identity rate limits | `bicraft-auth`, `engine`, `mcp` | 2 |
@@ -936,14 +936,14 @@ for each item (the server is Linux-first).
 **Stage 1: internal MVP (~15 days).** One model per pod, one trusted team.
 
 - Path sandbox and server-mode command policy (3 d). **Done** (lot 1, `feat/sandbox`; wired into
-  `bicraft serve` on `feat/wire`).
+  `bicraft-cli serve` on `feat/wire`).
 - `std` HTTP module extracted from `crates/view`; MCP Streamable HTTP, `2026-07-28` only
   (decision 7); cancel flag (5 d). **Done** (lot 2, `feat/mcphttp`).
 - Authentication (OIDC resource server, trusted header, API tokens) and a minimal workspace ACL;
   non-loopback binding once configured. **Done** (`feat/auth`, `docs/auth.md`).
 - Viewer server mode (2 d). **Done** in stage 2 (`feat/viewer`).
-- `bicraft serve` with upload/download, `/healthz`, `/readyz`, SIGTERM handling (3 d). **Done**
-  (`feat/serveops`, "Operating `bicraft serve`"), with the idle close of workspaces.
+- `bicraft-cli serve` with upload/download, `/healthz`, `/readyz`, SIGTERM handling (3 d). **Done**
+  (`feat/serveops`, "Operating `bicraft-cli serve`"), with the idle close of workspaces.
 - Dockerfile (scratch + musl binary), example manifests (Deployment, Service, PVC, Ingress with
   oauth2-proxy, NetworkPolicy), a kind/k3d smoke test in CI that opens a generated fixture over
   HTTP (2 d). **Done** (`feat/deploy`, `docs/kubernetes.md`): the image, the Helm chart (one workspace

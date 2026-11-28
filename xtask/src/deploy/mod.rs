@@ -1,4 +1,4 @@
-//! `cargo xtask deploy check|smoke|kind-smoke`: the Kubernetes packaging of `bicraft serve`
+//! `cargo xtask deploy check|smoke|kind-smoke`: the Kubernetes packaging of `bicraft-cli serve`
 //! (deploy/, docs/kubernetes.md).
 
 mod check;
@@ -14,7 +14,7 @@ usage: cargo xtask deploy <check|smoke|kind-smoke|controller-smoke> [ARGS]
                static checks of deploy/ (YAML, drift against the code, security invariants,
                sizing rules, the Dockerfile); also run by `cargo xtask ci` as a unit test;
                with --binary, also that this release binary embeds the browser app
-  smoke        `bicraft serve` started as the container starts it, without a container, and
+  smoke        `bicraft-cli serve` started as the container starts it, without a container, and
                checked live over MCP Streamable HTTP, then drained (`smoke --help`)
   kind-smoke   the image, a kind cluster, the Helm chart and the same live checks; needs docker,
                kind, helm and kubectl (`kind-smoke --help`)

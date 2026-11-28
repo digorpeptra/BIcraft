@@ -637,8 +637,12 @@ pub fn kpi_chart(cv: &mut Canvas, ds: &Dataset, b: Bx, f: &Fmt, ctx: &Ctx<'_>) {
         (Some(g), Some(v)) => Some(v >= g),
         _ => None,
     };
+    // at the goal, the Neutral colour when one is set (`status.neutralColor`, or its fx); without
+    // one, the Good colour as before (no Desktop default observed)
+    let neutral =
+        kpi_color("neutral_color").filter(|_| matches!((goal, value), (Some(g), Some(v)) if v == g));
     let (color, area_alpha) = match status {
-        Some(true) => (good, 0.2),
+        Some(true) => (neutral.unwrap_or(good), 0.2),
         Some(false) => (bad, 0.2),
         None => (ctx.fg, 0.15),
     };

@@ -1,4 +1,4 @@
-//! The BIcraft desktop app (`bicraft-desktop`): the native shell of the BIcraft UI
+//! The BIcraft desktop app (`bicraft`): the native shell of the BIcraft UI
 //! ([`bicraft_ui::App`], docs/webui.md). No web engine: the window is egui/eframe over wgpu.
 //! This crate supplies what only a native program has (docs/desktop.md):
 //!
@@ -25,6 +25,7 @@ use bicraft_ui::i18n::Lang;
 use bicraft_ui::shell::{Caps, PrefsStore, Shell};
 use bicraft_ui::source::{self, Origin};
 
+pub mod contrast;
 pub mod control;
 pub mod headless;
 pub mod lnk;

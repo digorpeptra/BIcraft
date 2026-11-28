@@ -352,7 +352,7 @@ pub fn tool_definitions() -> Vec<Value> {
         json!({
             "name": "list_commands",
             "title": "List commands",
-            "description": "Every engine command (id, label, params doc; its button: place, shortcut, needs, form; whether it is enabled now and why not), optionally filtered by a substring of the id or label. On a server (bicraft serve), commands the server refuses are not listed.",
+            "description": "Every engine command (id, label, params doc; its button: place, shortcut, needs, form; whether it is enabled now and why not), optionally filtered by a substring of the id or label. On a server (bicraft-cli serve), commands the server refuses are not listed.",
             "inputSchema": schema(json!({"filter": string("Case-insensitive substring of the id or label")}), &[]),
             "annotations": {"readOnlyHint": true},
         }),
@@ -803,7 +803,7 @@ pub fn tool_definitions() -> Vec<Value> {
     ]
 }
 
-/// [`tool_definitions`] as a server-mode session sees them (`bicraft serve`): the convenience
+/// [`tool_definitions`] as a server-mode session sees them (`bicraft-cli serve`): the convenience
 /// tools whose command is denied in server mode are left out.
 pub fn server_tool_definitions() -> Vec<Value> {
     tool_definitions()

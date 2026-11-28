@@ -16,7 +16,7 @@ built the same way, have their own note ([waterfall-gauge.md](waterfall-gauge.md
 |---|---|---|---|---|---|
 | display name | BIcraft Org Chart | BIcraft Venn | BIcraft Marimekko | BIcraft Calendar Heatmap | BIcraft Sankey |
 | guid (visual type) | `bicraftOrgChart3C8E1A6F2D4B9E7A5C1F0D2B` | `bicraftVenn9A2E4C6B8D1F3A5E7C9B0D2F` | `bicraftMarimekko5D7F9B1E3A6C8E0B2D4F6A` | `bicraftCalendarHeatmap1E3B5D7F9A2C4E6B8D0F` | `bicraftSankey7B3D5F1A9C2E4B6D8F0A1C3E` |
-| version | 1.3.5.0 | 1.3.4.0 | 1.3.5.0 | 1.3.3.0 | 1.3.6.0, the Sankey 1.3.7.0 (each raised on 2026-11-25 for the runtime's text settings it bundles, G119, nothing it draws changed; the Sankey's 1.3.7.0, 2026-11-26, places its labels beside the plot, below) |
+| version | 1.3.6.0 | 1.3.5.0 | 1.3.6.0 | 1.3.4.0 | 1.3.8.0 (each raised on 2026-11-25 for the runtime's text settings it bundles, G119, nothing it draws changed; the Sankey's 1.3.7.0, 2026-11-26, places its labels beside the plot, below; each raised again on 2026-11-27 for the runtime's number formatting, which reads commas right after the last decimal placeholder as scaling commas) |
 | data roles (at most one field each) | `id`, `parent` (Grouping, required), `label` (Grouping), `value` (Measure) | `item`, `set` (Grouping, required) | `category` (Grouping, required), `series` (Grouping), `value` (Measure, required) | `date` (Grouping, required), `value` (Measure, required) | `source`, `destination` (Grouping, required), `weight` (Measure, required) |
 | data view | categorical: categories `id`, `parent`, `label` (top 1,000), values `value` | categorical: categories `item`, `set` (top 5,000) | categorical: categories `category`, `series` (top 3,000), values `value` | categorical: category `date` (top 4,000), values `value` | categorical: categories `source`, `destination` (top 3,000), values `weight` |
 | format objects | `nodes`: `fill`, `fontColor`, `fontSize`, `showValues`; `tree`: `levels`, `toggled`, `compact`, `leftToRight` | `sets`: `color1`–`color3`, `proportional`; `labels`: `show`, `fontSize` | `colors`: `series1`–`series6`; `labels`: `show`, `fontSize`; `legend`: `show`; `columns`: `sort`, `widthAxis` | `colors`: `low`, `high`, `empty`; `legend`: `show`; `range`: `months`, `sundayFirst` | `nodes`: `width`, `padding`; `colors` (since 1.3.4.0): `node1`–`node12`; `links`: `colorBy` (enumeration `source`, `destination`, `fixed`), `fill`, `opacity`; `labels`: `show`, `fontSize` |
@@ -313,8 +313,9 @@ identity per row of the categories, as for the Venn diagram); both cross-filter 
 Added 2026-11-24 at the user's request: a scatter chart for many points, with the textbook
 additions (hexagonal binning, marginal distributions, least-squares fit, quadrants); no scatter
 visual's code, text or drawing was looked at. Display name BIcraft Scatter+, guid
-`bicraftScatterPlus4E8A2C6F0B3D5A7C9E1F`, version 1.0.3.0 (1.0.1.0 and 1.0.0.0 until
-2026-11-25; 1.0.2.0 changes only its package icon, G111; 1.0.3.0 only the runtime it bundles, G119).
+`bicraftScatterPlus4E8A2C6F0B3D5A7C9E1F`, version 1.0.4.0 (1.0.1.0 and 1.0.0.0 until
+2026-11-25; 1.0.2.0 changes only its package icon, G111; 1.0.3.0 only the runtime it bundles, G119; 1.0.4.0,
+2026-11-27, only the runtime's scaling commas after the decimals).
 
 - Roles: `details` (Grouping, required: one point per value), `legend` (Grouping: the point's
   colour, at most 12 groups, later ones take the 12th colour), `x`, `y` (Measure, required),
@@ -369,7 +370,7 @@ visual's code, text or drawing was looked at. Display name BIcraft Scatter+, gui
 Added 2026-11-24 at the user's request: lines and areas with the additions report authors
 build by hand (bands, thresholds, forecast stretches, line-end names); no line visual's code,
 text or drawing was looked at. Display name BIcraft Line / Area+, guid
-`bicraftLineAreaPlus9D2B6F4A8C0E3B5D7F1A`, version 1.0.4.0 (1.0.4.0 only the runtime it bundles, G119; 1.0.3.0, 1.0.2.0, 1.0.1.0 and 1.0.0.0 until
+`bicraftLineAreaPlus9D2B6F4A8C0E3B5D7F1A`, version 1.0.5.0 (1.0.5.0, 2026-11-27, only the runtime's scaling commas after the decimals; 1.0.4.0 only the runtime it bundles, G119; 1.0.3.0, 1.0.2.0, 1.0.1.0 and 1.0.0.0 until
 2026-11-25; 1.0.3.0 changes only its package icon, G111).
 
 - Roles: `axis` (Grouping, required), `series` (Grouping: one line per value, at most 12),
@@ -490,10 +491,10 @@ Version 1.0.2.0 in the same Desktop (2026-11-24), from a PBIX `bicraft` wrote wi
 `sets.proportional` (two sets), `columns.sort`, `columns.widthAxis`, `range.months` and
 `range.sundayFirst` on: the compact org chart, the area-proportional Venn diagram, the Marimekko
 with its widest column first and its width axis, and the calendar from January to June with
-Sunday as the first row drew the same shapes as `bicraft render` (month and day names in French);
+Sunday as the first row drew the same shapes as `bicraft-cli render` (month and day names in French);
 the format pane showed the new options as toggles, on (Arbre compact; Surfaces selon les nombres
 (deux ensembles); Les plus larges d'abord, Axe des largeurs; Seulement les mois avec des données,
-Semaines commençant le dimanche). The Venn package exported by `bicraft visual export` also
+Semaines commençant le dimanche). The Venn package exported by `bicraft-cli visual export` also
 imported through Desktop's Import a visual from a file and drew its sets
 ([community-visuals.md](../community-visuals.md) "Outside BIcraft").
 
@@ -503,7 +504,7 @@ Homes; Coal → Industry skipping the Power column) next to a built-in column ch
 cycle and a page of date nodes. Driven by input events through the WebView2 DevTools port; the
 sandbox frame's DOM, the report view's tooltip and menu texts and screenshots were read.
 
-- **Drawing.** Nodes, ribbons and labels as `bicraft render` draws them, in the default theme's
+- **Drawing.** Nodes, ribbons and labels as `bicraft-cli render` draws them, in the default theme's
   colours; the Coal → Industry ribbon passes behind the Power node (no dummy nodes, as above). On
   the cycle page the columns and ribbon thicknesses match the render and the note reads
   "2 liens en boucle non dessinés". Date nodes on a General Date column read `05/01/2026 00:00:00`
@@ -519,14 +520,14 @@ sandbox frame's DOM, the report view's tooltip and menu texts and screenshots we
   a ribbon, Enter selects it and Escape clears the selection.
 - **Format pane.** The cards and options in French; the Couleur selon drop-down opens on Source,
   and choosing Destination redraws the ribbons in the destination's
-  colour; Desktop's save writes `links.colorBy` and `bicraft render` draws the saved file the same
+  colour; Desktop's save writes `links.colorBy` and `bicraft-cli render` draws the saved file the same
   way. The Build pane's roles read Source, Destination, Poids.
 
 The Sankey at 1.2.0.0 and 1.3.0.0 in the same Desktop, later on 2026-11-24, from a PBIX `bicraft`
 wrote with links skipping one and two columns, Modern, Bold and Minimal, and visuals 220, 180 and
 160 px wide or high:
 
-- **Routing.** The waypoint routing draws as `bicraft render` draws it: the skipping ribbons run
+- **Routing.** The waypoint routing draws as `bicraft-cli render` draws it: the skipping ribbons run
   beside the middle columns' nodes, never over them, each node's links in their own slots, and
   the last two columns' labels stay whole on the narrow visuals.
 - **Label size.** Desktop's labels were 11 px under Modern where the renderer drew 12 px, so in
@@ -557,7 +558,7 @@ Marimekko with `colors.series1`–`series3` set, a crowded slope chart and two d
 Driven through the WebView2 DevTools port as above.
 
 - **Drawing.** Every visual of the three pages drew the same shapes, texts and colours as
-  `bicraft render` (Scatter+'s density cells, marginals, trend with R², quadrant shares and
+  `bicraft-cli render` (Scatter+'s density cells, marginals, trend with R², quadrant shares and
   labels; Line / Area+'s band, threshold shading, dashed forecast with Prévision, rule colours,
   emphasis and end labels; the org chart's levels across with its buttons on the boxes' right
   edges; the Marimekko's series in the three set colours).
@@ -581,11 +582,11 @@ Driven through the WebView2 DevTools port as above.
   saved: Scatter+ density `on` and marginals `histogram`, Line / Area+ labels `minmax` and the
   Minimal preset; BIcraft read the saved options back and drew the file as Desktop did.
 - **1.3.3.0.** The org chart left to right ("De gauche à droite" on in the Arbre card) and the
-  Marimekko's colours (Série 1 to Série 6 in the Couleurs card) drew as `bicraft render`; a click
+  Marimekko's colours (Série 1 to Série 6 in the Couleurs card) drew as `bicraft-cli render`; a click
   on Ivo's button collapsed it, and Desktop's save wrote `tree.toggled` `["e1"]` beside
   `tree.leftToRight`, which BIcraft read back and drew collapsed.
 - **Dumbbell and slope (1.3.1.0).** The crowded slope chart's labels were spread with leader
-  lines, as in `bicraft render`. Thirteen rows of close start values in a 200 or 260 px visual:
+  lines, as in `bicraft-cli render`. Thirteen rows of close start values in a 200 or 260 px visual:
   both drawers pushed the stacked labels up past the plot, over the legend and, in Desktop, out
   of the frame (clipped). Fixed in the dumbbell 1.3.2.0: labels that cannot fit inside the plot
   are left out ([bicraft-visuals.md](bicraft-visuals.md) "Dumbbell and slope chart").

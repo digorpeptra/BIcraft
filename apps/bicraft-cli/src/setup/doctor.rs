@@ -1,4 +1,4 @@
-//! `bicraft setup doctor`: start `<command> mcp`, run the MCP handshake, list the tools.
+//! `bicraft-cli setup doctor`: start `<command> mcp`, run the MCP handshake, list the tools.
 
 use std::io::{BufRead, BufReader, Write};
 use std::path::Path;

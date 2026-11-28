@@ -22,7 +22,7 @@ enforces it from the table in `xtask/src/layers.rs`, where every new crate is re
 | L4 | `pbix`, `pbip`, `pbixwriter`, `bpa`, `render` | Containers (PBIX/PBIT packages and PBIP folders), best-practice rules, the page renderer |
 | L5 | `engine`, `view` | The session and every action as a command; the live viewer page and its loopback server |
 | L6 | `mcp`, `controller`, `ui` | The MCP server over the engine; the Kubernetes workspace controller; the egui UI shared by the desktop and browser shells (no engine outside its tests) |
-| apps | `bicraft-cli`, `bicraft-desktop`, `bicraft-web` | The `bicraft` binary (CLI and `bicraft mcp`); the native and browser shells of the UI |
+| apps | `bicraft-cli`, `bicraft-desktop`, `bicraft-web` | The binaries `bicraft-cli` (CLI and `bicraft-cli mcp`) and `bicraft` (the desktop app, the native shell of the UI); the browser shell of the UI |
 
 Nothing below L6 depends on the engine, and nothing below L5 uses an async runtime.
 

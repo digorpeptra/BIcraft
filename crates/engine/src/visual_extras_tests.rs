@@ -1370,3 +1370,255 @@ fn matrix_rows_are_not_small_multiples() {
     assert!(extract_props(&v).get("small_multiples").is_none());
     assert_extract_noop(&s, &v);
 }
+
+/// A visual of `visual_type` at (`x`, `y`), `w` × `h` on the desktop page.
+fn add_at(s: &mut Session, visual_type: &str, fields: Value, rect: (i64, i64, i64, i64)) -> String {
+    let page = page(s);
+    let (x, y, w, h) = rect;
+    let v = run(
+        s,
+        "visual.add",
+        json!({"page": page, "visual_type": visual_type, "x": x, "y": y, "width": w,
+               "height": h, "fields": fields}),
+    );
+    v["visual"].as_str().unwrap().to_string()
+}
+
+/// The phone rectangle (x, y, width, height) of visual `v`, when it is on the mobile layout.
+fn phone_rect(s: &Session, pg: &str, v: &str) -> Option<(f64, f64, f64, f64)> {
+    let m = crate::visual_extras::mobile_position(report(s), pg, v)?;
+    let n = |k: &str| m[k].as_f64().unwrap();
+    Some((n("x"), n("y"), n("width"), n("height")))
+}
+
+fn overlap(a: (f64, f64, f64, f64), b: (f64, f64, f64, f64)) -> bool {
+    a.0 < b.0 + b.2 && b.0 < a.0 + a.2 && a.1 < b.1 + b.3 && b.1 < a.1 + a.3
+}
+
+/// A page laid out as a dashboard: two cards on top, a wide chart, a slicer and a table side by
+/// side under it, a hidden line chart; returns (cards, chart, slicer, table, hidden).
+fn dashboard(s: &mut Session) -> (Vec<String>, String, String, String, String) {
+    let total = json!([{"role": "Values", "field": "[Total]"}]);
+    let card2 = add_at(s, "card", total.clone(), (300, 10, 250, 120));
+    let card1 = add_at(s, "card", total, (10, 10, 250, 120));
+    let chart = add_at(
+        s,
+        "clusteredColumnChart",
+        json!([{"role": "Category", "field": "Sales[Region]"}, {"role": "Y", "field": "[Total]"}]),
+        (10, 150, 1200, 300),
+    );
+    let table = add_at(
+        s,
+        "tableEx",
+        json!([{"role": "Values", "field": "Sales[Region]"}]),
+        (300, 470, 200, 900),
+    );
+    let slicer = add_at(
+        s,
+        "slicer",
+        json!([{"role": "Values", "field": "Sales[Region]"}]),
+        (10, 470, 250, 200),
+    );
+    let hidden = add_at(
+        s,
+        "lineChart",
+        json!([{"role": "Category", "field": "Sales[Region]"}, {"role": "Y", "field": "[Total]"}]),
+        (600, 470, 400, 300),
+    );
+    let pg = page(s);
+    run(
+        s,
+        "visual.set_hidden",
+        json!({"page": pg, "visual": hidden, "hidden": true}),
+    );
+    (vec![card1, card2], chart, slicer, table, hidden)
+}
+
+#[test]
+fn mobile_auto_create_stacks_the_shown_visuals_inside_the_phone() {
+    let mut s = session();
+    let (cards, chart, slicer, table, hidden) = dashboard(&mut s);
+    let pg = page(&s);
+    // a visual already on the phone with its own formatting keeps it
+    run(
+        &mut s,
+        "visual.mobile",
+        json!({"page": pg, "visual": hidden, "x": 0, "y": 0, "width": 100, "height": 100}),
+    );
+    run(
+        &mut s,
+        "visual.mobile",
+        json!({"page": pg, "visual": chart, "x": 50, "y": 900, "width": 100, "height": 100}),
+    );
+    run(
+        &mut s,
+        "visual.mobile_format",
+        json!({"page": pg, "visual": chart, "background": {"color": "#FFEEDD"}}),
+    );
+    let before = s.report.clone();
+    let out = run(&mut s, "visual.mobile_auto", json!({"page": pg}));
+    assert_eq!(out["changed"], true, "{out}");
+    let shown: Vec<String> = cards.iter().chain([&chart, &slicer, &table]).cloned().collect();
+    let rects: Vec<(f64, f64, f64, f64)> = shown
+        .iter()
+        .map(|v| phone_rect(&s, &pg, v).unwrap_or_else(|| panic!("{v} not placed: {out}")))
+        .collect();
+    let phone = bicraft_render::phone::WIDTH;
+    for (i, a) in rects.iter().enumerate() {
+        // inside the phone's width, on its grid
+        assert!(a.0 >= 0.0 && a.0 + a.2 <= phone, "{a:?}");
+        assert!(a.1 >= 0.0 && a.2 > 0.0 && a.3 > 0.0, "{a:?}");
+        let snapped = bicraft_render::phone::snap_rect(a.0, a.1, a.2, a.3);
+        assert_eq!(snapped, *a, "off the grid");
+        for b in rects.iter().skip(i + 1) {
+            assert!(!overlap(*a, *b), "{a:?} overlaps {b:?}");
+        }
+    }
+    let [c1, c2, ch, sl, tb] = rects[..] else { panic!() };
+    // reading order: the cards share the top row, left to right; then the chart, full width
+    assert!(c1.1 == c2.1 && c1.0 < c2.0, "{c1:?} {c2:?}");
+    assert!(ch.1 > c1.1 && ch.2 > c1.2 && ch.2 == phone, "{ch:?}");
+    // the slicer (left on the desktop) comes before the table, alone in its row
+    assert!(sl.1 > ch.1 && tb.1 > sl.1, "{sl:?} {tb:?}");
+    // the wide chart keeps a wide shape, the tall table a tall one, both within limits
+    assert!(ch.2 > ch.3 && tb.3 > tb.2 && tb.3 < 900.0, "{ch:?} {tb:?}");
+    // the hidden visual is taken off; the chart keeps its mobile formatting
+    assert!(phone_rect(&s, &pg, &hidden).is_none());
+    assert_eq!(out["removed"], json!([hidden]));
+    let doc = crate::visual_extras::mobile_doc(report(&s), &pg, &chart).unwrap();
+    assert!(doc.get("visualContainerObjects").is_some(), "{doc}");
+    idempotent(&mut s, "visual.mobile_auto", json!({"page": pg}));
+    assert_pbir_ok(&mut s);
+    // one undo step brings the earlier layout back
+    run(&mut s, "edit.undo", json!({}));
+    assert_eq!(s.report, before);
+    fails(&mut s, "visual.mobile_auto", json!({"page": "nope"}));
+    fails(&mut s, "visual.mobile_auto", json!({"page": pg, "x": 1}));
+}
+
+#[test]
+fn mobile_auto_create_needs_a_shown_visual() {
+    let mut s = session();
+    let pg = page(&s);
+    fails(&mut s, "visual.mobile_auto", json!({"page": pg}));
+}
+
+#[test]
+fn mobile_remove_all_empties_the_layout_in_one_step() {
+    let mut s = session();
+    let (cards, chart, ..) = dashboard(&mut s);
+    let pg = page(&s);
+    run(&mut s, "visual.mobile_auto", json!({"page": pg}));
+    let before = s.report.clone();
+    let visuals_before = report(&s).pages[0].visuals.len();
+    let out = run(&mut s, "visual.mobile_remove_all", json!({"page": pg}));
+    assert_eq!(out["changed"], true, "{out}");
+    for v in &report(&s).pages[0].visuals {
+        assert!(
+            crate::visual_extras::mobile_doc(report(&s), &pg, &v.name).is_none(),
+            "{} still on the phone",
+            v.name
+        );
+    }
+    assert!(
+        !report(&s)
+            .resources
+            .iter()
+            .any(|r| r.path.ends_with("mobile.json"))
+    );
+    // the visuals stay on the page
+    assert_eq!(report(&s).pages[0].visuals.len(), visuals_before);
+    idempotent(&mut s, "visual.mobile_remove_all", json!({"page": pg}));
+    run(&mut s, "edit.undo", json!({}));
+    assert_eq!(s.report, before);
+    assert!(phone_rect(&s, &pg, &chart).is_some() && phone_rect(&s, &pg, &cards[0]).is_some());
+    fails(&mut s, "visual.mobile_remove_all", json!({"page": "nope"}));
+}
+
+#[test]
+fn mobile_paste_and_duplicate_keep_the_visual_on_its_page_and_phone() {
+    let mut s = session();
+    let v = chart(&mut s, "clusteredColumnChart");
+    let pg = page(&s);
+    run(
+        &mut s,
+        "visual.mobile",
+        json!({"page": pg, "visual": v, "x": 0, "y": 40, "width": 306, "height": 200}),
+    );
+    run(
+        &mut s,
+        "visual.mobile_format",
+        json!({"page": pg, "visual": v, "background": {"color": "#FFEEDD"}}),
+    );
+    let copied = run(&mut s, "visual.copy", json!({"page": pg, "visual": v}));
+    assert!(copied["clip"]["mobile"][&v].is_object(), "{copied}");
+    let before = s.report.clone();
+    let out = run(
+        &mut s,
+        "visual.paste",
+        json!({"page": pg, "clip": copied["clip"], "mobile": true}),
+    );
+    let new = out["visuals"][0].as_str().unwrap().to_string();
+    assert_ne!(new, v);
+    // on the page and on the phone, not on top of the original, inside the phone
+    assert!(page_of(&s, &pg).visual(&new).is_some());
+    let (a, b) = (
+        phone_rect(&s, &pg, &v).unwrap(),
+        phone_rect(&s, &pg, &new).unwrap(),
+    );
+    assert!(!(a.0 == b.0 && a.1 == b.1), "{a:?} {b:?}");
+    assert!(b.0 >= 0.0 && b.0 + b.2 <= bicraft_render::phone::WIDTH, "{b:?}");
+    assert!(mobile_z(&s, &pg, &new) > mobile_z(&s, &pg, &v));
+    let doc = crate::visual_extras::mobile_doc(report(&s), &pg, &new).unwrap();
+    assert!(doc.get("visualContainerObjects").is_some(), "{doc}");
+    assert_pbir_ok(&mut s);
+    run(&mut s, "edit.undo", json!({}));
+    assert_eq!(s.report, before);
+    // duplicate on the phone: the same
+    let out = run(
+        &mut s,
+        "visual.duplicate",
+        json!({"page": pg, "visual": v, "mobile": true}),
+    );
+    let dup = out["visuals"][0].as_str().unwrap().to_string();
+    let d = phone_rect(&s, &pg, &dup).unwrap();
+    assert!(!overlap(a, d) || (a.0, a.1) != (d.0, d.1), "{a:?} {d:?}");
+    assert_eq!(out["mobile"][0]["visual"], dup.as_str());
+    // a paste without `mobile`, or of a visual the phone does not hold, places it under the layout
+    let plain = run(
+        &mut s,
+        "visual.paste",
+        json!({"page": pg, "clip": copied["clip"]}),
+    );
+    let p = plain["visuals"][0].as_str().unwrap();
+    assert!(phone_rect(&s, &pg, p).is_none());
+    run(&mut s, "visual.mobile_remove_all", json!({"page": pg}));
+    let fresh = run(&mut s, "visual.copy", json!({"page": pg, "visual": v}));
+    assert!(fresh["clip"].get("mobile").is_none(), "{fresh}");
+    run(
+        &mut s,
+        "visual.mobile",
+        json!({"page": pg, "visual": v, "x": 0, "y": 0, "width": 324, "height": 200}),
+    );
+    let out = run(
+        &mut s,
+        "visual.paste",
+        json!({"page": pg, "clip": fresh["clip"], "mobile": true}),
+    );
+    let under = phone_rect(&s, &pg, out["visuals"][0].as_str().unwrap()).unwrap();
+    assert!(
+        under.1 >= 200.0 && under.2 <= bicraft_render::phone::WIDTH,
+        "{under:?}"
+    );
+    // a hostile clip's phone place is refused before anything changes
+    let mut bad = copied["clip"].clone();
+    bad["mobile"][&v]["position"]["width"] = json!(-5);
+    fails(
+        &mut s,
+        "visual.paste",
+        json!({"page": pg, "clip": bad, "mobile": true}),
+    );
+    let mut bad = copied["clip"].clone();
+    bad["mobile"] = json!([1]);
+    fails(&mut s, "visual.paste", json!({"page": pg, "clip": bad}));
+}

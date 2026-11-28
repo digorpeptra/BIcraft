@@ -1,4 +1,4 @@
-//! Document views of `bicraft serve` over real sockets (docs/mcp.md, "Document views";
+//! Document views of `bicraft-cli serve` over real sockets (docs/mcp.md, "Document views";
 //! docs/webui.md, "Document tabs"): each browser tab's private session on its own workspace
 //! file, edited side by side; the per-file save check; the caps per user and per workspace, the
 //! memory check, idle expiry, closing; readers' read-only views; the workspace's own session

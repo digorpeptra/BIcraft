@@ -43,7 +43,7 @@ are G56–G63 in [gaps.md](gaps.md).
 |---|---|---|---|
 | Authoring done | 63 of 129 (49%) | **79 of 129 (61%)**; 20 partial, 30 missing | **measured**: `cargo xtask parity` |
 | Authoring weighted | 68% | **78%** (P0 96%, P1 78%, P2 36%) | **measured**: same |
-| Viewer, `bicraft render` | 20 of 34 (59%), weighted 74% | **22 of 33 (67%)**, weighted 80% (the bookmark row is "–" for a PNG, as drill is) | **measured**: same |
+| Viewer, `bicraft-cli render` | 20 of 34 (59%), weighted 74% | **22 of 33 (67%)**, weighted 80% (the bookmark row is "–" for a PNG, as drill is) | **measured**: same |
 | Viewer, web viewer (page.html) | 26 of 56 (46%), weighted 61% | unchanged | **measured**: same |
 | Viewer, BIcraft app | 29 of 56 (52%), weighted 65% | **38 of 56 (68%)**, weighted 81% | **measured**: same |
 | Ready for real work, agent | ~65% | **~70%** | **estimated**: [Readiness](#readiness) |
@@ -82,7 +82,7 @@ from the reviewer's knowledge of Desktop's documented features where no page was
 | Authoring done | 56 of 91 (62%) | 57 of 91 (63%) | **63 of 129 (49%)**; 26 partial, 40 missing | **measured**: `cargo xtask parity` (the middle column by the same scoring over the old rows) |
 | Authoring weighted | 76% | 78% | **68%** (P0 87%, P1 63%, P2 31%) | **measured**: same |
 | Authoring items the app reaches | 2 of 68 | 69 of 69 | **89 of 89** (since M11.3); about 40 through a dedicated surface (panes, formula bar, page tabs, File view, menus), about 49 only through the generic parameters form or the palette | **measured**: `cargo xtask parity`; the split counted by hand from the Button column |
-| Viewer, `bicraft render` | 19 of 29 (66%), weighted 77% | 19 of 29, weighted 78% | **20 of 34 (59%)**, weighted 74% | **measured**: same |
+| Viewer, `bicraft-cli render` | 19 of 29 (66%), weighted 77% | 19 of 29, weighted 78% | **20 of 34 (59%)**, weighted 74% | **measured**: same |
 | Viewer, web viewer (page.html) | 26 of 51 (51%), weighted 63% | unchanged | **26 of 56 (46%)**, weighted 61% | **measured**: same |
 | Viewer, BIcraft app | 27 of 51 (53%), weighted 62% | 28 of 51 (55%), weighted 67% | **29 of 56 (52%)**, weighted 65% | **measured**: same |
 | Ready for real work, agent | ~70% | ~70% | **~65%** on the widened target | **estimated**: [Readiness](#readiness) |
@@ -163,7 +163,7 @@ more UI languages (L, M each).
   Desktop's map visuals use Bing/Azure Maps services.
 - **Custom visuals** (XL): `.pbiviz` packages are JavaScript against the visuals API and the DOM.
   The browser shell could host them in a sandboxed iframe; the desktop shell has no DOM (a
-  JavaScript engine plus an SVG/DOM shim, or a web view, both large). `bicraft render` would need
+  JavaScript engine plus an SVG/DOM shim, or a web view, both large). `bicraft-cli render` would need
   the same host. AppSource needs sign-in (out of scope).
 - **AI visuals**: key influencers have an opt-in estimate (G33) not Desktop's algorithm;
   decomposition tree AI splits are re-chosen (G34). **Q&A** needs a natural-language engine over
@@ -298,14 +298,14 @@ it no longer matches the checklist.
 <!-- HEADLINE -->
 | Number | Value | Kind |
 |---|---|---|
-| **Authoring features done** | **127 of 145 (88%)**; 13 partial, 5 missing | **measured**: `cargo xtask parity` over [parity-checklist.md](parity-checklist.md) (each row's status is a judgement against the evidence below) |
-| Authoring, weighted by priority | **95%** (P0 99%, P1 96%, P2 83%) | **measured**: `cargo xtask parity` over [parity-checklist.md](parity-checklist.md) (each row's status is a judgement against the evidence below) |
-| Authoring items with a button in the app | **140 of 140** BIcraft has | **measured**: `cargo xtask parity` over [parity-checklist.md](parity-checklist.md) (each row's status is a judgement against the evidence below) |
-| **Viewer: `bicraft render` (PNG)** | **25 of 33 (76%)** done, weighted 89% | **measured**: `cargo xtask parity` over [parity-checklist.md](parity-checklist.md) (each row's status is a judgement against the evidence below) |
-| **Viewer: Web viewer (`bicraft view`, page.html)** | **28 of 56 (50%)** done, weighted 64% | **measured**: `cargo xtask parity` over [parity-checklist.md](parity-checklist.md) (each row's status is a judgement against the evidence below) |
+| **Authoring features done** | **127 of 145 (88%)**; 14 partial, 4 missing | **measured**: `cargo xtask parity` over [parity-checklist.md](parity-checklist.md) (each row's status is a judgement against the evidence below) |
+| Authoring, weighted by priority | **95%** (P0 99%, P1 96%, P2 84%) | **measured**: `cargo xtask parity` over [parity-checklist.md](parity-checklist.md) (each row's status is a judgement against the evidence below) |
+| Authoring items with a button in the app | **141 of 141** BIcraft has | **measured**: `cargo xtask parity` over [parity-checklist.md](parity-checklist.md) (each row's status is a judgement against the evidence below) |
+| **Viewer: `bicraft-cli render` (PNG)** | **25 of 33 (76%)** done, weighted 89% | **measured**: `cargo xtask parity` over [parity-checklist.md](parity-checklist.md) (each row's status is a judgement against the evidence below) |
+| **Viewer: Web viewer (`bicraft-cli view`, page.html)** | **28 of 56 (50%)** done, weighted 64% | **measured**: `cargo xtask parity` over [parity-checklist.md](parity-checklist.md) (each row's status is a judgement against the evidence below) |
 | **Viewer: BIcraft app (egui, desktop and browser)** | **47 of 56 (84%)** done, weighted 92% | **measured**: `cargo xtask parity` over [parity-checklist.md](parity-checklist.md) (each row's status is a judgement against the evidence below) |
 | **Desktop UI controls covered** | **71%** of 510 in-scope controls (223 done, 283 partial, 4 missing; 93 groups, 538 controls read, 28 out of scope) | **measured**: `cargo xtask parity` over the inventory of [parity-checklist.md](parity-checklist.md) (controls counted in Desktop as a black box; each group's status a judgement) |
-| Engine commands | **299** | **measured**: `cargo xtask parity` counts the `COMMANDS` table of `crates/engine/src/commands.rs` |
+| Engine commands | **306** | **measured**: `cargo xtask parity` counts the `COMMANDS` table of `crates/engine/src/commands.rs` |
 <!-- /HEADLINE -->
 
 | Number | Value | Kind |
@@ -400,7 +400,7 @@ What the checklist says, by group (the per-area table is in
 ## Viewer axis
 
 - **Visuals.** The common built-in families are drawn by one renderer (`bicraft-render`), used
-  by `bicraft render` and by the app in both shells; the HTML viewer draws the same families (the
+  by `bicraft-cli render` and by the app in both shells; the HTML viewer draws the same families (the
   renderer is a port of its drawing, and the oracles measured the renderer, not page.html).
   Decomposition trees are drawn and clickable in the renderer and the app (G34), not in
   page.html; key influencers are a placeholder with an opt-in estimate (G33). Partial: ribbon
@@ -422,7 +422,7 @@ What the checklist says, by group (the per-area table is in
   spotlight, Show as a table, print, phone layout, high contrast. The web viewer's visual details
   panel (30 preview rows) is its only "show as a table"; its hit regions take keyboard focus, the
   app's do not.
-- **`bicraft render`** has no reader of its own (rows marked "–"), but draws the reader state
+- **`bicraft-cli render`** has no reader of its own (rows marked "–"), but draws the reader state
   set through `view.interact`, renders every page to PNG, at any scale, deterministically, on
   Windows and Linux, which Desktop does not offer outside export to PDF.
 
@@ -450,7 +450,7 @@ with tests and docs 2–6 h, a reader feature on three surfaces 6–15 h, a subs
 
 Written weights so the numbers can be recomputed (**estimated**):
 
-- **For an agent (CLI, MCP):** authoring weighted parity × 0.6 + `bicraft render` weighted
+- **For an agent (CLI, MCP):** authoring weighted parity × 0.6 + `bicraft-cli render` weighted
   parity × 0.2 + file fidelity × 0.2. File fidelity is taken as 0.9: open, save and convert pass
   every round-trip and Desktop-acceptance check recorded in [gaps.md](gaps.md) (G1–G3, G13,
   G17, G18, G26), with Desktop releases other than the ones tested still unseen. 2026-11-05, on

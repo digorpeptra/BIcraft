@@ -612,14 +612,14 @@ The M half of the signature corpus holds BIcraft's M catalogue (`bicraft-mlang`,
 functions the evaluator runs) to the signatures Power BI Desktop's own M engine reports.
 
 M describes its own library through public functions, so Desktop is used as a black box: BIcraft
-wrote a PBIX (`bicraft run`, `table.add` with an M partition, `file.save_as {empty_tables}`) whose
+wrote a PBIX (`bicraft-cli run`, `table.add` with an M partition, `file.save_as {empty_tables}`) whose
 queries, our own M, read for each catalogue name its function type from `#shared` (and
 `#binary`, `#date`, `#datetime`, `#datetimezone`, `#duration`, `#table`, `#time` by name, since
 `#shared` does not list them): `Type.FunctionRequiredParameters`, `Type.FunctionParameters`
 (names and types), `Type.FunctionReturn`, and each type's kind (`Type.Is` against the primitive
 types) and nullability (`Type.IsNullable`). A second query listed every name of `#shared` with
 its kind and counts. Power BI Desktop 2.159.1231.0 (Store) opened the file, Home › Refresh ran
-the queries, Desktop saved it, and `bicraft dax-query FILE "EVALUATE MSig"` read the loaded
+the queries, Desktop saved it, and `bicraft-cli dax-query FILE "EVALUATE MSig"` read the loaded
 tables back. No documentation text is read or kept (`Value.Metadata` is not used).
 
 | File | What it is |

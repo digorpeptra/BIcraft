@@ -15,10 +15,10 @@ app's canvas) draws the same layout natively.
 M11.31 showed that WebAssembly runs in the sandbox, so a Rust drawer compiled to wasm was
 possible. It was not chosen: the `.wasm` bytes would have to be built with the
 `wasm32-unknown-unknown` target and committed, or built at the user's side, and neither is
-reproducible from the repository with the tools a user has (the `bicraft` binary carries swc,
+reproducible from the repository with the tools a user has (the `bicraft-cli` binary carries swc,
 not a Rust compiler). The visual's script is TypeScript in the repository, compiled at run time
 by BIcraft's own bundler (`bicraft_tsbuild`, no Node), so the package is rebuilt from source by
-every `bicraft` binary. The layout exists twice, in `crates/render/src/spec.rs` and
+every `bicraft-cli` binary. The layout exists twice, in `crates/render/src/spec.rs` and
 `crates/engine/src/spec_visual/spec.ts`, kept equal by golden tests (below).
 
 ## The visual
@@ -27,7 +27,7 @@ every `bicraft` binary. The layout exists twice, in `crates/render/src/spec.rs` 
 |---|---|
 | guid (visual type) | `bicraftSpecVisual7F3A9C2E5B1D4E6F8A0C2B4D` |
 | display name | BIcraft Spec |
-| version | 1.5.0.0 (raised with every change of its TypeScript, of the runtime it bundles or of its package icon; 1.4.1.0 changed only the icon, G111; 1.5.0.0 adds the text cards, a series for every bound measure and numbers in the report's language, G119) |
+| version | 1.5.1.0 (raised with every change of its TypeScript, of the runtime it bundles or of its package icon; 1.4.1.0 changed only the icon, G111; 1.5.0.0 adds the text cards, a series for every bound measure and numbers in the report's language, G119; 1.5.1.0, 2026-11-27, only the runtime's scaling commas after the decimals) |
 | data roles | `category` (Grouping, at most 1) and `values` (Measure, at most 16) |
 | data view | categorical: categories from `category` (top 1,000), values bound to `values` |
 | format objects | `spec`, property `json` (text): the spec; since 1.5.0.0 the text cards `labels`, `categoryAxis`, `valueAxis`, `legend` ("Text" below); `style` (the look) |

@@ -1,4 +1,4 @@
-# Running `bicraft serve` on Kubernetes
+# Running `bicraft-cli serve` on Kubernetes
 
 Status: web stage 1, last lot (2026-10-27, branch `feat/deploy`); the workspace controller of stage 2
 (2026-10-28, branch `feat/controller`, section "The controller"). Files: `deploy/docker/Dockerfile`,
@@ -41,20 +41,22 @@ docker build -f deploy/docker/Dockerfile -t registry.example.com/bicraft:0.1.0 .
 
 Multi-stage: `rust:1.99.1-alpine3.22` (pinned by tag and digest) builds the static musl binary with
 `cargo build --profile dist --locked` (the release archives' profile) for the build platform
-(amd64 or arm64); the final stage is `FROM scratch` with `/usr/local/bin/bicraft`, an empty
+(amd64 or arm64); the final stage is `FROM scratch` with `/usr/local/bin/bicraft-cli`, an empty
 `/srv/bicraft` owned by UID 65532 and an empty `/tmp`. Nothing else: no shell, no package
 manager, no CA bundle. The HTTPS clients (OIDC discovery and JWKS, Databricks) use the Mozilla
 roots compiled into the binary (`webpki-roots`); **an issuer behind a private CA is not trusted**
 (no system store is read; a later lot could add a configurable CA file).
 
 - `USER 65532:65532`, `ENV TMPDIR=/tmp BICRAFT_SPILL_DIR=/tmp`, `EXPOSE 7878`.
-- `ENTRYPOINT ["/usr/local/bin/bicraft", "serve"]`, `CMD ["--root", "/srv/bicraft", "--listen",
-  "0.0.0.0:7878"]`. `bicraft serve` refuses a non-loopback address until authentication and the
+- `ENTRYPOINT ["/usr/local/bin/bicraft-cli", "serve"]`, `CMD ["--root", "/srv/bicraft", "--listen",
+  "0.0.0.0:7878"]`. `bicraft-cli serve` refuses a non-loopback address until authentication and the
   `Host` names are configured, so the image does not start without them: that is deliberate.
 - `docker run --rm IMAGE token create --name ci --role agent` prints a token and its entry (the
   entry point already says `serve`).
-- To package a binary from `cargo xtask dist` instead of compiling:
-  `--build-arg BINARY_SOURCE=prebuilt --build-context prebuilt=DIR` (DIR holds `bicraft`).
+- To package a static binary built beforehand instead of compiling:
+  `--build-arg BINARY_SOURCE=prebuilt --build-context prebuilt=DIR` (DIR holds `bicraft-cli`, built
+  for `x86_64-unknown-linux-musl`; the release archive's `bin/bicraft-cli` links glibc and does not
+  run on the empty base).
 - Nothing is pushed anywhere by the repository's tooling. Push to a registry you control.
 
 The musl allocator is slower than glibc's under heavy multithreaded allocation
@@ -254,7 +256,7 @@ To change the size, keep the rules together: memory limit = `BICRAFT_MEMORY_LIMI
 
 ## Upgrades, restarts and the drain
 
-On SIGTERM (pod deletion, `helm upgrade`, a node drain) `bicraft serve`:
+On SIGTERM (pod deletion, `helm upgrade`, a node drain) `bicraft-cli serve`:
 
 1. answers 503 on `/readyz` and to every new request (`Retry-After: 5`);
 2. gives running requests `--shutdown-grace` seconds (`server.shutdownGraceSeconds`), then cancels
@@ -366,7 +368,7 @@ every metric the dashboard queries is exposed.
 ## The controller
 
 Web stage 2 (2026-10-27, branch `feat/controller`). Files: the crate `crates/controller`
-(`bicraft-controller`, L6), the subcommand `bicraft controller` (`apps/bicraft-cli/src/controller_cmd.rs`),
+(`bicraft-controller`, L6), the subcommand `bicraft-cli controller` (`apps/bicraft-cli/src/controller_cmd.rs`),
 the chart `deploy/helm/bicraft-controller/`. Design and the reasons behind it:
 `docs/web-deployment.md`, "Workspace controller (stage 2)".
 
@@ -374,9 +376,9 @@ Instead of one Helm release per workspace, one release of the controller chart s
 workspace of a namespace:
 
 ```
-agents ──HTTPS──▶ Ingress / HTTPRoute ──▶ bicraft controller (gateway + reconciler)
+agents ──HTTPS──▶ Ingress / HTTPRoute ──▶ bicraft-cli controller (gateway + reconciler)
                                              │  /api/v1/workspaces    (admin API)
-                                             │  /w/<id>/…  ──▶ Service bws-<id> ──▶ pod bws-<id> (bicraft serve)
+                                             │  /w/<id>/…  ──▶ Service bws-<id> ──▶ pod bws-<id> (bicraft-cli serve)
                                              └─ Kubernetes API: BicraftWorkspace, Deployment, Service,
                                                 NetworkPolicy, PersistentVolumeClaim (server-side apply)
 ```
@@ -451,7 +453,7 @@ for `idleTimeoutSeconds` is scaled back to zero by the next reconciliation (ever
 `controller.intervalSeconds`, default 5 s). The pod drains as in stage 1: **nothing is saved
 implicitly**, an agent must save before it goes idle.
 
-**Workspace pods trust only the gateway.** They run `bicraft serve` in trusted-header mode only
+**Workspace pods trust only the gateway.** They run `bicraft-cli serve` in trusted-header mode only
 (`--proxy-user-header X-Bicraft-Gateway-User`, `BICRAFT_TRUSTED_PROXIES` = the controller pod's
 address from `POD_IP`, or `workspaces.gatewayTrustedCidrs`) with the grants
 `group:bicraft-gateway-editor=<id>` (editor) and `group:bicraft-gateway-reader=<id>` (reader), so the
@@ -550,10 +552,10 @@ another endpoint (e.g. `kubectl proxy`, for development).
 
 Status: web stage 2 (2026-10-28, branch `feat/viewer`). Code: `crates/mcp/src/http/viewer.rs` (routes,
 browser login, private views), `crates/mcp/src/http/readview.rs` (what readers read), the page of
-`crates/view` (shared with `bicraft view`, whose local behaviour is unchanged: loopback only, no
+`crates/view` (shared with `bicraft-cli view`, whose local behaviour is unchanged: loopback only, no
 authentication, open-in-Desktop). Authentication and CSRF: `docs/auth.md`, "The viewer in a browser".
 
-`bicraft serve` serves the report viewer of each workspace at `<public URL>/w/<id>/view/` (the
+`bicraft-cli serve` serves the report viewer of each workspace at `<public URL>/w/<id>/view/` (the
 chart's ingress already routes `/w/<id>/`). Same `Host` allow-list (`auth.publicUrl`,
 `auth.allowedHosts`), authentication and grants as the MCP endpoint; a person needs a grant like an
 agent (`auth.readerGrants` for read-only people).
@@ -566,7 +568,7 @@ agent (`auth.readerGrants` for read-only people).
 | `GET …/api/state?v=` | the view's snapshot (`docs/view-snapshot.md`), with `source.path` relative to the workspace, `source.download` (the saved file's path for the download link) and `view: {role, session}` (`editor`, `copy` or `empty`) |
 | `GET …/api/events?v=` | SSE: an `event: snapshot` each time the view should refetch (an editor's change, a save, an upload, its own interaction; every 250 ms while visuals still compute); keepalives every 15 s; ends at the drain |
 | `GET …/api/asset/<hash>?v=` | the report images of the view's snapshot (content-addressed, immutable, sandboxed) |
-| `POST …/api/session` | a native client's view (`bicraft-desktop`, docs/desktop.md): bearer credentials or the proxy's headers only, never the cookie; `{version: 1, view, token, access}` |
+| `POST …/api/session` | a native client's view (`bicraft`, docs/desktop.md): bearer credentials or the proxy's headers only, never the cookie; `{version: 1, view, token, access}` |
 | `POST …/api/interact?v=` | a slicer click, a data-point selection, a page change, a slicer button: on **this view only** |
 | `POST /w/<id>/view/login`, `GET /w/<id>/view/login/<code>` | the one-time browser login (bearer credential → URL → cookie) |
 
@@ -609,7 +611,7 @@ Set `auth.publicUrl` to the URL browsers use: the viewer compares `Origin` with 
 workspace, and sends the identity and the access it granted in its `X-Bicraft-Gateway-*` headers,
 which the pod accepts from the gateway's address only (the trusted-header mode). So in a controller
 deployment browsers authenticate at the gateway: put the auth proxy (oauth2-proxy) in front of it,
-or let it validate OIDC bearer tokens. The one-time login URL works on `bicraft serve` directly, not
+or let it validate OIDC bearer tokens. The one-time login URL works on `bicraft-cli serve` directly, not
 through the gateway (the redeeming request carries no credential the gateway accepts); the cookie's
 `Path=/w/<id>/` would be the same through it. The gateway rewrites `Host` to the workspace Service,
 so the pod's CSRF check accepts the public origin through its `--allow-origin` list: the controller
@@ -640,7 +642,7 @@ Last runs (2026-10-27): `deploy smoke` passed on Windows (release build, drain v
 and in WSL Ubuntu (the static musl binary, drain via SIGTERM), each in about 1 s after the build.
 `deploy kind-smoke` passed in WSL Ubuntu with docker 29.1.3 + buildx, kind v0.29.0, helm v3.22.1,
 kubectl v1.37.1 in 708 s, most of it the image build: image 10.8 MB as docker reports it (user
-65532:65532, entry point `bicraft serve`), the chart installed in a `restricted` namespace (pod limit
+65532:65532, entry point `bicraft-cli serve`), the chart installed in a `restricted` namespace (pod limit
 512 Mi = 448 + 64), every live check through the port-forward, and a clean drain (exit 0) on scale
 to zero. Afterwards the cluster, the image and its 2.0 GB of build cache were removed (the
 `kindest/node` image stays cached).

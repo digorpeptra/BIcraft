@@ -42,7 +42,7 @@ spec:
       schema:
         openAPIV3Schema:
           type: object
-          description: A BIcraft workspace, one bicraft serve pod with its volume and route, created by the controller.
+          description: A BIcraft workspace, one bicraft-cli serve pod with its volume and route, created by the controller.
           x-kubernetes-validations:
             - rule: "size(self.metadata.name) <= 40"
               message: a workspace name has at most 40 characters

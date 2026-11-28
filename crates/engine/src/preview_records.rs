@@ -13,11 +13,15 @@
 //!   `CALCULATETABLE(FILTER(<the visual's grouping columns>, <condition>), <the column
 //!   conditions>)` (`VALUES` of one grouping column, else `SUMMARIZE` of the records' table by
 //!   them), so the rows are those of the points the filter keeps, the measure computed under the
-//!   other filters as the visual computes it.
+//!   other filters as the visual computes it. Grouping columns of tables `RELATED` cannot reach
+//!   from the records' table (no relationship, the many side) are crossed with the others
+//!   (`CROSSJOIN` of their `VALUES`), as the visual crosses them.
+//! - On a visual without grouping columns (a card), the condition is a check of the visual's one
+//!   value (`checks`, computed under the column conditions by [`crate::see_records`]): when it
+//!   fails the card shows blank and has no records.
 //!
-//! What cannot be applied (a measure filter on a visual without grouping columns, a measure
-//! condition that also reads a column the visual does not group by, a table `RELATED` cannot
-//! reach) is named in `not_applied`.
+//! What cannot be applied (a measure condition that also reads a column the visual does not
+//! group by, a condition over several tables `RELATED` cannot reach) is named in `not_applied`.
 
 use bicraft_model::SemanticModel;
 use bicraft_report::{Page, Report, Visual};
@@ -45,6 +49,9 @@ pub(crate) struct RecordFilters {
     pub args: Vec<String>,
     /// What was not applied, and why.
     pub not_applied: Vec<String>,
+    /// Conditions (DAX booleans) the value of a visual without grouping columns must meet:
+    /// when one fails, the visual shows blank and has no records.
+    pub checks: Vec<String>,
 }
 
 fn quote_table(t: &str) -> String {
@@ -203,7 +210,7 @@ fn expr_with(c: &Cond, depth: usize, left: OperandDax<'_>) -> Result<String, Str
 
 /// Whether `to` is on the one side of a chain of active relationships from `from` (so
 /// `RELATED` reads its columns from a row of `from`).
-fn reaches(model: &SemanticModel, from: &str, to: &str) -> bool {
+pub(crate) fn reaches(model: &SemanticModel, from: &str, to: &str) -> bool {
     let is = |c: &Option<String>, k: &str| c.as_deref().is_some_and(|x| x.eq_ignore_ascii_case(k));
     let mut seen: Vec<&str> = vec![from];
     let mut frontier: Vec<&str> = vec![from];
@@ -297,23 +304,63 @@ fn on_measure(c: &Cond) -> bool {
     c.operands().iter().any(|o| col(o).is_none())
 }
 
+/// A measure filter of the records: a filter argument over the visual's points, or, on a visual
+/// without grouping columns (a card), a condition the visual's one value must meet.
+enum MeasureFilter {
+    Arg(String),
+    Check(String),
+}
+
+/// The visual's points, in two parts: the grouping columns the records' table reaches (itself,
+/// or through `RELATED`): `VALUES` of one, else `SUMMARIZE` of the records' table by them; and
+/// the values of the other grouping columns (a table with no relationship, the many side),
+/// `CROSSJOIN`ed when they come from several tables, as the visual crosses them. The second
+/// part does not filter the records' rows: it is iterated inside the condition.
+fn point_parts(sc: &RecordScope<'_>) -> (Option<String>, Option<String>) {
+    let near = |t: &str| t.eq_ignore_ascii_case(sc.fact) || reaches(sc.model, sc.fact, t);
+    let refs = |cols: &[&(String, String)]| {
+        cols.iter()
+            .map(|(t, c)| column_ref(t, c))
+            .collect::<Vec<_>>()
+            .join(", ")
+    };
+    let reached: Vec<&(String, String)> = sc.groups.iter().filter(|(t, _)| near(t)).collect();
+    let near_part = match reached.as_slice() {
+        [] => None,
+        [(t, c)] => Some(format!("VALUES({})", column_ref(t, c))),
+        many => Some(format!("SUMMARIZE({}, {})", quote_table(sc.fact), refs(many))),
+    };
+    let mut others: Vec<&str> = Vec::new();
+    for (t, _) in sc.groups.iter().filter(|(t, _)| !near(t)) {
+        if !others.iter().any(|x| x.eq_ignore_ascii_case(t)) {
+            others.push(t);
+        }
+    }
+    let parts: Vec<String> = others
+        .iter()
+        .map(|t| {
+            let cols: Vec<&(String, String)> = sc
+                .groups
+                .iter()
+                .filter(|(x, _)| x.eq_ignore_ascii_case(t))
+                .collect();
+            match cols.as_slice() {
+                [(t, c)] => format!("VALUES({})", column_ref(t, c)),
+                _ => format!("SUMMARIZE({}, {})", quote_table(t), refs(&cols)),
+            }
+        })
+        .collect();
+    let far_part = match parts.as_slice() {
+        [] => None,
+        [one] => Some(one.clone()),
+        _ => Some(format!("CROSSJOIN({})", parts.join(", "))),
+    };
+    (near_part, far_part)
+}
+
 /// A condition on a measure or an aggregation as a filter of the visual's points (see the
 /// module docs), under the column conditions `conds`.
-fn measure_arg(c: &Cond, sc: &RecordScope<'_>, conds: &[String]) -> Result<String, String> {
-    let points = match sc.groups {
-        [] => {
-            return Err("a filter on a measure of a visual without grouping columns".into());
-        }
-        [(t, c)] => format!("VALUES({})", column_ref(t, c)),
-        many => format!(
-            "SUMMARIZE({}, {})",
-            quote_table(sc.fact),
-            many.iter()
-                .map(|(t, c)| column_ref(t, c))
-                .collect::<Vec<_>>()
-                .join(", ")
-        ),
-    };
+fn measure_arg(c: &Cond, sc: &RecordScope<'_>, conds: &[String]) -> Result<MeasureFilter, String> {
     let map = |o: &Operand| -> Result<String, String> {
         match o {
             Operand::Col { table, column } => {
@@ -333,12 +380,28 @@ fn measure_arg(c: &Cond, sc: &RecordScope<'_>, conds: &[String]) -> Result<Strin
             other => by_expr(other),
         }
     };
-    let keep = format!("FILTER({points}, {})", expr_with(c, 0, &map)?);
-    Ok(if conds.is_empty() {
+    let mut test = expr_with(c, 0, &map)?;
+    let (near, far) = point_parts(sc);
+    if let Some(far) = far {
+        // a point of the reached columns is kept when one of its combinations with the other
+        // columns' values meets the condition (the measure computed for each combination)
+        test = format!("NOT(ISEMPTY(FILTER({far}, {test})))");
+    }
+    let Some(near) = near else {
+        // no grouping column the records' table reaches (a card): a check of the visual's
+        // value under the column conditions, as the visual computes it
+        return Ok(MeasureFilter::Check(if conds.is_empty() {
+            test
+        } else {
+            format!("CALCULATE({test}, {})", conds.join(", "))
+        }));
+    };
+    let keep = format!("FILTER({near}, {test})");
+    Ok(MeasureFilter::Arg(if conds.is_empty() {
         keep
     } else {
         format!("CALCULATETABLE({keep}, {})", conds.join(", "))
-    })
+    }))
 }
 
 /// What a top N filter ranks by.
@@ -409,10 +472,11 @@ pub(crate) fn record_filters(
         let r = match it {
             Item::Cond(c) if on_measure(c) => measure_arg(c, scope, &conds),
             Item::Cond(_) => continue,
-            Item::TopN(t) => top_arg(t, &conds),
+            Item::TopN(t) => top_arg(t, &conds).map(MeasureFilter::Arg),
         };
         match r {
-            Ok(a) => out.args.push(a),
+            Ok(MeasureFilter::Arg(a)) => out.args.push(a),
+            Ok(MeasureFilter::Check(k)) => out.checks.push(k),
             Err(e) => out.not_applied.push(e),
         }
     }

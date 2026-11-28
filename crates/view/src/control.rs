@@ -1,12 +1,12 @@
 //! The UI control channel's relay to the browser app (ROADMAP M11.6, docs/webui.md "Control
 //! channel"): a page cannot listen, so the server takes an agent's request and hands it to an app
 //! page, which runs it as the desktop does (`bicraft_ui::control`) and posts the reply back.
-//! `bicraft view --control` uses it ([`crate::ViewOptions::control`]; off, the three routes
-//! answer 404), and so does `bicraft serve --viewer-control` (`crates/mcp`, one relay per
+//! `bicraft-cli view --control` uses it ([`crate::ViewOptions::control`]; off, the three routes
+//! answer 404), and so does `bicraft-cli serve --viewer-control` (`crates/mcp`, one relay per
 //! workspace, behind the server's authentication).
 //!
 //! - The agent's route (`POST /api/control` here): the request object `{"id", "method",
-//!   "params"}` as the body and the control token ([`Ask::token`]: a bearer on `bicraft view`);
+//!   "params"}` as the body and the control token ([`Ask::token`]: a bearer on `bicraft-cli view`);
 //!   the answer is the reply object. Refused: no or a wrong token (401), a request from a web page
 //!   (`Origin` or `Sec-Fetch-Site`: 403), more than [`Limits::per_second`] a second (429), a body
 //!   that is not a JSON object with a string `method` (400, 413, 415, 411), no app page connected
@@ -50,11 +50,11 @@ pub const MAX_QUEUED: usize = 64;
 pub const PER_SECOND: u32 = 200;
 /// How long an agent waits for the page's reply.
 pub const REPLY_TIMEOUT: Duration = Duration::from_secs(60);
-/// Pages connected at once at most (`bicraft view`).
+/// Pages connected at once at most (`bicraft-cli view`).
 const MAX_PAGES: usize = 8;
 const KEEPALIVE: Duration = Duration::from_secs(15);
 
-/// A relay's bounds (the defaults are `bicraft view`'s; a server passes its own caps).
+/// A relay's bounds (the defaults are `bicraft-cli view`'s; a server passes its own caps).
 #[derive(Debug, Clone)]
 pub struct Limits {
     /// Page streams at once.
@@ -127,8 +127,8 @@ fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
 
 /// What a route needs from the request.
 pub struct Ask<'a> {
-    /// The control token the agent presented (`bicraft view`: `Authorization: Bearer`;
-    /// `bicraft serve`: `X-Bicraft-Control`, the bearer being the server's credential).
+    /// The control token the agent presented (`bicraft-cli view`: `Authorization: Bearer`;
+    /// `bicraft-cli serve`: `X-Bicraft-Control`, the bearer being the server's credential).
     pub token: Option<&'a str>,
     pub origin: Option<&'a str>,
     pub fetch_site: Option<&'a str>,
@@ -182,7 +182,7 @@ impl Drop for Connected<'_> {
 }
 
 impl Relay {
-    /// A relay with `bicraft view`'s bounds.
+    /// A relay with `bicraft-cli view`'s bounds.
     pub fn new(token: String) -> Relay {
         Relay::with_limits(token, Limits::default())
     }

@@ -82,13 +82,23 @@ fn table(h: &Harness<'_, App>, sel: &VisualSel) -> Value {
         .unwrap()
 }
 
-/// The ids of the visual calculation commands sent.
+/// The visual calculation commands sent, but the live previews.
 fn sent(h: &Harness<'_, App>) -> Vec<(&'static str, Value)> {
     h.state()
         .sent
         .iter()
-        .filter(|c| c.id.starts_with("visual.calculation."))
+        .filter(|c| c.id.starts_with("visual.calculation.") && c.params.get("preview").is_none())
         .map(|c| (c.id, c.params.clone()))
+        .collect()
+}
+
+/// The live previews sent.
+fn previews(h: &Harness<'_, App>) -> Vec<Value> {
+    h.state()
+        .sent
+        .iter()
+        .filter(|c| c.id.starts_with("visual.calculation.") && c.params.get("preview").is_some())
+        .map(|c| c.params.clone())
         .collect()
 }
 
@@ -254,4 +264,65 @@ fn the_palette_edits_a_calculation_and_french_labels() {
     h.get_by_label("Matrice visuelle");
     h.get_by_label("Retour au rapport");
     h.get_by_label("Afficher sur le visuel : Total");
+}
+
+#[test]
+fn typing_previews_the_calculation_without_applying_it() {
+    let mut h = open("en-US");
+    let sel = new_calculation(&mut h);
+    let set = |h: &mut Harness<'_, App>, x: &str| {
+        h.state_mut().cmd.viscalc.as_mut().unwrap().expression = x.into();
+    };
+    // nothing is previewed before the text has waited (one frame: a quarter of a second)
+    set(&mut h, "RUNNINGSUM([Total])");
+    steps(&mut h, 1);
+    assert_eq!(previews(&h), Vec::<Value>::new());
+    steps(&mut h, 6);
+    let p = previews(&h);
+    assert_eq!(p.len(), 1, "one preview once the text waited: {p:?}");
+    assert_eq!(p[0]["expression"], "RUNNINGSUM([Total])");
+    assert_eq!(p[0]["preview"], true);
+    // the window's matrix shows the preview's values; the visual has no calculation
+    let e = h.state().cmd.viscalc.clone().unwrap();
+    let Some(Ok(r)) = &e.live.result else {
+        panic!("no preview answer: {:?}", e.live.result)
+    };
+    let (_, values) = column(r, "Calculation");
+    assert_eq!(values, vec![json!(50.0), json!(200.0), json!(500.0)]);
+    h.get_by_label("Preview of the expression typed: Apply keeps it.");
+    let v = table(&h, &sel);
+    assert!(
+        v["fields"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|f| f["kind"] != "visual_calculation"),
+        "{}",
+        v["fields"]
+    );
+    assert_eq!(sent(&h), vec![], "nothing applied");
+    // an error shows in the window, not in the error bar, and nothing changes
+    set(&mut h, "[Nothing] + 1");
+    steps(&mut h, 7);
+    let e = h.state().cmd.viscalc.clone().unwrap();
+    assert!(
+        matches!(&e.live.result, Some(Err(why)) if why.contains("Nothing")),
+        "{:?}",
+        e.live.result
+    );
+    assert!(h.state().error.is_none(), "{:?}", h.state().error);
+    assert!(
+        h.query_all_by_label_contains("✕ Not applied").count() > 0,
+        "the error is not shown under the formula bar"
+    );
+    assert_eq!(previews(&h).len(), 2);
+    // the same text again sends nothing more; Apply runs the command once
+    steps(&mut h, 4);
+    assert_eq!(previews(&h).len(), 2);
+    set(&mut h, "RUNNINGSUM([Total])");
+    steps(&mut h, 1);
+    click(&mut h, "Apply");
+    assert_eq!(sent(&h).len(), 1, "{:?}", sent(&h));
+    let (_, values) = column(&table(&h, &sel), "Calculation");
+    assert_eq!(values, vec![json!(50.0), json!(200.0), json!(500.0)]);
 }

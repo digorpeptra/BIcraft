@@ -6,9 +6,9 @@
 //!
 //! ```text
 //! cargo xtask oracle-gen parts DIR          -> DIR/cmds1.json, DIR/cmds2.json, DIR/layout.json
-//! bicraft run --file DIR/cmds1.json        -> DIR/proj/Synth.pbip
+//! bicraft-cli run --file DIR/cmds1.json        -> DIR/proj/Synth.pbip
 //! cargo xtask oracle-gen parts DIR patch    -> writes the visual objects into the project
-//! bicraft run --file DIR/cmds2.json        -> DIR/parts.pbix
+//! bicraft-cli run --file DIR/cmds2.json        -> DIR/parts.pbix
 //! ```
 //! then render, capture (pages printed by the first step) and compare as in
 //! tools/render-oracle/README.md. The model culture is fr-FR to match a French Desktop UI

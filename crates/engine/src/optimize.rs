@@ -11,6 +11,9 @@
 //! - **Refresh visuals** (`report.refresh_visuals`): the next view of the report evaluates its
 //!   visuals once and the report stays paused (the Performance analyzer's `perf.refresh` asks the
 //!   same).
+//! - **A visual's Refresh** (`visual.refresh`): the next view evaluates that visual once, the
+//!   others staying paused. While paused, a measure-bound formatting value (a title or a
+//!   button's text bound to a measure) waits like the data, and report-page tooltips are off.
 //! - **Optimization presets** (`report.query_reduction`): Query reduction "turns off
 //!   cross-highlighting and cross-filtering and adds an Apply button to the filter pane", with
 //!   Apply buttons on the slicers (Learn's scenario); Interactivity is Desktop's default (all
@@ -52,6 +55,13 @@ fn slow(r: &Report, key: &str) -> bool {
 /// cross-highlighting and cross-filtering").
 pub(crate) fn interactions_off(r: &Report) -> bool {
     slow(r, CROSS)
+}
+
+/// Whether each slicer has its own Apply button (query reduction's "Add an Apply button to each
+/// slicer", `slowDataSourceSettings.isSlicerSelectionsButtonEnabled`): a slicer's changes then
+/// wait until it is applied (`view.interact` `slicer_apply`).
+pub(crate) fn slicer_apply_buttons(r: &Report) -> bool {
+    slow(r, SLICERS)
 }
 
 /// The query reduction options as `report.query_reduction` and the snapshot show them.
@@ -118,6 +128,18 @@ pub(crate) fn refresh_visuals(s: &mut Session, p: &Value) -> Result<Value, Strin
     let paused = paused(r);
     s.preview.request_refresh();
     Ok(json!({"paused": paused, "refresh": "next view"}))
+}
+
+/// `visual.refresh {page, visual}`: the next view evaluates that visual once, the report's
+/// other visuals staying paused (the Refresh of a visual's pending-changes banner). Changes
+/// neither the report nor the model.
+pub(crate) fn refresh_visual(s: &mut Session, p: &Value) -> Result<Value, String> {
+    allow(p, &["page", "visual"])?;
+    let r = s.report.as_ref().ok_or("the session has no report")?;
+    let (page, v) = crate::interact::find_visual(r, p)?;
+    let out = json!({"paused": paused(r), "page": page.name, "visual": v.name, "refresh": "next view"});
+    s.preview.request_refresh_one(&page.name, &v.name);
+    Ok(out)
 }
 
 /// `report.query_reduction {preset?, disable_cross_highlighting?, slicers?, filters?}`.

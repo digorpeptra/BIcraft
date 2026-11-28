@@ -20,8 +20,12 @@ use crate::ribbon::{self, VisualSel};
 
 /// The visual's menu.
 pub const VISUAL: &[&str] = &[
+    "visual.refresh",
     "visual.export_data",
     "visual.records",
+    "visual.analyze",
+    "visual.explain_anomaly",
+    "visual.group_points",
     "textbox.set",
     "visual.cut",
     "visual.copy",
@@ -158,6 +162,8 @@ pub fn on_page(app: &mut App, ui: &Ui, resp: &Response, rect: Rect, zoom: f32) {
     // focus mode reads one visual: no drop, move, resize or rubber band (crate::focus)
     let focus = crate::focus::active(app);
     if !focus {
+        // each visual takes the keyboard focus, after the page in Tab order
+        crate::visual_focus::draw(app, ui, rect, zoom);
         // a field dragged from the Data pane onto a visual
         crate::panes::canvas(app, ui, resp, rect, zoom);
         crate::canvas::pointer(app, ui, resp, rect, zoom);
@@ -214,11 +220,25 @@ pub fn on_page(app: &mut App, ui: &Ui, resp: &Response, rect: Rect, zoom: f32) {
         };
         let textbox = vtype("textbox");
         let matrix = vtype("pivotTable");
+        let point = app.cmd.point.is_some();
+        // Explain the anomaly only on a point the line's anomaly detection flags
+        let anomaly = app.cmd.visual.as_ref().is_some_and(|s| {
+            crate::rich::snap_visual(app, &s.page, &s.visual)
+                .is_some_and(|v| app.cmd.point.as_ref().is_some_and(|p| is_anomaly(&v, p)))
+        });
+        let paused = crate::optimize_ui::paused(app);
         let ids: Vec<&'static str> = ids
             .iter()
             .copied()
+            // Refresh visual only while the report's visual queries are paused
+            .filter(|id| *id != crate::optimize_ui::REFRESH_ONE || paused)
             .filter(|id| *id != "textbox.set" || textbox)
             .filter(|id| *id != "visual.expand" || matrix)
+            // Analyze only on a data point
+            .filter(|id| *id != "visual.analyze" || point)
+            .filter(|id| *id != "visual.explain_anomaly" || anomaly)
+            // Group data on a data point (the selection, else the point right-clicked)
+            .filter(|id| *id != "visual.group_points" || point)
             .collect();
         run_items_at(app, ui, &ids);
     });
@@ -258,7 +278,13 @@ fn run_items_at(app: &mut App, ui: &mut Ui, ids: &[&'static str]) {
 fn visual_menu(app: &mut App, ui: &mut Ui, visual: &str) {
     ui.set_min_width(180.0);
     crate::focus::menu(app, ui, visual);
-    run_items(app, ui, VISUAL);
+    let paused = crate::optimize_ui::paused(app);
+    let ids: Vec<&'static str> = VISUAL
+        .iter()
+        .copied()
+        .filter(|id| *id != crate::optimize_ui::REFRESH_ONE || paused)
+        .collect();
+    run_items(app, ui, &ids);
 }
 
 /// The selected visual's header: a focus mode button and a More options button (⋯) at its top
@@ -485,4 +511,28 @@ pub(crate) fn item_params(id: &str, sel: Option<&Sel>) -> Value {
         ("table.set_refresh_policy", Some(Sel::Table(t))) => serde_json::json!({ "table": t }),
         _ => Value::Object(serde_json::Map::new()),
     }
+}
+
+/// Whether the data point `point` (`[{c, v}]`) is a row of the visual `v`'s data that its anomaly
+/// detection flags (`data.anomalies`).
+fn is_anomaly(v: &Value, point: &Value) -> bool {
+    let Some(flags) = v.pointer("/data/anomalies/anomaly").and_then(Value::as_array) else {
+        return false;
+    };
+    let Some(rows) = v.pointer("/data/rows").and_then(Value::as_array) else {
+        return false;
+    };
+    let Some(want) = point.as_array().filter(|p| !p.is_empty()) else {
+        return false;
+    };
+    rows.iter().zip(flags).any(|(r, f)| {
+        f.as_bool() == Some(true)
+            && want.iter().all(|e| {
+                let c = e
+                    .get("c")
+                    .and_then(Value::as_u64)
+                    .and_then(|c| usize::try_from(c).ok());
+                c.and_then(|c| r.get(c)).is_some_and(|x| Some(x) == e.get("v"))
+            })
+    })
 }

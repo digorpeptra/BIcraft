@@ -1,4 +1,4 @@
-//! `bicraft refresh PATH [--allow-connector databricks]... [--table T]... [--external-links]
+//! `bicraft-cli refresh PATH [--allow-connector databricks]... [--table T]... [--external-links]
 //! [--data-root DIR] [--backup]`: `model.refresh` on a PBIX file (the new rows go into its
 //! `DataModel`) or a PBIP project.
 //!

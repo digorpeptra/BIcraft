@@ -1,13 +1,14 @@
-//! `bicraft render FILE [--page NAME|INDEX] [--out PATH] [--scale N] [--font-dir DIR]...
+//! `bicraft-cli render FILE [--page NAME|INDEX] [--out PATH] [--scale N] [--font-dir DIR]...
 //! [--no-system-fonts] [--no-badges] [--data-root DIR] [--lang TAG] [--culture NAME]
-//! [--format-culture NAME] [--text-json] [--lcd-text] [--fail-on-empty] [--cache-abf CACHE.abf]
-//! [--key-influencers placeholder|estimate]`: `report.render` to PNG files
+//! [--format-culture NAME] [--text-json] [--lcd-text] [--high-contrast] [--fail-on-empty]
+//! [--cache-abf CACHE.abf] [--key-influencers placeholder|estimate]`: `report.render` to PNG files
 //! (`--cache-abf`: a PBIP's data read from that file, read-only, instead of its `.pbi/cache.abf`); `--lang` is the UI
 //! language of the generated visual text (auto titles, (Blank), …), `--culture` a model culture
 //! whose translated captions name the fields (one without translations, or the model's own
 //! culture, renders the stored names and the result lists a warning); numbers and dates follow
 //! the model's culture, or `--format-culture`; `--fail-on-empty` exits 1 (after writing) when a
-//! visual has no data (`visuals_without_data`).
+//! visual has no data (`visuals_without_data`); `--high-contrast` draws the pages with the app's
+//! high-contrast palette (View › High-contrast colours), the file unchanged.
 
 use std::path::Path;
 
@@ -66,6 +67,9 @@ pub(crate) fn render(args: &[String]) -> Result<u8, Failure> {
             }
             "--lcd-text" => {
                 params.insert("lcd_text".into(), json!(true));
+            }
+            "--high-contrast" => {
+                params.insert("high_contrast".into(), json!(true));
             }
             "--text-json" => {
                 params.insert("text_dump".into(), json!(true));
@@ -130,7 +134,7 @@ pub(crate) fn render(args: &[String]) -> Result<u8, Failure> {
     Ok(OK)
 }
 
-/// `bicraft export-pdf FILE [--out FILE.pdf] [--pages all|current|2-4|NAME[,NAME]] [--hidden]
+/// `bicraft-cli export-pdf FILE [--out FILE.pdf] [--pages all|current|2-4|NAME[,NAME]] [--hidden]
 /// [--title TEXT] [--scale N] [--font-dir DIR]... [--no-system-fonts] [--data-root DIR]
 /// [--lang TAG] [--format-culture NAME] [--as-of DATE]`: `report.export_pdf`, one PDF of the
 /// report's pages (default `FILE`'s stem `.pdf` in the current directory, every page not

@@ -7,7 +7,10 @@
 //! - the page wallpaper (`objects.outspace`) and page background (`objects.background`):
 //!   `image.image.{url, scaling}`, falling back to the theme's `visualStyles.page.*`;
 //! - image visuals: `objects.general.imageUrl` and `objects.imageScaling.imageScalingType`;
-//! - visual backgrounds: `visualContainerObjects.background.image.image.{url, scaling}`.
+//! - visual backgrounds: `visualContainerObjects.background.image.image.{url, scaling}`;
+//! - buttons' fill images and custom icons per state: `objects.fill[].properties.image` and
+//!   `objects.icon[].properties.image` (report theme schema `visual-actionButton`), each entry's
+//!   `selector.id` the state (`default`, `hover`, `press`, `disabled`).
 //!
 //! A `url` is a `ResourcePackageItem` (a file under `StaticResources/<package>/`, found through
 //! `report.json` `resourcePackages`) or a `data:` URL literal. Other URLs (web links) are not
@@ -84,6 +87,8 @@ struct PageImages {
 struct VisualImages {
     image: Option<Placed>,
     background: Option<Placed>,
+    /// A button's images: (state, `fill_image` or `icon_image`, the image).
+    button: Vec<(&'static str, &'static str, Placed)>,
 }
 
 /// Every image the report references, resolved once per revision.
@@ -239,6 +244,13 @@ fn placed_json(p: &Placed) -> Map<String, Value> {
     o
 }
 
+/// An image as `{id, mime, width?, height?, fit}` (`fit`: `normal`, `fit` or `fill`).
+fn placed_json_flat(p: &Placed) -> Map<String, Value> {
+    let mut o = p.image.json();
+    o.insert("fit".into(), json!(p.fit.as_deref().unwrap_or("normal")));
+    o
+}
+
 /// Adds `wallpaper`, `background_transparency` and `background_image` to a page object.
 pub(crate) fn page_fields(
     o: &mut Map<String, Value>,
@@ -300,6 +312,24 @@ pub(crate) fn visual_fields(
         let mut x = img.image.json();
         x.insert("scaling".into(), json!(img.fit.as_deref().unwrap_or("normal")));
         o.insert("image".into(), Value::Object(x));
+    }
+    // a button's fill images and custom icons: the default state's on `button`, the others'
+    // in `button.states.<state>`
+    for (state, key, img) in &found.button {
+        let button = o.entry("button").or_insert_with(|| Value::Object(Map::new()));
+        let target = if *state == "default" {
+            button.as_object_mut()
+        } else {
+            button
+                .as_object_mut()
+                .map(|b| b.entry("states").or_insert_with(|| Value::Object(Map::new())))
+                .and_then(Value::as_object_mut)
+                .map(|s| s.entry(*state).or_insert_with(|| Value::Object(Map::new())))
+                .and_then(Value::as_object_mut)
+        };
+        if let Some(t) = target {
+            t.insert((*key).into(), Value::Object(placed_json_flat(img)));
+        }
     }
     if let Some(img) = &found.background {
         let format = o.entry("format").or_insert_with(|| Value::Object(Map::new()));
@@ -594,10 +624,23 @@ fn collect(r: &Report, theme: Option<&Theme>) -> ReportImages {
                 None
             };
             let background = c.first_image(&theme::visual_sources(v, theme, "background"));
-            if image.is_some() || background.is_some() {
+            let button = if v
+                .visual_type
+                .as_deref()
+                .is_some_and(|t| t.eq_ignore_ascii_case("actionButton"))
+            {
+                button_images(&mut c, v)
+            } else {
+                Vec::new()
+            };
+            if image.is_some() || background.is_some() || !button.is_empty() {
                 out.visuals.insert(
                     (p.name.clone(), v.name.clone()),
-                    VisualImages { image, background },
+                    VisualImages {
+                        image,
+                        background,
+                        button,
+                    },
                 );
             }
         }
@@ -622,6 +665,41 @@ fn collect(r: &Report, theme: Option<&Theme>) -> ReportImages {
         });
     }
     out.assets = c.assets;
+    out
+}
+
+/// A button's fill images and custom icons, per state: the `image` of its `fill` and `icon`
+/// entries whose selector is the state (the `default` state also from the entry without one).
+fn button_images(c: &mut Collector<'_>, v: &Visual) -> Vec<(&'static str, &'static str, Placed)> {
+    let mut out = Vec::new();
+    let objects = v.visual_extra.get("objects");
+    for (object, key) in [("fill", "fill_image"), ("icon", "icon_image")] {
+        let list = objects
+            .and_then(|o| o.get(object))
+            .and_then(Value::as_array)
+            .map(Vec::as_slice)
+            .unwrap_or_default();
+        for state in ["default", "hover", "press", "disabled"] {
+            let id = |e: &&Value| {
+                e.get("selector")
+                    .and_then(|x| x.get("id"))
+                    .and_then(Value::as_str)
+                    == Some(state)
+            };
+            let found = list.iter().take(64).find(id).or_else(|| {
+                (state == "default")
+                    .then(|| {
+                        list.iter()
+                            .take(64)
+                            .find(|e| e.get("selector").is_none_or(Value::is_null))
+                    })
+                    .flatten()
+            });
+            if let Some(placed) = found.and_then(|e| c.image_prop(e, false)) {
+                out.push((state, key, placed));
+            }
+        }
+    }
     out
 }
 

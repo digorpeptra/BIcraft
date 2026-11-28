@@ -1,8 +1,8 @@
 //! The BIcraft app in the browser (docs/webui.md): the shared UI ([`bicraft_ui::App`], the same
-//! as `bicraft-desktop`'s), compiled to WebAssembly and started by eframe's web runner (wgpu:
+//! as `bicraft`'s), compiled to WebAssembly and started by eframe's web runner (wgpu:
 //! WebGPU, else WebGL2). One UI, two shells: this crate only supplies the browser's shell and data
-//! source, which reaches the viewer API of the server that served the page (`bicraft view` at
-//! `/app/`, `bicraft serve` at `/w/<id>/view/app/`) with same-origin `fetch` and `EventSource`.
+//! source, which reaches the viewer API of the server that served the page (`bicraft-cli view` at
+//! `/app/`, `bicraft-cli serve` at `/w/<id>/view/app/`) with same-origin `fetch` and `EventSource`.
 //!
 //! - [`protocol`]: the URLs, the page's configuration and the reading of answers (pure, tested
 //!   natively);

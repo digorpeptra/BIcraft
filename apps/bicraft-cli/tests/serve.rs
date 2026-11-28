@@ -1,4 +1,4 @@
-//! End-to-end test of `bicraft serve`: the MCP Streamable HTTP endpoint over a workspace root,
+//! End-to-end test of `bicraft-cli serve`: the MCP Streamable HTTP endpoint over a workspace root,
 //! authentication (API tokens), non-loopback refusal, and `serve token create|hash`.
 
 use std::io::{BufRead, BufReader, Read, Write};
@@ -28,7 +28,7 @@ const SERVE_VARS: &[&str] = &[
 ];
 
 fn bicraft() -> Command {
-    let mut c = Command::new(env!("CARGO_BIN_EXE_bicraft"));
+    let mut c = Command::new(env!("CARGO_BIN_EXE_bicraft-cli"));
     for v in SERVE_VARS {
         c.env_remove(v);
     }
@@ -45,7 +45,7 @@ impl Drop for Kill {
     }
 }
 
-/// Starts `bicraft serve ARGS`; returns the child, the address it printed and its startup line.
+/// Starts `bicraft-cli serve ARGS`; returns the child, the address it printed and its startup line.
 fn spawn_serve(args: &[&str], root: &std::path::Path) -> (Kill, String, String) {
     spawn_serve_env(args, root, &[])
 }

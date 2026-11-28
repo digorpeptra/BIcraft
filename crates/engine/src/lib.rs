@@ -147,6 +147,7 @@ mod ui_lang;
 mod usage;
 mod usage_report;
 pub mod view_drawings;
+mod visual_analyze;
 mod visual_calcs;
 mod visual_catalog;
 mod visual_conditional;
@@ -328,6 +329,7 @@ pub const READ_ONLY_COMMANDS: &[&str] = &[
     "session.revision",
     "file.inspect",
     "dax.format",
+    "dax.define_query",
     "dax.cancel",
     "dax.queries",
     "file.convert",
@@ -362,6 +364,8 @@ pub const READ_ONLY_COMMANDS: &[&str] = &[
     "source.settings",
     "table.entered_data",
     "visual.records",
+    "visual.analyze",
+    "visual.explain_anomaly",
     "measure.get",
     "relationship.list",
     "translation.list",
@@ -430,6 +434,8 @@ pub const READ_ONLY_COMMANDS: &[&str] = &[
     "perf.export",
     // Refresh visuals asks the next view to evaluate once: the report is not changed
     "report.refresh_visuals",
+    // a visual's Refresh, likewise
+    "visual.refresh",
 ];
 
 /// Whether `id` may change the session (every command but [`READ_ONLY_COMMANDS`]).
@@ -597,10 +603,13 @@ impl Session {
         let replaying = id == "recovery.apply";
         // the relationship dialogs' review (`check: true`) changes nothing: no undo step, no
         // journal line, no new revision (the preview's caches stay)
-        // and so does `m.format` without `apply` (it only returns the formatted text)
+        // and so does `m.format` without `apply` (it only returns the formatted text), and the
+        // visual calculation window's live preview (`preview: true`)
         let probe = (matches!(id, "relationship.add" | "relationship.set")
             && params.get("check") == Some(&Value::Bool(true)))
-            || (id == "m.format" && params.get("apply") != Some(&Value::Bool(true)));
+            || (id == "m.format" && params.get("apply") != Some(&Value::Bool(true)))
+            || (matches!(id, "visual.calculation.add" | "visual.calculation.set")
+                && params.get("preview") == Some(&Value::Bool(true)));
         let before = if replaying || probe {
             None
         } else {
@@ -636,6 +645,15 @@ impl Session {
             && field_param_queries::sync(self.model.as_ref(), self.report.as_mut())
         {
             self.report_dirty = true;
+        }
+        // a report read from a legacy layout (opened, or read back after a save) has its field
+        // parameter bindings as plain fields: read them as bound to the parameter again (no edit)
+        if result.is_ok()
+            && !probe
+            && ["file.", "project."].iter().any(|p| id.starts_with(p))
+            && convert::source_is_legacy(self)
+        {
+            field_param_queries::adopt_legacy(self.model.as_ref(), self.report.as_mut());
         }
         history::after(self, id, before, result.is_ok());
         if result.is_ok() && is_mutating(id) && !probe {

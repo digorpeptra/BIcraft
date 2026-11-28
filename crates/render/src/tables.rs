@@ -6,7 +6,7 @@ use std::collections::HashMap;
 
 use serde_json::Value;
 
-use crate::canvas::{Base, Canvas, Rgb, Text};
+use crate::canvas::{Base, Canvas, Part, Rgb, Text};
 use crate::charts::{Bx, font};
 use crate::data::{
     CellStyle, Col, Ctx, Dataset, Fmt, LevelTotal, Rc, SparkStyle, clampf, cmp_raw, fin, is_num_col, key_of,
@@ -687,6 +687,29 @@ pub fn grid_table(
         };
         let rule = ctx.accent;
         let mut y = 0.0f32;
+        // a table visual is a table of the PDF's structure: a header row, then the rows and the
+        // total row shown (a matrix's spanning headers are read as paragraphs)
+        let tag = !row_header && top.is_empty();
+        let tag_row = |c: &Canvas, open: bool| {
+            if tag {
+                if open {
+                    c.begin_part(Part::Row);
+                } else {
+                    c.end_part();
+                }
+            }
+        };
+        let tag_cell = |c: &Canvas, part: Part| {
+            if tag {
+                c.begin_part(part);
+            }
+        };
+        let untag = |c: &Canvas| {
+            if tag {
+                c.end_part();
+            }
+        };
+        tag_cell(g, Part::Table);
         if !classic {
             g.rect(0.0, 0.0, table_w, tops + head_h, ctx.band, 1.0);
         }
@@ -711,9 +734,11 @@ pub fn grid_table(
             y += row_h;
         }
         let text_h = head_h - if arrow_room { SORT_ROOM } else { 0.0 };
+        tag_row(g, true);
         for (i, h) in heads.iter().enumerate() {
             // headers are left aligned (Desktop 2.158, classic and themed)
             let hw = if h.bold { 700 } else { head_weight };
+            tag_cell(g, Part::HeadCell);
             draw_cell(g, &Cell::text(h.t.clone()), i, y, text_h, &f_head, hw, fg, false);
             // the sort arrow under the header text (Desktop 2.158)
             if sorted && let Some((_, desc)) = lay.sort.iter().find(|(c, _)| *c == i) {
@@ -726,7 +751,9 @@ pub fn grid_table(
                 };
                 g.polygon(&pts, fg, 1.0);
             }
+            untag(g);
         }
+        tag_row(g, false);
         y += head_h;
         if classic {
             g.rect(0.0, y - 1.0, table_w, 1.0, rule, 1.0);
@@ -747,11 +774,15 @@ pub fn grid_table(
             if k % 2 == 1 {
                 target.rect(0.0, ry, table_w, row_h, ctx.band, 1.0);
             }
+            tag_row(target, true);
             for (i, h) in heads.iter().enumerate() {
+                tag_cell(target, Part::Cell);
                 if let Some(c) = r.get(i) {
                     draw_cell(target, c, i, ry, row_h, &f_norm, 400, fg, h.num);
                 }
+                untag(target);
             }
+            tag_row(target, false);
             if let Some((pt, tip)) = lay.row_hits.get(k) {
                 // a row the selection leaves out fades under a white veil
                 if ctx.ix.selected(pt) == Some(false) {
@@ -811,13 +842,18 @@ pub fn grid_table(
             if classic {
                 g.rect(0.0, y, table_w, 1.0, rule, 1.0);
             }
+            tag_row(g, true);
             for (i, h) in heads.iter().enumerate() {
+                tag_cell(g, Part::Cell);
                 if let Some(c) = total.get(i) {
                     draw_cell(g, c, i, y, row_h, &f_norm, 700, fg, h.num);
                 }
+                untag(g);
             }
+            tag_row(g, false);
             y += row_h;
         }
+        untag(g);
         if row_header && let Some(w0) = col_w.first() {
             g.rect(
                 w0 - 1.0,

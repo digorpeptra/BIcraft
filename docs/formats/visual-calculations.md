@@ -60,13 +60,13 @@ data as columns of kind `visual_calculation`, at their place among the fields.
 | Window shortcuts | `RUNNINGSUM`, `MOVINGAVERAGE` (window size, include current), `PREVIOUS`, `NEXT` (steps), `FIRST`, `LAST` |
 | Window functions | `OFFSET`, `INDEX` (1-based, negative from the end, 0 or blank: no cell), `WINDOW` (`ABS`/`REL` bounds, cut to the partition) as the table of `CALCULATE` and of the `X` functions; `RANK` (`SKIP`, `DENSE`), `ROWNUMBER` (blank on a total of the walked axes) |
 | Lookups | `LOOKUP` (fields not filtered keep the current cell's values; `EXPLICIT`; with `INFERRED`, a field on the axis of a filtered field that has one value among the cells matching the filters takes that value instead of the current cell's), `LOOKUPWITHTOTALS` (fields not filtered are at their total); one matching cell, else an error in that cell (blank) |
-| Navigation | `COLLAPSE`, `COLLAPSEALL`, `EXPAND`, `EXPANDALL` (scalar form, axis and levels, or fields), `ISATLEVEL`, `RANGE` (as the table of `CALCULATE` and of the `X` functions) |
+| Navigation | `COLLAPSE`, `COLLAPSEALL`, `EXPAND`, `EXPANDALL` (scalar form, axis and levels, or fields), along `ROWPAGES` too (the cell across the small multiples, and back to each multiple's cells), `ISATLEVEL`, `RANGE` (as the table of `CALCULATE` and of the `X` functions) |
 | Aggregations over the matrix | `SUM`, `AVERAGE`, `MIN`, `MAX`, `COUNT`, `COUNTA`, `COUNTBLANK`, `DISTINCTCOUNT`, `COUNTROWS`, `SUMX`, `AVERAGEX`, `MINX`, `MAXX`, `COUNTX`, `COUNTAX` |
 | Scalars | arithmetic, comparison, `&`, `IF`, `SWITCH`, `DIVIDE`, `BLANK`, `ISBLANK`, `AND`, `OR`, `NOT`, `COALESCE`, two-argument `MIN`/`MAX`, `ABS`, `SQRT`, `INT`, `SIGN`, `EXP`, `LN`, `ROUND`, `POWER`, `MOD`, `VAR … RETURN` |
-| Not evaluated | `MATCHBY` of anything but the visual's fields, a model table as a window function's relation, `COLLAPSE`/`EXPAND` along `ROWPAGES`, `LOOKUPWITHTOTALS` without a value for each small multiple (the matrix has no level without them), any other function |
+| Not evaluated | `MATCHBY` of anything but the visual's fields, a model table as a window function's relation, any other function |
 
-A calculation that is not evaluated keeps an empty column whose `reason` says why ("COLLAPSE along
-ROWPAGES is not evaluated by BIcraft"); the visual's other values stay. Division by
+A calculation that is not evaluated keeps an empty column whose `reason` says why ("ORDERBY
+[Nope]"); the visual's other values stay. Division by
 zero is blank, as in DAX. Rows beyond the visual's row limit are not in the matrix. Window
 functions visit at most 20 million cells per calculation and positions are capped, so a long
 axis or a huge position gives a reason, never an overflow. The semantics come from the Learn
@@ -84,6 +84,17 @@ matrix every cell is already its own row, so `MATCHBY` changes no value; it chec
 fields single out the current cell within the partition (an error in that cell otherwise, as
 DAX gives when the columns do not identify the current row).
 
+The small multiples (2026-11-27). Learn's reference treats `ROWPAGES` as one more axis: when a
+visual has small multiples, the cells of each multiple form a page, and a function that walks
+`ROWS` (the default) or `COLUMNS` stays inside the page, so a running sum starts again on each
+multiple and `PREVIOUS` is blank on a multiple's first row. Naming `ROWPAGES` walks across the
+multiples. The visual matrix also has levels without the small-multiple fields (evaluated like the
+other missing levels when an expression navigates): `COLLAPSE(…, ROWPAGES)`, `COLLAPSEALL` and
+`COLLAPSE` to a small-multiple field go up to the cell of the same row and column across every
+multiple, `EXPAND` along `ROWPAGES` comes back down to the multiples' cells, `ISATLEVEL` of a
+small-multiple field is false there, and `LOOKUPWITHTOTALS` puts a small-multiple field it is not
+given at its total, as it does the other axes' fields.
+
 ## Display
 
 Tables, matrices and charts draw calculations as any other value. Hidden fields are dropped by
@@ -92,8 +103,8 @@ highlights and error bars; the snapshot keeps them, flagged `hidden`.
 
 ## Commands and UI
 
-`visual.calculation.add {page, visual, expression, name?, role?, hidden?, force?}`,
-`visual.calculation.set {page, visual, name, expression?, new_name?, hidden?, force?}` (the
+`visual.calculation.add {page, visual, expression, name?, role?, hidden?, force?, preview?}`,
+`visual.calculation.set {page, visual, name, expression?, new_name?, hidden?, force?, preview?}` (the
 `hidden` switch works on any field; a rename is refused while another calculation refers to
 it) and `visual.calculation.remove {page, visual, name, force?}` (refused while referred to,
 unless `force`). Slicers, text boxes, Q&A, key influencers, decomposition trees and script
@@ -101,3 +112,10 @@ visuals refuse calculations, as the Learn page lists. In the app, a visual's Mor
 New calculation opens the edit window (`crates/ui/src/viscalc_dialog.rs`): the visual's fields
 with a switch to hide each, a name, the templates, the formula bar, and the visual matrix as
 evaluated; Apply runs add or set, the bin runs remove.
+
+`preview: true` (2026-11-27) checks and evaluates as the command would, then returns the result
+with `data`, the data the visual would show, and changes nothing: no undo step, no journal line,
+no new revision. The edit window uses it as a live preview: once the name and expression have
+not changed for 400 ms it sends Apply's command with `preview`, shows the answer's data in the
+visual matrix and its error under the formula bar ("Not applied"), in a polite live region; only
+Apply changes the report.

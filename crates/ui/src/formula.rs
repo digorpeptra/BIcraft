@@ -1308,7 +1308,7 @@ fn find_replace(app: &mut App, ctx: &egui::Context, all: bool) {
 
 /// A focused find-row field keeps Esc (egui would drop the focus first), so Esc closes the row
 /// and gives the keyboard back to the editor.
-fn keep_escape(ctx: &egui::Context, r: &egui::Response) {
+pub(crate) fn keep_escape(ctx: &egui::Context, r: &egui::Response) {
     if r.has_focus() {
         ctx.memory_mut(|m| {
             m.set_focus_lock_filter(

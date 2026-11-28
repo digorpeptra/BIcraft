@@ -3,11 +3,13 @@
 //! selection or slicer state is a new snapshot), and only the latest request is drawn when
 //! several queue up (a window being resized).
 
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender, TryRecvError, channel};
 
+use bicraft_render::gantt::View as GanttView;
 use bicraft_render::states::Pointer;
-use bicraft_render::{FontBook, PageImage, RenderOptions};
+use bicraft_render::{FontBook, GridDots, PageImage, RenderOptions};
 
 use crate::source::{Assets, Loaded, Notify};
 
@@ -20,7 +22,10 @@ const MAX_PIXELS: u64 = 40_000_000;
 /// (0: the page itself; else a focus mode's layout, [`crate::focus::Focus::view_key`]) and
 /// whether it is drawn in high contrast (View › High-contrast colours, never in the file), and
 /// where the reader's pointer is (a hash of the [`Pointer`]: 0 for none; a button under it is
-/// drawn in its hover or press state).
+/// drawn in its hover or press state), and the reader's view of the Gantts (a hash of their
+/// [`GanttView`]s: 0 for none; scrolled lines and zoomed time lines), and the author's grid drawn
+/// under the visuals (View › Gridlines: its step and dot side in thousandths of a report pixel
+/// and its colour; `None` for none).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Key {
     pub seq: u64,
@@ -29,7 +34,13 @@ pub struct Key {
     pub view: u64,
     pub high_contrast: bool,
     pub pointer: u64,
+    pub gantt: u64,
+    pub grid: Option<(u32, u32, u32, [u8; 4])>,
 }
+
+/// The reader's view of each Gantt, by visual name: the app's view state
+/// ([`bicraft_render::RenderOptions::gantt`]).
+pub type GanttViews = HashMap<String, GanttView>;
 
 impl Key {
     pub fn new(seq: u64, page: usize, scale: f32) -> Key {
@@ -45,6 +56,29 @@ impl Key {
             view: 0,
             high_contrast: false,
             pointer: 0,
+            gantt: 0,
+            grid: None,
+        }
+    }
+    /// The same page with the Gantts in the reader's views `g`.
+    pub fn with_gantt(self, g: &GanttViews) -> Key {
+        use std::hash::{Hash, Hasher};
+        let mut list: Vec<(&String, &GanttView)> =
+            g.iter().filter(|(_, v)| **v != GanttView::default()).collect();
+        if list.is_empty() {
+            return Key { gantt: 0, ..self };
+        }
+        list.sort_by(|a, b| a.0.cmp(b.0));
+        let mut h = std::collections::hash_map::DefaultHasher::new();
+        for (name, v) in list {
+            name.hash(&mut h);
+            v.first.hash(&mut h);
+            v.zoom.to_bits().hash(&mut h);
+            v.at.to_bits().hash(&mut h);
+        }
+        Key {
+            gantt: h.finish() | 1,
+            ..self
         }
     }
     /// The same page with the pointer at `p` (`None`: away from every button).
@@ -56,6 +90,20 @@ impl Key {
             h.finish() | 1
         });
         Key { pointer, ..self }
+    }
+    /// The same page with the author's grid `g` under its visuals (`None`: no grid).
+    pub fn with_grid(self, g: Option<GridDots>) -> Key {
+        let milli = |v: f32| (v.clamp(0.0, 100_000.0) * 1000.0).round() as u32;
+        let grid = g.map(|g| (milli(g.step.0), milli(g.step.1), milli(g.dot), g.rgba));
+        Key { grid, ..self }
+    }
+    /// The author's grid of this page, as the renderer takes it.
+    pub fn grid(&self) -> Option<GridDots> {
+        self.grid.map(|(x, y, d, rgba)| GridDots {
+            step: (x as f32 / 1000.0, y as f32 / 1000.0),
+            dot: d as f32 / 1000.0,
+            rgba,
+        })
     }
     /// The same page drawn as view `view` (a focus mode's layout).
     pub fn with_view(self, view: u64) -> Key {
@@ -81,10 +129,11 @@ struct Job {
     snap: Arc<serde_json::Value>,
     assets: Arc<Assets>,
     pointer: Option<Pointer>,
+    gantt: GanttViews,
 }
 
 /// The pages' fonts: the bundled faces only (Selawik), in every shell, so the desktop draws
-/// the pixels the browser draws (decision of 2026-11-04, docs/design.md §3). `bicraft render`
+/// the pixels the browser draws (decision of 2026-11-04, docs/design.md §3). `bicraft-cli render`
 /// keeps the system's fonts, for comparisons with Power BI Desktop.
 pub fn font_book() -> FontBook {
     FontBook::bundled_only()
@@ -109,25 +158,29 @@ pub fn render(
     fonts: &FontBook,
     key: Key,
 ) -> Result<PageImage, String> {
-    render_at(snap, assets, fonts, key, None)
+    render_at(snap, assets, fonts, key, None, &GanttViews::new())
 }
 
-/// [`render`] with the reader's pointer at `pointer` (`key` made with [`Key::with_pointer`]).
+/// [`render`] with the reader's pointer at `pointer` (`key` made with [`Key::with_pointer`])
+/// and the Gantts in the reader's views `gantt` (`key` made with [`Key::with_gantt`]).
 pub fn render_at(
     snap: &serde_json::Value,
     assets: &Assets,
     fonts: &FontBook,
     key: Key,
     pointer: Option<&Pointer>,
+    gantt: &GanttViews,
 ) -> Result<PageImage, String> {
     let opts = RenderOptions {
         pointer: pointer.cloned(),
+        gantt: gantt.clone(),
         scale: key.scale(),
         hits: true,
         raw: true,
         max_pixels: MAX_PIXELS,
         lcd_text: lcd_text(key.scale()),
         high_contrast: key.high_contrast,
+        grid: key.grid(),
         ..RenderOptions::default()
     };
     let img = bicraft_render::render_page(snap, key.page, assets, fonts, &opts).map_err(|e| e.to_string())?;
@@ -169,7 +222,14 @@ impl Pages {
                         }
                     }
                     let r = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                        render_at(&job.snap, &job.assets, &fonts, job.key, job.pointer.as_ref())
+                        render_at(
+                            &job.snap,
+                            &job.assets,
+                            &fonts,
+                            job.key,
+                            job.pointer.as_ref(),
+                            &job.gantt,
+                        )
                     }))
                     .unwrap_or_else(|_| Err("internal error while rendering".into()));
                     if done.send((job.key, r.map(Arc::new))).is_err() {
@@ -223,18 +283,24 @@ impl Pages {
     /// The page for `key`, rendering it when missing; while it renders, the closest page already
     /// drawn of the same snapshot (or an older one of the same page) stands in, scaled.
     pub fn get(&mut self, loaded: &Loaded, key: Key) -> Option<Rendered> {
-        self.get_at(loaded, key, None)
+        self.get_at(loaded, key, None, &GanttViews::new())
     }
 
     /// [`Pages::get`] with the reader's pointer at `pointer` (`key` made with
-    /// [`Key::with_pointer`]).
-    pub fn get_at(&mut self, loaded: &Loaded, key: Key, pointer: Option<&Pointer>) -> Option<Rendered> {
+    /// [`Key::with_pointer`]) and the Gantts in the views `gantt` ([`Key::with_gantt`]).
+    pub fn get_at(
+        &mut self,
+        loaded: &Loaded,
+        key: Key,
+        pointer: Option<&Pointer>,
+        gantt: &GanttViews,
+    ) -> Option<Rendered> {
         self.receive();
         if let Some(r) = self.cache.iter().find(|c| c.0 == key) {
             return Some(r.clone());
         }
         if let Some(fonts) = &self.sync {
-            let r = render_at(&loaded.snap, &loaded.assets, fonts, key, pointer).map(Arc::new);
+            let r = render_at(&loaded.snap, &loaded.assets, fonts, key, pointer, gantt).map(Arc::new);
             self.store((key, r));
             return self.cache.last().cloned();
         }
@@ -246,6 +312,7 @@ impl Pages {
                 snap: Arc::clone(&loaded.snap),
                 assets: Arc::clone(&loaded.assets),
                 pointer: pointer.cloned(),
+                gantt: gantt.clone(),
             };
             if tx.send(job).is_ok() {
                 self.in_flight = Some(key);

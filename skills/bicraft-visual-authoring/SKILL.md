@@ -8,16 +8,16 @@ metadata:
 # BIcraft: from a visual request to a packaged Power BI visual
 
 Use this skill when a user asks for a chart or visual in a Power BI report and BIcraft is the
-tool: the `bicraft` MCP tools (`bicraft mcp`) or the `bicraft` command line. Each step below is an
+tool: the `bicraft` MCP tools (`bicraft-cli mcp`) or the `bicraft-cli` command line. Each step below is an
 engine command. Over MCP you call it with `run_command {command, params}` (or its convenience
-tool). On the command line you use `bicraft run --open FILE --cmd 'ID={JSON}' [--save]` or the
+tool). On the command line you use `bicraft-cli run --open FILE --cmd 'ID={JSON}' [--save]` or the
 dedicated subcommand.
 
-- Trust the live registry over this file: `list_commands` (MCP) or `bicraft commands visual` /
-  `bicraft describe visual.set_spec` (CLI) give the current ids and parameters.
+- Trust the live registry over this file: `list_commands` (MCP) or `bicraft-cli commands visual` /
+  `bicraft-cli describe visual.set_spec` (CLI) give the current ids and parameters.
 - Programmatic calls never open a dialog. A missing parameter gets its default or an error.
 - Visuals live in PBIR reports. A legacy report (`Report/Layout`) is refused: convert it first
-  (`bicraft convert IN OUT --report-format pbir`).
+  (`bicraft-cli convert IN OUT --report-format pbir`).
 
 ## 1. Choose the path (cheapest first)
 
@@ -67,7 +67,7 @@ The roles and options of each visual are in `docs/formats/bicraft-visuals.md`,
 
 The request is a composition of bars, lines, points, areas, text, rules and rectangles. It reads
 one category and up to 16 measures, on band, linear or time scales. Write a JSON spec and store
-it with `visual.set_spec`. Power BI draws it with BIcraft's script, and `bicraft render` draws the
+it with `visual.set_spec`. Power BI draws it with BIcraft's script, and `bicraft-cli render` draws the
 same layout. The grammar and examples are in [references/spec-grammar.md](references/spec-grammar.md).
 
 ### c. Otherwise, write a TypeScript custom visual
@@ -110,8 +110,8 @@ Then check it with `render_page {page: "Overview", out: "out/overview.png"}` and
 CLI (a commands file avoids quoting JSON on the command line):
 
 ```sh
-bicraft run --open Sales.pbip --file spec-steps.json --save
-bicraft render Sales.pbip --page Overview --out out/overview.png
+bicraft-cli run --open Sales.pbip --file spec-steps.json --save
+bicraft-cli render Sales.pbip --page Overview --out out/overview.png
 ```
 
 `spec-steps.json` is a JSON array of `{command, params}` holding the same two steps. The second
@@ -134,16 +134,16 @@ The user asks: "A lollipop chart: a stem and a dot for each category."
 CLI:
 
 ```sh
-bicraft visual new visuals/lollipop lollipopChart --display-name Lollipop \
+bicraft-cli visual new visuals/lollipop lollipopChart --display-name Lollipop \
   --role category:Grouping:Category --role value:Measure:Value \
   --format dataPoint.fill:color:Color --format "labels.show:bool:Show labels"
 ```
 
 1. Edit `src/visual.ts`. The scaffold draws a line per category and already reads its format
    options and gives them to the format pane. Replace the drawing with your SVG.
-2. Compile while editing: `visual.build {folder}` or `bicraft visual build visuals/lollipop`. It
+2. Compile while editing: `visual.build {folder}` or `bicraft-cli visual build visuals/lollipop`. It
    reports refused imports, cycles or a missing class.
-3. Package: `visual.pack {folder}` or `bicraft visual pack visuals/lollipop`. It writes
+3. Package: `visual.pack {folder}` or `bicraft-cli visual pack visuals/lollipop`. It writes
    `dist/<guid>.<version>.pbiviz`.
 4. Use it in a report: `open_file`, then `visual.import_custom {path:
    "visuals/lollipop/dist/<file>.pbiviz"}`. Then call `visual.add {visual_type: "<guid>", …}` with
@@ -153,7 +153,7 @@ Need tooltips, selection, the look, a landing page and high contrast without wri
 yourself? Start from `visual.scaffold {folder, name, template: "spec"}` instead. It writes the Spec
 visual's sources with BIcraft's shared runtime under `src/runtime/` and EN/FR `stringResources`,
 under a new guid. Keep the runtime and replace the drawing. The CLI's `visual new` has no
-`--template` flag, so use `bicraft run --cmd 'visual.scaffold={"folder":"visuals/x","name":"myVisual","template":"spec"}'`.
+`--template` flag, so use `bicraft-cli run --cmd 'visual.scaffold={"folder":"visuals/x","name":"myVisual","template":"spec"}'`.
 
 The details of data roles, capabilities, the look, highlights, interactions, localized names,
 the landing page, high contrast and what a visual must not do are in
@@ -161,14 +161,14 @@ the landing page, high contrast and what a visual must not do are in
 
 ## 4. Check it
 
-- **Render without Power BI:** `render_page {page, out}` or `bicraft render FILE --page P --out
+- **Render without Power BI:** `render_page {page, out}` or `bicraft-cli render FILE --page P --out
   shot.png`. The result lists each visual's `status` (`drawn`, `placeholder`, `blank`…) and
   `data`. `--fail-on-empty` (`fail_on_empty: true`) fails when a visual has no data.
   - BIcraft draws its own 14 visuals, Spec visuals included, natively with the same layout as
     Power BI.
   - **BIcraft never runs a custom visual's JavaScript.** A scaffolded visual renders as a labelled
     placeholder with its icon and name, so its drawing can only be checked in Power BI Desktop.
-- **Validate:** `validate_report` (`bicraft validate-report FILE`) checks fields against the model.
+- **Validate:** `validate_report` (`bicraft-cli validate-report FILE`) checks fields against the model.
   `report.custom_visuals` shows each package's `registered` state, `issues` and `used_by`.
   Keep projects in short folders: the embedded package's path
   (`<Name>.Report/CustomVisuals/<guid>/resources/<guid>.pbiviz.json`) is long, and
@@ -185,7 +185,7 @@ the landing page, high contrast and what a visual must not do are in
 ## 5. Export
 
 - One of BIcraft's visuals as a file, for Import a visual from a file or a tenant's
-  organizational visuals: `visual.export_bicraft_visual {name, out}` or `bicraft visual export
+  organizational visuals: `visual.export_bicraft_visual {name, out}` or `bicraft-cli visual export
   bicraftSankey --out sankey.pbiviz` (several names or `--all` write
   `<guid>.<version>.pbiviz` files into a folder). It needs no open file.
 - A scaffolded visual: the `.pbiviz` written by `visual.pack` is the deliverable.

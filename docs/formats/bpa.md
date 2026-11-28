@@ -1,6 +1,6 @@
 # Best-practice rule files (BPA format)
 
-Crate: `crates/bpa` (`bicraft-bpa`, layer 4). Engine command: `model.analyze`. CLI: `bicraft analyze`.
+Crate: `crates/bpa` (`bicraft-bpa`, layer 4). Engine command: `model.analyze`. CLI: `bicraft-cli analyze`.
 
 This note was written from Microsoft's published rule file
 (microsoft/Analysis-Services `BestPracticeRules/BPARules.json`, MIT).

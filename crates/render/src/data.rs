@@ -225,6 +225,8 @@ pub struct Ctx<'a> {
     /// Where the reader's pointer is (`RenderOptions::pointer`): the button, shape or navigator
     /// button drawn in its hover or press state.
     pub pointer: Option<crate::states::Pointer>,
+    /// The reader's view of each Gantt, by visual name (`RenderOptions::gantt`).
+    pub gantt: HashMap<String, crate::gantt::View>,
 }
 
 /// A page as a page navigator lists it.
@@ -357,6 +359,7 @@ impl<'a> Ctx<'a> {
             fonts,
             ix: crate::hits::Ix::default(),
             pointer: None,
+            gantt: HashMap::new(),
             bg,
             fg,
             classic,
@@ -1892,6 +1895,9 @@ pub struct Series {
     pub hvals: Option<Vec<Option<f64>>>,
     /// Error bar bounds per category, (upper, lower); empty without error bars.
     pub err: Vec<(Option<f64>, Option<f64>)>,
+    /// The data column the values come from: `j`, or a legend's value column (every legend
+    /// series shares it, and so the error bars set on it).
+    pub src: Option<usize>,
 }
 
 impl Series {
@@ -2061,6 +2067,7 @@ pub fn chart_data(
         base: None,
         hvals: None,
         err: Vec::new(),
+        src: j,
     };
     // the highlighted part of each row's values (`data.highlights`), as the viewer's `ds.hl`
     let hl = |k: usize, j: usize| -> Option<&Value> {
@@ -2096,9 +2103,22 @@ pub fn chart_data(
                 }
             };
             if let Some(s) = series.get_mut(si) {
+                s.src = Some(v0);
                 add_to(&mut s.vals, i, r.get(v0).unwrap_or(&Value::Null));
                 if let Some(h) = hl(ri, v0) {
                     add_to(s.hvals.get_or_insert_with(Vec::new), i, h);
+                }
+                // the error bars of the legend's value: this row's bounds, at the series' point
+                if let Some(e) = ds.errs.iter().find(|e| e.column == v0) {
+                    if s.err.len() <= i {
+                        s.err.resize(i + 1, (None, None));
+                    }
+                    if let Some(slot) = s.err.get_mut(i) {
+                        *slot = (
+                            e.upper.get(ri).copied().flatten(),
+                            e.lower.get(ri).copied().flatten(),
+                        );
+                    }
                 }
             }
         }
@@ -2235,6 +2255,12 @@ pub fn chart_data(
             }
             if !s.lpts.is_empty() {
                 s.lpts = order.iter().map(|i| s.lpts.get(*i).copied().flatten()).collect();
+            }
+            if !s.err.is_empty() {
+                s.err = order
+                    .iter()
+                    .map(|i| s.err.get(*i).copied().unwrap_or((None, None)))
+                    .collect();
             }
         }
     }

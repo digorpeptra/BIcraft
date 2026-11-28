@@ -1,9 +1,9 @@
 apiVersion: v2
 name: bicraft-controller
 description: >-
-  BIcraft's workspace controller: a BicraftWorkspace custom resource and `bicraft controller`,
+  BIcraft's workspace controller: a BicraftWorkspace custom resource and `bicraft-cli controller`,
   which creates each workspace's pod, volume, Service and NetworkPolicy, routes agents to it through
-  its gateway (same authentication as `bicraft serve`), wakes it on the first request and scales it
+  its gateway (same authentication as `bicraft-cli serve`), wakes it on the first request and scales it
   to zero when idle.
 type: application
 # The chart's own version; bump it on every change of the chart.

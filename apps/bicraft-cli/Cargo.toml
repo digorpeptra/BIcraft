@@ -6,7 +6,7 @@ edition.workspace = true
 license.workspace = true
 
 [[bin]]
-name = "bicraft"
+name = "bicraft-cli"
 path = "src/main.rs"
 
 [dependencies]
@@ -18,18 +18,18 @@ bicraft-mcp.workspace = true
 bicraft-auth.workspace = true
 bicraft-mem.workspace = true
 bicraft-view.workspace = true
-# The UI control channel's token file (`bicraft view --control`, owner-only).
+# The UI control channel's token file (`bicraft-cli view --control`, owner-only).
 bicraft-http.workspace = true
 bicraft-controller.workspace = true
-# The client of `bicraft serve --viewer-control` (`bicraft ui --url https://…`): the blocking
+# The client of `bicraft-cli serve --viewer-control` (`bicraft-cli ui --url https://…`): the blocking
 # HTTPS client crates/auth already uses (rustls, bundled roots), no new crate.
 ureq = { version = "3", default-features = false, features = ["rustls"] }
 serde_json.workspace = true
-# Masked console prompt for the Databricks token of `bicraft refresh` when
+# Masked console prompt for the Databricks token of `bicraft-cli refresh` when
 # BICRAFT_DATABRICKS_TOKEN is unset (Apache-2.0; its console calls are the crate's own).
 rpassword = "7"
 # SIGTERM / SIGINT / SIGHUP (Unix) and Ctrl+C, Ctrl+Break, console close (Windows) for the graceful
-# drain of `bicraft serve` (MIT OR Apache-2.0; its platform calls are the crate's own, our crates stay
+# drain of `bicraft-cli serve` (MIT OR Apache-2.0; its platform calls are the crate's own, our crates stay
 # free of unsafe code).
 ctrlc = { version = "3.5", features = ["termination"] }
 

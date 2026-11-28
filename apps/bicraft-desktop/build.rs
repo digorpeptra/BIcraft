@@ -80,13 +80,13 @@ fn resources(ico: &Path) {
             "LegalCopyright",
             "Copyright (c) the BIcraft authors. MIT OR Apache-2.0.",
         )
-        .set("OriginalFilename", "bicraft-desktop.exe")
-        .set("InternalName", "bicraft-desktop");
+        .set("OriginalFilename", "bicraft.exe")
+        .set("InternalName", "bicraft");
     if let Err(e) = res.compile() {
         if bicraft_env::var_os("BICRAFT_REQUIRE_WINRES").is_some() {
             eprintln!("embedding Windows resources failed: {e}");
             std::process::exit(1);
         }
-        println!("cargo:warning=bicraft-desktop.exe built without icon/version resources: {e}");
+        println!("cargo:warning=bicraft.exe built without icon/version resources: {e}");
     }
 }

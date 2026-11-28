@@ -1,4 +1,4 @@
-//! The UI control channel's relay (`bicraft view --control`, docs/webui.md "Control channel"):
+//! The UI control channel's relay (`bicraft-cli view --control`, docs/webui.md "Control channel"):
 //! an agent's request reaches a connected app page over its event stream, the page's reply comes
 //! back as the answer, and everything else is refused. The page is played here by raw HTTP: the
 //! same requests the browser shell (`apps/bicraft-web`) sends.

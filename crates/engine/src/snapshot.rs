@@ -171,13 +171,19 @@ fn build(s: &Session, view: &crate::Interactions, limits: &SnapshotLimits) -> Va
         // Pause visuals (optimize.rs): a refresh asked for evaluates once
         let refresh = s.preview.take_refresh();
         let on = crate::optimize::paused(base) && !refresh;
+        // a visual's own Refresh (visual.refresh): that visual once, the others still paused
+        let only = s.preview.take_refresh_one();
         let mut data = preview::report_data(
             s,
             data_r,
             limits.pages,
             limits.visuals_per_page,
             &preview,
-            preview::Pause { on, main: true },
+            preview::Pause {
+                on,
+                main: true,
+                only: &only,
+            },
         );
         // highlighted visuals: their values under the selection, joined to their full values
         if let Some(e) = effective.as_ref()
@@ -189,7 +195,11 @@ fn build(s: &Session, view: &crate::Interactions, limits: &SnapshotLimits) -> Va
                 limits.pages,
                 limits.visuals_per_page,
                 &preview,
-                preview::Pause { on, main: false },
+                preview::Pause {
+                    on,
+                    main: false,
+                    only: &only,
+                },
             );
             parts.retain(|k, _| e.highlight_targets.contains(k));
             crate::interact::merge_highlights(&mut data, &parts);
@@ -211,7 +221,18 @@ fn build(s: &Session, view: &crate::Interactions, limits: &SnapshotLimits) -> Va
             data,
             key_influencers,
             ki_estimate,
-            bound: preview::report_bound(s, data_r, limits.pages, limits.visuals_per_page, &preview),
+            bound: preview::report_bound(
+                s,
+                data_r,
+                limits.pages,
+                limits.visuals_per_page,
+                &preview,
+                preview::Pause {
+                    on,
+                    main: true,
+                    only: &only,
+                },
+            ),
             theme,
             images: s.report_images(),
             model: s.model.as_ref(),
@@ -243,6 +264,10 @@ fn build(s: &Session, view: &crate::Interactions, limits: &SnapshotLimits) -> Va
         "bookmarks": crate::bookmarks::bookmarks_view(s),
         "recovery": crate::recovery::snapshot_json(s),
     });
+    // the Performance analyzer's recording (perf.rs), after the visuals it may have recorded
+    if let (Some(perf), Some(o)) = (s.perf.snapshot_json(), snap.as_object_mut()) {
+        o.insert("perf".into(), perf);
+    }
     if let Some(captions) = display_captions(s) {
         captions.apply_snapshot(&mut snap);
     }
@@ -1114,8 +1139,9 @@ fn page_json(
                 let mut ds = json!({"state": st.kind.as_str()});
                 crate::render::put_counts(&mut ds, &st);
                 o.insert("data_state".into(), ds);
-                images::visual_fields(o, p, v, extras.images.as_deref());
                 details::add(o, v, extras.model);
+                // after the details: a button's state images go into its `button` object
+                images::visual_fields(o, p, v, extras.images.as_deref());
                 // a shape map's custom map, decoded (docs/formats/maps.md)
                 if let Some(m) = crate::shape_maps::snapshot(r, v) {
                     o.insert("shape_map".into(), m);

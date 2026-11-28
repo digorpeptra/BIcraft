@@ -3195,7 +3195,10 @@ pub(crate) fn visual_tab_order(s: &mut Session, p: &Value) -> Result<Value, Stri
 mod mobile;
 #[cfg(test)]
 pub(crate) use mobile::mobile_position;
-pub(crate) use mobile::{merged_visual, mobile_doc, mobile_snapshot, visual_mobile, visual_mobile_format};
+pub(crate) use mobile::{
+    clip_mobile, clip_mobile_docs, merged_visual, mobile_doc, mobile_snapshot, place_pasted, visual_mobile,
+    visual_mobile_auto, visual_mobile_format, visual_mobile_remove_all,
+};
 
 #[path = "visual_extras_bars.rs"]
 mod bars;

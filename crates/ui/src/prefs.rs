@@ -21,7 +21,7 @@ pub const MAX_SERVERS: usize = 10;
 
 /// The keys of the UI preferences: the only ones a browser keeps (`recent` there holds
 /// workspace-relative names only, see [`ui_only`]).
-pub const UI_KEYS: [&str; 11] = [
+pub const UI_KEYS: [&str; 12] = [
     "theme",
     "ribbon",
     "tab",
@@ -32,6 +32,7 @@ pub const UI_KEYS: [&str; 11] = [
     "snap",
     "gridlines",
     "lock",
+    "guides",
     "phone",
 ];
 
@@ -158,6 +159,9 @@ pub struct Prefs {
     pub show_gridlines: bool,
     /// Moved and resized visuals snap to the canvas grid (View › Snap to grid).
     pub snap_grid: bool,
+    /// Smart guides are off (View › Smart guides): moved and resized visuals no longer snap to
+    /// the other visuals' and the page's edges and centres, and no guide is drawn.
+    pub hide_guides: bool,
     /// Visuals cannot be moved or resized on the canvas (View › Lock objects); selecting them,
     /// the menus and the panes still work.
     pub lock_objects: bool,
@@ -285,6 +289,7 @@ pub fn ui_only(v: &Value) -> Value {
         "snap": if p.snap_grid { "grid" } else { "guides" },
         "gridlines": p.show_gridlines,
         "lock": p.lock_objects,
+        "guides": if p.hide_guides { "off" } else { "on" },
         "phone": if p.mobile_narrow { "narrow" } else { "off" },
     })
 }
@@ -339,6 +344,7 @@ impl Prefs {
             show_gridlines: v.get("gridlines").and_then(Value::as_bool) == Some(true),
             snap_grid: v.get("snap").and_then(Value::as_str) == Some("grid"),
             lock_objects: v.get("lock").and_then(Value::as_bool) == Some(true),
+            hide_guides: v.get("guides").and_then(Value::as_str) == Some("off"),
             mobile_narrow: v.get("phone").and_then(Value::as_str) == Some("narrow"),
         }
     }
@@ -357,6 +363,7 @@ impl Prefs {
             "snap": if self.snap_grid { "grid" } else { "guides" },
             "gridlines": self.show_gridlines,
             "lock": self.lock_objects,
+            "guides": if self.hide_guides { "off" } else { "on" },
             "phone": if self.mobile_narrow { "narrow" } else { "off" },
         })
     }
@@ -468,6 +475,7 @@ mod tests {
         p.show_gridlines = true;
         p.snap_grid = true;
         p.lock_objects = true;
+        p.hide_guides = true;
         p.mobile_narrow = true;
         assert_eq!(Prefs::from_json(&p.to_json()), p);
         assert!(!p.to_json().to_string().contains("token"));

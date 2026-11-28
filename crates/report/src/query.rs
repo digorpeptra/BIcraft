@@ -134,16 +134,27 @@ pub fn derive(query: Option<&Value>) -> Vec<FieldBinding> {
     out
 }
 
-/// The `ScopedEval` scope of `kind` over `fields`: the plain column fields of its role (the
-/// public `semanticQuery` schema allows only columns there), in order; none for the grand total.
+/// Whether `b` groups the matrix in a `ScopedEval` scope: a column, or a hierarchy level (the
+/// level's column, named as the projection names it).
+fn scope_field(b: &FieldBinding) -> bool {
+    b.show_as.is_none()
+        && match &b.field {
+            FieldRef::Column { .. } => true,
+            FieldRef::Other { raw } => hierarchy_level(raw).is_some(),
+            _ => false,
+        }
+}
+
+/// The `ScopedEval` scope of `kind` over `fields`: the grouping fields of its role (columns and
+/// hierarchy levels; the public `semanticQuery` schema allows only columns there, and a level
+/// groups by its column), in order; none for the grand total.
 pub fn show_as_scope(kind: ShowAs, fields: &[FieldBinding]) -> Vec<Value> {
     let Some(role) = kind.scope_role() else {
         return Vec::new();
     };
     fields
         .iter()
-        .filter(|b| b.role.eq_ignore_ascii_case(role) && b.show_as.is_none())
-        .filter(|b| matches!(b.field, FieldRef::Column { .. }))
+        .filter(|b| b.role.eq_ignore_ascii_case(role) && scope_field(b))
         .map(|b| field_json(&b.field))
         .collect()
 }
@@ -626,7 +637,7 @@ fn binding_refs(binding: &FieldBinding, fields: &[FieldBinding], fallback: usize
     let scope: Vec<String> = fields
         .iter()
         .filter(|b| kind.scope_role().is_some_and(|r| b.role.eq_ignore_ascii_case(r)))
-        .filter(|b| b.show_as.is_none() && matches!(b.field, FieldRef::Column { .. }))
+        .filter(|b| scope_field(b))
         .map(|b| refs(&b.field, 0).0)
         .collect();
     (

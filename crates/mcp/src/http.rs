@@ -30,7 +30,7 @@
 //! server and per client address), plus a `Host` check (DNS rebinding), an `Origin` allow-list
 //! (403 otherwise) and a body cap (8 MiB by default, 413 beyond).
 //!
-//! Operations (`docs/web-deployment.md`, "Operating `bicraft serve`"): file upload, download,
+//! Operations (`docs/web-deployment.md`, "Operating `bicraft-cli serve`"): file upload, download,
 //! listing and deletion per workspace at `/w/<id>/files/…` ([`files`]), the probes `/healthz`
 //! and `/readyz`, a graceful drain ([`HttpServer::drain`]) and the idle close of workspaces
 //! ([`HttpConfig::idle_timeout`]) live in the child modules.
@@ -138,7 +138,7 @@ pub struct HttpConfig {
     /// SSE comment keepalive interval. Default 15 s.
     pub keepalive: Duration,
     /// Network access of the workspaces' sessions (the Databricks connector of `model.refresh`,
-    /// `docs/server-mode.md`). Default off; `bicraft serve --allow-network` or
+    /// `docs/server-mode.md`). Default off; `bicraft-cli serve --allow-network` or
     /// `BICRAFT_SERVER_NETWORK=1` turns it on.
     pub allow_network: bool,
     /// Authentication and the workspace ACL (`docs/auth.md`). `None`: no authentication, and the
@@ -216,7 +216,7 @@ pub struct HttpConfig {
 pub struct ControlToken(String);
 
 impl ControlToken {
-    /// A token of 32 to 256 visible ASCII characters (`bicraft serve` makes 32 random hex
+    /// A token of 32 to 256 visible ASCII characters (`bicraft-cli serve` makes 32 random hex
     /// digits).
     pub fn new(token: &str) -> Result<ControlToken, String> {
         let t = token.trim();
@@ -594,7 +594,7 @@ impl HttpServer {
     }
 
     /// Blocks until the accept loop ends (it ends when the server is dropped from another
-    /// thread, or never: `bicraft serve` runs until killed).
+    /// thread, or never: `bicraft-cli serve` runs until killed).
     pub fn wait(mut self) {
         if let Some(accept) = self.accept.take() {
             let _ = accept.join();

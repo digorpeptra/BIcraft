@@ -1,6 +1,6 @@
 # MCP server
 
-`bicraft mcp` runs a Model Context Protocol server on stdio (newline-delimited JSON-RPC 2.0,
+`bicraft-cli mcp` runs a Model Context Protocol server on stdio (newline-delimited JSON-RPC 2.0,
 protocol revisions `2025-06-18`, `2025-03-26` and `2024-11-05`). It drives one in-process engine
 session: the file or model an agent opens, with its report, stays open across tool calls until
 another one is opened. Logs go to stderr; stdout carries only the protocol.
@@ -8,27 +8,27 @@ another one is opened. Logs go to stderr; stdout carries only the protocol.
 ```json
 {
   "mcpServers": {
-    "bicraft": { "command": "bicraft", "args": ["mcp"] }
+    "bicraft": { "command": "bicraft-cli", "args": ["mcp"] }
   }
 }
 ```
 
-Use the full path to the binary if `bicraft` is not on `PATH`
-(`target/release/bicraft` after `cargo build --release -p bicraft-cli`). `bicraft setup`
+Use the full path to the binary if `bicraft-cli` is not on `PATH`
+(`target/release/bicraft-cli` after `cargo build --release -p bicraft-cli`). `bicraft-cli setup`
 writes this entry for you.
 
 ## Setup
 
-`bicraft setup` registers the server with agent clients. It writes the
+`bicraft-cli setup` registers the server with agent clients. It writes the
 **absolute path of the running binary** with `args: ["mcp"]`, so run it from the binary you will
 keep (for example after `cargo install --path apps/bicraft-cli`), not from a `target/` build.
 
 ```sh
-bicraft setup --client claude_code --client vscode --dry-run   # show the plan, write nothing
-bicraft setup --client claude_code --client vscode --yes       # apply it
-bicraft setup --all-detected --yes --json                      # every detected client
-bicraft setup --uninstall --yes                                # remove the bicraft entries
-bicraft setup doctor                                           # handshake + registration check
+bicraft-cli setup --client claude_code --client vscode --dry-run   # show the plan, write nothing
+bicraft-cli setup --client claude_code --client vscode --yes   # apply it
+bicraft-cli setup --all-detected --yes --json                  # every detected client
+bicraft-cli setup --uninstall --yes                            # remove the bicraft entries
+bicraft-cli setup doctor                                       # handshake + registration check
 ```
 
 | `--client` | Configuration file (user scope) | Project scope (`--scope project`) | Entry |
@@ -70,7 +70,7 @@ without `--client` removes every registration it finds.
 - **Idempotent.** A second run reports `unchanged` and touches nothing.
 - Restart the clients listed in `restart` to load the change.
 
-**Doctor.** `bicraft setup doctor` starts `<binary> mcp`, sends `initialize` and `tools/list`,
+**Doctor.** `bicraft-cli setup doctor` starts `<binary> mcp`, sends `initialize` and `tools/list`,
 and reports the server version, protocol and tool count, then each client's `registration`:
 `aligned`, `stale` (another command; `registered_command_exists` says if that binary still exists),
 `absent` or `invalid`. It is healthy when the handshake works and no client is stale; with
@@ -90,7 +90,7 @@ it; it is also a safe way to preview a run.
   "operation": "install",
   "scope": "user",
   "dry_run": true,
-  "server": {"name": "bicraft", "command": "/home/me/.cargo/bin/bicraft", "args": ["mcp"]},
+  "server": {"name": "bicraft", "command": "/home/me/.cargo/bin/bicraft-cli", "args": ["mcp"]},
   "config_root": null,
   "platform": "linux",
   "clients": [
@@ -127,14 +127,14 @@ The repository's [skills/](../skills/) folder holds task guides for coding agent
 |---|---|
 | [bicraft-visual-authoring](../skills/bicraft-visual-authoring/SKILL.md) | From "make me a visual that…" to a packaged Power BI visual: a built-in BIcraft visual (`visual.add`), a Spec visual (`visual.set_spec`) or a TypeScript one (`visual.scaffold` → `visual.pack` → `visual.import_custom`), then `report.render`, Power BI Desktop and `visual.export_bicraft_visual` |
 
-`bicraft mcp` does not serve skills: the server declares only the `tools` capability, with no
-MCP prompts or resources, and `bicraft setup` registers the server without copying skills.
+`bicraft-cli mcp` does not serve skills: the server declares only the `tools` capability, with no
+MCP prompts or resources, and `bicraft-cli setup` registers the server without copying skills.
 Copy a skill's folder into the agent's skills directory (for Claude Code, `.claude/skills/` in a
 project or `~/.claude/skills/`).
 
 ## Tools
 
-Every tool runs an engine command, so the MCP server, `bicraft run` and the tests always behave
+Every tool runs an engine command, so the MCP server, `bicraft-cli run` and the tests always behave
 the same. The convenience tools map 1:1 to the most common commands; `run_command` and `batch`
 reach all of them.
 
@@ -162,10 +162,10 @@ reach all of them.
 | `save` | `file.save` | Save the open file: a PBIP project (the report too when it was edited, as PBIR), a PBIX/PBIT (the edited model and/or report, written back in place), or `model.bim` |
 | `save_as` | `file.save_as` | Save, or convert, to a new PBIP project (`out/Name.pbip`, with the report), a `.pbit`, a `.pbix` (from an open PBIX, or a PBIP with `.pbi/cache.abf`), or `model.bim` (model only); the target becomes the open file. See "Conversions" |
 | `convert` | `file.convert` | Convert a file without opening it (`{from, to, format?, report_format?, cache?, overwrite?, strict?}`); the open file is not touched |
-| (`run_command`) | `file.redact` | `{path, out, data?, overwrite?}`: a copy of a PBIX, PBIT or PBIP for a bug report, its connection strings, credentials, server and database names, file paths and URLs (with `data`, the stored text values) replaced by stable placeholders; every written byte checked, a survivor deletes the copy; returns counts and placeholders, never the original values; also `bicraft redact IN OUT [--data]` ([formats/import-sources.md](formats/import-sources.md)) |
+| (`run_command`) | `file.redact` | `{path, out, data?, overwrite?}`: a copy of a PBIX, PBIT or PBIP for a bug report, its connection strings, credentials, server and database names, file paths and URLs (with `data`, the stored text values) replaced by stable placeholders; every written byte checked, a survivor deletes the copy; returns counts and placeholders, never the original values; also `bicraft-cli redact IN OUT [--data]` ([formats/import-sources.md](formats/import-sources.md)) |
 | `diff_files` | `file.diff` | Semantic diff of two files of any format (`{a, b, scope?, ignore_formatting?, ignore_positions?, ignore_whitespace?, format?: "json", "text" or "markdown"}`): model and report objects added, removed, changed, renamed or moved, DAX compared after normalisation; metadata only; read-only ([diff.md](diff.md)) |
 | `import_objects` | `objects.import` | Copy measures, tables, calculated columns, calculation groups, functions, M expressions, roles, pages, visuals, bookmarks or the theme from another file into the open one, with what they use; `on_conflict`: fail, skip, replace or rename; one undoable edit; `dry_run` previews (see "Importing objects from another file") |
-| (`run_command`) | `file.textconv` | `{file}`: the canonical text form of one file (sorted objects, one property per line), as `bicraft diff --textconv` gives git ([diff.md](diff.md)) |
+| (`run_command`) | `file.textconv` | `{file}`: the canonical text form of one file (sorted objects, one property per line), as `bicraft-cli diff --textconv` gives git ([diff.md](diff.md)) |
 | (`run_command`) | `file.open_in_desktop` | Open the saved file (the `.pbix`/`.pbit`, or the project's `.pbip`) with the OS default application, normally Power BI Desktop. `{dry_run?}`; never a path from the caller; returns `{path, opened, unsaved, warning?}` (unsaved edits are not in the file: save first). Read-only. Also the live viewer's button |
 | `new_project` | `project.new` | Create `<dir>/<name>.pbip` from the open model and report (or empty ones) and open it |
 | `report_summary` | `report.summary` | Pages (name, display name, size, active) and their visuals (type, position, bound fields); visual type counts; distinct fields |
@@ -173,15 +173,15 @@ reach all of them.
 | `add_visual` | `visual.add` | Add a visual: `{page, visual_type, x, y, width, height, z?, fields?: [{role, field}], force?}` |
 | `bind_field` | `visual.bind` | Bind a field to a data role: `{page, visual, role, field, index?, force?}` |
 | `validate_report` | `report.validate` | PBIR schema checks, structure, and every field of visuals and filters against the model; a field projected under its queryRef and again under that queryRef plus a digit suffix (`Sum(T.C)` and `Sum(T.C)1`, saved by BIcraft before 2026-10-15; Desktop fails the visual's query) is an error that `report.repair` fixes |
-| `validate_dax_query` | `dax.validate_query` | Parse a DAX query (`DEFINE` MEASURE/VAR/TABLE/COLUMN/FUNCTION, `EVALUATE`, `ORDER BY`, `START AT`) and bind it against the open model without changing it; also `bicraft validate-dax-query` |
+| `validate_dax_query` | `dax.validate_query` | Parse a DAX query (`DEFINE` MEASURE/VAR/TABLE/COLUMN/FUNCTION, `EVALUATE`, `ORDER BY`, `START AT`) and bind it against the open model without changing it; also `bicraft-cli validate-dax-query` |
 | `render_page` | `report.render` | Draw a report page in pure Rust (theme, evaluated data, slicer selections, images, formatting) and return it as an MCP **image** content block (`{type: "image", mimeType: "image/png", data}`; `structuredContent.pages[].image` then says which block); `out` writes PNG files instead. Per-visual `status` (what was drawn): `drawn`, `preview` (made-up values: the visual has no data), `placeholder` (a type that is not drawn), `estimate` (a key influencers visual drawn from BIcraft's own estimate, `key_influencers: "estimate"`), `blank` (no field bound), `skipped`; per-visual `data` (what the evaluated dataset holds, language-independent): `ok`, `no_rows`, `blank_values`, `partial_blank`, `not_bound`, `not_evaluated`, with `rows` / `value_cells` / `blank_cells`; `pages[].visuals_without_data`; `fail_on_empty: true` makes visuals without data an error. See [render.md](render.md) "Data states" |
-| `evaluate_dax_query` | `dax.evaluate` | Run a DAX query over the open file's data and return the rows, like DAX Studio: `{query, max_rows?, timeout_ms?, allow_cache_abf?}` (see *Running DAX queries*); also `bicraft dax-query` |
-| `refresh_model` | `model.refresh` | Refresh the open PBIX file's or PBIP project's import tables with BIcraft, external connectors only when allowed (Databricks): `{tables?, allow_connectors?: ["databricks"], external_links?, data_root?, force?, backup?}`; a PBIX gets the new rows in its `DataModel` (as Desktop's Refresh writes them), a PBIP project in `.pbi/bicraft-data.bin` (see *Refreshing data with BIcraft*); also `bicraft refresh` |
-| `run_tests` | `project.test` | Run a project's CI quality gates from its declarative test file (`bicraft.tests.yaml` next to it, or `tests`: a file or the tests inline): DAX assertions over its data by BIcraft's own engine, model rules (validation, BPA, naming, required properties, forbidden functions, expression length), report rules (report.validate by category, visuals per page, alt text, page size, theme, navigation to hidden pages). `{path?, tests?, format?: json|text|junit|sarif, fail_on?: error|warning, base_dir?}`; read-only (`path` opens in a private session). Returns `{passed, exit_code, summary, suites}`, plus `output` (JUnit XML, SARIF 2.1.0, text). See [ci-tests.md](ci-tests.md); also `bicraft test` |
-| `list_sources` | `sources.list` | The data sources of the model's M (files, folders, databases, Databricks, web) with each argument's role, form (literal, parameter, step, computed) and span, plus the parameters and how the sources use them; read-only. See [sources-env.md](sources-env.md); also `bicraft sources` |
-| `rebase_sources` | `sources.rebase` | Move file paths from one root to another (Windows, UNC, POSIX; optionally relative to a text parameter, added when missing) and map servers, databases, Databricks hosts and HTTP paths, URL prefixes. `{from?, to?, param?, servers?, databases?, hosts?, http_paths?, urls?, dry_run?}`; literals only, one edit. Also `bicraft sources rebase` |
-| `apply_env` | `env.apply` | Apply a profile of `bicraft.env.yaml`: typed parameter values and the profile's mappings, in one edit. `{profile, env_file?, dry_run?}`. Also `bicraft env apply` |
-| `check_env` | `env.check` | What a profile does not cover and what it would change; `ok` for CI. `{profile, env_file?}`; read-only. Also `bicraft env check` |
+| `evaluate_dax_query` | `dax.evaluate` | Run a DAX query over the open file's data and return the rows, like DAX Studio: `{query, max_rows?, timeout_ms?, allow_cache_abf?}` (see *Running DAX queries*); also `bicraft-cli dax-query` |
+| `refresh_model` | `model.refresh` | Refresh the open PBIX file's or PBIP project's import tables with BIcraft, external connectors only when allowed (Databricks): `{tables?, allow_connectors?: ["databricks"], external_links?, data_root?, force?, backup?}`; a PBIX gets the new rows in its `DataModel` (as Desktop's Refresh writes them), a PBIP project in `.pbi/bicraft-data.bin` (see *Refreshing data with BIcraft*); also `bicraft-cli refresh` |
+| `run_tests` | `project.test` | Run a project's CI quality gates from its declarative test file (`bicraft.tests.yaml` next to it, or `tests`: a file or the tests inline): DAX assertions over its data by BIcraft's own engine, model rules (validation, BPA, naming, required properties, forbidden functions, expression length), report rules (report.validate by category, visuals per page, alt text, page size, theme, navigation to hidden pages). `{path?, tests?, format?: json|text|junit|sarif, fail_on?: error|warning, base_dir?}`; read-only (`path` opens in a private session). Returns `{passed, exit_code, summary, suites}`, plus `output` (JUnit XML, SARIF 2.1.0, text). See [ci-tests.md](ci-tests.md); also `bicraft-cli test` |
+| `list_sources` | `sources.list` | The data sources of the model's M (files, folders, databases, Databricks, web) with each argument's role, form (literal, parameter, step, computed) and span, plus the parameters and how the sources use them; read-only. See [sources-env.md](sources-env.md); also `bicraft-cli sources` |
+| `rebase_sources` | `sources.rebase` | Move file paths from one root to another (Windows, UNC, POSIX; optionally relative to a text parameter, added when missing) and map servers, databases, Databricks hosts and HTTP paths, URL prefixes. `{from?, to?, param?, servers?, databases?, hosts?, http_paths?, urls?, dry_run?}`; literals only, one edit. Also `bicraft-cli sources rebase` |
+| `apply_env` | `env.apply` | Apply a profile of `bicraft.env.yaml`: typed parameter values and the profile's mappings, in one edit. `{profile, env_file?, dry_run?}`. Also `bicraft-cli env apply` |
+| `check_env` | `env.check` | What a profile does not cover and what it would change; `ok` for CI. `{profile, env_file?}`; read-only. Also `bicraft-cli env check` |
 
 Other editing commands, through `run_command` or `batch`:
 
@@ -208,6 +208,7 @@ Other editing commands, through `run_command` or `batch`:
 | `measure.move` | `{name, to_table, force?, update_dax?}`: `Table[Measure]` references follow |
 | `dax.apply_define` | `{query, measures?: [name], force?}`: the DAX query view's Update model. Each `DEFINE MEASURE Table[Name] = …` of the query (or those named) is added to Table, or replaces the expression of Table's measure of that name; one undo step, validated with every change made. Returns `{changes: [{table, measure, action: added\|updated\|unchanged}], added, updated, unchanged, changed}`; an unknown table, a measure of another table or a query that does not parse is an error |
 | `dax.format` | `{query, max_width? (20 to 1000, default 100), indent? (0 to 16, default 4), style? (`query`, default, or `formula`)}`: the DAX query view's Format query, for a query (`DEFINE`/`EVALUATE`) or an expression; `style: formula` is the formula bar's Format DAX, BIcraft's style following the DAX formatting conventions SQLBI describes publicly (function names and keywords in upper case, a space before each `(` and inside non-empty brackets, `SUM ( T[C] )`, the expression after `RETURN` on its own line one level in). Except that upper case, only white space changes (tokens, comments, names and texts stay as written, checked); `DEFINE`, `EVALUATE`, `ORDER BY` and `START AT` start a line, each definition one level in, a call or `{…}` that does not fit or holds `VAR` or a line comment gets one argument per line, `VAR` and `RETURN` start lines. Idempotent. Returns `{query, changed}`; text that does not parse is an error |
+| `dax.define_query` | `{table?, measure?, references? (default false)}`: the DAX query view's Define all measures and Define with references. `table`: every measure of that table; `measure`: that measure; with `references`, every measure they reference too, transitively (the binder's dependency graph), each before the measures that use it. Returns `{query, measures, evaluated}`: `DEFINE` with one `MEASURE 'Table'[Name] = expression` per measure as the model has it, then `EVALUATE ROW("Name", [Name], …)` of the measures asked for. Read-only |
 | `dax.cancel` | `{}`: stops every `dax.evaluate` of the session that started before it (they fail with `cancelled by the client`); read-only, so a server runs it beside the query. Returns `{running}`. The desktop app also raises the session's cancel flag as it sends it, so a local query stops before the command's turn |
 | `dax.queries` | `{}`: the DAX query view's tabs of the open file, `{tabs: [{name, text}], default_tab, saved_in: project\|session, dirty, generation, error}`; a PBIP project's are read by `file.open` from `<Name>.SemanticModel/DAXQueries/` ([formats/dax-queries.md](formats/dax-queries.md)) |
 | `dax.set_queries` | `{tabs: [{name, text?}], default_tab?}`: replaces the tabs (names are file names: valid on Windows and Linux, unique ignoring case); an unsaved change of its own (`dirty.queries` of the snapshot, no undo step) that `file.save` writes into a PBIP project (one `.dax` file per tab, `.pbi/daxQueries.json`), `file.save_as` and `project.new` into the new project. A PBIX, PBIT or model.bim keeps them for the session (a save warns). The snapshot's `dax_queries` holds the same tabs and a `generation` that changes with every `file.open` |
@@ -247,17 +248,17 @@ Other editing commands, through `run_command` or `batch`:
 | `report.remove_reference` | `{field, place, page?, visual?, bookmark?}`: removes what names `field` (it may be missing from the model) at one place. `place: "drillthrough"` with `page`: the page's drillthrough (or tooltip) filter cards on the field and the `pageBinding` parameters bound to them or naming it; `"formatting"` with `page` and `visual`, `page`, or neither (the report): each formatted property naming the field in `objects` / `visualContainerObjects` (an entry whose selector names it goes whole; an entry, object or formatting key left empty goes); `"bookmark"` with `bookmark`: each entry of the bookmark's lists (filters, sorts, formatting) naming it. Refused, changing nothing, when nothing there names the field or a reference would remain. Returns `{field, place, at, removed}` |
 | `visual.fix_query_refs` | `{page, visual}`: each projection whose `queryRef` names another field (`REPORT_STALE_QUERYREF`) takes the field's own (`Sales.Total`, `Sum(Sales.Amount)`), unless another projection of the visual already has it; selectors, expansion states, the visual's state in bookmarks and its phone layout follow. Refused when there is none to rename. Returns `{renamed: [{role, field, from, to}], kept, references_updated}` |
 | `report.extract` | `{page?}`: read-only; the report as a spec that `report.apply` accepts with no change |
-| `report.render` | `{page?, out?, scale?, format?: "png", font_dirs?, system_fonts?, badges?, ui_language?, culture?, format_culture?, as_of?, text_dump?, lcd_text?, fail_on_empty?, key_influencers?}`: read-only; pages to PNG without Power BI Desktop (every page without `page`; `out` a `.png` for one page, a folder or `name.png` → `name-<n>.png` for several; without `out` the PNGs come back as base64, which the MCP tools turn into image blocks). Fonts: the system's (Segoe UI…), `font_dirs`, `BICRAFT_FONT_DIRS`, then the bundled Selawik. `ui_language` (e.g. `fr-FR`) sets the language of the generated text for this call only (see `view.set_language`); `format_culture` the culture of numbers and dates (default the model's); `culture` only the model translation whose captions name fields (a culture without translations, or the model's own, draws the stored names and adds `warnings`; only a malformed name is refused); `as_of` the date `TODAY()`/`NOW()` return. `text_dump: true` also lists every drawn text run (string, font, px size, weight, colour, box in report pixels; with `out`, a `.json` beside each PNG) for the render oracle's text check. `lcd_text: true` draws upright text with subpixel (ClearType-like) antialiasing, as the app draws its pages on screens under 175 % (default grayscale; [render.md](render.md) "Subpixel text"). Result: `pages[]` with `visuals[]` = `{name, type, status, note, data, rows?, value_cells?, blank_cells?}` (`status` = what was drawn; `data` = what the evaluated dataset holds: `ok`, `no_rows`, `blank_values`, `partial_blank`, `not_bound`, `not_evaluated`; counts only with a dataset) and `visuals_without_data` (visuals whose `data` is `no_rows`, `blank_values` or `not_evaluated`); `fail_on_empty: true` returns an error naming them instead (see [render.md](render.md) "Data states"). `key_influencers: "estimate"` draws key influencers visuals from BIcraft's own estimate, badged, instead of the placeholder ([key-influencers.md](key-influencers.md)). Also `bicraft render FILE [--page P] [--out F] [--lang TAG] [--culture NAME] [--format-culture NAME] [--as-of DATE] [--text-json] [--lcd-text] [--fail-on-empty] [--key-influencers estimate]` (exit 1 when a visual has no data, after writing). See [render.md](render.md) |
-| `report.export_pdf` | `{out, pages?: "all"\|"current"\|"2-4"\|name\|index\|[…], hidden?, title?, scale?, font_dirs?, system_fonts?, ui_language?, format_culture?, as_of?}`: report pages to one PDF file, as Desktop's Export to PDF: one PDF page per report page at its size (0.75 pt per report pixel), drawn as `report.render` draws it, shapes as vector paths, text as real text with embedded font subsets and a ToUnicode map (selectable, searchable), a bookmark per page and a tagged structure (a section per page and visual, paragraphs, a figure with the visual's alt text); a face whose licence (`fsType`) forbids embedding is drawn as outlines with invisible searchable text. Every page not hidden by default; `hidden: true` adds hidden ones to `"all"` and ranges; pages named one by one are exported even when hidden. `out` is required and never empty (server mode: a workspace path). Result: `{path, bytes, title, pages: [{index, page, display_name, width_pt, height_pt, visuals, raster_parts}], fonts: [{name, embedded, glyphs}], skipped_hidden, warnings?}`. Writes a file only: no revision, no undo step. Also `bicraft export-pdf FILE [--out F.pdf] [--pages P] [--hidden]`. See [render.md](render.md) "PDF" |
+| `report.render` | `{page?, out?, scale?, format?: "png", font_dirs?, system_fonts?, badges?, ui_language?, culture?, format_culture?, as_of?, text_dump?, lcd_text?, high_contrast?, fail_on_empty?, key_influencers?}`: read-only; pages to PNG without Power BI Desktop (every page without `page`; `out` a `.png` for one page, a folder or `name.png` → `name-<n>.png` for several; without `out` the PNGs come back as base64, which the MCP tools turn into image blocks). Fonts: the system's (Segoe UI…), `font_dirs`, `BICRAFT_FONT_DIRS`, then the bundled Selawik. `ui_language` (e.g. `fr-FR`) sets the language of the generated text for this call only (see `view.set_language`); `format_culture` the culture of numbers and dates (default the model's); `culture` only the model translation whose captions name fields (a culture without translations, or the model's own, draws the stored names and adds `warnings`; only a malformed name is refused); `as_of` the date `TODAY()`/`NOW()` return. `text_dump: true` also lists every drawn text run (string, font, px size, weight, colour, box in report pixels; with `out`, a `.json` beside each PNG) for the render oracle's text check. `lcd_text: true` draws upright text with subpixel (ClearType-like) antialiasing, as the app draws its pages on screens under 175 % (default grayscale; [render.md](render.md) "Subpixel text"). `high_contrast: true` draws the pages with the app's high-contrast palette (View › High-contrast colours: black page, white text, bright series colours; [render.md](render.md) "High contrast"); the file does not change. Result: `pages[]` with `visuals[]` = `{name, type, status, note, data, rows?, value_cells?, blank_cells?}` (`status` = what was drawn; `data` = what the evaluated dataset holds: `ok`, `no_rows`, `blank_values`, `partial_blank`, `not_bound`, `not_evaluated`; counts only with a dataset) and `visuals_without_data` (visuals whose `data` is `no_rows`, `blank_values` or `not_evaluated`); `fail_on_empty: true` returns an error naming them instead (see [render.md](render.md) "Data states"). `key_influencers: "estimate"` draws key influencers visuals from BIcraft's own estimate, badged, instead of the placeholder ([key-influencers.md](key-influencers.md)). Also `bicraft-cli render FILE [--page P] [--out F] [--lang TAG] [--culture NAME] [--format-culture NAME] [--as-of DATE] [--text-json] [--lcd-text] [--high-contrast] [--fail-on-empty] [--key-influencers estimate]` (exit 1 when a visual has no data, after writing). See [render.md](render.md) |
+| `report.export_pdf` | `{out, pages?: "all"\|"current"\|"2-4"\|name\|index\|[…], hidden?, title?, scale?, font_dirs?, system_fonts?, ui_language?, format_culture?, as_of?, pdf_ua?, pdf_a?}`: report pages to one PDF file, as Desktop's Export to PDF: one PDF page per report page at its size (0.75 pt per report pixel), drawn as `report.render` draws it, shapes as vector paths, text as real text with embedded font subsets and a ToUnicode map (selectable, searchable), a bookmark per page and a tagged structure (a section per page and visual in reading order, paragraphs, a figure with the visual's alt text or a chart's title, table visuals as tables of header and data cells); `pdf_ua` (default true) identifies the file as PDF/UA-1 in its XMP metadata, `pdf_a` (default false) as PDF/A-2b with an sRGB output intent; a CFF face (`.otf`) is embedded whole; a face whose licence (`fsType`) forbids embedding is drawn as outlines with invisible searchable text. Every page not hidden by default; `hidden: true` adds hidden ones to `"all"` and ranges; pages named one by one are exported even when hidden. `out` is required and never empty (server mode: a workspace path). Result: `{path, bytes, title, pages: [{index, page, display_name, width_pt, height_pt, visuals, raster_parts}], fonts: [{name, embedded, glyphs}], conformance: {pdf_ua, pdf_a: "2b"\|null}, skipped_hidden, warnings?}`. Writes a file only: no revision, no undo step. Also `bicraft-cli export-pdf FILE [--out F.pdf] [--pages P] [--hidden]`. See [render.md](render.md) "PDF" |
 | `report.print` | `{pages?, hidden?, title?, out?, dry_run?, ui_language?}`: the pages as `report.export_pdf` writes them, to `out` (default `bicraft-print/<title>.pdf` in the temporary folder; required in server mode), then handed to the OS's default application for `.pdf` files to print (`explorer.exe`, `open` or `xdg-open`, no shell); nothing is opened in server mode or with `dry_run: true`. Result: `report.export_pdf`'s and `{opened}`. See [render.md](render.md) "Print" |
-| `visual.export_data` | `{visual, page?, out, format?: "csv"\|"xlsx", kind?: "summarized"\|"underlying"}`: a visual's data to a file, as its More options › Export data. Summarized (default): the visual's fields in their order, aggregated as the visual aggregates them, every hierarchy level, under its filters, slicers and cross-filters. Underlying: aggregated columns grouped instead (a row per distinct combination), measures on each row; only when the report allows it. At most 30,000 rows to CSV and 150,000 to XLSX (Power BI's limits; past them the first rows, `truncated: true` and a warning). CSV: UTF-8 with a BOM, CRLF, RFC 4180 quoting, a `'` before text starting with `=`, `+`, `-`, `@`. XLSX: one sheet `Data`, numbers as numbers, dates as dates. Refused when the report's `exportDataMode` forbids it. Result: `{path, bytes, format, kind, page, visual, columns, rows, total_rows, limit, truncated, export_data_mode, warnings?}` |
+| `visual.export_data` | `{visual, page?, out, format?: "csv"\|"xlsx", kind?: "summarized"\|"underlying"\|"current_layout"}`: a visual's data to a file, as its More options › Export data. Summarized (default): the visual's fields in their order, aggregated as the visual aggregates them, every hierarchy level, under its filters, slicers and cross-filters. Underlying: aggregated columns grouped instead (a row per distinct combination), measures on each row; only when the report allows it. Current layout (XLSX only): the summarized data in the visual's shape, a matrix with column fields as a cross table (a header row per column field, each label merged over its values, then the row fields' and values' names, a row per row key), other visuals as the summarized table; at most 150,000 cells of values, no subtotals. At most 30,000 rows to CSV and 150,000 to XLSX (Power BI's limits; past them the first rows, `truncated: true` and a warning). CSV: UTF-8 with a BOM, CRLF, RFC 4180 quoting, a `'` before text starting with `=`, `+`, `-`, `@`. XLSX: one sheet `Data`, numbers as numbers, dates as dates. Refused when the report's `exportDataMode` forbids it. Result: `{path, bytes, format, kind, page, visual, columns, rows, total_rows, limit, truncated, export_data_mode, warnings?}` |
 | `report.custom_visuals` | `{}`: read-only; embedded custom visuals (`CustomVisuals/<guid>/` files with their `report.json` package: name, version, API version, data roles, files, issues), AppSource (`publicCustomVisuals`) and organization visuals, each with the visuals that use it; `bicraft`: BIcraft's own visuals (name, guid, version, `embedded`, `embedded_version`, `current`, roles, `used_by`), which `visual.add` and `visual.set_type` take by name and embed on first use, and whose unused packages a save drops (docs/community-visuals.md "Built in by default") |
 | `visual.import_custom` | `{path \| data}`: imports a `.pbiviz` (at most 32 MB, read as hostile input: capped sizes and entries, ZIP-bomb guard, plain names only) into `CustomVisuals/<guid>/` with its `CustomVisual` resource package; the same guid replaces it; PBIR reports only. Its JavaScript is never run: the visual is drawn as a placeholder with its icon and name (docs/formats/pbiviz.md) |
 | `visual.remove_custom` | `{name, force?}`: removes a custom visual's package, files and AppSource reference; refused while visuals use it unless `force` (they stay as placeholders) |
 | `visual.scaffold` | `{folder, name, display_name?, guid?, description?, author?, data_roles?, format_options?, overwrite?, template?}`: writes a custom visual project (`template: spec`: the BIcraft Spec visual's own sources, docs/formats/spec-visual.md) (`pbiviz.json`, `capabilities.json` with the roles `name:Grouping\|Measure\|GroupingOrMeasure` and format options `object.property:bool\|color\|numeric\|text` chosen, `src/visual.ts`, `style/visual.css`, an icon); no session change (docs/formats/pbiviz.md "Visual projects") |
 | `visual.build` | `{folder, out?}`: compiles the project's TypeScript and bundles it into one script with swc, no Node (`dist/visual.js`); npm imports, import cycles, LESS and `.tsx` are refused; types are not checked |
-| `visual.pack` | `{folder, out?}`: builds the project and writes `dist/<guid>.<version>.pbiviz`, which `visual.import_custom` reads (`bicraft visual new\|build\|pack` on the command line) |
-| `visual.export_bicraft_visual` | `{name, out}`: writes the `.pbiviz` of one of BIcraft's fourteen visuals (`name`: its name or guid, a list, or `all`; `out`: the `.pbiviz` file for one visual, else a folder of `<guid>.<version>.pbiviz` files), the package BIcraft embeds, for Desktop's Import a visual from a file and for organizational visuals; needs no open file and leaves the session as it is (`bicraft visual export NAME... \| --all [--out F\|DIR]`) |
+| `visual.pack` | `{folder, out?}`: builds the project and writes `dist/<guid>.<version>.pbiviz`, which `visual.import_custom` reads (`bicraft-cli visual new\|build\|pack` on the command line) |
+| `visual.export_bicraft_visual` | `{name, out}`: writes the `.pbiviz` of one of BIcraft's fourteen visuals (`name`: its name or guid, a list, or `all`; `out`: the `.pbiviz` file for one visual, else a folder of `<guid>.<version>.pbiviz` files), the package BIcraft embeds, for Desktop's Import a visual from a file and for organizational visuals; needs no open file and leaves the session as it is (`bicraft-cli visual export NAME... \| --all [--out F\|DIR]`) |
 | `visual.set_spec` | `{page, visual, spec}`: draws the visual from a declarative chart spec (an object or its JSON text, at most 32 KB): marks `bar`, `line`, `point`, `area`, `text`, `rule`, `rect` whose `x`, `y`, `x2`, `y2`, `color`, `size` and `label` read `category` and `value` / `value.N` (the visual's measures in order), band, linear and time scales, axes, gridlines, palette, legend; every error names its place. Embeds the BIcraft Spec custom visual (built from BIcraft's TypeScript by its own bundler) when missing or older, turns the visual into one (columns to `category`, measures to `values`) and stores the spec in its `spec.json` property: Power BI draws it with the visual's script, `report.render`, PDF export and the app with the same layout (docs/formats/spec-visual.md) |
 | `visual.spec_template` | `{kind?}`: read-only; a starting spec (`bar`, `line`, `area`, `point`, `scatter`, `combo`, `text`, `rule`) with the roles and fields a spec reads |
 | `visual.set_bicraft_visual` | `{page, visual, kind, options?}`: turns the visual into one of BIcraft's own chart visuals, `histogram` (roles `values`, `frequency`), `bullet` (`category`, `value`, `target`, `bands` up to 4, `maximum`), `box_plot` (`category`, `sample`, `value`: quartiles, whiskers at 1.5 IQR, outliers) or `dumbbell` (`category`, `start`, `end`; `style.slope` draws a slope chart); embeds its package (built from BIcraft's TypeScript by its own bundler) when missing or older, moves columns to its grouping roles and measures to its measure roles (`dropped`: the rest) and sets its checked format options (`{bins: {count: 20}}`, null removes one). Power BI draws it with the visual's script, `report.render`, PDF export and the app with the same layout (docs/formats/bicraft-visuals.md) |
@@ -292,6 +293,7 @@ Other editing commands, through `run_command` or `batch`:
 | `report.settings` | `{default_interaction?: "highlight"\|"filter", drill_filters_other_visuals?, export_data?: "AllowSummarized"\|"AllowSummarizedAndUnderlying"\|"None", persistent_filters?, personalize_visuals?, cross_report_drillthrough?, filter_pane_visible?, allow_change_filter_types?}`: Desktop's Report settings of the current file (`docs/formats/pbir.md` "Report settings"): the report's interaction defaults, persistent filters, personalize visuals, cross-report drillthrough, the Filters pane's visibility to readers, whether readers may change filter types, and its Export data setting (`settings.exportDataMode`: what readers may export; a report without one allows summarized data, as Desktop's new reports; `visual.export_data` honours it, the snapshot shows it as `report.export_data_mode` and `report.settings.export_data_mode`); no parameters reads them |
 | `report.pause_visuals` | `{paused?: bool (default true)}`: Optimize › Pause visuals (`settings.pauseQueries`, saved): paused visuals keep their last data, marked `pending`, until `report.refresh_visuals` or a resume |
 | `report.refresh_visuals` | `{}`: Optimize › Refresh visuals: the next view evaluates every visual once; read-only |
+| `visual.refresh` | `{page, visual}`: a paused visual's own Refresh: the next view evaluates that visual once, the others staying paused; read-only |
 | `report.query_reduction` | `{preset?: "query_reduction"\|"interactivity", disable_cross_highlighting?, slicers?: "instantly"\|"apply_button", filters?: "instantly"\|"apply_buttons"\|"single_button"}`: Optimize › Optimization presets (`slowDataSourceSettings`); the viewer honours the default interactions being off |
 | `visual.drill_filter` | `{page, visual, apply_to: "page"\|"visual"\|"default"}`: Desktop's "Apply drill down filters to" (`drillFilterOtherVisuals`); `default` follows `report.settings` |
 | `view.keep_drill` | `{page?, visual?}`: writes the reader's drill and matrix expansion into the report as Desktop saves them (`active` flags, `howCreated: Drill` filters, `expansionStates`) |
@@ -319,18 +321,18 @@ Other editing commands, through `run_command` or `batch`:
 | `view.set_language` | `{ui_language}`: the UI language of the text Power BI Desktop generates (auto titles "Total by Region" / "Total par Region", implicit-measure names "Sum of X", "(Blank)", "Total", slicer "All" / "Multiple selections") in the viewer snapshot and `report.render`; a BCP 47 tag, phrase tables for en, fr, de, es, it, nl, pt, ja, other languages use English; default en-US. Desktop uses its own UI language, not the model culture. See [view-snapshot.md](view-snapshot.md) *UI language* |
 | `relationship.list` | `{table?}`: read-only; every relationship with cross filtering, cardinalities, activity and security filtering |
 | `model.storage_stats` | `{table?, columns?, segments?, row_number?}`: read-only; VertiPaq sizes from the stored data (see *Storage statistics and VPAX*) |
-| `model.export_vpax` | `{path, overwrite?, model_bim?}`: writes a VPAX file for VertiPaq Analyzer / DAX Studio; also `bicraft vpax PATH OUT.vpax` |
+| `model.export_vpax` | `{path, overwrite?, model_bim?}`: writes a VPAX file for VertiPaq Analyzer / DAX Studio; also `bicraft-cli vpax PATH OUT.vpax` |
 
 `table.rename`, `column.set`, `column.rename`, `measure.set`, `measure.rename` and `measure.move` also
 take `update_report: true` (see below).
 
-`bicraft describe ID` prints any command's parameters; `list_commands` returns the same text.
+`bicraft-cli describe ID` prints any command's parameters; `list_commands` returns the same text.
 
 ## Buttons, shortcuts and forms
 
 Every command declares where its button lives in the app (ROADMAP M11.1, AGENTS.md §9); the full
 table is [commands-ui.md](commands-ui.md), generated by `cargo xtask commands-ui`. Each entry of
-`list_commands` (and `bicraft commands`, `bicraft describe ID`) carries, next to `id`, `label` and
+`list_commands` (and `bicraft-cli commands`, `bicraft-cli describe ID`) carries, next to `id`, `label` and
 `params`:
 
 - `place`: `{kind: "ribbon", tab, contextual, group, label, icon}`, `{kind: "menu", menu: page |
@@ -349,7 +351,7 @@ table is [commands-ui.md](commands-ui.md), generated by `cargo xtask commands-ui
   those the server policy resolves.
 - With a session (the MCP `list_commands` tool): `enabled` and, when false, `disabled_reason`,
   from the needs, the server policy and the caller's role (`Session::command_enabled`, no side
-  effects). Without one (`bicraft commands`) both are absent.
+  effects). Without one (`bicraft-cli commands`) both are absent.
 
 ## Explicit data cache (`cache_abf`)
 
@@ -375,7 +377,7 @@ it, name the file explicitly:
 ## Refreshing data with BIcraft (`model.refresh`)
 
 `model.refresh {tables?, allow_connectors?, external_links?, data_root?, force?, backup?}` (MCP
-`refresh_model`, CLI `bicraft refresh PATH [--allow-connector databricks]... [--table T]...
+`refresh_model`, CLI `bicraft-cli refresh PATH [--allow-connector databricks]... [--table T]...
 [--external-links] [--data-root DIR] [--backup]`; the ribbon's Home › Refresh and F5, a table's
 right-click "Refresh data" in the Data pane and the model diagram) refreshes an open **PBIX
 file's** or **PBIP project's** import tables without Power BI Desktop. The sources run the same
@@ -383,7 +385,7 @@ way for both; where the rows go differs (*On a PBIX* below):
 
 - M partitions run in BIcraft's Power Query evaluator; `DateTimeZone.UtcNow()` is the refresh
   time; files only under `data_root`.
-- **Connectors only when allowed.** `allow_connectors: ["databricks"]` lets bicraft run
+- **Connectors only when allowed.** `allow_connectors: ["databricks"]` lets bicraft-cli run
   `DatabricksMultiCloud.Catalogs` / `Databricks.Catalogs` through the Databricks SQL Statement
   Execution API of the SQL warehouse in the query's HTTP path, on the host the query names and no
   other (`external_links: true` also lets large results come from presigned cloud-storage links,
@@ -453,14 +455,14 @@ so Desktop (and every other reader) opens the file with the new data:
   (tables refreshed, kept, time) and the per-table grid, with a spinner while it runs.
 
 ```bash
-bicraft refresh sales.pbix --data-root ./data                 # every table
-bicraft refresh sales.pbix --data-root ./data --table Product  # one table and what reads it
+bicraft-cli refresh sales.pbix --data-root ./data             # every table
+bicraft-cli refresh sales.pbix --data-root ./data --table Product  # one table and what reads it
 ```
 
 ```bash
 export BICRAFT_DATABRICKS_TOKEN=…   # set by the user, never in a file
-bicraft refresh projects/perso/perso.pbip --allow-connector databricks
-bicraft dax-query projects/perso/perso.pbip "EVALUATE ROW(\"Dépenses\", [Dépenses])"
+bicraft-cli refresh projects/perso/perso.pbip --allow-connector databricks
+bicraft-cli dax-query projects/perso/perso.pbip "EVALUATE ROW(\"Dépenses\", [Dépenses])"
 ```
 
 Details: [formats/data-sources.md](formats/data-sources.md), *Connectors* and *Refresh by
@@ -469,7 +471,7 @@ BIcraft*.
 ## Running DAX queries
 
 `dax.evaluate {query, max_rows?, timeout_ms?, allow_cache_abf?, cache_abf?}` (MCP `evaluate_dax_query`, CLI
-`bicraft dax-query PATH (QUERY | --file QUERY.dax) [--max-rows N] [--timeout-ms N]
+`bicraft-cli dax-query PATH (QUERY | --file QUERY.dax) [--max-rows N] [--timeout-ms N]
 [--no-cache-abf]`) runs a DAX query over the open file's data with bicraft's own evaluator (the
 one behind the viewer and calculated tables; no Power BI Desktop, also on Linux). Read-only.
 
@@ -545,7 +547,7 @@ the compatibility level is raised to 1702.
 ## Data view reads (ROADMAP M11.17)
 
 Three read-only commands behind the app's Data view ([desktop.md](desktop.md) "Data view"),
-also useful to an agent. Each runs on a shared session (`bicraft serve` runs several at once) and
+also useful to an agent. Each runs on a shared session (`bicraft-cli serve` runs several at once) and
 is skipped by auto-recovery (`replay: Skip`); readers may run them, except `query.preview` with
 `allow_connectors`.
 
@@ -592,27 +594,61 @@ is skipped by auto-recovery (`replay: Skip`); readers may run them, except `quer
   histogram bin, a Venn set of BIcraft's visuals) also gives `points` (at most 1,000), and the rows are
   then those of every point (`EVALUATE UNION(CALCULATETABLE(…), …)`, one per point; the answer's
   `points` counts them); the rows are those of the table the visual
-  summarizes (its first measure's home table, else its first aggregated or grouping column's
-  table) under the point's values, through the model's relationships, computed by the DAX
-  evaluator (`EVALUATE CALCULATETABLE('Sales', 'Product'[Category] = "Toys")`, in `query`).
+  summarizes (the table its first measure's expression reads, the one `RELATED` reaches the
+  others from when it reads several, following the measures it calls when it reads none; else
+  its home table; else its first aggregated or grouping column's table) under the point's
+  values, through the model's relationships, computed by the DAX evaluator
+  (`EVALUATE CALCULATETABLE('Sales', 'Product'[Category] = "Toys")`, in `query`). When that
+  measure has a detail rows expression, its rows are those of the expression instead
+  (`CALCULATETABLE(<the expression>, …)`, `detail_rows: true`; one that fails falls back to the
+  table, named in `not_applied`).
   The report's, the page's and the visual's filters and the page's slicer selections (the
   reader's view state included) are added as filter arguments (`FILTER(ALL(col), cond)`, a top N
   as `TOPN` under the other filters; listed in `filters`, `filters_applied: "point and
   filters"`). A filter on a measure or an aggregation keeps the points it keeps:
   `CALCULATETABLE(FILTER(VALUES(<grouping column>), [Total] > 50), <the column filters>)`
   (`SUMMARIZE` of the records' table by the grouping columns when there are several), so the
-  measure is computed under the other filters as the visual computes it. A condition over
+  measure is computed under the other filters as the visual computes it. Grouping columns the
+  records' table cannot reach through `RELATED` (a table with no relationship, the many side)
+  do not filter its rows: a point is kept when one of its combinations with their values meets
+  the condition (`FILTER(VALUES('Product'[Category]), NOT(ISEMPTY(FILTER(VALUES('Region'[Name]),
+  [Total] > 75))))`). On a card (no grouping column the records' table reaches) the condition is
+  computed once, under the other filters: when it fails the card is blank and the records are
+  empty (`FILTER(ALL(<a column>), FALSE())` in `query`). A condition over
   columns of several tables (a hierarchy slicer's tuples, an `Or` across tables) filters the
   records' rows, the other tables' columns through `RELATED` (`FILTER('Sales',
   RELATED('Product'[Category]) = "Games" || 'Sales'[Amount] > 35)`) when they are on the one side
   of active relationships from it. When another visual's selection cross-highlights the visual,
   the rows are those of the highlighted part (the selection is added as a filter, as the
   highlight is computed) and `cross_highlight` names the source; a cross-filter applies as a
-  filter. What cannot be applied (a measure filter on a visual without grouping columns, a table
-  `RELATED` cannot reach) is named in `not_applied`. Returns `{page, visual, table, point, query,
-  columns, rows, row_count, truncated, filters_applied, filters, not_applied, cross_highlight}`.
+  filter. What cannot be applied (a measure condition that also reads a column the visual does
+  not group by, a condition over several tables `RELATED` cannot reach) is named in
+  `not_applied`. Returns `{page, visual, table, detail_rows, point, query, columns, rows,
+  row_count, truncated, filters_applied, filters, not_applied, cross_highlight}`.
   Following the highlight is BIcraft's choice, not yet compared with Desktop's See records on a
   cross-highlighted visual.
+- **`visual.analyze {page, visual, point, kind?, fields?, top?}`**: Analyze a data point (the
+  visual's right-click menu in the app, *Analyze this point*): BIcraft's own ranking of the model's
+  columns, not Power BI's result ([analyze-point.md](analyze-point.md)). `kind: "change"` (the
+  default on a date or number axis) compares the point with the previous point of its axis and
+  scores each field by how much of the change one of its values carries; `kind:
+  "distribution"` (the default on a categorical axis) scores each field by the total variation
+  distance between its shares under the point and the mean of its shares under the other
+  points. The visual's filters, slicers and the model's relationships apply. Returns `{kind,
+  measure, point, change | value, candidates: [{field, score, member, …}], skipped: [{field,
+  reason}], estimate}`; a point that cannot be analyzed (the first point of a change, a change on
+  a categorical axis, no measure) is an error.
+- **`visual.explain_anomaly {page, visual, point?, compare?, fields?, top?}`**: Explain an
+  anomaly that a line chart's Find anomalies flags (an anomaly's right-click menu in the app,
+  *Explain the anomaly*): BIcraft's own explanation of its own anomaly estimate, not Power BI's
+  ([analyze-point.md](analyze-point.md#explain-an-anomaly)). Without `point`, the anomaly furthest
+  outside its expected range. `compare: "expected"` (the default) runs each field's values
+  through the same detection as the line and scores the field by how much of the members'
+  deviations from their expected values one of its values carries; `compare: "previous"` is
+  `visual.analyze`'s change from the previous point. Returns `{compare, measure, anomaly: {at,
+  value, expected, low, high, deviation, direction}, anomalies, candidates, skipped, estimate}`;
+  a visual without anomaly detection, a point that is not an anomaly or a line without one is an
+  error.
 
 `column.add` also takes a calculated column without `data_type`: the type is the expression's
 (the DAX checker's result type; text when it depends on the rows), as Desktop's New column
@@ -622,7 +658,7 @@ infers it.
 
 `model.summary` stays the compact listing (names, data types, measures, relationships, row
 filters). The detailed reads return every property the model holds, in one stable snake_case
-shape (`bicraft describe model.get` lists every key):
+shape (`bicraft-cli describe model.get` lists every key):
 
 - `model.get {detail: "summary"}` (default): model properties (`culture`, `default_mode`,
   `discourage_implicit_measures`, `source_query_culture`, ...), `counts` of every kind of object,
@@ -707,7 +743,10 @@ shape (`bicraft describe model.get` lists every key):
   number of bins, dates by years, months, days, hours, minutes or seconds) with the
   `GroupingMetadata` extended property and the `GroupingDesignState` annotation Desktop reads;
   `replace` rewrites a group column (Edit groups), whose definition the snapshot gives as the
-  column's `group`. One undo step. Shapes: `docs/formats/groups.md`.
+  column's `group`. One undo step. `visual.group_points {page, visual, points?, point?, name?,
+  group?, other?}` (Group data, the menu of a data point) groups the category values of the points
+  selected in the visual (Ctrl+click), else of the point right-clicked, through `column.group`.
+  Shapes: `docs/formats/groups.md`.
 - **Quick measures.** Home › Quick measure and the Data pane's New quick measure (on a table, or
   on a field, which starts as the base value), as Desktop's Quick measures.
   `measure.quick {kind, params, table?, name?}` writes an ordinary measure from BIcraft's own DAX
@@ -781,7 +820,7 @@ the engine's `DISCOVER_STORAGE_TABLE_COLUMN_SEGMENTS` / `DISCOVER_STORAGE_TABLE_
 them; how each figure is derived and how it compares with the engine is in
 `docs/formats/vertipaq-stats.md`.
 
-`model.export_vpax {path, overwrite?, model_bim? (true)}` (CLI `bicraft vpax PATH OUT.vpax
+`model.export_vpax {path, overwrite?, model_bim? (true)}` (CLI `bicraft-cli vpax PATH OUT.vpax
 [--overwrite] [--no-model-bim]`) writes a VPAX file, the open format of VertiPaq Analyzer read by
 DAX Studio, Tabular Editor and Bravo: `DaxModel.json` (the model and these statistics) and
 `Model.bim` (the model as TMSL).
@@ -789,7 +828,7 @@ DAX Studio, Tabular Editor and Bravo: `DaxModel.json` (the model and these stati
 ## Best-practice analysis
 
 `model.analyze {rules?, default_rules? (true), rule_ids?, severity_min?, max_findings? (10000)}`
-(CLI `bicraft analyze PATH [--rules FILE]... [--no-default-rules] [--rule-id ID]...
+(CLI `bicraft-cli analyze PATH [--rules FILE]... [--no-default-rules] [--rule-id ID]...
 [--severity-min 1-5|info|warning|error] [--max-findings N]`; over MCP through `run_command`)
 checks the open model against best-practice rules in the BPA rule-file format: a JSON array of
 `{ID, Name, Category, Description, Severity, Scope, Expression, FixExpression?,
@@ -867,7 +906,7 @@ the analysis again.
 ## Where objects are used, and what is unused
 
 `model.usage`, `model.unused` and `model.remove_unused` (MCP `model_usage`, `model_unused`,
-`remove_unused`; CLI `bicraft usage` and `bicraft unused`) answer "where is this field used?" and
+`remove_unused`; CLI `bicraft-cli usage` and `bicraft-cli unused`) answer "where is this field used?" and
 "what can go?" from the files alone, on any platform. They reuse the dependency logic of the
 rename and remove commands (every DAX expression resolved by the same binder) and add everything
 else that uses a model object.
@@ -931,7 +970,7 @@ behind names, and removing expressions from a PBIX with data (as `expression.rem
 session untouched.
 
 ```text
-$ bicraft unused Sales.pbip
+$ bicraft-cli unused Sales.pbip
 {"unused": {"measures": [{"kind": "measure", "table": "Sales", "name": "Old", "why": "used only by unused objects: measure [Older]"}, ...],
  "kept": [{"kind": "column", "table": "Product", "name": "SortOrder", "rules": ["sort by"], "detail": {...}}, ...],
  "warnings": ["report usage covers 1 report(s); a semantic model can serve other reports ..."]}
@@ -942,7 +981,7 @@ and 200 visuals `model.unused` takes about 47 ms (release build, median of 5; `m
 
 ## Importing objects from another file
 
-`objects.import` (MCP `import_objects`, CLI `bicraft import SOURCE TARGET`) copies objects from
+`objects.import` (MCP `import_objects`, CLI `bicraft-cli import SOURCE TARGET`) copies objects from
 another file into the open one. The source can be any file `file.open` reads (PBIX, PBIT, PBIP,
 model.bim); it is opened read-only in a private session and never saved. The whole import is one
 command, so one `edit.undo` step, and nothing changes when it is refused.
@@ -1017,14 +1056,14 @@ measures, and M references to a table renamed by `rename` (M is not rewritten, a
 **Applying a template report.** Import its pages and its theme into the report to restyle:
 
 ```text
-$ bicraft import Template.pbip Sales.pbip --page "*" --theme --on-conflict rename
+$ bicraft-cli import Template.pbip Sales.pbip --page "*" --theme --on-conflict rename
 added     page Overview
 added     measure Sales[Margin] (used by page `Overview`)
 added     theme Corporate
 saved Sales.pbip
 ```
 
-**CLI.** `bicraft import SOURCE TARGET` opens TARGET, runs the import and saves TARGET with
+**CLI.** `bicraft-cli import SOURCE TARGET` opens TARGET, runs the import and saves TARGET with
 `file.save` (a PBIX keeps `<name>.bak` unless `--no-backup`); `--dry-run` writes nothing. Flags:
 `--measure`, `--table`, `--column`, `--calculation-group`, `--function`, `--expression`,
 `--role`, `--page`, `--visual PAGE/VISUAL`, `--bookmark` (each repeatable), `--target-page`,
@@ -1153,7 +1192,7 @@ are refused with the reason, except the Databricks and SQL Server ones where a c
 - **Files: `data_root`, opt-in.** `File.Contents` (for `Csv.Document`, `Json.Document`,
   `Excel.Workbook`) reads only under the session's data root, and there is none by default. Pass
   `data_root: "<folder>"` to `file.open`, `file.save`, `file.save_as`, `table.import` or
-  `table.set_data` (or `bicraft view PATH --data-root DIR`). It stays set for the session;
+  `table.set_data` (or `bicraft-cli view PATH --data-root DIR`). It stays set for the session;
   `file.open` without it resets it, and `null` clears it. A query that needs files without a root
   fails with an error that says so. `inspect_file` shows the current root.
 - **Large CSV files.** `Csv.Document(File.Contents(…))` followed by `Table.PromoteHeaders` and
@@ -1468,18 +1507,18 @@ one edit with a `dry_run` preview. See [sources-env.md](sources-env.md).
   steps inside the batch stay written; the session is then marked dirty. A committed batch is a
   single undo step. `edit.undo` / `edit.redo` cannot run inside an atomic batch. Pass
   `"atomic": false` to keep the steps before a failure applied (each its own undo step).
-  `bicraft run` behaves the same (also with `--file commands.json`); `--no-atomic` turns it off.
+  `bicraft-cli run` behaves the same (also with `--file commands.json`); `--no-atomic` turns it off.
 
 ## Auto-recovery (`recovery.*`)
 
-A host that turns auto-recovery on (the desktop app, `bicraft serve --recovery-dir`) journals
+A host that turns auto-recovery on (the desktop app, `bicraft-cli serve --recovery-dir`) journals
 every edit since the last save in a per-user folder, never next to the file
 ([recovery.md](recovery.md)). `recovery.list {all?}` shows this session's journal and the edits
 other sessions left for the open file (`offers`: id, edits, date, `base` same, changed or
 missing, `recoverable`, `why`); `recovery.apply {id?}` replays one through the normal commands
 (stopping at the first failure, `{applied, total, failed}`); `recovery.discard {id?, all?,
 current?}` drops them. Each command's `replay` (exact, copy, skip, base) says how it is journaled;
-commands with outside inputs write a full recovery copy instead of a line. `bicraft mcp` and the
+commands with outside inputs write a full recovery copy instead of a line. `bicraft-cli mcp` and the
 CLI keep no journal.
 
 ## Report rules
@@ -1827,7 +1866,7 @@ A **`conditional`** item is `{target?, series?, apply_to?, rule}`:
 
 | Rule | Shape | Written as |
 |---|---|---|
-| `gradient` | `{field, min, mid?, max, empty?}`. A stop is `"#hex"` (lowest, middle or highest value) or `{color, value}`. `empty` sets blank values: `zero`, `none` or `"#hex"` | `FillRule` `linearGradient2` / `linearGradient3`, `nullColoringStrategy` |
+| `gradient` | `{field, min, mid?, max, empty?}`. A stop is `"#hex"` (lowest, middle or highest value), `{color, value}` (a number) or `{color, value, percent: true}` (a percent, 0 to 100, of the range from the lowest to the highest value). `empty` sets blank values: `zero`, `none` or `"#hex"` | `FillRule` `linearGradient2` / `linearGradient3`, `nullColoringStrategy` |
 | `rules` | `{field, cases: [{op, value, color}], else?}`. `op` is one of `=`, `>`, `>=`, `<`, `<=`, or `between` (with `values: [low, high]`, both included). `{gte?, gt?, lte?, lt?, eq?, color}` joins two bounds. `= null` means blank | `Conditional` `Cases` (`Comparison`, `And`), `DefaultValue` |
 | `field_value` | `{field, as?: color\|value}`. A column is read through `Min`, which is Desktop's "First" | the field expression (`{solid: {color: {expr}}}` or `{expr}`) |
 | `icons` | `{field, cases: [{op, value, icon}] \| preset + thresholds: [low, high], else?, position?: before\|after\|only, align?: top\|middle\|bottom}`. The presets are `circles`, `traffic`, `triangles`, `symbols`, `flags`, `stars` and `arrows`. Icon names are Desktop's (`CircleHigh`, `TrafficLow`, `ColoredArrowUp`…) | `{kind: "Icon", value: {expr: Conditional}, layout, verticalAlignment}` |
@@ -1920,6 +1959,9 @@ Axes, analytics lines, small multiples and report-page tooltips are visual prope
     tooltip?}`: the `error` object, one entry per series (`selector: {metadata}`, no id);
     `upper` / `lower` (one at least) are measures or aggregations, `relative: true` adds them to
     the series value; the `band*` keys only where the type has `error.shadeShow` (line charts).
+    With a legend every series of the legend gets its bars at its own points; on stacked and 100 %
+    columns and bars they sit at the top of the series' segment; on combo charts both the columns
+    and the line have them.
     The `errorRange` value is BIcraft's own shape, unchecked ([formats/pbir.md](formats/pbir.md));
   - `{kind: "anomaly_detection", measure?, sensitivity? (0-100, default 70), marker?,
     marker_shape? (circle|square|diamond|triangle|droplet), marker_size?, marker_color?,
@@ -1984,6 +2026,11 @@ Page and layout commands:
   `props` key (it is a separate document). In a PBIX whose report is a legacy `Report/Layout`
   the phone layout is the visual container's layout with id 1 (plus `singleVisual.mobileObjects` /
   `mobileVcObjects`), and that is what is edited and saved.
+- **`visual.mobile_auto {page}`** remakes the page's phone layout in one step by BIcraft's own
+  rule (not Desktop's; docs/desktop.md "Mobile layout"), **`visual.mobile_remove_all {page}`**
+  takes every visual off it. `visual.copy`'s clip carries the copied visuals' phone documents
+  (`mobile`), which `visual.paste {mobile: true}` and `visual.duplicate {mobile: true}` use to
+  place the new visuals on the phone layout as well.
 - **Saving into a PBIX/PBIT** keeps every edit above. A PBIR package gets the PBIR documents
   (`mobile.json`, page `type` / `pageBinding` / `visualInteractions`, the theme file,
   `resourcePackages` and `themeCollection.customTheme`, selector entries). A legacy
@@ -2196,12 +2243,12 @@ agent can re-run the same spec after every edit without duplicating anything. `r
 The same session from the command line:
 
 ```sh
-bicraft run --open Sales.pbip \
+bicraft-cli run --open Sales.pbip \
   --cmd 'measure.add={"table":"Sales","name":"Margin %","expression":"DIVIDE([Margin], [Revenue])"}' \
   --save
-bicraft new-project out Shop --open model.bim --format tmdl
-bicraft validate-report Sales.pbip   # exit 0 valid, 1 invalid, 2 unreadable
-bicraft dax-query Sales.pbix "EVALUATE SUMMARIZECOLUMNS('Date'[Year], \"Sales\", [Revenue])"
+bicraft-cli new-project out Shop --open model.bim --format tmdl
+bicraft-cli validate-report Sales.pbip   # exit 0 valid, 1 invalid, 2 unreadable
+bicraft-cli dax-query Sales.pbix "EVALUATE SUMMARIZECOLUMNS('Date'[Year], \"Sales\", [Revenue])"
 ```
 
 Long edits do not fit on a command line (Windows caps one at 32,767 characters): put the steps in a
@@ -2211,7 +2258,7 @@ steps run after any `--cmd`, in order, with the same rules as `batch`: atomic un
 `--no-atomic`, `--save` adds `file.save` at the end.
 
 ```sh
-bicraft run --open Sales.pbip --file commands.json --save
+bicraft-cli run --open Sales.pbip --file commands.json --save
 ```
 
 ## Live viewer
@@ -2224,8 +2271,8 @@ file's VertiPaq storage or BIcraft's DAX evaluator. Editing stays in MCP and the
 the page only reads. The server listens on `127.0.0.1` only.
 
 ```sh
-bicraft mcp --view [--view-port N] [--open] [--lang TAG] [--no-open-button]   # MCP server + viewer of the MCP session
-bicraft view Sales.pbip [--port N] [--open] [--data-root DIR] [--lang TAG] [--no-open-button]   # viewer of a file or project on disk
+bicraft-cli mcp --view [--view-port N] [--open] [--lang TAG] [--no-open-button]   # MCP server + viewer of the MCP session
+bicraft-cli view Sales.pbip [--port N] [--open] [--data-root DIR] [--lang TAG] [--no-open-button]   # viewer of a file or project on disk
 ```
 
 - `mcp --view` publishes a snapshot after every `tools/call`, including failed ones, so the page
@@ -2237,7 +2284,7 @@ bicraft view Sales.pbip [--port N] [--open] [--data-root DIR] [--lang TAG] [--no
   `--view-port`, `--open`, `--lang` and `--no-open-button` imply `--view`. `--lang fr-FR` writes the generated visual
   text (auto titles, "(Blank)", "Total"…) in that UI language, like `view.set_language`.
 - `view PATH` opens a PBIX, PBIT, PBIP project or `model.bim` and re-reads it when it changes on
-  disk, whoever wrote it (`bicraft run --save`, scripts, a Desktop save). It polls modification
+  disk, whoever wrote it (`bicraft-cli run --save`, scripts, a Desktop save). It polls modification
   times and waits until the files have been quiet for about 300 ms. For a project it watches only
   the model and report files: `.tmdl`, `.bim`, `.json`, `.pbir`, `.pbism`, `.pbip`, `.platform`.
   It never looks in `.pbi/` and caps the number of files. If a re-read fails (for example on a
@@ -2266,9 +2313,9 @@ bicraft view Sales.pbip [--port N] [--open] [--data-root DIR] [--lang TAG] [--no
 To make an MCP client start the viewer, add `--view` to the server's arguments, e.g.
 `"args": ["mcp", "--view", "--view-port", "8765"]`. Then open `http://127.0.0.1:8765/`.
 
-## Document views (`bicraft serve`)
+## Document views (`bicraft-cli serve`)
 
-Added with `feat/webui-parallel-views` (2026-11-05). On `bicraft serve`, a workspace has one
+Added with `feat/webui-parallel-views` (2026-11-05). On `bicraft-cli serve`, a workspace has one
 session at `/w/<id>/mcp`, as before: existing clients are unchanged. A **document view** is a
 private session of its own on one workspace file, beside it: the browser app opens one per
 document tab ([webui.md](webui.md), "Document tabs"), and any client holding credentials can.
@@ -2316,7 +2363,7 @@ document tab ([webui.md](webui.md), "Document tabs"), and any client holding cre
   conflict, caps and eviction, the memory check, idle expiry, a release that drops a streamed
   view at once and only for its own identity with its token, readers' views, the metrics).
 
-## UI control channel (`bicraft serve --viewer-control`)
+## UI control channel (`bicraft-cli serve --viewer-control`)
 
 Added with `feat/control-serve` (2026-11-05). Not an MCP tool: the desktop's control channel
 ([desktop.md](desktop.md), "Control channel") relayed by the server to an editor's own browser
@@ -2324,7 +2371,7 @@ app page, so an agent that edits over MCP can also drive and screenshot the wind
 looks at. `POST /w/<id>/view/api/control[?v=<view>]` with the editor's credential and
 `X-Bicraft-Control: <control token>`; `GET` the same route lists the caller's views, a page's
 and the document views it opened (`?v=` of one runs the request in that file's tab).
-`bicraft ui --serve --workspace ID METHOD [PARAMS]` is the client. Flags, token file, routes,
+`bicraft-cli ui --serve --workspace ID METHOD [PARAMS]` is the client. Flags, token file, routes,
 caps and the security model: [web-deployment.md](web-deployment.md), "UI control channel".
 
 ## Errors

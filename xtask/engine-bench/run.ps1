@@ -1,10 +1,10 @@
 # Engine bench, one size end to end (docs/benchmarks.md, "The DAX engine bench").
 # Windows only. For -Rows N, in -Data\r<N>:
-#   seed     CSV files of 10 000 sales lines, `bicraft run` builds seed.pbix (M partitions over the
+#   seed     CSV files of 10 000 sales lines, `bicraft-cli run` builds seed.pbix (M partitions over the
 #            CSV files), then the CSV files of N lines replace them (same paths)
 #   refresh  Desktop opens seed.pbix, TOM full refresh (Desktop's engine reads the N lines),
 #            AMO ImageSave -> image.xp9; swap-datamodel -> bench.pbix (data compressed by the engine)
-#   own      (instead of seed + refresh, no Desktop) CSV files of N lines, `bicraft run` builds
+#   own      (instead of seed + refresh, no Desktop) CSV files of N lines, `bicraft-cli run` builds
 #            bench.pbix with the data encoded by bicraft itself: for bicraft's timings alone
 #   desktop  desktop.ps1 on bench.pbix -> desktop.json (the reference answers, untimed)
 #   bicraft engine-bench bicraft on bench.pbix -> bicraft.json (bicraft's timings and answers)
@@ -21,7 +21,7 @@ param([long]$Rows, [string[]]$Steps = @('seed', 'refresh', 'desktop', 'bicraft',
 # native tools write progress to stderr: PowerShell 5.1 would turn it into errors under 'Stop'
 $ErrorActionPreference = 'Continue'
 $xtask = Join-Path $Target 'release\xtask.exe'
-$bicraft = Join-Path $Target 'release\bicraft.exe'
+$bicraft = Join-Path $Target 'release\bicraft-cli.exe'
 function Label([long]$n) { if ($n % 1000000 -eq 0) { "r$($n / 1000000)m" } elseif ($n % 1000 -eq 0) { "r$($n / 1000)k" } else { "r$n" } }
 $label = Label $Rows
 if ($Variant -ne 'standard') { $label = "$label-$Variant" }

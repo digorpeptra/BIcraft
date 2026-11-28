@@ -1,17 +1,17 @@
-//! `bicraft-desktop`: the BIcraft desktop app (docs/desktop.md).
+//! `bicraft`: the BIcraft desktop app (docs/desktop.md).
 //!
 //! ```text
-//! bicraft-desktop [FILE] [--lang TAG]                       a .pbix, .pbit, .pbip (or project folder), .bim
-//! bicraft-desktop --server URL --workspace ID [--lang TAG]  a BIcraft server (token: BICRAFT_SERVER_TOKEN)
-//! bicraft-desktop --register | --unregister                 Windows: per-user Start menu entry and Open with
-//! bicraft-desktop [FILE] --control PORT [--control-file F]  the UI control channel (docs/desktop.md)
-//! bicraft-desktop [FILE] --render OUT.png [--size WxH] [--scale N] [--set JSON]
+//! bicraft [FILE] [--lang TAG]                               a .pbix, .pbit, .pbip (or project folder), .bim
+//! bicraft --server URL --workspace ID [--lang TAG]          a BIcraft server (token: BICRAFT_SERVER_TOKEN)
+//! bicraft --register | --unregister                         Windows: per-user Start menu entry and Open with
+//! bicraft [FILE] --control PORT [--control-file F]          the UI control channel (docs/desktop.md)
+//! bicraft [FILE] --render OUT.png [--size WxH] [--scale N] [--set JSON]
 //!                                                           the window drawn with no window
-//! bicraft-desktop --help | --version
+//! bicraft --help | --version
 //! ```
 //!
 //! A Windows GUI program (no console window): `--register`, `--help` and `--version` print to
-//! standard output when it is redirected (`bicraft-desktop --register | more`) and answer with
+//! standard output when it is redirected (`bicraft --register | more`) and answer with
 //! their exit code.
 #![cfg_attr(windows, windows_subsystem = "windows")]
 #![deny(
@@ -30,15 +30,15 @@ use std::sync::{Arc, OnceLock};
 use bicraft_ui::source::Server;
 
 const USAGE: &str = "\
-Usage: bicraft-desktop [FILE] [--lang TAG]
-       bicraft-desktop --server URL --workspace ID [--lang TAG]
-       bicraft-desktop [FILE] --render OUT.png [--size WxH] [--scale N] [--set JSON]
-       bicraft-desktop --register | --unregister
+Usage: bicraft [FILE] [--lang TAG]
+       bicraft --server URL --workspace ID [--lang TAG]
+       bicraft [FILE] --render OUT.png [--size WxH] [--scale N] [--set JSON]
+       bicraft --register | --unregister
 
   FILE              a .pbix, .pbit, .pbip (or a project folder) or .bim to open
   --lang TAG        the UI language (en, fr…; default: the system's), also the language of the
                     text Power BI generates in visuals (auto titles, (Blank), Total)
-  --server URL      a BIcraft server (bicraft serve); the token comes from BICRAFT_SERVER_TOKEN
+  --server URL      a BIcraft server (bicraft-cli serve); the token comes from BICRAFT_SERVER_TOKEN
   --workspace ID    the workspace on that server
   --control PORT    the UI control channel for agents on 127.0.0.1:PORT (0: a free port; also
                     BICRAFT_CONTROL_PORT), its token in an owner-only file (docs/desktop.md)
@@ -128,7 +128,7 @@ fn startup(args: impl IntoIterator<Item = String>) -> Result<Startup, String> {
             s if s.starts_with("--") => return Err(format!("unknown option {s}")),
             _ => {
                 if file.replace(PathBuf::from(&a)).is_some() {
-                    return Err("bicraft-desktop opens one FILE".into());
+                    return Err("bicraft opens one FILE".into());
                 }
             }
         }
@@ -174,7 +174,7 @@ fn main() -> ExitCode {
     let start = match startup(std::env::args().skip(1)) {
         Ok(s) => s,
         Err(e) => {
-            eprintln!("bicraft-desktop: {e}\n\n{USAGE}");
+            eprintln!("bicraft: {e}\n\n{USAGE}");
             return ExitCode::from(2);
         }
     };
@@ -184,7 +184,7 @@ fn main() -> ExitCode {
             return ExitCode::SUCCESS;
         }
         Startup::Version => {
-            println!("bicraft-desktop {}", env!("CARGO_PKG_VERSION"));
+            println!("bicraft {}", env!("CARGO_PKG_VERSION"));
             return ExitCode::SUCCESS;
         }
         Startup::Register => {
@@ -219,7 +219,7 @@ fn main() -> ExitCode {
         None => None,
         Some(Ok(p)) => Some(p),
         Some(Err(e)) => {
-            eprintln!("bicraft-desktop: BICRAFT_CONTROL_PORT: {e}");
+            eprintln!("bicraft: BICRAFT_CONTROL_PORT: {e}");
             return ExitCode::from(2);
         }
     };
@@ -234,7 +234,10 @@ fn main() -> ExitCode {
     bicraft_engine::set_local_clock(bicraft_engine::LocalClock::Zone(std::sync::Arc::new(
         bicraft_locale::calendar::machine_offset_minutes,
     )));
-    let mut app = bicraft_desktop::app(&lang, bicraft_desktop::prefs::default_path());
+    // Windows high contrast: the window starts in the high-contrast theme until a theme is chosen
+    let mut shell = bicraft_desktop::shell(bicraft_desktop::prefs::default_path());
+    shell.system_high_contrast = bicraft_desktop::contrast::system_high_contrast();
+    let mut app = bicraft_desktop::App::new(&lang, shell);
     if let Some(f) = file {
         app.open_path(&f);
     } else if let Some((url, workspace)) = server {
@@ -246,7 +249,11 @@ fn main() -> ExitCode {
     }
     let mut viewport = egui::ViewportBuilder::default()
         .with_title("BIcraft")
-        .with_app_id(bicraft_desktop::register::APP_ID)
+        .with_app_id(if cfg!(windows) {
+            bicraft_desktop::register::APP_ID
+        } else {
+            bicraft_desktop::register::DESKTOP_ID
+        })
         .with_inner_size([1366.0, 860.0])
         .with_min_inner_size([640.0, 420.0])
         .with_drag_and_drop(true);
@@ -265,7 +272,7 @@ fn main() -> ExitCode {
         Some(p) => match start_control(&mut app, p, control_file.as_deref(), &window) {
             Ok(s) => Some(s),
             Err(e) => {
-                eprintln!("bicraft-desktop: control channel: {e}");
+                eprintln!("bicraft: control channel: {e}");
                 return ExitCode::FAILURE;
             }
         },
@@ -281,7 +288,7 @@ fn main() -> ExitCode {
     match r {
         Ok(()) => ExitCode::SUCCESS,
         Err(e) => {
-            eprintln!("bicraft-desktop: {e}");
+            eprintln!("bicraft: {e}");
             ExitCode::FAILURE
         }
     }
@@ -326,7 +333,7 @@ fn start_control(
         .map_err(|e| format!("{}: {e}", file.display()))?;
     app.control.attach(rx);
     eprintln!(
-        "bicraft-desktop: control channel on {} (token in {})",
+        "bicraft: control channel on {} (token in {})",
         server.addr(),
         file.display()
     );
@@ -356,7 +363,7 @@ fn render(
             ExitCode::SUCCESS
         }
         Err(e) => {
-            eprintln!("bicraft-desktop: --render: {e}");
+            eprintln!("bicraft: --render: {e}");
             ExitCode::FAILURE
         }
     }
@@ -366,7 +373,7 @@ fn report(r: Result<Vec<String>, String>, verb: &str) -> ExitCode {
     match r {
         Ok(done) => {
             if done.is_empty() {
-                println!("bicraft-desktop: nothing to do");
+                println!("bicraft: nothing to do");
             }
             for d in done {
                 println!("{verb}: {d}");
@@ -374,7 +381,7 @@ fn report(r: Result<Vec<String>, String>, verb: &str) -> ExitCode {
             ExitCode::SUCCESS
         }
         Err(e) => {
-            eprintln!("bicraft-desktop: {e}");
+            eprintln!("bicraft: {e}");
             ExitCode::FAILURE
         }
     }

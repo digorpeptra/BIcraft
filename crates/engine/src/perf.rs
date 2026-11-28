@@ -8,7 +8,10 @@
 //!   visual of a page afresh, without the result cache, each timed on its own
 //!   (`cause: "refresh"`, the pane's Refresh visuals).
 //! - `perf.render` hands back the render time the app measured for visuals it drew (the renderer's
-//!   draw call of each visual), so the export holds both.
+//!   draw call of each visual), so the export holds both. While a recording runs, the snapshot's
+//!   `perf.unrendered` names, per page, the visuals whose latest event has no render time yet: the
+//!   app sends the times of the drawing that shows them, after Refresh visuals and after the
+//!   viewer's own evaluations alike.
 //! - `perf.results` returns the events; `perf.export {out}` writes them as JSON.
 //!
 //! Times come from a monotonic clock (`std::time::Instant`), in milliseconds. They are BIcraft's
@@ -17,6 +20,7 @@
 //! so the commands bump no revision and leave no undo step (`crate::READ_ONLY_COMMANDS`); on a
 //! server they are for editors only, since a session is shared and a refresh evaluates afresh.
 
+use std::collections::HashSet;
 use std::sync::{Mutex, MutexGuard, PoisonError};
 use std::time::{Duration, Instant};
 
@@ -92,6 +96,37 @@ impl Recorder {
     /// Whether a recording runs.
     pub(crate) fn recording(&self) -> bool {
         self.lock().recording
+    }
+
+    /// While a recording runs, the visuals whose latest event has no render time yet, by page
+    /// (the snapshot's `perf`): the app hands back the render time of the drawing that shows
+    /// them (`perf.render`), so the visuals the viewer evaluates get one without Refresh visuals.
+    /// `None` when no recording runs.
+    pub(crate) fn snapshot_json(&self) -> Option<Value> {
+        let g = self.lock();
+        if !g.recording {
+            return None;
+        }
+        let mut seen: HashSet<(&str, &str)> = HashSet::new();
+        let mut latest: Vec<(&str, &str, bool)> = Vec::new();
+        for e in g.events.iter().rev() {
+            if seen.insert((&e.page, &e.visual)) {
+                latest.push((&e.page, &e.visual, e.render_ms.is_none()));
+            }
+        }
+        let mut pages = Map::new();
+        for (page, visual, unrendered) in latest.into_iter().rev() {
+            if !unrendered {
+                continue;
+            }
+            if let Value::Array(a) = pages
+                .entry(page.to_string())
+                .or_insert_with(|| Value::Array(Vec::new()))
+            {
+                a.push(json!(visual));
+            }
+        }
+        Some(json!({"recording": true, "unrendered": pages}))
     }
 
     /// Records visual `t` of page `page` when a recording runs.

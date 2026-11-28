@@ -13,6 +13,10 @@
 //! - Delete, the X at the selected visual's top right or its menu's Remove from mobile layout
 //!   takes it off the phone canvas (`visual.mobile {layout: null}`); the visual stays on the
 //!   page.
+//! - Copy, paste and duplicate (`visual.copy`, `visual.paste` / `visual.duplicate {mobile: true}`)
+//!   make a new visual of the page that goes on the phone canvas too; Auto-create and Remove all
+//!   (`visual.mobile_auto`, `visual.mobile_remove_all`) lay out or empty it. Cut and group stay
+//!   the desktop canvas's.
 //! - The Format pane formats the selected visual for the phone only (`visual.mobile_format`):
 //!   its values are the phone's (`visual.props {layout: "mobile"}`), and Clear mobile formatting
 //!   puts it back to the visual's own.
@@ -74,7 +78,16 @@ const VIEW_EDIT: u64 = 2;
 const VIEW_READ: u64 = 4;
 
 /// The commands the mobile layout view runs (the coverage test reads it).
-pub const COMMANDS: &[&str] = &["visual.mobile", "visual.mobile_format"];
+pub const COMMANDS: &[&str] = &[
+    "visual.mobile",
+    "visual.mobile_format",
+    "visual.mobile_auto",
+    "visual.mobile_remove_all",
+];
+
+/// The View tab's group this view draws itself ([`view_group`]): the registry's buttons placed
+/// there are drawn by it, not by the ribbon's generic groups.
+pub const GROUP: &str = "Mobile layout";
 
 /// The view's state, kept by the window.
 #[derive(Default)]
@@ -271,24 +284,98 @@ pub fn view_group(app: &mut App, ui: &mut Ui) {
         if r.clicked() {
             toggle(app);
         }
-        let narrow = app.prefs.mobile_narrow;
-        let r = widgets::toggle_button(
-            ui,
-            Icon::Mobile,
-            l.t("Phone layout when narrow", "Disposition mobile si étroit"),
-            true,
-            narrow,
-            false,
-        )
-        .on_hover_text(l.t(
-            "A page with a mobile layout is read on its phone canvas when the window is narrow",
-            "Une page dotée d'une disposition mobile se lit sur son canevas de téléphone quand la fenêtre est étroite",
-        ));
-        if r.clicked() {
-            app.prefs.mobile_narrow = !narrow;
-            app.save_prefs();
-        }
+        widgets::rows(ui, |ui| {
+            let narrow = app.prefs.mobile_narrow;
+            let r = widgets::toggle_button(
+                ui,
+                Icon::Mobile,
+                l.t("Phone layout when narrow", "Disposition mobile si étroit"),
+                true,
+                narrow,
+                false,
+            )
+            .on_hover_text(l.t(
+                "A page with a mobile layout is read on its phone canvas when the window is narrow",
+                "Une page dotée d'une disposition mobile se lit sur son canevas de téléphone quand la fenêtre est étroite",
+            ));
+            if r.clicked() {
+                app.prefs.mobile_narrow = !narrow;
+                app.save_prefs();
+            }
+            // Auto-create and Remove all (the registry's View › Mobile layout buttons) act on the
+            // phone canvas shown
+            for (id, tip) in [
+                (
+                    "visual.mobile_auto",
+                    l.t(
+                        "Lay out every shown visual of the page on the phone canvas (BIcraft's own rule)",
+                        "Disposer tous les visuels affichés de la page sur le canevas du téléphone (règle propre à BIcraft)",
+                    ),
+                ),
+                (
+                    "visual.mobile_remove_all",
+                    l.t(
+                        "Take every visual off the phone canvas (they stay on the page)",
+                        "Retirer tous les visuels du canevas du téléphone (ils restent sur la page)",
+                    ),
+                ),
+            ] {
+                let Some(c) = crate::registry::find(id) else { continue };
+                let (icon, label) = (c.icon(), c.text(l));
+                let state = if editing(app) {
+                    ribbon::state(app, id)
+                } else {
+                    Err(l
+                        .t("turn on View › Mobile layout first", "activez d'abord Affichage › Disposition mobile")
+                        .to_string())
+                };
+                let r = widgets::small_button(ui, icon, label, state.is_ok(), false);
+                let r = match &state {
+                    Ok(()) => r.on_hover_text(tip),
+                    Err(why) => r.on_disabled_hover_text(format!("{} {why}", l.t("Unavailable:", "Indisponible :"))),
+                };
+                if r.clicked() {
+                    run_page(app, id);
+                }
+            }
+        });
     });
+}
+
+/// Runs `id` (`visual.mobile_auto` or `visual.mobile_remove_all`) on the page shown, one undo
+/// step; the selection is cleared.
+pub fn run_page(app: &mut App, id: &'static str) {
+    if let Err(why) = ribbon::state(app, id) {
+        app.status = format!("{} {why}", app.lang.t("Unavailable:", "Indisponible :"));
+        return;
+    }
+    let Some(page) = app.page_names().get(app.active_page()).map(|p| p.0.clone()) else {
+        return;
+    };
+    canvas::select(app, &page, &[]);
+    app.run(
+        Call {
+            id,
+            params: json!({"page": page}),
+        },
+        Then::Nothing,
+    );
+}
+
+/// The status text of Ctrl+X on the phone canvas.
+pub fn no_cut_text(l: Lang) -> &'static str {
+    l.t(
+        "Cut is not available on the phone canvas: copy, then remove from the mobile layout",
+        "Couper n'est pas disponible sur le canevas du téléphone : copiez, puis retirez de la disposition mobile",
+    )
+}
+
+/// The status text of Ctrl+G on the phone canvas.
+pub fn no_group_text(l: Lang) -> &'static str {
+    l.t(
+        "Groups are the desktop layout's: on the phone canvas every visual stands alone",
+        "Les groupes appartiennent à la disposition de bureau : sur le canevas du téléphone, chaque visuel est seul",
+    )
 }
 
 /// View › Mobile layout: on or off (the Report view shows it).
@@ -354,6 +441,55 @@ fn menu(app: &mut App, ui: &mut Ui) {
     {
         clear_formatting(app);
         ui.close();
+    }
+    ui.separator();
+    // the clipboard: a copy stays on its page, pasted or duplicated onto the phone canvas too
+    let clip = app.canvas.clip.is_some() || app.shell.read_clipboard.is_some();
+    let select_first = l.t("select a visual first", "sélectionnez d'abord un visuel");
+    let copy_first = l.t(
+        "copy visuals first (Ctrl+C)",
+        "copiez d'abord des visuels (Ctrl+C)",
+    );
+    for (id, label, need) in [
+        (
+            "visual.copy",
+            l.t("Copy", "Copier"),
+            (!has).then_some(select_first),
+        ),
+        (
+            "visual.paste",
+            l.t("Paste", "Coller"),
+            (!clip).then_some(copy_first),
+        ),
+        (
+            "visual.duplicate",
+            l.t("Duplicate", "Dupliquer"),
+            (!has).then_some(select_first),
+        ),
+    ] {
+        let st = match need {
+            Some(why) => Err(why.to_string()),
+            None => ribbon::state(app, id),
+        };
+        if crate::menus::item(ui, label, &st, l) {
+            match id {
+                "visual.copy" => canvas::copy(app),
+                "visual.paste" => canvas::paste_command(app),
+                _ => canvas::duplicate(app),
+            }
+            ui.close();
+        }
+    }
+    ui.separator();
+    for id in ["visual.mobile_auto", "visual.mobile_remove_all"] {
+        let Some(label) = crate::registry::find(id).map(|c| c.text(l)) else {
+            continue;
+        };
+        let st = ribbon::state(app, id);
+        if crate::menus::item(ui, label, &st, l) {
+            run_page(app, id);
+            ui.close();
+        }
     }
 }
 
@@ -447,12 +583,12 @@ pub fn keys(app: &mut App, ui: &Ui) {
     if focused || app.form.is_some() || app.palette.is_some() || app.confirm.is_some() {
         return;
     }
-    // what the report canvas does with these keys does not apply to the phone canvas
-    for (m, k) in [
-        (egui::Modifiers::COMMAND, egui::Key::D),
-        (egui::Modifiers::COMMAND, egui::Key::G),
-    ] {
-        ui.input_mut(|i| i.consume_key(m, k));
+    // Ctrl+D duplicates onto the phone canvas too; Ctrl+G groups the desktop layout only
+    if ui.input_mut(|i| i.consume_key(egui::Modifiers::COMMAND, egui::Key::D)) {
+        canvas::duplicate(app);
+    }
+    if ui.input_mut(|i| i.consume_key(egui::Modifiers::COMMAND, egui::Key::G)) {
+        app.status = no_group_text(app.lang).to_string();
     }
     if ui.input_mut(|i| i.consume_key(egui::Modifiers::COMMAND, egui::Key::A))
         && let Some(page) = app.page_names().get(app.active_page()).map(|p| p.0.clone())

@@ -71,6 +71,7 @@ pub(crate) fn report_render(s: &Session, p: &Value) -> Result<Value, String> {
             "format_culture",
             "text_dump",
             "lcd_text",
+            "high_contrast",
             "as_of",
             "fail_on_empty",
             "key_influencers",
@@ -155,6 +156,7 @@ pub(crate) fn report_render(s: &Session, p: &Value) -> Result<Value, String> {
     let badges = opt_bool(p, "badges")?.unwrap_or(true);
     let text_dump = opt_bool(p, "text_dump")?.unwrap_or(false);
     let lcd_text = opt_bool(p, "lcd_text")?.unwrap_or(false);
+    let high_contrast = opt_bool(p, "high_contrast")?.unwrap_or(false);
     let out = match opt_str(p, "out")? {
         // "" would name the working directory: never a silent write there
         Some(o) if o.trim().is_empty() => {
@@ -196,6 +198,7 @@ pub(crate) fn report_render(s: &Session, p: &Value) -> Result<Value, String> {
         badges,
         text_dump,
         lcd_text,
+        high_contrast,
         culture: format_culture,
         ..RenderOptions::default()
     };
@@ -767,6 +770,58 @@ mod tests {
             .unwrap();
         assert_eq!(r["pages"][0]["visuals_without_data"], 0, "{r}");
         assert!(s.execute("report.render", &json!({"fail_on_empty": 1})).is_err());
+    }
+
+    /// `high_contrast` draws the app's high-contrast palette: a different picture, and every
+    /// text run at 7:1 or more against the page, which turns black; the report is not changed.
+    #[test]
+    fn high_contrast_draws_the_high_contrast_palette() {
+        fn lum(hex: &str) -> f64 {
+            let n = u32::from_str_radix(hex.trim_start_matches('#'), 16).unwrap();
+            let lin = |c: u32| {
+                let c = f64::from(c) / 255.0;
+                if c <= 0.03928 {
+                    c / 12.92
+                } else {
+                    ((c + 0.055) / 1.055).powf(2.4)
+                }
+            };
+            0.2126 * lin(n >> 16 & 255) + 0.7152 * lin(n >> 8 & 255) + 0.0722 * lin(n & 255)
+        }
+        let ratio = |a: f64, b: f64| (a.max(b) + 0.05) / (a.min(b) + 0.05);
+        let mut s = shop();
+        let rev = s.revision;
+        let render = |s: &mut Session, hc: bool| {
+            s.execute(
+                "report.render",
+                &json!({"page": 0, "system_fonts": false, "text_dump": true, "high_contrast": hc}),
+            )
+            .unwrap()
+        };
+        let plain = render(&mut s, false);
+        let hc = render(&mut s, true);
+        assert_eq!(s.revision, rev, "read-only");
+        let png = |r: &Value| r["pages"][0]["image"]["base64"].as_str().unwrap().to_string();
+        assert_ne!(png(&plain), png(&hc), "the option changes the picture");
+        let colours = |r: &Value| -> Vec<String> {
+            r["pages"][0]["texts"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|t| t["color"].as_str().unwrap().to_string())
+                .collect()
+        };
+        let (plain_c, hc_c) = (colours(&plain), colours(&hc));
+        assert!(!hc_c.is_empty());
+        // on the black page every run reads at 7:1 (WCAG 1.4.6); by default dark text on white
+        for c in &hc_c {
+            assert!(ratio(lum(c), 0.0) >= 7.0, "{c} on black");
+        }
+        assert!(plain_c.iter().any(|c| ratio(lum(c), 0.0) < 7.0), "{plain_c:?}");
+        assert!(
+            s.execute("report.render", &json!({"high_contrast": "on"}))
+                .is_err()
+        );
     }
 
     #[test]

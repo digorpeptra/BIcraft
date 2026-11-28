@@ -1,4 +1,4 @@
-//! Watching an opened file or project for changes made by other tools (`bicraft view`, the
+//! Watching an opened file or project for changes made by other tools (`bicraft-cli view`, the
 //! desktop app's live reload): which paths to watch, a fingerprint of their files, and whether a
 //! snapshot still waits for data. Polling with `std::fs` only (no notification API), so it
 //! behaves the same on Windows, Linux and network shares.

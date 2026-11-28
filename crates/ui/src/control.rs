@@ -770,7 +770,7 @@ fn open(app: &mut App, path: &str, frame: u64) -> Outcome {
         app.error = None;
         app.open_ws_file(path);
     } else {
-        return Outcome::Done(Err("this page opens no other file (bicraft view)".into()));
+        return Outcome::Done(Err("this page opens no other file (bicraft-cli view)".into()));
     }
     Outcome::Later(Wait::Idle { frame }, WAIT_SECS)
 }
@@ -1180,6 +1180,7 @@ pub fn tab_name(t: RTab) -> &'static str {
         RTab::Data => "data",
         RTab::Analyze => "analyze",
         RTab::View => "view",
+        RTab::Optimize => "optimize",
         RTab::Visual => "visual",
         RTab::Table => "table",
         RTab::Measure => "measure",

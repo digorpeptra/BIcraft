@@ -471,3 +471,117 @@ fn a_field_parameter_survives_a_save_and_reopen() {
         json!({"type": "json", "name": "ParameterMetadata", "value": {"version": 0}})
     );
 }
+
+/// G64: a PBIX whose report is a legacy `Report/Layout` keeps a visual bound to a field
+/// parameter: the layout holds the parameter's fields with their labels (no legacy key for the
+/// range has been seen in a Desktop file, so none is written), and the report read back binds
+/// the parameter again, so the visual still follows the parameter's slicer.
+#[test]
+fn a_field_parameter_binding_survives_a_legacy_pbix_save() {
+    let dir = TempDir::new("bicraft-params-legacy");
+    let path = dir.path().join("Legacy.pbix");
+    let pkg = bicraft_pbix::synthetic::pbix(&bicraft_pbix::synthetic::storage_database().unwrap()).unwrap();
+    std::fs::write(&path, pkg.to_bytes().unwrap()).unwrap();
+    let mut s = Session::new();
+    run(&mut s, "file.open", json!({"path": path.to_string_lossy()}));
+    run(
+        &mut s,
+        "table.import",
+        json!({"name": "Sales", "csv": "Product,Amount\nBike,100\nBike,50\nCar,1000\n"}),
+    );
+    run(
+        &mut s,
+        "measure.add",
+        json!({"table": "Sales", "name": "Total", "expression": "SUM(Sales[Amount])"}),
+    );
+    let r = run(
+        &mut s,
+        "parameter.fields",
+        json!({"name": "Metric", "fields": [{"field": "Sales[Product]", "label": "Item"}, "[Total]"]}),
+    );
+    let slicer = r["slicer"]["visual"].as_str().unwrap().to_string();
+    let table = add_visual(
+        &mut s,
+        "tableEx",
+        json!([{"role": "Values", "field": "Metric[Metric]"}]),
+    );
+    let out = run(&mut s, "file.save", json!({"backup": false}));
+    assert_eq!(out["report_format"], "legacy", "{out}");
+    let saved = bicraft_opc::Package::open(&path).unwrap();
+    let layout = bicraft_opc::decode_text("Report/Layout", &saved.get("Report/Layout").unwrap().data)
+        .unwrap()
+        .0;
+    assert!(layout.contains(r#"\"displayName\":\"Item\""#), "{layout}");
+
+    let label = bicraft_report::FieldRef::Column {
+        table: "Metric".into(),
+        column: "Metric".into(),
+    };
+    let bound = |s: &Session| -> Vec<bicraft_report::FieldRef> {
+        s.report.as_ref().unwrap().pages[0]
+            .visuals
+            .iter()
+            .find(|v| v.name == table)
+            .unwrap()
+            .fields
+            .iter()
+            .map(|b| b.field.clone())
+            .collect()
+    };
+    // the session after the save, and the file opened again
+    assert_eq!(bound(&s), vec![label.clone()]);
+    let mut t = Session::new();
+    run(&mut t, "file.open", json!({"path": path.to_string_lossy()}));
+    assert_eq!(bound(&t), vec![label]);
+    let page = page(&t);
+    run(
+        &mut t,
+        "view.interact",
+        json!({"action": "slicer_toggle", "page": page, "visual": slicer, "value": "Total"}),
+    );
+    assert_eq!(rows(&t, &table), vec![json!([1150])]);
+}
+
+/// G64: a slicer on a what-if parameter's column is the single-value slider in the snapshot,
+/// whether it carries BIcraft's `'Single'` mode or no mode (as Desktop writes its own), with the
+/// parameter's default; `slicer_set` with one value moves the measure.
+#[test]
+fn a_what_if_slicer_is_a_single_value_slider() {
+    let mut s = shop();
+    let r = run(
+        &mut s,
+        "parameter.what_if",
+        json!({"name": "Rate", "min": 0, "max": 10, "increment": 2, "default": 4}),
+    );
+    let slicer = r["slicer"]["visual"].as_str().unwrap().to_string();
+    let card = add_visual(
+        &mut s,
+        "card",
+        json!([{"role": "Values", "field": "[Rate Value]"}]),
+    );
+    let sl = |s: &Session| visual_json(&s.snapshot(), &slicer)["slicer"].clone();
+    let st = sl(&s);
+    assert_eq!(st["mode"], "single", "{st}");
+    assert_eq!(st["default"], 4, "{st}");
+    assert_eq!(
+        (st["domain"]["min"].clone(), st["domain"]["max"].clone()),
+        (json!(0), json!(10)),
+        "{st}"
+    );
+    // Desktop's own slicer: no mode
+    let page = page(&s);
+    let v = s.report.as_mut().unwrap().pages[0]
+        .visuals
+        .iter_mut()
+        .find(|v| v.name == slicer)
+        .unwrap();
+    v.visual_extra.shift_remove("objects");
+    assert_eq!(sl(&s)["mode"], "single");
+    run(
+        &mut s,
+        "view.interact",
+        json!({"action": "slicer_set", "page": page, "visual": slicer, "values": [8]}),
+    );
+    assert_eq!(rows(&s, &card), vec![json!([8])]);
+    assert_eq!(sl(&s)["selected"], json!([8]));
+}

@@ -21,7 +21,7 @@ use crate::registry::{self, At, Cmd, Context, Effect, Kind, Obj, Tab};
 use crate::widgets;
 
 /// The fixed tabs after File, in tab-row order.
-pub const TABS: [Tab; 7] = [
+pub const TABS: [Tab; 8] = [
     Tab::Home,
     Tab::Insert,
     Tab::Report,
@@ -29,6 +29,7 @@ pub const TABS: [Tab; 7] = [
     Tab::Data,
     Tab::Analyze,
     Tab::View,
+    Tab::Optimize,
 ];
 
 /// The View tab's command groups shown before its view groups, in this order (Desktop's View
@@ -190,7 +191,9 @@ pub fn show(app: &mut App, ui: &mut Ui, tab: Tab) {
             }
             crate::mobile::view_group(app, ui);
             crate::canvas::view_group(app, ui);
-            command_groups_where(app, ui, tab, |g| !VIEW_FIRST.contains(&g));
+            command_groups_where(app, ui, tab, |g| {
+                !VIEW_FIRST.contains(&g) && g != crate::mobile::GROUP
+            });
             return;
         }
         Tab::Table if app.tab == View::Data => crate::data_view::column_tools(app, ui),
@@ -216,6 +219,10 @@ pub fn show(app: &mut App, ui: &mut Ui, tab: Tab) {
     command_groups(app, ui, tab);
     if tab == Tab::Analyze {
         app.validation_ribbon(ui);
+    }
+    // Optimize: the Performance analyzer, as Desktop's Optimize tab repeats it
+    if tab == Tab::Optimize {
+        crate::optimize_ui::performance_group(app, ui);
     }
     // View as (Desktop's Modeling › Security): the ribbon's last group
     if tab == Tab::Model {
@@ -508,8 +515,9 @@ pub fn opens_form(c: &Cmd, params: &Value) -> bool {
     }
     let has_required = c.form.iter().any(|p| p.required);
     let left = c.form.iter().any(|p| params.get(p.name).is_none());
-    // Group names its group itself (Group 1, Group 2…), as Desktop's button
-    has_required && left && !matches!(c.id, "page.add" | "visual.group")
+    // Group names its group itself (Group 1, Group 2…), as Desktop's button; Group data names
+    // its group from its values
+    has_required && left && !matches!(c.id, "page.add" | "visual.group" | "visual.group_points")
 }
 
 /// Runs command `id` as its button does: the File view's flows for the file commands, the form
@@ -646,6 +654,27 @@ pub fn invoke(app: &mut App, id: &str, params: Value) {
         crate::formula::new_column(app, table);
         return;
     }
+    // Analyze and Explain the anomaly on the data point under the right click: the ranked
+    // fields in the answer window
+    if matches!(c.id, "visual.analyze" | "visual.explain_anomaly")
+        && params.get("point").is_none()
+        && params.get("visual").is_some()
+        && let (Some(pt), Value::Object(mut o)) = (app.cmd.point.clone(), params.clone())
+    {
+        o.insert("point".into(), pt);
+        send(app, c, Value::Object(o));
+        return;
+    }
+    // Group data: the point right-clicked, which the engine uses when nothing is selected in the
+    // visual (the selection comes first)
+    let mut params = params;
+    if c.id == "visual.group_points"
+        && params.get("points").is_none()
+        && params.get("point").is_none()
+        && let (Some(o), Some(pt)) = (params.as_object_mut(), app.cmd.point.clone())
+    {
+        o.insert("point".into(), pt);
+    }
     // the Data view's reads draw in its grid (a table's rows, a query preview, See records)
     if matches!(c.id, "table.rows" | "query.preview" | "visual.records")
         && crate::data_view::invoke(app, c.id, &params)
@@ -687,7 +716,8 @@ pub fn send(app: &mut App, c: &'static Cmd, params: Value) {
 /// The registry's shortcuts (Ctrl+Z, Ctrl+M, Delete, F5…), none while text is typed or a dialog,
 /// the palette or a form is open. Ctrl+S stays the app's, and Ctrl+O too where the shell has an
 /// Open dialog (the browser's Ctrl+O is `file.open`'s File view). Delete is ignored while a
-/// control has the focus (a page tab deletes its page) and needs a selected visual. F5 is
+/// control other than a canvas visual has the focus (a page tab deletes its page) and needs a
+/// selected visual. F5 is
 /// `model.refresh` on a PBIP project or a PBIX file, a reload of the file otherwise.
 pub fn shortcuts(app: &mut App, ui: &Ui) {
     let dialog = app.confirm.is_some()
@@ -700,10 +730,13 @@ pub fn shortcuts(app: &mut App, ui: &Ui) {
         || app.cmd.get_data.is_some()
         || app.cmd.enter_data.is_some()
         || app.cmd.pq.is_some();
-    if ui.ctx().egui_wants_keyboard_input() || dialog {
+    // a canvas visual focused from the keyboard is the selection: its keys stay the registry's
+    // (Delete removes it, Ctrl+Z undoes; crate::visual_focus)
+    let on_visual = crate::visual_focus::focused(app, ui.ctx()).is_some();
+    if (ui.ctx().egui_wants_keyboard_input() && !on_visual) || dialog {
         return;
     }
-    let focused = ui.ctx().memory(|m| m.focused().is_some());
+    let focused = ui.ctx().memory(|m| m.focused().is_some()) && !on_visual;
     let open_dialog = app.caps().open_files;
     let browser = app.caps().reserved_keys;
     if ui.input(|i| i.key_pressed(egui::Key::F5) && i.modifiers.is_none())

@@ -223,7 +223,7 @@ a background click, a host without selection or tooltips).
 
 ### Seen in Desktop (2.159.1231.0, 2026-11-24)
 
-Black-box run on Power BI Desktop 2.159.1231.0 (Store edition, French UI). The `bicraft` CLI
+Black-box run on Power BI Desktop 2.159.1231.0 (Store edition, French UI). `bicraft-cli`
 wrote a PBIX on a synthetic model (a table of twelve people with a department, a parent, a tier,
 a score, four amounts and a day; a skills table related to it in both directions; measures with
 the format strings `#,##0.0` and `0.0`) holding one page with a built-in column chart (Total by
@@ -474,7 +474,7 @@ Microsoft Store, and no certification is sought.
   of `all` (into a folder, one `<guid>.<version>.pbiviz` each): the package BIcraft embeds, byte
   for byte. A report author imports it in Power BI Desktop with the Visualizations pane's "…" ›
   Import a visual from a file; a tenant administrator can upload it as an organizational visual.
-  It needs no open file and leaves the session as it is. Also `bicraft visual export NAME... |
+  It needs no open file and leaves the session as it is. Also `bicraft-cli visual export NAME... |
   --all [--out F|DIR]` and Insert › Visuals › Export a BIcraft visual (docs/formats/pbiviz.md).
 - **Release archives.** `cargo xtask dist` runs the release binary's `visual export --all` and
   puts the nine files under `visuals/` in each archive, with a `visuals/README.md` that names the

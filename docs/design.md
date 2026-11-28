@@ -164,7 +164,7 @@ none has is drawn by egui as its replacement box, never dropped.
 
 **Report pages use the bundled faces too** (decision of 2026-11-04): the app's renderer
 (`bicraft_ui::pages::font_book`) reads no system font, on the desktop as in the browser, so a
-page is the same pixels in both. `bicraft render` keeps the system's fonts (Segoe UI on
+page is the same pixels in both. `bicraft-cli render` keeps the system's fonts (Segoe UI on
 Windows), for comparisons with Power BI Desktop. Chevrons and arrows in chrome are **painted** (DeckCraft's `chevron()`),
 never typed, so no glyph is missing anywhere. API: `theme::font(size)`, `theme::bold(size)`
 (= `fonts::semibold_px`), same names as DeckCraft.
@@ -196,7 +196,7 @@ under the OS title bar, as DeckCraft on Windows and Linux):
 ```text
 ┌ title row (chrome, 38) ────────────────────────────────────────────────────────────────────┐
 │ [logo] [open][reload]      Sales.pbix · PBIX · rev 12 · ● model        [◐][search][Open in Desktop] │
-├ tab row (chrome, 28): File Home Report Model Data Analyze View (contextual: Visual, Table, Measure) ┤
+├ tab row (chrome, 28): File Home Report Model Data Analyze View Optimize (contextual: Visual, …) ┤
 │ ╭ ribbon card (card, radius 10) ───────────────────────────────────────────────────────────╮ │
 │ │ groups of big and small buttons for the active tab, separators 13 px                     │ │
 │ ╰──────────────────────────────────────────────────────────────────────────────────────────╯ │
@@ -215,12 +215,12 @@ under the OS title bar, as DeckCraft on Windows and Linux):
   draws its own decorations (not now).
 - **Tab row** (DeckCraft `ribbon::show`): the tabs of the engine's command registry
   ([commands-ui.md](commands-ui.md), ROADMAP M11): File (the Backstage), Home, Insert, Report, Model,
-  Data, Analyze, View, then contextual tabs in `contextual` colour that appear with a selection (a
+  Data, Analyze, View, Optimize, then contextual tabs in `contextual` colour that appear with a selection (a
   visual selected on the canvas → **Visual**; a table or column in the Model view → **Table**; a
   measure → **Measure**; a column in the Data view → **Table**, its Column tools). Insert, Report
   and Visual show the Report view, Data the Data view, Model and Measure the Model view (Table keeps
-  the view it appeared in); the Validation view is Analyze's; Home, Analyze and View keep the
-  view shown.
+  the view it appeared in); the Validation view is Analyze's; Home, Analyze, View and Optimize keep
+  the view shown.
   The active tab is semibold with a 3 px `accent` underline (width − 20); hover is a rounded
   `hover` fill; clicking the active tab (or double-clicking any) collapses the ribbon card, state
   kept in the prefs. The **Home** tab replaces the egui menu bar (File, View) of today.
@@ -235,7 +235,9 @@ under the OS title bar, as DeckCraft on Windows and Linux):
   - Model: View (Fit, Zoom −/+, Actual size), then Properties, Relationships, Calculations,
     Calculation groups, Security, Translations.
   - Data, View: the registry's groups only. Analyze: Show validation, the registry's groups, then
-    the validation counts.
+    the validation counts. Optimize (Desktop's tab of that name, G60): Pause visuals (Pause
+    visuals, Refresh all visuals), Optimization presets, then the Performance analyzer button
+    that Analyze › Performance also has.
   - Contextual Visual, Table, Measure: the registry's groups for the selected object.
   Every command button has its label (EN/FR), icon and a tooltip (the engine's label, the
   shortcut, the id); greyed, the tooltip adds the reason (`commands.disabled` of the snapshot, the
@@ -362,8 +364,12 @@ Pill states (header and status bar):
   links, no shadow. It is egui's dark style with a black chrome (`Tokens::get` tells it from dark
   by the panel fill). Home › High contrast picks it; `"theme": "high-contrast"` in the prefs. The
   browser follows the system's high contrast (`forced-colors: active` or `prefers-contrast:
-  more`) while no theme is stored; eframe exposes only light and dark, so the desktop does not
-  detect Windows contrast themes (the Home button instead).
+  more`) while no theme is stored. The desktop does the same with Windows contrast themes, read
+  once at start from the per-user high-contrast flags (`HKCU\Control Panel\Accessibility\HighContrast`
+  `Flags`, its "on" bit, through `windows-registry`'s safe API; `bicraft_desktop::contrast`); a
+  change while the app runs is not followed. On Linux winit and eframe expose only light and
+  dark, so the desktop does not follow a desktop environment's contrast preference (the Home
+  button instead).
 - **Light by default**, whatever the OS says. The toggle (title row, Home tab, palette command
   "Dark mode") switches and repaints at once (`theme::apply`).
 - Kept as `"theme": "light" | "dark"` in the prefs (`crates/ui/src/prefs.rs`), saved through the
@@ -477,10 +483,10 @@ the primary pill is absent without `Caps::open_in_desktop`; the browser caps sho
 Screenshots (not in `ci`; `gpu-tests` feature, `BICRAFT_DESKTOP_SHOTS=DIR`): the Report (with a
 selected visual), Model (with a selected table) and Validation tabs, the start screen and the
 Connect dialog, each in light and dark, at 1280 × 800, pixels-per-point 1 and 2. The **browser**
-set: the same screens from `bicraft view … --ui egui` in one headless browser (WebGPU, then
+set: the same screens from `bicraft-cli view … --ui egui` in one headless browser (WebGPU, then
 WebGL2), same size and DPI, captured over WebDriver BiDi as in [webui.md](webui.md). Compared
 pairwise (desktop vs browser) with a small per-pixel tolerance for rasterisation differences;
-the chrome must match, the report page must be byte-identical to `bicraft render`'s (existing
+the chrome must match, the report page must be byte-identical to `bicraft-cli render`'s (existing
 test). Screenshots stay local unless they show only our own synthetic fixtures (AGENTS.md §2).
 
 ## 12. Status (phase B, 2026-11-04)
@@ -508,7 +514,7 @@ Built in `crates/ui` and used by both shells, identically:
 | `filters_pane.rs` | the Report view's **Filters** pane (left of Build): filters on this visual, on this page and on all pages; basic, advanced and top N cards; drop a field on a section to add a card |
 | `interactions.rs` | the Edit interactions mode: the Visual tab's toggle, Escape, an icon strip (Filter, Highlight, None) over every target of the selected source, the marked mode (rule or default), one `page.interactions` rule per click |
 | `formula.rs`, `dax_text.rs` | the DAX formula bar under the ribbon: `Name = <DAX>` with the `syn_*` colours, ✗ and ✓, the home table and format, the chevron; autocomplete, signature help, the live check's underline and message |
-| `canvas.rs` | canvas editing: the selection of one or several visuals (`ring` outlines), the eight 8 pt resize handles of their rectangle (`handle_fill`, `handle_stroke`), a drag's ghost outlines (`ring` at 14 % over the page, 1.5 px `ring`), dashed 1 px smart guides in `guide`, the rubber band (the same fill, 1 px `ring`), the 8 px grid's dots in `border` with View › Gridlines, the position and size in the status bar in `text`; the Arrange menus (Align, Layer order), View › Page view and the View tab's Page options (Gridlines, Snap to grid, Lock objects); the clipboard |
+| `canvas.rs` | canvas editing: the selection of one or several visuals (`ring` outlines), the eight 8 pt resize handles of their rectangle (`handle_fill`, `handle_stroke`), a drag's ghost outlines (`ring` at 14 % over the page, 1.5 px `ring`), dashed 1 px smart guides in `guide`, the rubber band (the same fill, 1 px `ring`), the 8 px grid's dots in `border` with View › Gridlines (drawn by the renderer under the visuals), the position and size in the status bar in `text`; the Arrange menus (Align, Layer order), View › Page view and the View tab's Page options (Gridlines, Snap to grid, Smart guides, Lock objects); the clipboard |
 | `data_view.rs` | the Data view (Desktop's table view): the grid (22 px rows on `card`, the report surface, without stripes, a 1 px `separator` line under each row and between columns, the 28 px header on `chrome` with the type tag in `text_dim` 10.5, the name in semibold 12, the menu arrow, the sort triangle or the `filter` icon in `accent_text`, a selected column on `selected`, selected cells on `accent_soft`, numbers right-aligned in `text`, `…` in `text_faint` for rows not read yet); the 240 px Data pane on `chrome` (tables, the shown table's columns, queries; 22 px rows with their icon); the header's menu (a popup frame: sort, clear, the values' checklist, OK / Cancel); the Column tools on the Table tab (labelled pickers 150 px, New column and New measure big buttons) |
 | `app.rs` (documents) | document tabs under the title row (30 px; the active one on `card` with a 2 px `accent` top line; unsaved `accent` dot; × on hover; `+`); the confirmation dialog (DeckCraft's dialog, primary then Cancel) |
 
@@ -621,7 +627,7 @@ Differences from the specification above, on purpose:
   tokens (card fill, ring, amber accent).
 - The primary pill is drawn only with `Caps::open_in_desktop` (no shell has it yet).
 
-Screenshots (`cargo test -p bicraft-desktop --features gpu-tests` with `BICRAFT_DESKTOP_SHOTS`:
+Screenshots (`cargo test -p bicraft --features gpu-tests` with `BICRAFT_DESKTOP_SHOTS`:
 `design_screenshots`, `side_by_side_with_the_browser`, `ribbon_screenshots`) and the browser's (headless browser on
-`bicraft view --ui egui`, light and dark through the stored preference) are kept locally, not
+`bicraft-cli view --ui egui`, light and dark through the stored preference) are kept locally, not
 committed.

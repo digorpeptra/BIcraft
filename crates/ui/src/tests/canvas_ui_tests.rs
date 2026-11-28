@@ -907,6 +907,77 @@ fn gridlines_toggle_alone() {
     assert!(!h.state().prefs.show_gridlines);
 }
 
+/// View › Gridlines draws the grid in the page image, over the page and under the visuals: a
+/// grid point of the empty page changes, one under the card keeps the card's pixels.
+#[test]
+fn gridlines_are_drawn_under_the_visuals() {
+    let mut h = app();
+    let shown = |h: &Harness<'static, App>| match h.state().shown.as_ref() {
+        Some((k, Ok(img))) => (*k, img.clone()),
+        other => panic!("no page image: {:?}", other.map(|(k, _)| k)),
+    };
+    let px = |img: &bicraft_render::PageImage, x: f32, y: f32| {
+        let (x, y) = ((x * img.scale) as usize, (y * img.scale) as usize);
+        let i = (y * img.width as usize + x) * 4;
+        img.rgba[i..i + 3].to_vec()
+    };
+    let (k0, plain) = shown(&h);
+    assert!(k0.grid.is_none());
+    view_button(&mut h, "Gridlines");
+    steps(&mut h, 4);
+    let (k1, grid) = shown(&h);
+    let g = k1.grid().expect("the page is drawn with its grid");
+    assert!(g.step.0 >= canvas::GRID && g.step.1 >= canvas::GRID, "{g:?}");
+    let (_, card) = find(h.state(), "card");
+    // multiples of every step the grid takes (8 doubled up to 1024 ... at most 128 here)
+    let (empty, under) = (pos2(1024.0, 640.0), pos2(256.0, 256.0));
+    assert!(card.contains(under) && !card.contains(empty));
+    assert_ne!(
+        px(&grid, empty.x, empty.y),
+        px(&plain, empty.x, empty.y),
+        "a dot on the page"
+    );
+    assert_eq!(
+        px(&grid, under.x, under.y),
+        px(&plain, under.x, under.y),
+        "no dot over the card"
+    );
+    view_button(&mut h, "Gridlines");
+    steps(&mut h, 4);
+    assert!(shown(&h).0.grid.is_none());
+}
+
+/// View › Smart guides off: an edge 3 px from the chart's no longer snaps onto it and no guide
+/// shows; on again, it snaps. A view setting: no command is sent.
+#[test]
+fn smart_guides_off_stops_snapping_to_other_visuals() {
+    let mut h = app();
+    let (card, r) = find(h.state(), "card");
+    let (_, chart) = find(h.state(), "clusteredColumnChart");
+    let z = zoom(h.state());
+    let sent = h.state().sent.len();
+    view_button(&mut h, "Smart guides");
+    assert!(h.state().prefs.hide_guides);
+    assert_eq!(h.state().sent.len(), sent, "no command: a view setting");
+    let from = screen(h.state(), r.center());
+    let to = from + vec2(37.0, chart.min.y - r.min.y + 3.0) * z;
+    let mut guides = Vec::new();
+    drag_with(&mut h, from, to, Modifiers::NONE, |h| {
+        guides = h.state().canvas.gesture.as_ref().unwrap().guides.clone();
+    });
+    assert!(guides.is_empty(), "{guides:?}");
+    let got = rect_of(h.state(), &card);
+    assert!(
+        (got.min.y - (chart.min.y + 3.0)).abs() < 1.0,
+        "not snapped: {got:?}"
+    );
+    undo(&mut h);
+    view_button(&mut h, "Smart guides");
+    assert!(!h.state().prefs.hide_guides);
+    drag(&mut h, from, to, Modifiers::NONE);
+    assert_eq!(rect_of(h.state(), &card).min.y, chart.min.y, "snapped again");
+}
+
 /// The status bar's zoom: Zoom in and Zoom out step the scale by 10 %, Fit width fits the width;
 /// View › Page view writes the page's display option (one command, one undo step) and the canvas
 /// follows it again.

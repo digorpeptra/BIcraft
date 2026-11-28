@@ -23,6 +23,9 @@ use crate::hits::{HitAction, HitShape};
 const MAX_ITEMS: usize = 300;
 /// Most selected values read.
 const MAX_SELECTED: usize = 1000;
+/// The values a single-value slider steps through (Learn: the what-if slider shows at most
+/// 1,000).
+const SLIDER_VALUES: usize = 1000;
 
 // Desktop 2.158 classic look (a report without a theme); a theme's foreground replaces the
 // greys.
@@ -134,6 +137,8 @@ struct State {
     header_show: Option<bool>,
     range: Value,
     domain: Value,
+    /// A what-if parameter's default value (the single-value slider with nothing selected).
+    default: Value,
     relative: Value,
 }
 
@@ -163,6 +168,7 @@ fn state(v: &Value, default_mode: &str) -> State {
         header_show: get(sl, "header_show").as_bool(),
         range: get(sl, "range").clone(),
         domain: get(sl, "domain").clone(),
+        default: get(sl, "default").clone(),
         relative: get(sl, "relative").clone(),
     }
 }
@@ -289,6 +295,11 @@ pub fn slicer_v2(
             }
             let fmt = |x: &Value| fmt_cell(x, rcf.as_ref(), &ctx.loc, false);
             range(cv, ctx, b, top, &st, &mode, &vals, &fmt)
+        }
+        "single" => {
+            let fmt = |x: &Value| fmt_cell(x, cf.as_ref(), &ctx.loc, false);
+            let name = col.map(|c| c.name.as_str()).unwrap_or("");
+            single(cv, ctx, b, top, &st, &ds.rows, name, &fmt)
         }
         "relative" => {
             // the covered days in the culture's short date
@@ -678,6 +689,102 @@ fn range(
     }
     if mode != "after" {
         cv.round_rect(hb - 2.25, ty - 7.5, 4.5, 15.0, 2.2, Some((ITEM_C, 1.0)), None);
+    }
+}
+
+// --- single value (a what-if parameter) ------------------------------------------------------
+
+/// The single-value slider of a what-if parameter (docs/formats/parameters.md): one value box and
+/// a slider with one handle at the value shown, the selected value, else the parameter's default,
+/// else the smallest. Its track is a hit whose popup spec (`kind: "slider"`) lists the values in
+/// order, so the front end's slider snaps to one and sends `view.interact` `slicer_set` with it.
+fn single(
+    cv: &mut Canvas,
+    ctx: &Ctx<'_>,
+    b: Bx,
+    top: f32,
+    st: &State,
+    rows: &[Vec<Value>],
+    name: &str,
+    fmt: &dyn Fn(&Value) -> String,
+) {
+    let p = pal(ctx);
+    let mut seen = HashSet::new();
+    let mut vals: Vec<Value> = Vec::new();
+    for r in rows {
+        if let Some(x) = r.first().filter(|x| x.as_f64().is_some_and(f64::is_finite))
+            && seen.insert(key_of(x))
+        {
+            vals.push(x.clone());
+            if vals.len() >= SLIDER_VALUES {
+                break;
+            }
+        }
+    }
+    vals.sort_by(cmp_raw);
+    let num = |x: &Value| x.as_f64().filter(|x| x.is_finite());
+    let lo = num(get(&st.domain, "min")).or_else(|| vals.first().and_then(num));
+    let hi = num(get(&st.domain, "max")).or_else(|| vals.last().and_then(num));
+    let picked = match st.sel_raw.as_slice() {
+        [one] if !st.inverted && num(one).is_some() => Some(one.clone()),
+        _ => None,
+    };
+    let value = picked
+        .or_else(|| num(&st.default).map(|_| st.default.clone()))
+        .or_else(|| vals.first().cloned())
+        .unwrap_or(Value::Null);
+    // the value box, sized to its text (at least 73 px)
+    let fnt = Font::new(&ctx.font, 10.0 * PT);
+    let text = fmt(&value);
+    let iw = (ctx.fonts.measure(&fnt, &text) + 16.0)
+        .max(72.7)
+        .min((b.w - 18.0).max(10.0));
+    let (y0, ih) = (top + inset(top), 26.6f32);
+    cv.round_rect(
+        9.5,
+        y0 + 0.5,
+        iw - 1.0,
+        ih - 1.0,
+        0.0,
+        None,
+        Some((INPUT_BORDER_C, 1.0, None)),
+    );
+    let s = ctx.fonts.fit(&fnt, &text, (iw - 10.0).max(0.0));
+    base_text(cv, ctx, &s, fnt, p.value, 9.0 + 6.7, y0 + 18.0, Anchor::Start);
+    // the slider: a 3 px track, filled up to the one 4 x 14 px handle
+    let ty = top + if top > 0.0 { 48.0 } else { 46.3 };
+    if ty + 7.0 > b.h {
+        return;
+    }
+    let (xa, xb) = (8.3f32, (b.w - 10.0).max(9.0));
+    let span = xb - xa;
+    let f = match (num(&value), lo, hi) {
+        (Some(x), Some(lo), Some(hi)) if hi > lo && (hi - lo).is_finite() => {
+            ((x - lo) / (hi - lo)).clamp(0.0, 1.0) as f32
+        }
+        _ => 0.0,
+    };
+    let h = xa + f * span;
+    cv.rect(xa, ty - 1.5, span, 3.0, ctx.track, 1.0);
+    cv.rect(xa, ty - 1.5, (h - xa).max(0.0), 3.0, ITEM_C, 1.0);
+    cv.round_rect(h - 2.25, ty - 7.5, 4.5, 15.0, 2.2, Some((ITEM_C, 1.0)), None);
+    if ctx.ix.on() && !vals.is_empty() {
+        let popup = ctx.ix.popup(
+            "slider",
+            json!({"values": vals, "value": value, "label": name, "text": text}),
+        );
+        let shape = HitShape::Rect {
+            x: xa,
+            y: ty - 9.0,
+            w: span.max(1.0),
+            h: 18.0,
+        };
+        let tip = if name.is_empty() {
+            Vec::new()
+        } else {
+            vec![(name.to_string(), text.clone())]
+        };
+        cv.hit(ctx.ix.hit(shape, popup, tip));
     }
 }
 
@@ -1157,6 +1264,28 @@ mod tests {
         );
     }
 
+    /// G64: a what-if parameter's slicer is one value box and a slider with one handle, at the
+    /// selected value, else at the default.
+    #[test]
+    fn the_single_value_slider_has_one_handle_at_the_value() {
+        let col = json!({"name": "Rate", "role": "Values", "kind": "column", "data_type": "int64"});
+        let rows = json!([[0], [2], [4], [6], [8], [10]]);
+        // the track runs from 8.3 to 280 px in a 290 px wide slicer; the handle is at y 53 to 68
+        let handle_at = |slicer: Value| {
+            let cv = render(&visual("slicer", col.clone(), rows.clone(), slicer), 290.0, 110.0);
+            let dark = |x: f32| darkest(&cv, x - 3.0, 56.0, x + 3.0, 59.0) < 150;
+            (dark(8.3 + 0.2 * 271.7), dark(8.3 + 0.8 * 271.7), dark(280.0))
+        };
+        assert_eq!(
+            handle_at(json!({"mode": "single", "selected": [8]})),
+            (false, true, false)
+        );
+        assert_eq!(
+            handle_at(json!({"mode": "single", "default": 2})),
+            (true, false, false)
+        );
+    }
+
     #[test]
     fn a_date_slicer_without_a_mode_is_a_range() {
         // Power BI Desktop 2.159.1231.0 (2026-11-24) drew a slicer on a date and on a date-time
@@ -1315,6 +1444,8 @@ mod tests {
             json!({"mode": "before", "range": 5}),
             json!({"mode": "tile", "selected": rows.clone()}),
             json!({"mode": "nonsense"}),
+            json!({"mode": "single", "selected": [null, "x"], "default": "zz", "domain": {"min": "a", "max": [1]}}),
+            json!({"mode": "single", "selected": [1e308], "default": -1e308, "domain": {"min": 5, "max": 5}}),
             json!(null),
         ];
         for sl in cases {
@@ -1332,6 +1463,13 @@ mod tests {
             col,
             json!([[1e308], [-1e308], [null], ["x"]]),
             json!({"mode": "between"}),
+        );
+        let _ = render(&v, 290.0, 110.0);
+        let v = visual(
+            "slicer",
+            json!({"name": "Amount", "role": "Values", "kind": "column", "data_type": "double"}),
+            json!([[1e308], [-1e308], [null], ["x"]]),
+            json!({"mode": "single", "selected": [1e308]}),
         );
         let _ = render(&v, 290.0, 110.0);
     }

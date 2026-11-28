@@ -5,9 +5,13 @@
 //!
 //! The times are BIcraft's own, read from a monotonic clock around its evaluator; they are never
 //! compared with another product's. The query text says what BIcraft evaluates as a DAX query
-//! (`SUMMARIZECOLUMNS` over the visual's grouping columns, its filters as filter tables, its
-//! measures and aggregations as named expressions); the preview itself does not run that text,
-//! and what the text cannot say is listed in `notes`.
+//! (`SUMMARIZECOLUMNS` over the visual's grouping columns, its column filters as filter tables,
+//! its top N filters as `TOPN` tables ranked under those, its measures and aggregations as named
+//! expressions, and its measure and aggregation filters as a `FILTER` over the rows, evaluated
+//! under the same filter tables); report, page, visual filters, slicer selections,
+//! cross-filters and relative dates all reach it through [`filters::collect`]. View as roles are
+//! not written: they apply to whatever the session evaluates, the copied text included. The
+//! preview itself does not run that text, and what the text cannot say is listed in `notes`.
 
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::time::{Duration, Instant};
@@ -144,17 +148,40 @@ pub(super) fn query_text(v: &Visual, applied: &Applied) -> QueryText {
         notes.push("the visual has no field the query reads".into());
         return QueryText { text: None, notes };
     }
+    // as the evaluator plans them (`preview::plan`): column conditions are filter tables, top N
+    // filters are ranked under them, measure and aggregation conditions keep the visual's rows
     let mut defines: Vec<String> = Vec::new();
+    let mut tops: Vec<&filters::TopN> = Vec::new();
+    let mut row_conds: Vec<String> = Vec::new();
     for item in &applied.items {
         match item {
-            Item::Cond(c) => match filter_table(c) {
-                Some(t) => defines.push(t),
-                None => notes.push(
-                    "a filter on a measure or an aggregation is applied to the visual's rows after the query: not written"
-                        .into(),
-                ),
-            },
-            Item::TopN(t) => notes.push(format!(
+            Item::Cond(c) => {
+                let ops = c.operands();
+                let cols = ops.iter().filter(|o| matches!(o, Operand::Col { .. })).count();
+                if cols == ops.len() {
+                    match filter_table(c) {
+                        Some(t) => defines.push(t),
+                        None => notes.push("a column filter is not written".into()),
+                    }
+                } else if cols == 0 {
+                    match predicate(c) {
+                        Some(p) => row_conds.push(p),
+                        None => notes
+                            .push("a filter on an aggregation BIcraft does not write: not written".into()),
+                    }
+                } else {
+                    notes.push("not applied by BIcraft: a condition mixing columns and measures".into());
+                }
+            }
+            Item::TopN(t) => tops.push(t),
+        }
+    }
+    let filter_names: Vec<String> = (0..defines.len()).map(|i| format!("__Filter{i}")).collect();
+    let mut top_defines: Vec<String> = Vec::new();
+    for t in tops {
+        match top_table(t, &filter_names) {
+            Some(d) => top_defines.push(d),
+            None => notes.push(format!(
                 "the top {} filter on {}[{}] is not written",
                 t.n, t.table, t.column
             )),
@@ -164,21 +191,45 @@ pub(super) fn query_text(v: &Visual, applied: &Applied) -> QueryText {
         notes.push(format!("not applied by BIcraft: {why}"));
     }
     let mut text = String::new();
-    if !defines.is_empty() {
+    if !defines.is_empty() || !top_defines.is_empty() {
         text.push_str("DEFINE\n");
         for (i, d) in defines.iter().enumerate() {
             text.push_str(&format!("\tVAR __Filter{i} = {d}\n"));
         }
+        for (i, d) in top_defines.iter().enumerate() {
+            text.push_str(&format!("\tVAR __TopN{i} = {d}\n"));
+        }
     }
-    text.push_str("EVALUATE\n\tSUMMARIZECOLUMNS(");
+    let mut all_filters = filter_names;
+    all_filters.extend((0..top_defines.len()).map(|i| format!("__TopN{i}")));
+    let (indent, close) = if row_conds.is_empty() {
+        text.push_str("EVALUATE\n\tSUMMARIZECOLUMNS(");
+        ("\t\t", "\n\t)\n")
+    } else {
+        text.push_str("EVALUATE\n\tFILTER(\n\t\tSUMMARIZECOLUMNS(");
+        ("\t\t\t", "\n\t\t),\n")
+    };
     let mut args: Vec<String> = groups;
-    args.extend((0..defines.len()).map(|i| format!("__Filter{i}")));
+    args.extend(all_filters.iter().cloned());
     args.extend(values.iter().map(|(n, e)| format!("{}, {e}", string(n))));
     for (i, a) in args.iter().enumerate() {
-        text.push_str(if i == 0 { "\n\t\t" } else { ",\n\t\t" });
+        text.push_str(if i == 0 { "\n" } else { ",\n" });
+        text.push_str(indent);
         text.push_str(a);
     }
-    text.push_str("\n\t)\n");
+    text.push_str(close);
+    if !row_conds.is_empty() {
+        // each row's measures under the visual's filters: its grouping by context transition,
+        // the filter tables kept beside it
+        let cond = row_conds.join(" && ");
+        let cond = if all_filters.is_empty() {
+            cond
+        } else {
+            let keep: Vec<String> = all_filters.iter().map(|f| format!("KEEPFILTERS({f})")).collect();
+            format!("CALCULATE({cond}, {})", keep.join(", "))
+        };
+        text.push_str(&format!("\t\t{cond}\n\t)\n"));
+    }
     if text.len() > MAX_QUERY_BYTES {
         notes.push("the query text would be longer than 1 MiB: left out".into());
         return QueryText { text: None, notes };
@@ -282,10 +333,31 @@ fn predicate(c: &Cond) -> Option<String> {
     })
 }
 
+/// A top N filter as a filter table: the column's values ranked by the operand under the column
+/// filters `filters`, blanks left out and ties kept (as the evaluator's `top_n`).
+fn top_table(t: &filters::TopN, filters: &[String]) -> Option<String> {
+    let by = operand(&t.by).filter(|_| !matches!(t.by, Operand::Col { .. }))?;
+    let mut args = vec![col(&t.table, &t.column)];
+    args.extend(filters.iter().cloned());
+    args.push(format!("\"__Rank\", {by}"));
+    let order = if t.desc { "DESC" } else { "ASC" };
+    Some(format!(
+        "TOPN({}, SUMMARIZECOLUMNS({}), [__Rank], {order})",
+        t.n,
+        args.join(", ")
+    ))
+}
+
+/// An operand as a DAX expression: a column, a measure, or an aggregation of a column.
 fn operand(o: &Operand) -> Option<String> {
     match o {
         Operand::Col { table, column } => Some(col(table, column)),
-        _ => None,
+        Operand::Measure { name, .. } => Some(bracket(name)),
+        Operand::Agg {
+            table,
+            column,
+            function,
+        } => agg_function(function).map(|f| format!("CALCULATE({f}({}))", col(table, column))),
     }
 }
 

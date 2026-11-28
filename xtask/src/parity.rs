@@ -31,8 +31,8 @@ const INVENTORY: &str = "## Desktop UI inventory";
 
 /// The three viewer surfaces, in column order.
 const SURFACES: [&str; 3] = [
-    "`bicraft render` (PNG)",
-    "Web viewer (`bicraft view`, page.html)",
+    "`bicraft-cli render` (PNG)",
+    "Web viewer (`bicraft-cli view`, page.html)",
     "BIcraft app (egui, desktop and browser)",
 ];
 

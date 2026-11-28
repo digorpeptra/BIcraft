@@ -1,4 +1,4 @@
-# `bicraft serve` for one workspace ("main"), without Helm (docs/kubernetes.md, "Plain manifests").
+# `bicraft-cli serve` for one workspace ("main"), without Helm (docs/kubernetes.md, "Plain manifests").
 # What to adapt: the image, the workspace id (the mount path and the grant), the sizing block, the
 # host names. `cargo xtask deploy smoke` starts the binary with exactly these arguments and
 # variables (paths mapped to a scratch folder), and `cargo xtask deploy check` keeps them in line

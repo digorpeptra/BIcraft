@@ -12,7 +12,7 @@ Third-party material
 
 This product embeds third-party material under its own licenses, listed below. THIRD_PARTY_NOTICES.md
 describes each component, ATTRIBUTION.md lists every asset with its author, source and licence, and
-the licence texts are under licenses/. `bicraft licenses` prints all of them.
+the licence texts are under licenses/. `bicraft-cli licenses` prints all of them.
 
 - XPress9 compression codec (crates/xpress9): a Rust port of the C source in
   https://github.com/microsoft/Extensible-Storage-Engine (dev/ese/src/_xpress9, commit

@@ -13,9 +13,9 @@
 //!
 //! ```text
 //! cargo xtask oracle-gen interactions DIR          -> DIR/model.bim, cmds1.json, cmds2.json, plan.json
-//! bicraft run --file DIR/cmds1.json               -> DIR/proj/Interactions.pbip
+//! bicraft-cli run --file DIR/cmds1.json               -> DIR/proj/Interactions.pbip
 //! cargo xtask oracle-gen interactions DIR patch    -> slicer selections, interactions, sync groups
-//! bicraft run --file DIR/cmds2.json               -> DIR/interactions.pbix
+//! bicraft-cli run --file DIR/cmds2.json               -> DIR/interactions.pbix
 //! xtask/interaction-oracle/record.ps1 -Dir DIR     -> DIR/raw/ (Desktop: trace, readings, results)
 //! cargo xtask oracle-gen interactions DIR collect  -> testsupport/interaction_oracle/corpus.json
 //! ```
@@ -1116,7 +1116,7 @@ pub fn plan() -> Value {
            "scenarios": pages})
 }
 
-/// `bicraft run` commands: model (from model.bim), report, PBIP project.
+/// `bicraft-cli run` commands: model (from model.bim), report, PBIP project.
 pub fn cmds1(dir: &str) -> Value {
     let scs = scenarios();
     let mut c = Cmds::default();
@@ -1147,7 +1147,7 @@ fn generate(dir: &str) -> Result<(), String> {
     let scs = scenarios();
     let steps: usize = scs.iter().map(|s| s.steps.len()).sum();
     println!(
-        "{} scenario pages, {steps} steps; next: bicraft run --file {}",
+        "{} scenario pages, {steps} steps; next: bicraft-cli run --file {}",
         scs.len(),
         join(dir, &["cmds1.json"])
     );

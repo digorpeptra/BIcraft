@@ -134,14 +134,14 @@ pub struct Shell {
     pub pick_data: Option<PickData>,
     /// The clock; none: dates are unknown (0).
     pub now: Option<Now>,
-    /// The server workspace the page belongs to (the browser on `bicraft serve`): Open > Browse
+    /// The server workspace the page belongs to (the browser on `bicraft-cli serve`): Open > Browse
     /// lists its files and Recent keeps workspace-relative names.
     pub workspace: Option<String>,
     /// Most documents open at once ([`MAX_DOCS`], the same in every shell).
     pub max_docs: usize,
     /// A workspace file opens in a document tab of its own ([`crate::source::Origin::Workspace`]),
     /// whose source is a private view on the server with a session of its own on that file (the
-    /// browser on `bicraft serve`, docs/webui.md, "Document tabs"): the tabs work side by side,
+    /// browser on `bicraft-cli serve`, docs/webui.md, "Document tabs"): the tabs work side by side,
     /// as the desktop's. Off: a workspace file opens in the server tab's own session (the desktop
     /// connected to a server).
     pub ws_tabs: bool,
@@ -168,8 +168,9 @@ pub struct Shell {
     pub print: Option<Download>,
     /// The operating system asks for high contrast (the browser: `forced-colors: active` or
     /// `prefers-contrast: more`): a window without a theme preference starts in the
-    /// high-contrast theme with the report pages in high contrast. The desktop leaves it off
-    /// (eframe exposes only light and dark; View › High contrast instead).
+    /// high-contrast theme with the report pages in high contrast. The desktop sets it from
+    /// Windows' contrast themes at start (`bicraft_desktop::contrast`); on Linux it stays off
+    /// (winit and eframe expose only light and dark; View › High contrast instead).
     pub system_high_contrast: bool,
 }
 

@@ -153,8 +153,14 @@ pub(crate) fn report_export_pdf(s: &Session, p: &Value) -> Result<Value, String>
             "ui_language",
             "format_culture",
             "as_of",
+            "pdf_ua",
+            "pdf_a",
         ],
     )?;
+    let conf = bicraft_render::PdfConformance {
+        ua: opt_bool(p, "pdf_ua")?.unwrap_or(true),
+        archive: opt_bool(p, "pdf_a")?.unwrap_or(false),
+    };
     let out = match opt_str(p, "out")? {
         None => return Err("missing parameter `out` (the .pdf file to write)".into()),
         // "" would name the working directory: never a silent write there
@@ -250,7 +256,7 @@ pub(crate) fn report_export_pdf(s: &Session, p: &Value) -> Result<Value, String>
         culture: format_culture,
         ..RenderOptions::default()
     };
-    let doc = bicraft_render::render_pdf(&snap, &picked, &assets, &fonts, &opts, &title)
+    let doc = bicraft_render::render_pdf_as(&snap, &picked, &assets, &fonts, &opts, &title, conf)
         .map_err(|e| e.to_string())?;
     if let Some(dir) = out.parent()
         && !dir.as_os_str().is_empty()
@@ -267,7 +273,7 @@ pub(crate) fn report_export_pdf(s: &Session, p: &Value) -> Result<Value, String>
         .collect();
     if !not_embedded.is_empty() {
         warnings.push(format!(
-            "the licence of {} forbids embedding: its text is drawn as outlines (still searchable)",
+            "{} cannot be embedded (its licence forbids it, or it is a CFF face over 16 MB): its text is drawn as outlines (still searchable)",
             not_embedded.join(", ")
         ));
     }
@@ -299,6 +305,7 @@ pub(crate) fn report_export_pdf(s: &Session, p: &Value) -> Result<Value, String>
             "raster_parts": pg.raster_parts,
         })).collect::<Vec<_>>(),
         "fonts": doc.fonts.iter().map(|f| json!({"name": f.name, "embedded": f.embedded, "glyphs": f.glyphs})).collect::<Vec<_>>(),
+        "conformance": {"pdf_ua": conf.ua, "pdf_a": conf.archive.then_some("2b")},
         "skipped_hidden": pages.iter().filter(|x| x.hidden).count().saturating_sub(picked.iter().filter(|i| pages.get(**i).is_some_and(|x| x.hidden)).count()),
     });
     if !warnings.is_empty() {

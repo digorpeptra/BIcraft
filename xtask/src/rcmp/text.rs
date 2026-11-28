@@ -1,5 +1,5 @@
 //! Text check: the text runs Desktop drew (capture.mjs's `NN-<page>.json`: one entry per DOM
-//! text node with its computed style and box) against the runs bicraft drew (`bicraft render
+//! text node with its computed style and box) against the runs bicraft drew (`bicraft-cli render
 //! --text-json`), matched per visual.
 //!
 //! Strings are compared after whitespace normalisation (no-break and thin spaces become spaces,

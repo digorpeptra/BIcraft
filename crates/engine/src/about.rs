@@ -4,7 +4,7 @@
 //! schemas, the MIT best-practice rules, the OFL Selawik fonts, the OFL Carlito and Noto subsets (the
 //! renderer's fallback faces and the UI's symbols), Unicode CLDR data, the MIT DashCraft port of
 //! M library functions and the M formatter). Their licences require the notices to travel with every
-//! copy, so the binary carries them itself: `bicraft licenses`, the MCP `run_command`, and the
+//! copy, so the binary carries them itself: `bicraft-cli licenses`, the MCP `run_command`, and the
 //! container image all reach this text.
 
 use serde_json::{Value, json};

@@ -1,4 +1,4 @@
-//! End-to-end tests of `bicraft sources` and `bicraft env` (docs/sources-env.md): saving,
+//! End-to-end tests of `bicraft-cli sources` and `bicraft-cli env` (docs/sources-env.md): saving,
 //! dry runs, exit codes for CI pipelines.
 
 use std::process::Command;
@@ -35,7 +35,7 @@ fn setup(name: &str) -> TempDir {
 }
 
 fn bicraft(dir: &TempDir, args: &[&str]) -> (i32, String, String) {
-    let out = Command::new(env!("CARGO_BIN_EXE_bicraft"))
+    let out = Command::new(env!("CARGO_BIN_EXE_bicraft-cli"))
         .current_dir(dir.path())
         .args(args)
         .output()

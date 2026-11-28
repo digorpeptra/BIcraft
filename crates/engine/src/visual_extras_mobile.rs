@@ -1,6 +1,7 @@
 //! The mobile (phone) layout of a page (docs/formats/pbir.md "Mobile layout"): `visual.mobile`
 //! places, moves, resizes or removes visuals on it, `visual.mobile_format` sets their mobile
-//! formatting.
+//! formatting, `visual.mobile_auto` lays the page out on it by BIcraft's own rule and
+//! `visual.mobile_remove_all` empties it; pasted visuals go on it with [`place_pasted`].
 //!
 //! A visual's phone layout is its own document, `visuals/<v>/mobile.json`
 //! (`visualContainerMobileState`), kept in `Report::resources`: `position` (the phone canvas's
@@ -17,6 +18,9 @@
 //! BIcraft's, not checked against a file Desktop saved (docs/gaps.md).
 
 use std::collections::HashSet;
+
+use bicraft_render::phone::{GRID_X, GRID_Y, WIDTH as PHONE_WIDTH};
+use bicraft_report::Position;
 
 use super::*;
 
@@ -227,6 +231,27 @@ fn top_z(r: &Report, pi: usize) -> Option<f64> {
         .reduce(f64::max)
 }
 
+/// A `position` object in Desktop's key order.
+fn sorted_position(mut pos: Map<String, Value>) -> Value {
+    let mut sorted = Map::new();
+    for k in ["x", "y", "z", "height", "width", "tabOrder", "angle"] {
+        if let Some(x) = pos.shift_remove(k) {
+            sorted.insert(k.into(), x);
+        }
+    }
+    sorted.extend(pos);
+    Value::Object(sorted)
+}
+
+/// The `$schema` a new `mobile.json` of report `r` takes.
+fn schema_url(r: &Report) -> String {
+    r.schemas
+        .get("mobile")
+        .and_then(Value::as_str)
+        .map(str::to_string)
+        .unwrap_or_else(|| format!("{SCHEMA_PREFIX}visualContainerMobileState/{MOBILE_VERSION}/schema.json"))
+}
+
 /// One item of `visual.mobile` on page `pi`: (changed, its answer).
 fn mobile_one(r: &mut Report, pi: usize, row: &Value, snap: bool) -> Result<(bool, Value), String> {
     allow(row, &["visual", "x", "y", "width", "height", "layout"])?;
@@ -318,24 +343,9 @@ fn mobile_one(r: &mut Report, pi: usize, row: &Value, snap: bool) -> Result<(boo
             let z = top_z(r, pi).map_or(0.0, |z| (z + 1.0).floor());
             pos.insert("z".into(), num_json(z));
         }
-        let mut sorted = Map::new();
-        for k in ["x", "y", "z", "height", "width", "tabOrder", "angle"] {
-            if let Some(x) = pos.shift_remove(k) {
-                sorted.insert(k.into(), x);
-            }
-        }
-        sorted.extend(pos);
-        doc.insert("position".into(), Value::Object(sorted));
+        doc.insert("position".into(), sorted_position(pos));
         if !doc.contains_key("$schema") && !legacy {
-            let version = r
-                .schemas
-                .get("mobile")
-                .and_then(Value::as_str)
-                .map(str::to_string)
-                .unwrap_or_else(|| {
-                    format!("{SCHEMA_PREFIX}visualContainerMobileState/{MOBILE_VERSION}/schema.json")
-                });
-            doc.insert("$schema".into(), json!(version));
+            doc.insert("$schema".into(), json!(schema_url(r)));
         }
         let new_doc = ordered(doc);
         if current.as_ref() == Some(&new_doc) {
@@ -536,3 +546,366 @@ pub(crate) fn visual_mobile_format(s: &mut Session, p: &Value) -> Result<Value, 
     }
     Ok(out)
 }
+
+// ----- Auto-create, Remove all and pasted visuals (docs/gaps.md G72) -----
+
+/// The visual types an auto-created layout sets two to a row, half the phone's width each: cards
+/// and slicers.
+const COMPACT_TYPES: [&str; 8] = [
+    "card",
+    "cardVisual",
+    "multiRowCard",
+    "kpi",
+    "slicer",
+    "advancedSlicerVisual",
+    "listSlicer",
+    "textSlicer",
+];
+/// The least and most height (phone points, whole grid rows) of a full-width visual in an
+/// auto-created layout.
+const FULL_HEIGHT: (f64, f64) = (120.0, 480.0);
+/// The least and most height of a half-width card or slicer in an auto-created layout.
+const HALF_HEIGHT: (f64, f64) = (60.0, 240.0);
+/// Most grid steps a pasted visual moves on the phone canvas while its copied place is taken.
+const MAX_OFFSET_STEPS: usize = 50;
+/// Deepest chain of groups looked through for a hidden one.
+const MAX_GROUP_DEPTH: usize = 32;
+
+/// The phone height of a visual `w` × `h` on the desktop page laid out `width` wide: its ratio
+/// kept, within `limits`, on the grid's rows.
+fn ratio_height(w: f64, h: f64, width: f64, limits: (f64, f64)) -> f64 {
+    let sane = |v: f64| if v.is_finite() && v >= 1.0 { v } else { 1.0 };
+    let raw = (width * sane(h) / sane(w)).clamp(limits.0, limits.1);
+    ((raw / GRID_Y).round() * GRID_Y).max(GRID_Y)
+}
+
+/// BIcraft's own Auto-create rule, not Power BI Desktop's (Desktop's is not observed;
+/// docs/desktop.md "Mobile layout"): the visuals in the desktop layout's reading order (top to
+/// bottom, then left to right), stacked from the phone canvas's top with one grid row between
+/// rows. Each takes the phone's full width with its desktop ratio kept within [`FULL_HEIGHT`];
+/// two cards or slicers next in that order share a row, half its width each, within
+/// [`HALF_HEIGHT`] (a card or slicer left alone keeps half the width). `items` are (name, type,
+/// desktop position); the answer is (name, (x, y, width, height)) in reading order.
+fn auto_layout(items: &[(String, String, Position)]) -> Vec<(String, (f64, f64, f64, f64))> {
+    let mut order: Vec<usize> = (0..items.len()).collect();
+    order.sort_by(|&a, &b| {
+        let p = |i: usize| items.get(i).map(|t| (t.2.y, t.2.x));
+        match (p(a), p(b)) {
+            (Some(pa), Some(pb)) => pa.0.total_cmp(&pb.0).then(pa.1.total_cmp(&pb.1)).then(a.cmp(&b)),
+            _ => a.cmp(&b),
+        }
+    });
+    let compact = |i: usize| {
+        items
+            .get(i)
+            .is_some_and(|t| COMPACT_TYPES.contains(&t.1.as_str()))
+    };
+    let half = PHONE_WIDTH / 2.0;
+    let mut out = Vec::with_capacity(items.len());
+    let mut y = 0.0;
+    let mut k = 0;
+    while let Some(&i) = order.get(k) {
+        let Some((name, _, pos)) = items.get(i) else { break };
+        let pair = order.get(k + 1).copied().filter(|&j| compact(i) && compact(j));
+        let row_h = match pair.and_then(|j| items.get(j)) {
+            Some((other, _, opos)) => {
+                let h1 = ratio_height(pos.width, pos.height, half, HALF_HEIGHT);
+                let h2 = ratio_height(opos.width, opos.height, half, HALF_HEIGHT);
+                out.push((name.clone(), (0.0, y, half, h1)));
+                out.push((other.clone(), (half, y, half, h2)));
+                k += 2;
+                h1.max(h2)
+            }
+            None => {
+                let (width, limits) = if compact(i) {
+                    (half, HALF_HEIGHT)
+                } else {
+                    (PHONE_WIDTH, FULL_HEIGHT)
+                };
+                let h = ratio_height(pos.width, pos.height, width, limits);
+                out.push((name.clone(), (0.0, y, width, h)));
+                k += 1;
+                h
+            }
+        };
+        y += row_h + GRID_Y;
+    }
+    out
+}
+
+/// Writes visual `vi` of page `pi` at `rect` and layer `z` on the phone canvas: its mobile
+/// document keeps its formatting, else it starts from `base`'s (a copied visual's).
+fn write_place(
+    r: &mut Report,
+    pi: usize,
+    vi: usize,
+    rect: (f64, f64, f64, f64),
+    z: f64,
+    base: Option<&Value>,
+) -> Result<(), String> {
+    let page = r.pages.get(pi).ok_or("internal: page index out of range")?;
+    let v = page
+        .visuals
+        .get(vi)
+        .ok_or("internal: visual index out of range")?;
+    let current = mobile_doc(r, &page.name, &v.name);
+    let legacy = mobile_index(r, &mobile_path(&page.name, &v.name)).is_none()
+        && v.extra.contains_key(bicraft_layout::MOBILE_STATE_KEY);
+    let mut doc = match current.as_ref().and_then(Value::as_object) {
+        Some(o) => o.clone(),
+        None => {
+            let mut m = Map::new();
+            for k in FORMAT_KEYS {
+                if let Some(x) = base
+                    .and_then(|b| b.get(k))
+                    .filter(|x| x.as_object().is_some_and(|o| !o.is_empty()))
+                {
+                    m.insert(k.into(), x.clone());
+                }
+            }
+            m
+        }
+    };
+    let mut pos = doc
+        .get("position")
+        .and_then(Value::as_object)
+        .cloned()
+        .unwrap_or_default();
+    let (x, y, w, h) = rect;
+    for (k, n) in [("x", x), ("y", y), ("z", z), ("width", w), ("height", h)] {
+        pos.insert(k.into(), num_json(n));
+    }
+    doc.insert("position".into(), sorted_position(pos));
+    if !doc.contains_key("$schema") && !legacy {
+        doc.insert("$schema".into(), json!(schema_url(r)));
+    }
+    store(r, pi, vi, Some(ordered(doc)))?;
+    Ok(())
+}
+
+/// Whether visual `v` of `page` is hidden, itself or through one of its groups.
+fn hidden(page: &Page, v: &Visual) -> bool {
+    let mut at = v;
+    for _ in 0..MAX_GROUP_DEPTH {
+        if at.is_hidden {
+            return true;
+        }
+        match at.parent_group.as_deref().and_then(|g| page.visual(g)) {
+            Some(g) => at = g,
+            None => return false,
+        }
+    }
+    false
+}
+
+/// Whether visual `v` of page `page` has a mobile document (even one that does not parse).
+fn on_layout(r: &Report, page: &str, v: &Visual) -> bool {
+    mobile_index(r, &mobile_path(page, &v.name)).is_some()
+        || v.extra.contains_key(bicraft_layout::MOBILE_STATE_KEY)
+}
+
+/// `visual.mobile_auto {page}`: the page's phone layout made anew by [`auto_layout`], in one
+/// step: every shown visual placed (its mobile formatting kept), hidden ones taken off.
+pub(crate) fn visual_mobile_auto(s: &mut Session, p: &Value) -> Result<Value, String> {
+    allow(p, &["page"])?;
+    let page_key = str_param(p, "page")?;
+    let (_, r) = parts(s)?;
+    let pi = page_index(r, page_key)?;
+    let page = r.pages.get(pi).ok_or("internal: page index out of range")?;
+    let page_name = page.name.clone();
+    let mut items = Vec::new();
+    let mut off = Vec::new();
+    for v in page.visuals.iter().take(MAX_ITEMS) {
+        let Some(ty) = &v.visual_type else { continue };
+        if hidden(page, v) {
+            if on_layout(r, &page_name, v) {
+                off.push(v.name.clone());
+            }
+        } else {
+            items.push((v.name.clone(), ty.clone(), v.position));
+        }
+    }
+    if items.is_empty() {
+        return Err(format!(
+            "page `{page_name}` has no shown visual to lay out on the mobile layout"
+        ));
+    }
+    let placed = auto_layout(&items);
+    let mut work = r.clone();
+    let mut outs = Vec::with_capacity(placed.len());
+    for (z, (name, rect)) in placed.iter().enumerate() {
+        let page = work.pages.get(pi).ok_or("internal: page index out of range")?;
+        let vi = visual_index(page, name)?;
+        write_place(&mut work, pi, vi, *rect, z as f64, None)?;
+        outs.push(json!({"visual": name, "mobile": mobile_position(&work, &page_name, name)}));
+    }
+    for name in &off {
+        let page = work.pages.get(pi).ok_or("internal: page index out of range")?;
+        let vi = visual_index(page, name)?;
+        store(&mut work, pi, vi, None)?;
+    }
+    let changed = work != *r;
+    if changed {
+        *r = work;
+        s.report_dirty = true;
+    }
+    Ok(json!({"page": page_name, "changed": changed, "visuals": outs, "removed": off}))
+}
+
+/// `visual.mobile_remove_all {page}`: every visual taken off the page's phone layout, in one step
+/// (the visuals stay on the page).
+pub(crate) fn visual_mobile_remove_all(s: &mut Session, p: &Value) -> Result<Value, String> {
+    allow(p, &["page"])?;
+    let page_key = str_param(p, "page")?;
+    let (_, r) = parts(s)?;
+    let pi = page_index(r, page_key)?;
+    let page = r.pages.get(pi).ok_or("internal: page index out of range")?;
+    let page_name = page.name.clone();
+    let names: Vec<String> = page
+        .visuals
+        .iter()
+        .take(MAX_ITEMS)
+        .filter(|v| on_layout(r, &page_name, v))
+        .map(|v| v.name.clone())
+        .collect();
+    let mut work = r.clone();
+    for name in &names {
+        let page = work.pages.get(pi).ok_or("internal: page index out of range")?;
+        let vi = visual_index(page, name)?;
+        store(&mut work, pi, vi, None)?;
+    }
+    let changed = !names.is_empty();
+    if changed {
+        *r = work;
+        s.report_dirty = true;
+    }
+    Ok(json!({"page": page_name, "changed": changed, "removed": names}))
+}
+
+/// The mobile documents of visuals `names` of page `page`, by name, for a clip (`visual.copy`'s
+/// `mobile`); visuals not on the phone layout are left out.
+pub(crate) fn clip_mobile_docs<'a>(
+    r: &Report,
+    page: &str,
+    names: impl Iterator<Item = &'a str>,
+) -> Map<String, Value> {
+    let mut out = Map::new();
+    for n in names.take(MAX_ITEMS) {
+        if let Some(d) = mobile_doc(r, page, n).filter(Value::is_object) {
+            out.insert(n.to_string(), d);
+        }
+    }
+    out
+}
+
+/// The copied phone documents of a clip's visuals `names` (its `mobile`, checked: an object of
+/// documents whose `position` holds sane numbers), in that order.
+pub(crate) fn clip_mobile(clip: &Value, names: &[String]) -> Result<Vec<Option<Value>>, String> {
+    let docs = match clip.get("mobile") {
+        None | Some(Value::Null) => return Ok(vec![None; names.len()]),
+        Some(Value::Object(m)) => m,
+        Some(_) => return Err("`clip.mobile` must be an object of mobile documents by visual name".into()),
+    };
+    let mut out = Vec::with_capacity(names.len());
+    for n in names {
+        let Some(d) = docs.get(n) else {
+            out.push(None);
+            continue;
+        };
+        let at = format!("clip.mobile.{n}");
+        let pos = d
+            .get("position")
+            .and_then(Value::as_object)
+            .ok_or_else(|| format!("{at} has no `position` object"))?;
+        for k in ["x", "y", "width", "height"] {
+            let v = pos
+                .get(k)
+                .and_then(Value::as_f64)
+                .ok_or_else(|| format!("{at}.position.{k} must be a number"))?;
+            if k == "x" || k == "y" {
+                check_coordinate(&format!("{at}.position.{k}"), v)?;
+            } else {
+                check_size(&format!("{at}.position.{k}"), v)?;
+            }
+        }
+        out.push(Some(d.clone()));
+    }
+    Ok(out)
+}
+
+/// Places visuals just pasted on page `pi` on its phone layout, on top of its layers: `pasted` is
+/// each new visual's name and its copied phone document. One with a document goes to the copied
+/// place, moved one grid cell right and down while a visual is there; one without goes under the
+/// layout, as wide as the phone at most with its ratio kept. Both are snapped to the grid, inside
+/// the phone's width, and keep the copied mobile formatting. Groups are left off (on the phone
+/// every visual stands alone). Returns `[{visual, mobile}]`.
+pub(crate) fn place_pasted(
+    r: &mut Report,
+    pi: usize,
+    pasted: &[(String, Option<Value>)],
+) -> Result<Vec<Value>, String> {
+    let page = r.pages.get(pi).ok_or("internal: page index out of range")?;
+    let page_name = page.name.clone();
+    let mut taken: Vec<(f64, f64, f64)> = page
+        .visuals
+        .iter()
+        .take(MAX_ITEMS)
+        .filter_map(|v| mobile_position(r, &page_name, &v.name))
+        .filter_map(|m| {
+            let n = |k: &str| m.get(k).and_then(Value::as_f64);
+            Some((n("x")?, n("y")?, n("y")? + n("height")?))
+        })
+        .collect();
+    let mut z = top_z(r, pi).map_or(0.0, |z| (z + 1.0).floor());
+    let mut out = Vec::new();
+    for (name, doc) in pasted.iter().take(MAX_ITEMS) {
+        let page = r.pages.get(pi).ok_or("internal: page index out of range")?;
+        let vi = visual_index(page, name)?;
+        let v = page
+            .visuals
+            .get(vi)
+            .ok_or("internal: visual index out of range")?;
+        if v.visual_type.is_none() {
+            continue;
+        }
+        let copied = doc.as_ref().and_then(position_of).and_then(|m| {
+            let n = |k: &str| m.get(k).and_then(Value::as_f64).filter(|x| x.is_finite());
+            Some((n("x")?, n("y")?, n("width")?, n("height")?))
+        });
+        let (x, y, w, h) = match copied {
+            Some((mut x, mut y, w, h)) => {
+                for _ in 0..MAX_OFFSET_STEPS {
+                    if !taken
+                        .iter()
+                        .any(|t| (t.0 - x).abs() < 0.5 && (t.1 - y).abs() < 0.5)
+                    {
+                        break;
+                    }
+                    x += GRID_X;
+                    y += GRID_Y;
+                }
+                bicraft_render::phone::snap_rect(x, y, w, h)
+            }
+            None => {
+                let bottom = taken.iter().map(|t| t.2).fold(0.0, f64::max);
+                let y = if bottom > 0.0 { bottom + GRID_Y } else { 0.0 };
+                let w0 = if v.position.width.is_finite() && v.position.width >= 1.0 {
+                    v.position.width
+                } else {
+                    PHONE_WIDTH
+                };
+                let w = w0.min(PHONE_WIDTH);
+                let h = ratio_height(w0, v.position.height, w, (GRID_Y, MAX_PASTED_HEIGHT));
+                bicraft_render::phone::snap_rect(0.0, y, w, h)
+            }
+        };
+        write_place(r, pi, vi, (x, y, w, h), z, doc.as_ref())?;
+        z += 1.0;
+        taken.push((x, y, y + h));
+        out.push(json!({"visual": name, "mobile": mobile_position(r, &page_name, name)}));
+    }
+    Ok(out)
+}
+
+/// The most height a pasted visual without a copied phone place gets (Desktop's canvas height).
+const MAX_PASTED_HEIGHT: f64 = bicraft_render::phone::HEIGHT;
