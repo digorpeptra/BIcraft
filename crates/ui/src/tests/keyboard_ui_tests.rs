@@ -66,7 +66,12 @@ fn session() -> Session {
 
 /// The app in `lang` on view `view` with ribbon tab `rtab`.
 fn app(lang: &str, view: Tab, rtab: RTab) -> Harness<'static, App> {
-    let mut app = App::new(lang, engine_shell(Caps::DESKTOP, session)).with_sync_render();
+    app_with(lang, view, rtab, session)
+}
+
+/// [`app`] over the session `make` builds.
+fn app_with(lang: &str, view: Tab, rtab: RTab, make: fn() -> Session) -> Harness<'static, App> {
+    let mut app = App::new(lang, engine_shell(Caps::DESKTOP, make)).with_sync_render();
     app.open_path(Path::new("shop.pbip"));
     let mut h = harness(app, (1400.0, 900.0));
     for _ in 0..200 {
@@ -655,5 +660,268 @@ fn every_control_has_an_accessible_name() {
             press(&mut h, Key::Escape, Modifiers::NONE);
             steps(&mut h, 2);
         }
+    }
+}
+
+/// [`session`] with three visuals whose tab order is not their reading order: the titled
+/// column chart top left, a card top right, a table under them, visited table, chart, card.
+fn canvas_session() -> Session {
+    let mut s = session();
+    let page = s.report.as_ref().unwrap().pages[0].name.clone();
+    for (ty, x, y, field) in [
+        ("card", 500, 20, "[Total]"),
+        ("tableEx", 20, 400, "Sales[Category]"),
+    ] {
+        s.execute(
+            "visual.add",
+            &json!({"page": page, "visual_type": ty, "x": x, "y": y, "width": 300, "height": 200,
+                    "fields": [{"role": "Values", "field": field}]}),
+        )
+        .unwrap();
+    }
+    let names: Vec<String> = s.report.as_ref().unwrap().pages[0]
+        .visuals
+        .iter()
+        .map(|v| v.name.clone())
+        .collect();
+    let [chart, card, table] = names.as_slice() else {
+        panic!("three visuals: {names:?}");
+    };
+    s.execute(
+        "visual.set_title",
+        &json!({"page": page, "visual": chart, "title": "Sales overview"}),
+    )
+    .unwrap();
+    s.execute(
+        "visual.tab_order",
+        &json!({"page": page, "visuals": [table, chart, card]}),
+    )
+    .unwrap();
+    s.dirty = false;
+    s.report_dirty = false;
+    s
+}
+
+/// The node that has the focus in the accessibility tree: its role, its name, whether it is
+/// selected.
+fn focused_node(h: &Harness<'_, App>) -> Option<(Role, String, Option<bool>)> {
+    h.root()
+        .children_recursive()
+        .find(|n| n.accesskit_node().is_focused())
+        .map(|n| {
+            let a = n.accesskit_node();
+            (a.role(), a.label().unwrap_or_default(), a.is_selected())
+        })
+}
+
+/// The visuals of the page shown, in the snapshot's order: (name, x).
+fn visuals(h: &Harness<'_, App>) -> Vec<(String, f64)> {
+    h.state()
+        .loaded
+        .as_ref()
+        .and_then(|l| l.snap.pointer("/report/pages/0/visuals"))
+        .and_then(serde_json::Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(|v| Some((v["name"].as_str()?.to_string(), v["x"].as_f64()?)))
+        .collect()
+}
+
+/// Tab until a canvas visual has the focus; its node.
+fn tab_to_visual(h: &mut Harness<'_, App>) -> (Role, String, Option<bool>) {
+    for _ in 0..40 {
+        if let Some(n) = focused_node(h).filter(|n| n.0 == Role::Figure) {
+            return n;
+        }
+        tab(h, false);
+    }
+    panic!("Tab never reached a visual; focus on {:?}", focused_node(h));
+}
+
+/// The status bar's live region: its text.
+fn live_text(h: &Harness<'_, App>) -> String {
+    let n = h
+        .root()
+        .children_recursive()
+        .find(|n| n.accesskit_node().role() == Role::Status)
+        .expect("the status bar's live region");
+    assert_eq!(n.accesskit_node().live(), egui::accesskit::Live::Polite);
+    n.accesskit_node().label().unwrap_or_default()
+}
+
+/// The selected visual's name.
+fn selected(h: &Harness<'_, App>) -> Option<String> {
+    h.state().cmd.visual.as_ref().map(|v| v.visual.clone())
+}
+
+#[test]
+fn tab_walks_the_canvas_visuals_in_tab_order_and_escape_returns_to_the_page() {
+    let mut h = app_with("en-US", Tab::Report, RTab::Home, canvas_session);
+    let names: Vec<String> = visuals(&h).into_iter().map(|(n, _)| n).collect();
+    let [chart, card, table] = names.as_slice() else {
+        panic!("three visuals: {names:?}");
+    };
+    f6_to(&mut h, Section::Main);
+    let mut seen: Vec<(String, String)> = Vec::new();
+    let mut node = tab_to_visual(&mut h);
+    for _ in 0..3 {
+        assert_eq!(node.0, Role::Figure, "{node:?}");
+        assert_eq!(node.2, Some(true), "the focused visual is selected: {node:?}");
+        let sel = selected(&h).expect("a selection");
+        // egui's focus itself is on the visual's widget
+        assert_eq!(
+            h.ctx.memory(|m| m.focused()),
+            Some(crate::visual_focus::id(&sel)),
+            "the focus is on {sel}"
+        );
+        seen.push((sel, node.1.clone()));
+        tab(&mut h, false);
+        node = focused_node(&h).expect("a focused node");
+    }
+    let order: Vec<&str> = seen.iter().map(|(n, _)| n.as_str()).collect();
+    assert_eq!(order, [table.as_str(), chart.as_str(), card.as_str()], "{seen:?}");
+    // the chart's name starts with its title
+    assert!(seen[1].1.starts_with("Sales overview"), "{seen:?}");
+    // Shift+Tab goes back to the card
+    tab(&mut h, true);
+    assert_eq!(focused_node(&h).map(|n| n.1), Some(seen[2].1.clone()));
+    // Escape: back to the page, nothing selected
+    press(&mut h, Key::Escape, Modifiers::NONE);
+    steps(&mut h, 2);
+    let page = focused_node(&h).expect("the page has the focus");
+    assert_eq!(page.0, Role::Group, "{page:?}");
+    assert!(page.1.starts_with("Report page"), "{page:?}");
+    assert!(selected(&h).is_none());
+}
+
+#[test]
+fn a_focused_visual_moves_with_the_arrows_and_opens_its_menu_from_the_menu_key() {
+    let mut h = app_with("en-US", Tab::Report, RTab::Home, canvas_session);
+    f6_to(&mut h, Section::Main);
+    let node = tab_to_visual(&mut h);
+    let name = selected(&h).expect("a selection");
+    let x = |h: &Harness<'_, App>| visuals(h).into_iter().find(|(n, _)| *n == name).map(|v| v.1);
+    let x0 = x(&h).unwrap();
+    // the arrows move it (one `visual.move`), the focus stays on it
+    press(&mut h, Key::ArrowRight, Modifiers::SHIFT);
+    steps(&mut h, 6);
+    let x1 = x(&h).unwrap();
+    assert!(x1 > x0, "moved right: {x0} -> {x1}");
+    assert_eq!(focused_node(&h).map(|n| n.1), Some(node.1.clone()));
+    // the Menu key opens its menu, first item focused; Escape gives the focus back to it
+    press(&mut h, Key::Menu, Modifiers::NONE);
+    steps(&mut h, 4);
+    h.get_by_label(registry_text("visual.remove", crate::i18n::Lang::En));
+    assert!(menu_focused(&h), "{:?}", keyboard::focused(&h.ctx));
+    press(&mut h, Key::Escape, Modifiers::NONE);
+    steps(&mut h, 4);
+    assert_eq!(
+        focused_node(&h).map(|n| n.1),
+        Some(node.1.clone()),
+        "the focus is back on the visual"
+    );
+    // Delete removes the focused visual; the focus goes to the page
+    press(&mut h, Key::Delete, Modifiers::NONE);
+    steps(&mut h, 6);
+    assert!(x(&h).is_none(), "removed");
+    let page = focused_node(&h);
+    assert!(
+        page.as_ref().is_some_and(|n| n.1.starts_with("Report page")),
+        "{page:?}"
+    );
+}
+
+/// Ctrl+F6 until the focus is in the side pane that holds `inside`.
+fn f6_to_pane_holding(h: &mut Harness<'_, App>, inside: Rect) {
+    for _ in 0..12 {
+        let there = keyboard::sections(h.state()).into_iter().any(|(s, r)| {
+            s == Section::Pane
+                && r.contains(inside.center())
+                && focused(h).is_some_and(|f| r.contains(f.center()))
+        });
+        if there {
+            return;
+        }
+        ctrl_f6(h, false);
+    }
+    panic!("Ctrl+F6 never reached the pane at {inside:?}");
+}
+
+#[test]
+fn the_menu_key_opens_the_focused_items_context_menu() {
+    let mut h = app("en-US", Tab::Report, RTab::Home);
+    let sales = rect_of(&h, Role::Button, "Sales");
+    f6_to_pane_holding(&mut h, sales);
+    tab_to(&mut h, sales);
+    assert!(h.query_by_label("New quick measure").is_none());
+    press(&mut h, Key::Menu, Modifiers::NONE);
+    steps(&mut h, 4);
+    h.get_by_label("New quick measure");
+    assert!(menu_focused(&h), "{:?}", keyboard::focused(&h.ctx));
+    press(&mut h, Key::Escape, Modifiers::NONE);
+    steps(&mut h, 3);
+    assert!(focused(&h).is_some_and(|r| same(r, sales)));
+}
+
+#[test]
+fn the_live_region_names_the_section_ctrl_f6_moves_to() {
+    for (lang, data) in [("en-US", "Focus: Data pane"), ("fr-FR", "Focus : Volet Données")] {
+        let mut h = app(lang, Tab::Report, RTab::Home);
+        let sales = rect_of(&h, Role::Button, "Sales");
+        f6_to_pane_holding(&mut h, sales);
+        assert_eq!(live_text(&h), data, "{lang}");
+    }
+}
+
+/// The Data pane rows named `label` in the accessibility tree.
+fn rows_named(h: &Harness<'_, App>, label: &str) -> usize {
+    h.query_all_by_label(label).count()
+}
+
+#[test]
+fn alt_shift_1_and_9_collapse_and_expand_every_table() {
+    for (lang, view, rtab, collapsed, expanded) in [
+        (
+            "en-US",
+            Tab::Report,
+            RTab::Home,
+            "All tables collapsed",
+            "All tables expanded",
+        ),
+        (
+            "fr-FR",
+            Tab::Report,
+            RTab::Home,
+            "Toutes les tables réduites",
+            "Toutes les tables développées",
+        ),
+        (
+            "en-US",
+            Tab::Model,
+            RTab::Model,
+            "All tables collapsed",
+            "All tables expanded",
+        ),
+    ] {
+        let mut h = app(lang, view, rtab);
+        let alt_shift = |h: &mut Harness<'_, App>, k: Key| {
+            press(h, k, Modifiers::ALT | Modifiers::SHIFT);
+            steps(h, 3);
+        };
+        let before = rows_named(&h, "Amount");
+        alt_shift(&mut h, Key::Num9);
+        let open = rows_named(&h, "Amount");
+        assert!(
+            open > before,
+            "{lang} {view:?}: Sales's columns shown ({before} -> {open})"
+        );
+        assert_eq!(live_text(&h), expanded, "{lang} {view:?}");
+        alt_shift(&mut h, Key::Num1);
+        let shut = rows_named(&h, "Amount");
+        assert!(
+            shut < open,
+            "{lang} {view:?}: Sales's columns hidden ({open} -> {shut})"
+        );
+        assert_eq!(live_text(&h), collapsed, "{lang} {view:?}");
     }
 }

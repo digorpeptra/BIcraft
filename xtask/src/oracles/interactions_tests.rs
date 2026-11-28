@@ -51,7 +51,7 @@ fn model_session(dir: &TempDir) -> Session {
     s
 }
 
-/// The generated report with its data, as `oracle-gen interactions` + `bicraft run` build it.
+/// The generated report with its data, as `oracle-gen interactions` + `bicraft-cli run` build it.
 fn report_session(dir: &TempDir) -> Session {
     let d = dir.path().to_string_lossy().into_owned();
     std::fs::write(

@@ -199,6 +199,35 @@ fn gantt_layout(v: &Visual) -> Map<String, Value> {
             rows.push(json!({"path": path, "collapsed": collapsed}));
         }
     }
+    // the reader's expanded and collapsed categories (view.interact gantt_toggle) come last,
+    // so they win: each member on its Category field, top level first
+    let cats: Vec<usize> = v
+        .fields
+        .iter()
+        .enumerate()
+        .filter(|(_, b)| b.role.eq_ignore_ascii_case("Category"))
+        .map(|(i, _)| i)
+        .collect();
+    let reader = v
+        .visual_extra
+        .get(crate::interact::reader::GANTT_STATE)
+        .and_then(Value::as_array);
+    for e in reader.into_iter().flatten().take(MAX_COLORS) {
+        let (Some(members), Some(collapsed)) = (
+            e.get("path").and_then(Value::as_array),
+            e.get("collapsed").and_then(Value::as_bool),
+        ) else {
+            continue;
+        };
+        let path: Vec<Value> = cats
+            .iter()
+            .zip(members)
+            .map(|(c, m)| json!({"c": c, "v": m}))
+            .collect();
+        if !path.is_empty() && path.len() == members.len() {
+            rows.push(json!({"path": path, "collapsed": collapsed}));
+        }
+    }
     if !rows.is_empty() {
         out.insert("gantt_rows".into(), Value::Array(rows));
     }
@@ -407,11 +436,22 @@ fn text(v: &Visual) -> Option<Value> {
 
 /// Button: `{text?, show_text?, font_size?, font_color?, align?, icon?, show_icon?,
 /// icon_placement?, icon_color?, fill?, fill_transparency?, show_fill?, show_outline?, outline?,
-/// outline_weight?, outline_transparency?, states?: {hover?, press?, disabled?}}` from the
-/// default state; `states` holds what each other state sets (only those properties), which the
-/// readers draw over the default one (`docs/formats/buttons.md`).
+/// outline_weight?, outline_transparency?, show_glow?, glow?, glow_blur?, glow_transparency?,
+/// show_shadow?, shadow?, shadow_blur?, shadow_distance?, shadow_angle?, shadow_transparency?,
+/// shape?: {tile?, adjust?, tail?}, states?: {hover?, press?, disabled?}}` from the default
+/// state (the shape for every state: the schema gives it no `$id`); `states` holds what
+/// each other state sets (only those properties), which the readers draw over the default one
+/// (`docs/formats/buttons.md`). The fill images and custom icons per state are added by
+/// `images::visual_fields` (`fill_image`, `icon_image`).
 fn button(v: &Visual) -> Option<Value> {
     let mut o = button_props(|object| entry(v, object, Some("default")));
+    let mut shape = Map::new();
+    if let Some(s) = entry(v, "shape", Some("default")) {
+        tile_shape(s, &mut shape);
+    }
+    if !shape.is_empty() {
+        o.insert("shape".into(), Value::Object(shape));
+    }
     let mut states = Map::new();
     for state in ["hover", "press", "disabled"] {
         let s = button_props(|object| exact_state(v, object, state));
@@ -503,6 +543,7 @@ fn button_props<'a>(get: impl Fn(&str) -> Option<&'a Map<String, Value>>) -> Map
             o.insert("outline_transparency".into(), number(x.clamp(0.0, 100.0)));
         }
     }
+    effects(get("glow"), get("shadow"), &mut o);
     o
 }
 
@@ -723,6 +764,8 @@ fn slicer(v: &Visual) -> Value {
                 "before" => "before".to_string(),
                 "after" => "after".to_string(),
                 "relative" => "relative".to_string(),
+                // a what-if parameter's single-value slider (docs/formats/parameters.md)
+                "single" => "single".to_string(),
                 "basic" | "" if horizontal => "tile".to_string(),
                 _ => "list".to_string(),
             }
@@ -851,13 +894,35 @@ pub(super) fn add_domain(o: &mut Map<String, Value>, v: &Visual, s: &crate::Sess
     {
         sl.insert("mode".into(), json!("between"));
     }
-    let ranged = matches!(
-        sl.get("mode").and_then(Value::as_str),
-        Some("between" | "before" | "after")
-    );
     let Some(FieldRef::Column { table, column }) = v.fields.first().map(|b| &b.field) else {
         return;
     };
+    let what_if = s.model.as_ref().filter(|m| {
+        m.table(table)
+            .and_then(|t| t.column(column))
+            .is_some_and(crate::parameters::is_what_if_column)
+    });
+    // a classic slicer on a what-if parameter's column written without a mode (Desktop writes
+    // none for its own): Desktop draws the single-value slider (docs/formats/parameters.md)
+    if let Some(m) = what_if {
+        if sl.get("mode").and_then(Value::as_str) == Some("list")
+            && v.visual_type
+                .as_deref()
+                .is_some_and(|t| t.eq_ignore_ascii_case("slicer"))
+            && entry(v, "data", None).and_then(|d| lit_text(d, "mode")).is_none()
+        {
+            sl.insert("mode".into(), json!("single"));
+        }
+        if sl.get("mode").and_then(Value::as_str) == Some("single")
+            && let Some(d) = crate::parameters::what_if_default(m, table, column)
+        {
+            sl.insert("default".into(), number(d));
+        }
+    }
+    let ranged = matches!(
+        sl.get("mode").and_then(Value::as_str),
+        Some("between" | "before" | "after" | "single")
+    );
     if !ranged {
         return;
     }
@@ -1256,7 +1321,39 @@ fn nav_style(v: &Visual, state: &str) -> Map<String, Value> {
             o.insert("italic".into(), json!(b));
         }
     }
-    if let Some(g) = state_entry(v, "glow", state) {
+    effects(
+        state_entry(v, "glow", state),
+        state_entry(v, "shadow", state),
+        &mut o,
+    );
+    if let Some(a) = state_entry(v, "accentBar", state) {
+        if let Some(b) = lit_bool(a, "show") {
+            o.insert("show_accent".into(), json!(b));
+        }
+        if let Some(c) = lit_color(a, "color") {
+            o.insert("accent".into(), json!(c));
+        }
+        if let Some(p) = lit_text(a, "position") {
+            o.insert("accent_position".into(), json!(p.to_ascii_lowercase()));
+        }
+        if let Some(x) = lit_num(a, "width") {
+            o.insert("accent_width".into(), number(x.clamp(0.0, 100.0)));
+        }
+    }
+    o
+}
+
+/// The `glow` and `shadow` properties `glow` / `shadow` of one state (report theme schema
+/// `visual-actionButton`, `visual-pageNavigator`, `visual-bookmarkNavigator`: Shape glow, Shape
+/// shadow) into `o`: `show_glow`, `glow`, `glow_blur`, `glow_transparency`, `show_shadow`,
+/// `shadow`, `shadow_blur`, `shadow_distance`, `shadow_angle`, `shadow_transparency`,
+/// `shadow_position`.
+fn effects(
+    glow: Option<&Map<String, Value>>,
+    shadow: Option<&Map<String, Value>>,
+    o: &mut Map<String, Value>,
+) {
+    if let Some(g) = glow {
         if let Some(b) = lit_bool(g, "show") {
             o.insert("show_glow".into(), json!(b));
         }
@@ -1270,7 +1367,7 @@ fn nav_style(v: &Visual, state: &str) -> Map<String, Value> {
             o.insert("glow_transparency".into(), number(x.clamp(0.0, 100.0)));
         }
     }
-    if let Some(s) = state_entry(v, "shadow", state) {
+    if let Some(s) = shadow {
         if let Some(b) = lit_bool(s, "show") {
             o.insert("show_shadow".into(), json!(b));
         }
@@ -1294,19 +1391,4 @@ fn nav_style(v: &Visual, state: &str) -> Map<String, Value> {
             );
         }
     }
-    if let Some(a) = state_entry(v, "accentBar", state) {
-        if let Some(b) = lit_bool(a, "show") {
-            o.insert("show_accent".into(), json!(b));
-        }
-        if let Some(c) = lit_color(a, "color") {
-            o.insert("accent".into(), json!(c));
-        }
-        if let Some(p) = lit_text(a, "position") {
-            o.insert("accent_position".into(), json!(p.to_ascii_lowercase()));
-        }
-        if let Some(x) = lit_num(a, "width") {
-            o.insert("accent_width".into(), number(x.clamp(0.0, 100.0)));
-        }
-    }
-    o
 }

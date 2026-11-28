@@ -4,9 +4,9 @@
 Power BI Desktop, on Windows and Linux alike.
 
 ```text
-bicraft render Sales.pbix --page Overview --out overview.png      # one page
-bicraft render Sales.pbip --out pages/                            # every page: pages/01-<name>.png …
-bicraft render Sales.pbix --page 0 --scale 2 --out hi.png         # 2 device pixels per report pixel
+bicraft-cli render Sales.pbix --page Overview --out overview.png  # one page
+bicraft-cli render Sales.pbip --out pages/                        # every page: pages/01-<name>.png …
+bicraft-cli render Sales.pbix --page 0 --scale 2 --out hi.png     # 2 device pixels per report pixel
 ```
 
 MCP: the `render_page` tool (or `run_command` `report.render`) returns each page as an MCP
@@ -99,7 +99,7 @@ Between range with two date inputs; the snapshot now gives such a classic slicer
 column the `between` mode and its domain (`a_date_slicer_without_a_mode_is_a_range`). A column
 chart on the same column drew a continuous time axis ("5 janv. 00:00" …); the renderer now
 draws one too ("Continuous date axes" below), where it drew one category per value.
-Three options, three jobs: `report.render`'s `format_culture` (`bicraft render
+Three options, three jobs: `report.render`'s `format_culture` (`bicraft-cli render
 --format-culture`) overrides the formatting culture; `culture` (`--culture`, `view.set_culture`)
 only picks the model translation whose captions name tables, columns and measures (M10.4); and
 `ui_language` (`--lang`) is the language of generated phrases (auto titles, (Blank), Total).
@@ -132,14 +132,35 @@ configurations and LibreOffice substitute it, then the bundled subsets). The bun
 OFL glyph subsets of Carlito Regular, Bold, Italic and Bold Italic, Version 1.104
 (`crates/render/fonts/carlito/SOURCE.txt`, made by `cargo xtask font-subset carlito`), renamed
 "BIcraft Metric Sans" because Carlito's licence reserves its name for unmodified files; they keep
-407 characters (Basic Latin, Latin-1, Latin Extended-A, Romanian, punctuation, superscripts,
-currency, common letterlike symbols, fractions). So text a theme or a visual sets in Calibri
-measures, wraps and truncates as with Calibri in the app's pages, `bicraft render` and PDF export
-(`calibri_text_takes_carlito_widths`: widths equal Carlito's advances, about 8% narrower than
-Selawik's; `calibri_text_embeds_the_carlito_subset`); real italics are used, not a slant.
-"Calibri Light" takes the regular face (Carlito has no light weight). Limits: Greek, Cyrillic
-and Vietnamese text in Calibri falls through to the Noto faces (their widths, not Calibri's);
-the subsets have no kerning table (sums of advances, as for Selawik).
+739 characters (Basic Latin, Latin-1, Latin Extended-A, Romanian, Vietnamese, Greek, Cyrillic,
+punctuation, superscripts, currency, common letterlike symbols, fractions; Greek, Cyrillic and
+Vietnamese since 2026-11-27, G101). So text a theme or a visual sets in Calibri measures, wraps
+and truncates as with Calibri in the app's pages, `bicraft-cli render` and PDF export, in those
+scripts too (`calibri_text_takes_carlito_widths`: each glyph takes Carlito's advance, about 8%
+narrower than Selawik's; `calibri_greek_cyrillic_and_vietnamese_keep_carlito_widths`;
+`calibri_text_embeds_the_carlito_subset`); real italics are used, not a slant. "Calibri Light"
+takes the regular face (Carlito has no light weight). Combining marks in Calibri text come from
+the fallback chain (the subsets have no mark positioning).
+
+**Other Office fonts** (2026-11-27). Arial, Times New Roman, Courier New, Cambria and Georgia are
+replaced, when the system lacks them, by an installed face with the same advance widths:
+Liberation Sans or Arimo, Liberation Serif or Tinos, Liberation Mono or Cousine, Caladea,
+Gelasio (`METRIC_TWINS` in `crates/render/src/fonts.rs`; `office_fonts_take_an_installed_metric_twin`).
+None of these is bundled, so the app's pages (bundled faces only) draw them in Selawik.
+
+**Kerning** (2026-11-27). Runs are shaped with the face's kerning (below). Selawik has none (its
+GPOS has mark positioning only), so Segoe UI text drawn with the bundled faces is the sum of its
+advances, as before. The bundled Carlito and Noto Sans subsets keep their fonts' kerning: `cargo
+xtask font-subset` turns the pair adjustments of the source's GPOS `kern` feature between the
+kept glyphs into a class `kern` table (format 2), which the shaper applies to a face without
+GPOS. Measuring, wrapping, truncation and drawing use the same shaped advances
+(`bundled_faces_kern_and_draw_what_they_measure`: "AV", "To", Greek "Το" and Cyrillic "То" are
+narrower than their glyphs side by side). Checked once while making the subsets (2026-11-27, not
+a committed test): over every pair of kept characters, the Noto Sans subsets kern exactly as
+their sources shaped with GPOS; in Carlito about 0.16% of the pairs differ, the source's
+ligatures (`fi`, `ff`, `tt`: the subsets have no GSUB) and a few accented Greek capitals.
+Contextual kerning (Noto Sans's chained lookup) is not kept. Widths are not measured against
+Desktop.
 
 **Text.** Each line is split into runs of one face: a character the first faces lack comes from
 the next face of the chain that has it (after the families above: Segoe UI Symbol / Emoji /
@@ -186,7 +207,7 @@ Desktop's report canvas (Chromium on Windows) draws such text with ClearType-sty
 antialiasing on opaque backgrounds, which triples the horizontal resolution. The renderer does
 the same when `RenderOptions::lcd_text` is on (`Canvas::set_lcd_text`): the window's pages (and
 its report-page tooltips, also shown at their own size) turn it on below 1.75 device pixels per report pixel (`crates/ui/src/pages.rs`, `LCD_TEXT_BELOW`; at
-high DPI grayscale is sharp enough), and `report.render {lcd_text: true}` / `bicraft render
+high DPI grayscale is sharp enough), and `report.render {lcd_text: true}` / `bicraft-cli render
 --lcd-text` draw it for a look. Off is the default everywhere else, so PNGs, goldens, PDF and
 exports keep grayscale text, pixel for pixel. For an upright run (no rotation;
 a synthetic oblique is fine) of opaque text, the run's coverage is rasterized at 3× the
@@ -213,7 +234,7 @@ vertical panels are not detected.
 
 **Bundled fallback faces and missing glyphs** (2026-11-05). Selawik has Latin only, so text such
 as a measure named `CA Δ N-1` once drew `CA   N-1` wherever no system font had the character
-(the app's pages, which use the bundled faces only, and `bicraft render` on Linux). After Selawik
+(the app's pages, which use the bundled faces only, and `bicraft-cli render` on Linux). After Selawik
 the chain now has OFL glyph subsets of Noto fonts (`crates/render/fonts/SOURCE.txt`, made by
 `cargo xtask font-subset bundle`): Noto Sans Regular and Bold (Greek, Cyrillic, Latin extensions
 with Vietnamese, punctuation, superscripts and subscripts, currency such as `₹ ₽ ₺ ₩ ₿`,
@@ -222,10 +243,12 @@ letterlike symbols, fractions), Noto Sans Symbols 2 (geometric shapes `▲ ▼ �
 (arrows `↑ ↓ → ⇒`, operators `≥ ≤ ± ≠ ∑ √ ∞`), Noto Sans Symbols (what the others lack) and Noto
 Emoji, monochrome (`🔴 🟢 📈 🚀 👍`). Power BI Desktop draws such characters through Segoe UI and the
 Windows fallback fonts (Segoe UI Symbol, Segoe UI Emoji; observed as a black box); with
-those installed, `bicraft render` uses them first, as the bundled faces come last. Noto Sans's
+those installed, `bicraft-cli render` uses them first, as the bundled faces come last. Noto Sans's
 capital height is within 3% of Selawik's (Segoe UI's metrics; checked by
 `fallback_faces_match_selawik_metrics`), so fallback glyphs sit on the same line at the same
-size; no size adjustment is applied. Emoji are monochrome, in the text's
+size; no size adjustment is applied. Selawik has Latin only and no bundled face has Segoe UI's widths for Greek, Cyrillic
+or Vietnamese, so Segoe UI text in those scripts takes Noto Sans's widths (kerned) in the app's
+pages. Emoji are monochrome, in the text's
 colour (Desktop shows colour emoji).
 
 A character no face has is never dropped: it is drawn as an outlined box the height of a capital
@@ -290,7 +313,8 @@ Desktop's own defaults (the look of a freshly inserted navigator) are not known 
 source and are not reproduced; not compared with Desktop pixel for pixel.
 
 **High contrast** (2026-11-19). `RenderOptions::high_contrast` (the app's View › High-contrast
-colours, never a file, a PDF or `bicraft render`) maps every colour a canvas paints
+colours; `report.render {high_contrast: true}` and `bicraft-cli render --high-contrast` since
+2026-11-27; the report file never changes, and PDF export has no such option) maps every colour a canvas paints
 (`Rgb::high_contrast`, under a thread-local `ContrastScope`): a light neutral (relative luminance
 above 0.4, or lightness above 90 %) becomes black, a dark neutral white, and a colour with a hue
 the bright colour of its hue band (yellow, cyan, green, light red, light magenta, amber, light
@@ -302,7 +326,7 @@ blues draw the same); Power BI's own high-contrast rendering was not compared.
 **SVG images are sandboxed** (2026-11-06, M11.20). An SVG is parsed by usvg with its image
 resolvers replaced by ones that return nothing: an `<image>` naming a file (`C:…`, `/etc/…`,
 `file:///…`), a `data:` URL or a web link draws nothing, so a hostile SVG in a report cannot make
-`bicraft render`, a server or the app read a local file and draw it into a page (usvg's default
+`bicraft-cli render`, a server or the app read a local file and draw it into a page (usvg's default
 resolver reads any path it is given; `svg_references_outside_the_bytes_are_not_read` fails
 without the fix). Scripts, styles from outside and fonts are never loaded (resvg runs no
 script; its `text` feature is off, so SVG text is not drawn). `bicraft_render::image_size` is the
@@ -315,7 +339,7 @@ says the scale used); text, rows and series are bounded like the viewer's.
 
 ## PDF (`report.export_pdf`, M11.21)
 
-`report.export_pdf` (`bicraft export-pdf FILE [--out F.pdf] [--pages all|current|2-4|NAMES]
+`report.export_pdf` (`bicraft-cli export-pdf FILE [--out F.pdf] [--pages all|current|2-4|NAMES]
 [--hidden]`; Backstage › Export › Export to PDF in the app) writes report pages to one PDF, as
 Desktop's File › Export › Export to PDF does. Pages: every page not hidden (the default), the
 current page, a 1-based range (`"2-4"`, `"1,3-5"`; hidden pages skipped unless `hidden: true`),
@@ -345,15 +369,19 @@ display list; the PNG drawing is unchanged (`rendering_raster_is_unchanged_by_re
 - **Font licences.** A system face whose `OS/2` `fsType` forbids it (restricted licence,
   no subsetting, bitmap only) is not embedded: its glyphs are drawn as outlines, with invisible
   Helvetica text (render mode 3) over them so the page stays searchable; the result lists the
-  face with `embedded: false` and a warning. CFF-based faces (OpenType `.otf`) are drawn the
-  same way (no CFF subsetter yet). `system_fonts: false` uses the bundled faces only.
+  face with `embedded: false` and a warning. A CFF-based face (OpenType `.otf`) is not subset:
+  it is embedded whole (every table of the face, up to 16 MB) as a `FontFile3` of subtype
+  `OpenType` under a `CIDFontType0` font whose CIDs are the glyph ids (`Identity-H`, a
+  `ToUnicode` map), when its `fsType` allows embedding (its "no subsetting" bit does not stop a
+  whole face). `system_fonts: false` uses the bundled faces only.
 - **Raster fallback.** Images are Flate-compressed RGB with a soft mask for transparency, at
   the `scale` resolution (default 2, 192 px per inch). A canvas whose recording passes 200,000
   operations (a scatter of a million points, a huge table) is placed as an image of itself, one
   visual at a time (`raster_parts` in the result); SVG images are rasterized as in the PNG.
 - **File.** PDF 1.7, a classic cross-reference table, Flate-compressed streams, one shared
   resource dictionary, the title (`title`, default the file's name) in the information
-  dictionary; deterministic (no dates, no random ids): the same input gives the same bytes.
+  dictionary, a file identifier (`ID`, a digest of the file's body); deterministic (no dates,
+  no random ids): the same input gives the same bytes.
 - **Outline.** One bookmark per exported page, in export order, titled with the page's display
   name (its name when it has none) and going to that page (`/Dest [page /Fit]`); with more than
   one page the file opens with the bookmarks shown (`/PageMode /UseOutlines`). ISO 32000-1
@@ -366,12 +394,41 @@ display list; the PNG drawing is unchanged (`rendering_raster_is_unchanged_by_re
   per line of text (runs that go on where the last one ended, on its baseline, join one
   paragraph: a text box's words). A visual with alt text (General › Alt text, `altText`) is a
   `Figure` with that `/Alt`: its marks and its labels are the figure's content, read as the alt
-  text. Everything else (page and visual backgrounds, borders, the marks of a visual without alt
-  text) is an `/Artifact`. Each piece is marked content with an `MCID`; pages carry
+  text. A picture-like visual without alt text (a chart, a map, an image: not a text box, table,
+  matrix, slicer, button, shape or card) is still a `Figure` for its graphics, its `/Alt` the
+  visual's title (else its automatic title), and its labels stay paragraphs. A table visual is
+  a `Table`: a `TR` of `TH` header cells (`/A << /O /Table /Scope /Column >>`), a `TR` of `TD`
+  cells per row shown and for the total row; a cell's text is its own content, and a row keeps
+  its empty cells so every cell stays under its header (a matrix's spanning headers are still
+  paragraphs). The visuals' sections are in reading order: the visuals' tab order (`tabOrder`)
+  first, then the others top to bottom and left to right; the content streams stay in drawing
+  order. A glyph no character of its run maps to (a ligature) reads as U+FFFD in the
+  `ToUnicode` map, so every glyph drawn has text. Everything else (page and visual backgrounds,
+  borders, cell backgrounds) is an `/Artifact`. Each piece is marked content with an `MCID`; pages carry
   `/StructParents` and `/Tabs /S`, a faded layer (a transparency group form) has its own
   `/StructParents` and its content is referenced with `/Stm`; the parent tree maps every `MCID`
-  back to its element. Elements with no content are left out. Not checked against the PDF/UA
-  validators (PAC, veraPDF): no PDF/UA identification is written.
+  back to its element. Elements with no content are left out.
+- **PDF/UA and PDF/A** (`pdf_ua`, default on; `pdf_a`, default off). The structure is written
+  either way; `pdf_ua` adds the identification: an uncompressed XMP metadata stream
+  (`/Metadata`) with `dc:title`, `pdf:Producer`, `xmp:CreatorTool` (the information
+  dictionary's values) and `pdfuaid:part` 1 (ISO 14289-1). It is on by default because it costs
+  a few hundred bytes and the tags it describes are written anyway. `pdf_a` adds
+  `pdfaid:part` 2, `pdfaid:conformance` B (ISO 19005-2, level B) and an output intent
+  (`GTS_PDFA1`) whose profile is an sRGB ICC profile BIcraft builds itself (`icc.rs`: ICC
+  version 2.1, display class, from IEC 61966-2-1's primaries, D65 white adapted to D50 with the
+  Bradford transform and the sRGB transfer curve, 1024 points; no profile file from elsewhere,
+  so no licence question); with both, the metadata also describes the `pdfuaid` schema as a
+  PDF/A extension schema. It is off by default: an archival claim is the user's choice, and it
+  adds the 3 KB profile. What PDF/A-2b also asks and the writer already did: every font drawn
+  is embedded (the invisible Helvetica over outlined text is render mode 3, which PDF/A and
+  PDF/UA do not count as drawn), the binary comment in the header, no encryption, no
+  transparency outside what PDF/A-2 allows (`ca`/`CA`, soft masks, transparency groups, with
+  the output intent giving their colour space). Checked by our reader only:
+  `PdfInfo::ua_issues` and `PdfInfo::pdfa_issues` list what breaks the requirements it can see
+  (identification, title shown, language, tagged content, figures' alt text, table structure
+  and header scope, fonts embedded with their maps; the metadata, the output intent's profile
+  header, the file identifier). Not run through veraPDF or PAC (none is installed here), so the
+  identification is a claim of BIcraft's, not a validator's verdict.
 
 **Checking a PDF.** `bicraft_render::pdf_read::inspect` reads a PDF without other tools: the
 header, the cross-reference table (every object listed is parsed at its offset), the page tree
@@ -397,8 +454,8 @@ BIcraft's own design: no Desktop print behaviour was observed or copied.
 a column chart, then a card) is a 7.7 KB PDF; poppler's `pdftotext` (an independent reader)
 extracts its titles, labels and values. The font subsets hold the glyphs used only.
 
-**Not yet.** PDF/A and PDF/UA identification (and a validator run), tables tagged as `Table`
-structures (a table visual's cells are paragraphs), a print dialog of BIcraft's own (page setup,
+**Not yet.** A run of a PDF/UA or PDF/A validator (veraPDF, PAC), a matrix tagged as a table,
+CFF faces subset (they are embedded whole), a print dialog of BIcraft's own (page setup,
 printer choice), the page background image's tiling options beyond the PNG's, CJK text without
 a CJK system font (drawn as boxes, as in the PNG; G43).
 
@@ -542,7 +599,7 @@ quarterly data ("Seen in Desktop" below); the list of steps is BIcraft's.
   rows, an area over hours, horizontal bars over quarters, a combo). `charts.png` changed by up
   to a pixel and a half: its monthly line now follows the months' lengths.
 - *Seen in Desktop.* Power BI Desktop 2.159.1231.0 (Store edition, French UI, 2026-11-24) drew
-  line and column charts the `bicraft` CLI wrote, 170 to 1,200 px wide, on 20 days, 60 days,
+  line and column charts `bicraft-cli` wrote, 170 to 1,200 px wide, on 20 days, 60 days,
   72 hours, 12 and 36 months and 12 quarters, in General Date, Long Date and short date formats.
   Its tick texts: "4 janv." for days whatever the format, "janv. 2025" for months, "2025" for
   years, "1 mars 00:00" for hours (the day always, midnight too; no time on midnight-only data).
@@ -627,7 +684,7 @@ label moved right of it.
 matrix row header is a `HitAction::Menu` region `{"kind": "matrix_row", "page", "visual",
 "path", "open"}` the front end's right-click menu reads (Expand / Collapse > Selection, Entire
 level, All). The visual header's drill icons are drawn by the egui UI over the page, not by the
-renderer (`bicraft render` output stays the published look).
+renderer (`bicraft-cli render` output stays the published look).
 
 ## Tests
 
@@ -655,10 +712,10 @@ renderer (`bicraft render` output stays the published look).
 
 1. `cargo xtask oracle-gen synth` writes a synthetic report (one page per family: cards/KPI/gauge, bars and columns,
    lines/areas/combo, pie/donut/treemap/funnel/waterfall/scatter, table/matrix/slicer/shape/button,
-   then the cartesian stress pages Stress, Labels, Combo and Axes) whose data is an M literal, and the visual rectangles; `bicraft run --file` builds the PBIX
+   then the cartesian stress pages Stress, Labels, Combo and Axes) whose data is an M literal, and the visual rectangles; `bicraft-cli run --file` builds the PBIX
    (DataModel included, so Desktop opens it with data). The report has no theme collection, so
    Desktop draws it in its classic look.
-2. `bicraft render synth.pbix --out ours` renders it.
+2. `bicraft-cli render synth.pbix --out ours` renders it.
 3. `capture.ps1` opens the PBIX in Desktop 2.158 and captures each page **without the screen**
    (the session's screen is off or locked): Desktop's report view is a WebView2 page; Desktop is
    started through its app execution alias with `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS` set for
@@ -694,7 +751,7 @@ rank filter, numpy's median, Python's rounding of the crop box): on the three or
 The text check compares Desktop's DOM text (capture.mjs: computed family, size, weight, colour and
 box of every visible text node, converted to report pixels with the canvas width and the
 element's screen scale) with the runs the renderer drew (`report.render {text_dump: true}`,
-`bicraft render --text-json`: string, family, px size, weight, colour and line box of each run).
+`bicraft-cli render --text-json`: string, family, px size, weight, colour and line box of each run).
 Runs belong to the visual whose rectangle holds their centre. Strings match after whitespace
 normalisation (no-break and thin spaces), equal strings pair by nearest centre, and a run of ours
 ending in "…" matches the Desktop string it starts (Desktop truncates in CSS, its DOM keeps the
@@ -997,7 +1054,7 @@ values, button text and fill and titles bound to measures are evaluated (`docs/v
 "Bound values"); when one of them, or a conditional format reading a measure, cannot be, the
 visual is `preview` with the reason. `TODAY()` / `NOW()` (and `UTCTODAY()` / `UTCNOW()`) return
 the system clock in UTC (Desktop uses the local time: they can differ by a day around midnight),
-or the fixed `as_of` of `report.render` / `view.set_as_of` / `bicraft render --as-of` for
+or the fixed `as_of` of `report.render` / `view.set_as_of` / `bicraft-cli render --as-of` for
 reproducible renders; a Desktop capture taken on another day shows other ages.
 
 All statuses: `drawn` (the renderer drew the visual from evaluated values, or a text box,
@@ -1025,7 +1082,7 @@ With a dataset, the visual also has `rows` (the whole result's row count, `data.
 when truncated), `value_cells` (measure and aggregation cells of the returned rows, at most
 100 000 rows examined) and `blank_cells` (those that are blank). Each page has
 `visuals_without_data`, the number of its (non-hidden) visuals whose `data` is `no_rows`,
-`blank_values` or `not_evaluated`. `fail_on_empty: true` (CLI `bicraft render
+`blank_values` or `not_evaluated`. `fail_on_empty: true` (CLI `bicraft-cli render
 --fail-on-empty`) turns that into a failure: the command returns an error naming up to 20 such
 visuals (`page / visual (type): data`); the CLI still writes the PNGs and prints the result,
 then exits 1. The live viewer's snapshot carries the same state per visual as `data_state`

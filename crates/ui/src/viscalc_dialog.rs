@@ -7,6 +7,11 @@
 //! `visual.calculation.add` for a new calculation, `visual.calculation.set` for an edited one;
 //! Delete runs `visual.calculation.remove`. The engine checks the expression; its error goes to
 //! the error bar and the window stays open.
+//!
+//! While the name or the expression is being typed, the window previews it: once the text has
+//! not changed for [`DEBOUNCE_MS`], it sends Apply's command with `preview: true` (the engine
+//! evaluates the visual with the calculation and changes nothing) and shows the answer's data in
+//! the visual matrix, or its error under the formula bar. Only Apply changes the report.
 
 use egui::{RichText, Ui};
 use serde_json::{Value, json};
@@ -25,6 +30,8 @@ pub const REMOVE: &str = "visual.calculation.remove";
 const MAX_ROWS: usize = 40;
 /// Columns of the visual matrix shown.
 const MAX_COLS: usize = 16;
+/// How long the name and expression stay unchanged before the window previews them.
+pub const DEBOUNCE_MS: u64 = 400;
 
 /// The open window's values.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -37,6 +44,34 @@ pub struct Editor {
     pub expression: String,
     /// The name was typed (a template then keeps it).
     pub named: bool,
+    /// The live preview of what is typed.
+    pub live: Live,
+}
+
+/// The live preview's state.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Live {
+    /// The name and expression last seen ([`key`]); a change restarts the wait.
+    seen: String,
+    /// When `seen` last changed (UI time, ms); `None`: no preview is waiting.
+    since: Option<u64>,
+    /// The key of the preview last asked for.
+    asked: String,
+    /// Its answer: the visual with the calculation (its `data`), or why it has none.
+    pub result: Option<Result<Value, String>>,
+}
+
+/// What a preview is of: the name and the expression.
+fn key(e: &Editor) -> String {
+    format!("{}\u{1}{}", e.name.trim(), e.expression)
+}
+
+/// The preview's state for `e` as it stands: nothing to preview until it changes.
+fn settled(e: &Editor) -> Live {
+    Live {
+        seen: key(e),
+        ..Live::default()
+    }
 }
 
 /// The templates of Desktop's menu that BIcraft evaluates: (EN, FR, expression with `{}` the
@@ -122,14 +157,17 @@ pub fn open(app: &mut App, page: String, visual: String, editing: Option<String>
         }
         None => (free_name(v, app.lang), String::new()),
     };
-    app.cmd.viscalc = Some(Editor {
+    let mut e = Editor {
         page,
         visual,
         editing,
         name,
         expression,
         named: false,
-    });
+        live: Live::default(),
+    };
+    e.live = settled(&e);
+    app.cmd.viscalc = Some(e);
 }
 
 /// New calculation without an expression (a menu or palette click) and Edit visual calculation
@@ -190,6 +228,48 @@ pub fn apply_call(e: &Editor) -> Call {
             }
             Call { id: SET, params: p }
         }
+    }
+}
+
+/// The command the live preview runs: Apply's, with `preview: true` (it changes nothing).
+pub fn preview_call(e: &Editor) -> Call {
+    let mut c = apply_call(e);
+    if let Some(o) = c.params.as_object_mut() {
+        o.insert("preview".into(), json!(true));
+    }
+    c
+}
+
+/// The live preview for this frame: a change of the name or expression restarts the wait; once
+/// it is over, the preview's command (for a name and an expression), else nothing.
+fn live(ctx: &egui::Context, e: &mut Editor) -> Option<Call> {
+    let now = (ctx.input(|i| i.time).max(0.0) * 1000.0) as u64;
+    let k = key(e);
+    if k != e.live.seen {
+        e.live.seen = k;
+        e.live.since = Some(now);
+    }
+    let since = e.live.since?;
+    let waited = now.saturating_sub(since);
+    if waited < DEBOUNCE_MS {
+        ctx.request_repaint_after(std::time::Duration::from_millis(DEBOUNCE_MS - waited));
+        return None;
+    }
+    e.live.since = None;
+    if e.expression.trim().is_empty() || e.name.trim().is_empty() {
+        e.live.result = None;
+        return None;
+    }
+    e.live.asked.clone_from(&e.live.seen);
+    Some(preview_call(e))
+}
+
+/// A preview's answer, kept when it is for what the window asked last.
+pub fn preview_answer(app: &mut App, asked: &str, r: Result<Value, String>) {
+    if let Some(e) = app.cmd.viscalc.as_mut()
+        && e.live.asked == asked
+    {
+        e.live.result = Some(r);
     }
 }
 
@@ -298,6 +378,7 @@ fn body(app: &mut App, ui: &mut Ui, e: &mut Editor, l: Lang, close: &mut bool) {
                                     e.name.clone_from(&name);
                                     e.expression = s(f, "expression").to_string();
                                     e.named = true;
+                                    e.live = settled(e);
                                 }
                                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                                     let label = format!("{} {name}", l.t("Delete", "Supprimer"));
@@ -311,6 +392,7 @@ fn body(app: &mut App, ui: &mut Ui, e: &mut Editor, l: Lang, close: &mut bool) {
                                         if editing {
                                             e.editing = None;
                                             e.expression.clear();
+                                            e.live = settled(e);
                                         }
                                     }
                                 });
@@ -332,19 +414,51 @@ fn body(app: &mut App, ui: &mut Ui, e: &mut Editor, l: Lang, close: &mut bool) {
                 e.name = free_name(v.as_ref(), l);
                 e.expression.clear();
                 e.named = false;
+                e.live = settled(e);
             }
         });
         ui.add_space(8.0);
         ui.vertical(|ui| {
             formula_bar(ui, e, &fs, l, &t, &mut action);
+            // the live preview: its error under the bar (nothing applied), announced politely
+            let note = match &e.live.result {
+                Some(Err(why)) => Some((
+                    format!(
+                        "✕ {}: {}",
+                        l.t("Not applied", "Non appliqué"),
+                        clip(why, 400)
+                    ),
+                    t.err_text,
+                )),
+                Some(Ok(_)) => Some((
+                    l.t(
+                        "Preview of the expression typed: Apply keeps it.",
+                        "Aperçu de l'expression saisie : Appliquer la conserve.",
+                    )
+                    .to_string(),
+                    t.text_dim,
+                )),
+                None => None,
+            };
+            if let Some((text, color)) = note {
+                let r = ui.label(RichText::new(&text).color(color));
+                crate::keyboard::live_region(ui.ctx(), r.id, &text);
+            }
             ui.add_space(8.0);
             ui.label(RichText::new(l.t("Visual matrix", "Matrice visuelle")).font(theme::bold(13.0)));
-            matrix(ui, v.as_ref(), l, &t);
+            // the preview's data while there is one, else the visual as applied
+            let shown = match &e.live.result {
+                Some(Ok(p)) => Some(p),
+                _ => v.as_ref(),
+            };
+            matrix(ui, shown, l, &t);
         });
     });
     if let Some(c) = action {
         let applying = c.id == ADD || (c.id == SET && c.params.get("expression").is_some());
         app.run(c, if applying { Then::VisualCalc } else { Then::Nothing });
+    } else if let Some(c) = live(ui.ctx(), e) {
+        app.run(c, Then::VisualCalcPreview(e.live.asked.clone()));
     }
 }
 
@@ -429,6 +543,8 @@ fn formula_bar(ui: &mut Ui, e: &mut Editor, fs: &[Value], l: Lang, t: &Tokens, a
         );
         if widgets::primary(ui, l.t("Apply", "Appliquer"), ok, why).clicked() {
             *action = Some(apply_call(e));
+            // the visual shows the applied state from now on
+            e.live = settled(e);
         }
         let state = match &e.editing {
             Some(n) => format!("{} [{n}]", l.t("Editing", "Modification de")),

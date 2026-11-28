@@ -648,7 +648,7 @@ pub fn show(app: &mut App, ui: &mut Ui) {
             .frame(frame)
             .show(ui, |ui| crate::bookmarks_pane::show(app, ui));
         keep_width(app, ui, r.response.rect.width(), Pane::Bookmarks);
-        keyboard::section(app, ui, keyboard::Section::Pane, r.response.rect);
+        keyboard::pane(app, ui, keyboard::Region::Bookmarks, r.response.rect);
     }
     // Sync slicers (left of the Bookmarks pane)
     if app.prefs.panes.sync {
@@ -659,7 +659,7 @@ pub fn show(app: &mut App, ui: &mut Ui) {
             .frame(frame)
             .show(ui, |ui| crate::sync_pane::show(app, ui));
         keep_width(app, ui, r.response.rect.width(), Pane::Sync);
-        keyboard::section(app, ui, keyboard::Section::Pane, r.response.rect);
+        keyboard::pane(app, ui, keyboard::Region::Sync, r.response.rect);
     }
     // Data (the Page visuals pane while the mobile layout is edited, crate::mobile)
     if app.prefs.panes.data {
@@ -676,7 +676,7 @@ pub fn show(app: &mut App, ui: &mut Ui) {
                 }
             });
         keep_width(app, ui, r.response.rect.width(), Pane::Data);
-        keyboard::section(app, ui, keyboard::Section::Pane, r.response.rect);
+        keyboard::pane(app, ui, keyboard::Region::Data, r.response.rect);
     }
     // Build
     if app.prefs.panes.build {
@@ -687,7 +687,7 @@ pub fn show(app: &mut App, ui: &mut Ui) {
             .frame(frame)
             .show(ui, |ui| build_pane(app, ui));
         keep_width(app, ui, r.response.rect.width(), Pane::Build);
-        keyboard::section(app, ui, keyboard::Section::Pane, r.response.rect);
+        keyboard::pane(app, ui, keyboard::Region::Build, r.response.rect);
     }
     // Filters (left of Build, as in Desktop)
     if app.prefs.panes.filters && offered(app, Pane::Filters) {
@@ -699,7 +699,7 @@ pub fn show(app: &mut App, ui: &mut Ui) {
             .show(ui, |ui| crate::filters_pane::pane(app, ui));
         crate::filter_pane_ui::paint_border(app, ui, r.response.rect);
         keep_width(app, ui, r.response.rect.width(), Pane::Filters);
-        keyboard::section(app, ui, keyboard::Section::Pane, r.response.rect);
+        keyboard::pane(app, ui, keyboard::Region::Filters, r.response.rect);
     }
     // the Performance analyzer, when it is open (left of the others)
     crate::perf_pane::show(app, ui, frame);

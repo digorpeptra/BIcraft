@@ -1,7 +1,7 @@
 //! L3: the Databricks connector of bicraft's Power Query evaluator.
 //!
 //! Registered in [`bicraft_data::SourceOptions::connectors`] only when the caller explicitly
-//! allows it (`bicraft refresh --allow-connector databricks`, `model.refresh
+//! allows it (`bicraft-cli refresh --allow-connector databricks`, `model.refresh
 //! {allow_connectors: ["databricks"]}`), it runs the M functions Power BI Desktop writes for
 //! Databricks, `DatabricksMultiCloud.Catalogs(host, httpPath, options)` and
 //! `Databricks.Catalogs(…)`, through the **SQL Statement Execution API** of a SQL warehouse

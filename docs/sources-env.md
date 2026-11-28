@@ -172,11 +172,11 @@ parameters forms run it to offer the profiles in a picker.
 ## Command line and CI
 
 ```
-bicraft sources PATH
-bicraft sources rebase PATH --from C:\Data\Finance --param RootFolder [--to D:\fin] [--dry-run]
-bicraft sources rebase PATH --server dev-sql=prod-sql --host adb-1=adb-2 [--url OLD=NEW] ...
-bicraft env check PATH prod [--env-file envs.yaml]
-bicraft env apply PATH prod [--env-file envs.yaml] [--dry-run]
+bicraft-cli sources PATH
+bicraft-cli sources rebase PATH --from C:\Data\Finance --param RootFolder [--to D:\fin] [--dry-run]
+bicraft-cli sources rebase PATH --server dev-sql=prod-sql --host adb-1=adb-2 [--url OLD=NEW] ...
+bicraft-cli env check PATH prod [--env-file envs.yaml]
+bicraft-cli env apply PATH prod [--env-file envs.yaml] [--dry-run]
 ```
 
 Output is JSON. `rebase` and `apply` save the file unless `--dry-run`. Exit codes:
@@ -185,7 +185,7 @@ Output is JSON. `rebase` and `apply` save the file unless `--dry-run`. Exit code
 - 1: `check` found gaps or errors, or the edit or the save failed;
 - 2: usage error, unreadable file or profile file, unknown profile, invalid profile.
 
-A deployment pipeline can run `bicraft env check` as a gate and then `bicraft env apply` on a copy
+A deployment pipeline can run `bicraft-cli env check` as a gate and then `bicraft-cli env apply` on a copy
 of the project.
 
 ## MCP and server mode

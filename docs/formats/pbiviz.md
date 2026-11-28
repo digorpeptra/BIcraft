@@ -133,7 +133,7 @@ The host page runs the package's script, which registers the visual in
   `.pbiviz.json` (`visual`, `apiVersion`, `author`, `capabilities`, `content`: `js`, `css`,
   `iconBase64`). `visual.import_custom` reads it back (tested, and through PBIP and PBIX round
   trips).
-- `bicraft visual new|build|pack` run these commands from the command line; Insert › Visuals ›
+- `bicraft-cli visual new|build|pack` run these commands from the command line; Insert › Visuals ›
   New visual project, Compile a visual and Package a visual open their forms in the app.
 - `visual.export_bicraft_visual {name, out}` (M12.5) writes the package of one of BIcraft's own
   visuals, the same bytes BIcraft embeds in a report, for Power BI Desktop's Import a visual from
@@ -141,7 +141,7 @@ The host page runs the package's script, which registers the visual in
   them or `all`; `out` is the `.pbiviz` file (one visual) or a folder, where each is written as
   `<guid>.<version>.pbiviz`. `visual.import_custom` reads every exported file back as the package
   `visual.add` would embed, and the capabilities validate against `powerbi-visuals-api` 5.3.0's
-  schema (`builtin_visuals_tests.rs`). `bicraft visual export NAME... | --all [--out F|DIR]` and
+  schema (`builtin_visuals_tests.rs`). `bicraft-cli visual export NAME... | --all [--out F|DIR]` and
   Insert › Visuals › Export a BIcraft visual run it. The release archives carry the nine files
   under `visuals/` (docs/releasing.md); their TypeScript is in this repository.
 

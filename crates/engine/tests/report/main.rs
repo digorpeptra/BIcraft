@@ -9,6 +9,7 @@
 #[path = "../../../../testsupport/tempdir.rs"]
 mod tempdir;
 
+mod analyze_point_tests;
 mod bound_values_tests;
 mod builtin_visuals_tests;
 mod bvis_tests;

@@ -686,6 +686,54 @@ fn table_layout_reaches_the_snapshot() {
     assert_eq!(t["sort"], json!([{"column": 1, "descending": true}]), "{t}");
 }
 
+/// G54: a gradient's Percent stops sit at that percent of the points' range: a point at or
+/// below the lowest stop takes its colour, at or above the highest the highest's, between them a
+/// mix, so the producer's colours follow each point's place in the range.
+#[test]
+fn gradient_percent_stops_are_evaluated() {
+    let mut s = shop();
+    let v = add_visual(
+        &mut s,
+        "clusteredColumnChart",
+        json!([{"role": "Category", "field": "Sales[Product]"}, {"role": "Y", "field": "[Total]"}]),
+    );
+    run(
+        &mut s,
+        "visual.conditional",
+        json!({"page": "Main", "visual": v, "target": "data_color", "rule": {"gradient": {
+            "field": "[Total]",
+            "min": {"color": "#FF0000", "value": 10, "percent": true},
+            "max": {"color": "#0000FF", "value": 90, "percent": true}}}}),
+    );
+    let d = data(&s, &v);
+    let rows = rows(&d);
+    let totals: Vec<f64> = rows.iter().filter_map(|r| r[1].as_f64()).collect();
+    let lo = totals.iter().copied().fold(f64::INFINITY, f64::min);
+    let hi = totals.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+    assert!(hi > lo, "{d}");
+    let fills: Vec<(f64, String)> = d["cell_styles"]
+        .as_array()
+        .cloned()
+        .unwrap_or_default()
+        .iter()
+        .filter_map(|x| {
+            let r = usize::try_from(x["r"].as_u64()?).ok()?;
+            Some((rows.get(r)?[1].as_f64()?, x["fill"].as_str()?.to_string()))
+        })
+        .collect();
+    assert_eq!(fills.len(), rows.len(), "{d}");
+    for (x, c) in fills {
+        let p = (x - lo) / (hi - lo) * 100.0;
+        if p <= 10.0 {
+            assert_eq!(c, "#FF0000", "{x} at {p} %: {d}");
+        } else if p >= 90.0 {
+            assert_eq!(c, "#0000FF", "{x} at {p} %: {d}");
+        } else {
+            assert!(c != "#FF0000" && c != "#0000FF", "{x} at {p} %: {c}");
+        }
+    }
+}
+
 /// G54: the axes', legend's, gauge's and KPI's whole-visual colours are evaluated once
 /// (`data.visual_styles`), and Percent rule bounds are read over the points' range.
 #[test]

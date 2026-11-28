@@ -623,7 +623,7 @@ fn cut_copies_and_removes_in_one_undo_step() {
 }
 
 /// Removing every member of a group removes the group too (no empty group left); removing
-/// some keeps it.
+/// some keeps it, refitted to the members left.
 #[test]
 fn removing_all_members_of_a_group_removes_the_group() {
     let mut s = session();
@@ -633,8 +633,10 @@ fn removing_all_members_of_a_group_removes_the_group() {
     let p0 = page(&s, 0);
     let g = run(&mut s, "visual.group", json!({"page": p0, "visuals": [a, b]}));
     let group = g["group"].as_str().unwrap().to_string();
+    assert_eq!(pos(&s, 0, &group), (10.0, 20.0, 490.0, 100.0));
     run(&mut s, "visual.remove", json!({"page": p0, "visual": a}));
     assert!(report(&s).pages[0].visual(&group).is_some(), "b is still in it");
+    assert_eq!(pos(&s, 0, &group), (300.0, 20.0, 200.0, 100.0), "refitted to b");
     let out = run(&mut s, "visual.remove", json!({"page": p0, "visual": b}));
     assert!(report(&s).pages[0].visual(&group).is_none(), "{out}");
     assert_eq!(report(&s).pages[0].visuals.len(), 1);
@@ -642,4 +644,83 @@ fn removing_all_members_of_a_group_removes_the_group() {
     undo(&mut s);
     assert!(report(&s).pages[0].visual(&group).is_some());
     assert!(report(&s).pages[0].visual(&b).is_some());
+}
+
+/// A 1×1 PNG and a small SVG, in base64.
+const PNG: &str =
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+const SVG: &str = "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSIyMCI+PHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjIwIiBmaWxsPSIjMTE4REZGIi8+PC9zdmc+";
+
+/// The image item an image visual shows.
+fn shown_item(v: &Visual) -> String {
+    v.visual_extra["objects"]["general"][0]["properties"]["imageUrl"]["expr"]["ResourcePackageItem"]["ItemName"]
+        .as_str()
+        .unwrap()
+        .to_string()
+}
+
+/// The bytes of the report's image item `item`.
+fn item_bytes(s: &Session, item: &str) -> Option<Vec<u8>> {
+    report(s)
+        .resources
+        .iter()
+        .find(|r| r.path.ends_with(&format!("/{item}")))
+        .map(|r| r.bytes.clone())
+}
+
+/// An image visual pasted into another report keeps its picture: the clip carries the image and
+/// the target registers it, reused when it has the same image, under a file of its own when
+/// another image has its name; a clip image that is not an image is left out with a warning,
+/// and malformed `images` are refused.
+#[test]
+fn pasted_images_keep_their_picture_in_another_report() {
+    let mut a = session();
+    let pa = page(&a, 0);
+    let out = run(
+        &mut a,
+        "image.add",
+        json!({"page": pa, "data": PNG, "name": "logo.png"}),
+    );
+    let img = out["visual"].as_str().unwrap().to_string();
+    let item = out["resource"].as_str().unwrap().to_string();
+    let copy = run(&mut a, "visual.copy", json!({"page": pa, "visual": img}));
+    assert_eq!(copy["images"], 1, "{copy}");
+    // another report, without the image
+    let mut b = session();
+    let pb = page(&b, 0);
+    let pasted = run(&mut b, "visual.paste", json!({"page": pb, "clip": copy["clip"]}));
+    let first = shown_item(visual(&b, 0, &names(&pasted["visuals"])[0]));
+    assert!(
+        item_bytes(&b, &first).is_some(),
+        "the picture came with the visual"
+    );
+    assert_eq!(item_bytes(&b, &first), item_bytes(&a, &item));
+    // pasted again: the same file
+    let files = report(&b).resources.len();
+    let again = run(&mut b, "visual.paste", json!({"page": pb, "clip": copy["clip"]}));
+    assert_eq!(shown_item(visual(&b, 0, &names(&again["visuals"])[0])), first);
+    assert_eq!(report(&b).resources.len(), files);
+    // another image under that name: the pasted one gets a file of its own
+    let mut clip = copy["clip"].clone();
+    clip["images"][0]["data"] = json!(SVG);
+    let other = run(&mut b, "visual.paste", json!({"page": pb, "clip": clip}));
+    let second = shown_item(visual(&b, 0, &names(&other["visuals"])[0]));
+    assert_ne!(second, first);
+    assert!(second.ends_with(".svg"), "{second}");
+    assert!(item_bytes(&b, &second).is_some_and(|x| x.starts_with(b"<svg")));
+    assert_eq!(
+        item_bytes(&b, &first),
+        item_bytes(&a, &item),
+        "the first is unchanged"
+    );
+    // hostile images
+    clip["images"][0]["data"] = json!("bm90IGFuIGltYWdl");
+    let bad = run(&mut b, "visual.paste", json!({"page": pb, "clip": clip}));
+    assert!(bad["warnings"].to_string().contains("not pasted"), "{bad}");
+    clip["images"][0]["data"] = json!("@@@");
+    let e = fails(&mut b, "visual.paste", json!({"page": pb, "clip": clip}));
+    assert!(e.contains("base64"), "{e}");
+    clip["images"] = json!(3);
+    let e = fails(&mut b, "visual.paste", json!({"page": pb, "clip": clip}));
+    assert!(e.contains("must be a list"), "{e}");
 }

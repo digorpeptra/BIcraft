@@ -192,14 +192,16 @@ fn a_list_group_carries_desktop_s_grouping_design_state() {
     let d = design_state(&s, "Qty (groups)").unwrap();
     assert_eq!(d["GroupItems"].as_array().unwrap().len(), 2, "{d}");
     assert_eq!(d["GroupItems"][1]["Expression"]["In"]["Values"][1], lit("2L"));
-    // a group listing a blank: the state is left out (its shape is not known); a replace drops it
+    // a group listing a blank: the blank is a `null` member, no `(Blank)` placeholder (G75)
     run(
         &mut s,
         "column.group",
         json!({"table": "Sales", "column": "Product", "replace": true, "groups": [
             {"name": "Wheels", "values": ["Bike", null]}]}),
     );
-    assert_eq!(design_state(&s, "Product (groups)"), None);
+    let d = design_state(&s, "Product (groups)").unwrap();
+    assert_eq!(d["GroupItems"][0]["DisplayName"], "Wheels", "{d}");
+    assert_eq!(d["GroupItems"][0]["Expression"]["In"]["Values"][1], lit("null"));
     // it is saved as a TMDL annotation and read back
     let dir = TempDir::new("bicraft-groups-design");
     let mut s = shop();
@@ -634,5 +636,182 @@ fn groups_survive_a_pbix_save_and_reopen_with_their_values() {
     assert_eq!(
         totals(&mut t, "Kind"),
         pairs(&[("(Blank)", 7.0), ("Car", 1000.0), ("Other", 215.0)])
+    );
+}
+
+/// The bin of each date of `column`: (date, bin) for every row, sorted by date.
+fn date_bins(s: &mut Session, column: &str) -> Vec<(String, String)> {
+    let q = format!("EVALUATE SUMMARIZECOLUMNS('Sales'[Date], 'Sales'[{column}]) ORDER BY 'Sales'[Date]");
+    let v = run(s, "dax.evaluate", json!({ "query": q }));
+    v["results"][0]["rows"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|r| {
+            (
+                r["Sales[Date]"].as_str().unwrap()[..10].to_string(),
+                r[format!("Sales[{column}]")].as_str().unwrap()[..10].to_string(),
+            )
+        })
+        .collect()
+}
+
+/// A number of bins on dates (G75): the size in units comes from the data's first and last date,
+/// written as a bin size (Desktop's date form); not seen in a file Desktop saved.
+#[test]
+fn a_number_of_bins_on_dates_sizes_them_from_the_first_and_last_date() {
+    let mut s = shop();
+    // 2024-01-05 to 2025-08-01: two years, so four bins are counted in months, 20 months / 4 = 5
+    let r = run(
+        &mut s,
+        "column.group",
+        json!({"table": "Sales", "column": "Date", "name": "Four", "bin_count": 4}),
+    );
+    assert_eq!(r["unit"], "month", "{r}");
+    assert_eq!(r["bin_size"], json!(5), "{r}");
+    assert_eq!(r["bin_count"], json!(4), "{r}");
+    // each date falls in the five-month bin that holds it (months restart each year)
+    for (date, bin) in date_bins(&mut s, "Four") {
+        let (y, m): (i32, i32) = (date[..4].parse().unwrap(), date[5..7].parse().unwrap());
+        let start = 1 + (m - 1) / 5 * 5;
+        assert_eq!(bin, format!("{y:04}-{start:02}-01"), "{date}");
+    }
+    // stored as a bin size of months, as Edit groups reads it back
+    assert_eq!(
+        ext(&s, "Four")["value"]["binningMetadata"],
+        json!({"binSize": {"value": 5.0, "unit": 6}})
+    );
+    assert_eq!(
+        snapshot_column(&s, "Four")["group"],
+        json!({"column": "Date", "kind": "bin", "bin_size": 5, "unit": "month"})
+    );
+    // a unit given is kept: 2 bins of years over 2024-2025 are one year each
+    let r = run(
+        &mut s,
+        "column.group",
+        json!({"table": "Sales", "column": "Date", "name": "Years", "unit": "year", "bin_count": 2}),
+    );
+    assert_eq!(
+        (r["unit"].clone(), r["bin_size"].clone()),
+        (json!("year"), json!(1))
+    );
+    let years: Vec<String> = date_bins(&mut s, "Years").into_iter().map(|(_, b)| b).collect();
+    assert!(
+        years.iter().all(|b| b == "2024-01-01" || b == "2025-01-01"),
+        "{years:?}"
+    );
+    // a count that a unit cannot hold in 10000 units is refused, and changes nothing
+    let before = s.model.clone();
+    let e = s
+        .execute(
+            "column.group",
+            &json!({"table": "Sales", "column": "Date", "name": "X", "unit": "second", "bin_count": 1}),
+        )
+        .unwrap_err();
+    assert!(e.contains("larger unit"), "{e}");
+    assert_eq!(s.model, before);
+}
+
+/// A list group listing a blank (G75): the blank is an explicit member of its group, the `null`
+/// literal of the design state, with no `(Blank)` placeholder; it round-trips through a PBIP
+/// save. BIcraft's own form: Desktop's dialog never lists a blank, so it is not compared with
+/// Desktop.
+#[test]
+fn a_blank_listed_in_a_group_is_a_member_of_its_design_state_and_round_trips() {
+    let dir = TempDir::new("bicraft-groups-blank");
+    let mut s = shop();
+    run(
+        &mut s,
+        "column.group",
+        json!({"table": "Sales", "column": "Product", "groups": [
+            {"name": "Wheels", "values": ["Bike", null]}, {"name": "Toys", "values": ["Ball"]}]}),
+    );
+    let col = json!({"Column": {"Expression": {"SourceRef": {"Source": "s"}}, "Property": "Product"}});
+    let lit = |v: &str| json!([{"Literal": {"Value": v}}]);
+    let d = design_state(&s, "Product (groups)").expect("a design state");
+    assert_eq!(
+        d["GroupItems"],
+        json!([
+            {"DisplayName": "Wheels", "Expression": {"In": {"Expressions": [col], "Values": [lit("'Bike'"), lit("null")]}}},
+            {"DisplayName": "Toys", "Expression": {"In": {"Expressions": [col], "Values": [lit("'Ball'")]}}},
+            {"DisplayName": "Other"}])
+    );
+    // the blank row is counted in Wheels
+    assert_eq!(
+        totals(&mut s, "Product (groups)"),
+        pairs(&[("Other", 1060.0), ("Toys", 5.0), ("Wheels", 157.0)])
+    );
+    let t = reopened(&mut s, &dir, "Shop.pbip");
+    assert_eq!(design_state(&t, "Product (groups)"), Some(d));
+    assert_eq!(
+        snapshot_column(&t, "Product (groups)")["group"],
+        json!({"column": "Product", "kind": "list", "other": true, "groups": [
+            {"name": "Wheels", "values": [null, "Bike"]}, {"name": "Toys", "values": ["Ball"]}]})
+    );
+}
+
+/// Sales by Product in a column chart on the first page: (page, visual).
+fn product_chart(s: &mut Session) -> (String, String) {
+    run(s, "report.new", json!({}));
+    let page = s.report.as_ref().unwrap().pages[0].name.clone();
+    let r = run(
+        s,
+        "visual.add",
+        json!({"page": page, "visual_type": "clusteredColumnChart", "x": 0, "y": 0, "width": 400, "height": 300,
+               "fields": [{"role": "Category", "field": "Sales[Product]"}, {"role": "Y", "field": "[Total]"}]}),
+    );
+    (page, r["visual"].as_str().unwrap().to_string())
+}
+
+/// Group data on points selected in a visual (G75): Ctrl+click two bars, then the group holds
+/// exactly their values; a second selection joins the same group column.
+#[test]
+fn group_data_groups_exactly_the_selected_points() {
+    let mut s = shop();
+    let (page, chart) = product_chart(&mut s);
+    // nothing selected: refused, nothing changes
+    let before = s.model.clone();
+    let e = s
+        .execute("visual.group_points", &json!({"page": page, "visual": chart}))
+        .unwrap_err();
+    assert!(e.contains("selected"), "{e}");
+    assert_eq!(s.model, before);
+    for v in ["Bike", "Kite"] {
+        run(
+            &mut s,
+            "view.interact",
+            json!({"action": "select", "page": page, "visual": chart, "ctrl": true, "point": [{"c": 0, "v": v}]}),
+        );
+    }
+    let r = run(
+        &mut s,
+        "visual.group_points",
+        json!({"page": page, "visual": chart}),
+    );
+    assert_eq!(r["column"], "Product (groups)", "{r}");
+    assert_eq!(r["group"], "Bike & Kite", "{r}");
+    assert_eq!(
+        snapshot_column(&s, "Product (groups)")["group"]["groups"],
+        json!([{"name": "Bike & Kite", "values": ["Bike", "Kite"]}])
+    );
+    assert_eq!(
+        totals(&mut s, "Product (groups)"),
+        pairs(&[("(Blank)", 7.0), ("Bike & Kite", 192.0), ("Other", 1023.0)])
+    );
+    // one undo step
+    run(&mut s, "edit.undo", json!({}));
+    assert_eq!(s.model, before);
+    run(&mut s, "edit.redo", json!({}));
+    // given points: Kite moves to a new group, Bike stays alone in the first
+    let r = run(
+        &mut s,
+        "visual.group_points",
+        json!({"page": page, "visual": chart, "group": "Air",
+               "points": [[{"c": 0, "v": "Kite"}], [{"c": 0, "v": "Doll"}]]}),
+    );
+    assert_eq!(r["values"], json!(["Kite", "Doll"]));
+    assert_eq!(
+        snapshot_column(&s, "Product (groups)")["group"]["groups"],
+        json!([{"name": "Bike & Kite", "values": ["Bike"]}, {"name": "Air", "values": ["Kite", "Doll"]}])
     );
 }

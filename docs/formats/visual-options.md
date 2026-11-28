@@ -140,7 +140,7 @@ refreshed through Tabular Editor 2. It opened without any error or repair prompt
 ## Reproducibility oracle
 
 Power BI Desktop 2.158.1304.0 (Store), 2026-10-14. A script (no longer in the tree) drove
-BIcraft over MCP (`bicraft mcp`). `gen` writes our own one-table model (an M `#table`, two
+BIcraft over MCP (`bicraft-cli mcp`). `gen` writes our own one-table model (an M `#table`, two
 measures), creates the PBIP (`project.new`), adds one visual per type and per 150 visual-object
 properties (`report.apply`, fields bound by data role: 82 visuals on 10 pages), and sets every
 catalogued property through `visual.format` `objects` entries, all checked against the catalog:

@@ -8,9 +8,9 @@
 //!
 //! ```text
 //! cargo xtask oracle-gen expand DIR          -> DIR/cmds1.json, DIR/cmds2.json, DIR/layout.json
-//! bicraft run --file DIR/cmds1.json         -> DIR/proj/Synth.pbip
+//! bicraft-cli run --file DIR/cmds1.json         -> DIR/proj/Synth.pbip
 //! cargo xtask oracle-gen expand DIR patch    -> writes expansionStates and objects
-//! bicraft run --file DIR/cmds2.json         -> DIR/expand.pbix
+//! bicraft-cli run --file DIR/cmds2.json         -> DIR/expand.pbix
 //! ```
 //! Model culture fr-FR (render with `{"ui_language": "fr-FR"}`).
 

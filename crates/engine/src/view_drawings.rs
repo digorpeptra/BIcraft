@@ -1,4 +1,4 @@
-//! BIcraft's own visuals in the live viewer's HTML page (`bicraft view`, docs/view-snapshot.md
+//! BIcraft's own visuals in the live viewer's HTML page (`bicraft-cli view`, docs/view-snapshot.md
 //! "BIcraft visuals"): the page draws no BIcraft visual itself, so the publisher adds to each one
 //! of the snapshot a `drawing`: the renderer's image of the visual (a PNG served at
 //! `/api/asset/<id>`, drawn as `report.render` and the app draw it, with its selection dimmed)

@@ -67,9 +67,9 @@ The key words MUST, MUST NOT, SHOULD, SHOULD NOT and MAY are used as in RFC 2119
 
 BIcraft is an open-source, pure-Rust tool that creates, reads, modifies, validates and compiles
 Power BI files: PBIX, PBIT, PBIP, PBIR, TMDL and TMSL, with DAX validation against the semantic
-model. It ships as one binary, `bicraft`, which is a CLI and an MCP server, so AI agents can
-author and edit the files the free Power BI Desktop opens. It runs on Windows and Linux. It
-follows the development method of the Crafting Apps, in particular
+model. It ships two binaries: `bicraft`, the desktop app, and `bicraft-cli`, which is a CLI and an
+MCP server, so AI agents can author and edit the files the free Power BI Desktop opens. It
+runs on Windows and Linux. It follows the development method of the Crafting Apps, in particular
 [DeckCraft](https://github.com/storytold/deckcraft); [docs/method.md](docs/method.md) compares
 the two and lists where BIcraft keeps a stricter rule of its own (provenance wording, client
 data, Desktop figures).
@@ -106,8 +106,8 @@ governs in this repository.
   dependencies come from crates.io only (`deny.toml`), its UI strings from its own catalogue
   (EN, FR), its fonts are bundled with their licences (`docs/design.md` §3), and its own
   workflows run CI (docs/method.md, decisions 1 and 2).
-- **Rule 18 (`--automation-read-root`, `--automation-write-root`)**: `bicraft mcp` on stdio works
-  on the files its caller names; `bicraft serve --root DIR` is the confined mode
+- **Rule 18 (`--automation-read-root`, `--automation-write-root`)**: `bicraft-cli mcp` on stdio works
+  on the files its caller names; `bicraft-cli serve --root DIR` is the confined mode
   ([docs/server-mode.md](docs/server-mode.md)).
 - **Rule 19 (progress-log fragments)**: the progress log is one
   file, [docs/history/roadmap-log.md](docs/history/roadmap-log.md), newest first; no fragment
@@ -263,7 +263,7 @@ depend only on strictly lower layers.
 | L4 | `pbix`, `pbip`, `pbixwriter` | Containers: PBIX/PBIT packages and PBIP folders |
 | L5 | `engine` | The session, plus every action expressed as a command |
 | L6 | `mcp`, `view`, `ui` | The MCP server over `engine`; the live viewer; the app's egui UI shared by the desktop and browser shells (no engine outside its tests) |
-| apps | `bicraft-cli`, `bicraft-desktop`, `bicraft-web` | The `bicraft` binary (`bicraft mcp` starts the MCP server on stdio); the native and browser shells of `ui` |
+| apps | `bicraft-cli`, `bicraft-desktop`, `bicraft-web` | The binaries `bicraft-cli` (CLI; `bicraft-cli mcp` starts the MCP server on stdio) and `bicraft` (the desktop app, the native shell of `ui`); the browser shell of `ui` |
 
 `cargo xtask layers` enforces this (table in `xtask/src/layers.rs`; register new crates there):
 dependencies point only to strictly lower layers, nothing below L6 depends on `engine`, and
@@ -379,9 +379,9 @@ run nightly (`cargo xtask heavy`, [docs/ci.md](docs/ci.md)).
   [docs/desktop.md](docs/desktop.md) "Control channel"), whose requests run the buttons' code,
   never through OS-level synthetic input.
 - Verify UI changes with egui_kittest and `BICRAFT_DESKTOP_SHOTS=DIR` screenshots. For the
-  running desktop, use `bicraft-desktop FILE --control 0`, then `bicraft ui ui.inspect`,
-  `bicraft ui command ID PARAMS` and `bicraft ui ui.screenshot --out shot.png`. For the
-  browser, use `bicraft view FILE --ui egui --control` and `bicraft ui --view …`.
+  running desktop, use `bicraft FILE --control 0`, then `bicraft-cli ui ui.inspect`,
+  `bicraft-cli ui command ID PARAMS` and `bicraft-cli ui ui.screenshot --out shot.png`. For the
+  browser, use `bicraft-cli view FILE --ui egui --control` and `bicraft-cli ui --view …`.
 - **The UI is thin.** Panels read the engine's snapshot and act through commands, never on the
   files directly. Colours, sizes and fonts come from the theme tokens, never literals.
 - **Accessible.** Text contrast at least 4.5:1 in light and dark, never colour alone (an icon and

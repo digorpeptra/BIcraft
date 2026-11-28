@@ -889,7 +889,7 @@ fn visual_ts(options: &[FormatOption]) -> String {
 }
 
 const VISUAL_TS: &str = r#"// A custom visual written by BIcraft's visual.scaffold. Edit it, then run
-// `bicraft visual pack <project folder>` to compile it and write its .pbiviz (no Node needed).
+// `bicraft-cli visual pack <project folder>` to compile it and write its .pbiviz (no Node needed).
 // Only the types of powerbi-visuals-api are used: the host page provides the API at run time.
 "use strict";
 

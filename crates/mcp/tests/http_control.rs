@@ -1,4 +1,4 @@
-//! The UI control channel relayed by `bicraft serve --viewer-control` (docs/web-deployment.md,
+//! The UI control channel relayed by `bicraft-cli serve --viewer-control` (docs/web-deployment.md,
 //! "UI control channel"; docs/webui.md): an editor's agent sends a request with its credential
 //! and the control token, the server hands it to that identity's app page over the page's event
 //! stream, and the page's reply is the agent's answer. The page is played by raw HTTP, as the

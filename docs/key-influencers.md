@@ -17,13 +17,13 @@ internals are not public, and BIcraft does not reproduce them. BIcraft draws the
 The estimate is turned on per render or per viewer:
 
 - `report.render {key_influencers: "estimate" | "placeholder"}` (MCP `render_page`, CLI
-  `bicraft render --key-influencers estimate`) applies to that render only.
+  `bicraft-cli render --key-influencers estimate`) applies to that render only.
 - `view.interact {action: "key_influencers", mode: "estimate" | "placeholder"}` sets the
   viewer's reader state. It is per viewer in server mode, `reset` keeps it, and the snapshot
   shows it as `interaction.key_influencers`. The desktop and web apps can offer it as a toggle.
   The render parameter wins over the viewer state for that render.
 
-The drawing lives in `bicraft-render` (`crates/render/src/keyinf.rs`), so `bicraft render`, the
+The drawing lives in `bicraft-render` (`crates/render/src/keyinf.rs`), so `bicraft-cli render`, the
 desktop app and the web app show the same picture. The analysis lives in the engine
 (`crates/engine/src/preview_key_influencers.rs`, arithmetic in `key_influencers_stats.rs`).
 

@@ -1,9 +1,9 @@
 //! The live viewer commands (M8, `docs/view-snapshot.md`):
 //!
-//! - `bicraft mcp --view [--view-port N] [--open]`: the MCP server on stdio, publishing a session
+//! - `bicraft-cli mcp --view [--view-port N] [--open]`: the MCP server on stdio, publishing a session
 //!   snapshot to the viewer after every tool call, and between calls until every bound visual
 //!   has its data.
-//! - `bicraft view PATH [--port N] [--open] [--data-root DIR]`: opens a file or project and
+//! - `bicraft-cli view PATH [--port N] [--open] [--data-root DIR]`: opens a file or project and
 //!   re-reads it whenever it changes on disk (whatever tool wrote it), publishing each new state.
 //!   `--data-root` lets the tables' Power Query sources read files under DIR (none by default).
 //!
@@ -174,7 +174,7 @@ fn parse_lang(text: &str) -> Result<UiLanguage, Failure> {
     UiLanguage::parse(text).map_err(|e| usage(format!("--lang: {e}")))
 }
 
-/// `bicraft mcp --view [--view-port N] [--open] [--lang TAG] [--no-open-button]` (`--view-port`,
+/// `bicraft-cli mcp --view [--view-port N] [--open] [--lang TAG] [--no-open-button]` (`--view-port`,
 /// `--open`, `--lang` and `--no-open-button` imply `--view`).
 pub(crate) fn mcp(args: &[String]) -> Result<u8, Failure> {
     let mut port = 0;
@@ -229,7 +229,7 @@ fn republishing_server(handle: Arc<ViewHandle>) -> bicraft_mcp::Server {
         })
 }
 
-/// `bicraft view PATH [--port N] [--open] [--data-root DIR] [--lang TAG] [--culture NAME]
+/// `bicraft-cli view PATH [--port N] [--open] [--data-root DIR] [--lang TAG] [--culture NAME]
 /// [--as-of YYYY-MM-DD] [--cache-abf CACHE.abf] [--no-open-button] [--read-only] [--ui html|egui]
 /// [--control [--control-file F]]`.
 pub(crate) fn view(args: &[String]) -> Result<u8, Failure> {
@@ -460,7 +460,7 @@ mod tests {
 
     #[test]
     fn a_slicer_click_on_the_page_recomputes_the_visuals() {
-        // a session with a literal table, a slicer and a card, served like `bicraft view`
+        // a session with a literal table, a slicer and a card, served like `bicraft-cli view`
         let mut s = Session::new();
         let sales = r#"#table({"Category", "Amount"}, {{"Wheels", 100}, {"Wheels", 50}, {"Toys", 5}})"#;
         for (id, p) in [

@@ -1,4 +1,4 @@
-//! `file.redact` / `bicraft redact` (ROADMAP M11.37): a copy of a PBIX, PBIT or PBIP with its
+//! `file.redact` / `bicraft-cli redact` (ROADMAP M11.37): a copy of a PBIX, PBIT or PBIP with its
 //! connection strings, credentials, server and database names, file paths and URLs (and, with
 //! `data`, the stored text values) replaced by stable placeholders, so a file can be shared in a
 //! bug report. The idea comes from DashCraft's `redact.rs`; this is our own code.

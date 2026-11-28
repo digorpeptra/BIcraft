@@ -130,13 +130,34 @@ its drawing pixel for pixel.
   its member), so other visuals cross-filter or highlight as for any visual, and the other rows
   dim; a highlight from another visual dims tasks without highlighted values. Hovering shows
   the categories, task, start, end, progress, detail and tooltip fields.
-- Rows that do not fit under the visual are not drawn (no scroll bar; the render note counts
-  them). A Gantt without a `Task` field is a labelled placeholder.
+- **Expand and collapse**: a click on a category's icon sends `view.interact`
+  `gantt_toggle {page, visual, path, collapsed}`, the reader's state of that category in this
+  view (the report is not changed; `reset` drops it). The snapshot lists it after the saved
+  `row` entries in `format.gantt_rows`, so it wins.
+- **Scrolling**: when the lines do not fit, a scroll bar (8 px) runs on the right of the time
+  line and the reader's first line (`RenderOptions::gantt`, the app's view state, never in the
+  file or the snapshot) says where the list starts; it is clamped so that the last line ends the
+  list. A static render (`report.render`, PNG, PDF) shows the first lines; its note counts the
+  lines it does not draw.
+- **Zoom**: the reader's zoom (1 to 512 times, the window at least a day wide) shows a window of
+  the time line at a position from 0 (its start) to 1 (its end); auto-scale picks the unit again
+  for the window, and a bar under the rows shows the window within the whole time line. This is
+  BIcraft's own control: the schema's `zoomShow`, `zoomMin` and `zoomMax` (Desktop's zoom
+  slider) are read by neither the drawing nor the app, since what they hold was not observed.
+- **The app's controls** (`crates/ui/src/gantt_ui.rs`, desktop and browser): each category's
+  icon is a labelled button (Expand or Collapse and the member); the rows' scroll bar takes the
+  arrows, Page Up / Page Down, Home and End, a click on its track and a drag; the time line band
+  is a zoom slider (+ and -, the left and right arrows, Home or a double click for all of it);
+  the window's bar is dragged; the mouse wheel scrolls the rows (the page once the rows are at
+  their end), a horizontal scroll moves the window, Ctrl+wheel zooms. page.html does not draw the
+  Gantt (its wireframe box only), so it has none of these.
+- A Gantt without a `Task` field is a labelled placeholder.
 
 ## Not yet done
 
-- No scrolling, zoom axis (`zoomShow`) or today line; the expand/collapse icons do not toggle
-  on click (the saved state is read only).
+- No today line; Desktop's zoom slider (`zoomShow`, `zoomMin`, `zoomMax`) is not read: BIcraft's
+  zoom is its own view state. The reader's collapse is not saved to the file (how Desktop saves a
+  per-member collapse in PBIR was not observed).
 - Not compared with Desktop's drawing (sizes, colours, label formats, the meaning of
   `relativeHeight` and of a progress above 1 are BIcraft's reading).
 - The 2.159 schema lists the milestone shapes, date units, gridline styles and toggle types as

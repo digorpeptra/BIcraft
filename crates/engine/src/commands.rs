@@ -75,6 +75,7 @@ const INTERACT_ACTIONS: &[&str] = &[
     "clear_selection",
     "clear_slicers",
     "apply_slicers",
+    "slicer_apply",
     "button",
     "bookmark",
     "bookmark_deselect",
@@ -97,6 +98,7 @@ const INTERACT_ACTIONS: &[&str] = &[
     "spotlight",
     "sort",
     "tree_toggle",
+    "gantt_toggle",
     "filter",
     "filter_clear",
     "view_as",
@@ -241,7 +243,7 @@ pub static COMMANDS: &[Command] = &[
                  (the decompressed DataModel too) for the replaced values: a survivor deletes the copy and \
                  fails. The open file is not touched. Returns {from, out, redacted, kinds, placeholders: \
                  [{kind, placeholder}], data, data_values, removed_parts, verified: {bytes_scanned, \
-                 survivors}, notes}; the original values are never returned. Also `bicraft redact IN OUT \
+                 survivors}, notes}; the original values are never returned. Also `bicraft-cli redact IN OUT \
                  [--data]`",
         run: crate::redact::file_redact,
         server: ServerPolicy::paths(&[PathParam::delegated("path"), PathParam::delegated("out")]),
@@ -762,7 +764,7 @@ pub static COMMANDS: &[Command] = &[
         params: "{path: string (.vpax), overwrite?: bool, model_bim?: bool (default true)}: needs stored \
                  data, as model.storage_stats; returns {path, bytes, tables, total_size, model_bim, \
                  parts}; cache_abf?: string (PBIP: read this cache.abf instead of the project's). Also \
-                 `bicraft vpax IN OUT.vpax [--cache-abf PATH]`",
+                 `bicraft-cli vpax IN OUT.vpax [--cache-abf PATH]`",
         run: crate::cache_abf::export_vpax,
         server: ServerPolicy::paths(&[PathParam::one("path"), PathParam::clearable("cache_abf")]),
         replay: Replay::Skip,
@@ -2479,12 +2481,14 @@ pub static COMMANDS: &[Command] = &[
                  YYYY-MM-DD), other?: bool (list, default true: the values no group lists go to \"Other\", \
                  else keep their own value; a blank no group lists is \"(Blank)\"), bin_size?: number (> 0; \
                  a date's whole number of units, default 1), bin_count?: integer (numbers: that many equal \
-                 bins between the column's minimum and maximum, computed by the DAX), unit?: \
+                 bins between the column's minimum and maximum, computed by the DAX; dates: a whole bin size of \
+                 the unit, the span of the data's dates divided by the count and rounded up, fixed when \
+                 made; without a unit, the largest one the span holds that many times), unit?: \
                  \"number\"|\"year\"|\"month\"|\"day\"|\"hour\"|\"minute\"|\"second\" (default: number, year \
                  for a date), replace?: bool (rewrite the group column `name`)}: adds the calculated column \
                  with its SWITCH (list) or bin DAX in Desktop's form, validated, the GroupingMetadata \
                  extended property naming the grouped column and the GroupingDesignState annotation \
-                 Desktop's Edit groups reads (none for a list group listing a blank), as one edit. Returns \
+                 Desktop's Edit groups reads (a listed blank is a `null` member there), as one edit. Returns \
                  {table, column, grouped_column, kind, expression, data_type, other?, bin_size?, \
                  bin_count?, unit?, warnings, diagnostics}",
         run: crate::groups::group,
@@ -2504,6 +2508,35 @@ pub static COMMANDS: &[Command] = &[
             P::opt("bin_count", K::Number),
             P::opt("unit", K::Enum(crate::groups::UNITS)),
             P::opt("replace", K::Bool),
+        ],
+    },
+    Command {
+        id: "visual.group_points",
+        label: "Group data: a list group of the category values of the data points selected in a visual",
+        params: "{page, visual, points?: [[{c, v}]] (the points as view.interact `select` takes them; \
+                 without them, the page's data-point selection in that visual, Ctrl+click), point?: \
+                 [{c, v}] (the point right-clicked, when nothing is selected in the visual), name? (the group column, default \"<column> (groups)\"), group? (the \
+                 group's name, default its values joined with \" & \"), other?: bool (as column.group; \
+                 default true, or the existing group column's)}: the category is the model column of \
+                 the first point's first grouping value; runs column.group with a list group of the \
+                 points' values of it (a blank is a member). When the group column already groups \
+                 that column, the new group joins its groups: its values leave the groups that listed \
+                 them, a group of the same name takes them. One undo step. Returns column.group's \
+                 result with {group, values}",
+        run: crate::groups::group_points,
+        server: ServerPolicy::ALLOWED,
+        replay: Replay::Copy,
+        place: Place::menu(Menu::Visual, "Group data", "group"),
+        shortcut: None,
+        enabled: &[Need::Model, Need::Report],
+        form: &[
+            P::req("page", K::Name(Obj::Page)),
+            P::req("visual", K::Name(Obj::Visual)),
+            P::opt("points", K::Json),
+            P::opt("point", K::Json),
+            P::opt("name", K::Text),
+            P::opt("group", K::Text),
+            P::opt("other", K::Bool),
         ],
     },
     Command {
@@ -3294,7 +3327,7 @@ pub static COMMANDS: &[Command] = &[
     Command {
         id: "report.render",
         label: "Render report pages to PNG (pure Rust, like the live viewer; no Power BI Desktop)",
-        params: "{page?: string|number (name, display name or 0-based index; default every page), out?: string (a .png file for one page; a folder, or name.png → name-<n>.png, for several; without it the PNG comes back inline as base64), scale?: number (0.1–8, default 1), format?: \"png\", font_dirs?: [string], system_fonts?: bool (default true), badges?: bool (default true), ui_language?: string (language tag of the generated text: auto titles, (Blank), Total…; default the session's, see view.set_language), culture?: string (a model culture whose translated captions name tables, columns and measures; default the session's, see view.set_culture; it does not change number and date formatting nor the generated text. A culture name the model has no translations for, or its own culture, draws the stored names and adds a `warnings` entry; a malformed name is refused), format_culture?: string (culture of numbers, dates and axis labels, e.g. \"fr-FR\"; default the model's culture, like Desktop), as_of?: string (\"YYYY-MM-DD\" or \"YYYY-MM-DDTHH:MM:SS\": the date TODAY()/NOW() return; default the session's, see view.set_as_of), text_dump?: bool (also list every drawn text run: string, font, px size, weight, colour, box; a `<page>.json` beside each PNG with `out`), lcd_text?: bool (subpixel, ClearType-like text antialiasing, as the app draws its pages at low DPI; default false: grayscale), cache_abf?: string (PBIP: read this cache.abf instead of the project's, read-only), fail_on_empty?: bool (error naming the visuals without data), key_influencers?: \"placeholder\"|\"estimate\" (key influencers visuals: the placeholder naming their fields, the default, or BIcraft's own estimate from the data, badged and never Power BI's result; default the viewer's state, see view.interact; docs/key-influencers.md)}: draws the page with its theme, evaluated data, slicer selections, images and formatting; returns per-visual status (what was drawn: drawn, preview = made-up values, placeholder = not drawn, blank = no field bound, skipped) and data (what the evaluated dataset holds, whatever the language: ok, no_rows, blank_values, partial_blank, not_bound, not_evaluated; with rows, value_cells, blank_cells), and per page visuals_without_data (no_rows + blank_values + not_evaluated); `warnings` (only when there are some) lists the parameters that were taken but had no effect",
+        params: "{page?: string|number (name, display name or 0-based index; default every page), out?: string (a .png file for one page; a folder, or name.png → name-<n>.png, for several; without it the PNG comes back inline as base64), scale?: number (0.1–8, default 1), format?: \"png\", font_dirs?: [string], system_fonts?: bool (default true), badges?: bool (default true), ui_language?: string (language tag of the generated text: auto titles, (Blank), Total…; default the session's, see view.set_language), culture?: string (a model culture whose translated captions name tables, columns and measures; default the session's, see view.set_culture; it does not change number and date formatting nor the generated text. A culture name the model has no translations for, or its own culture, draws the stored names and adds a `warnings` entry; a malformed name is refused), format_culture?: string (culture of numbers, dates and axis labels, e.g. \"fr-FR\"; default the model's culture, like Desktop), as_of?: string (\"YYYY-MM-DD\" or \"YYYY-MM-DDTHH:MM:SS\": the date TODAY()/NOW() return; default the session's, see view.set_as_of), text_dump?: bool (also list every drawn text run: string, font, px size, weight, colour, box; a `<page>.json` beside each PNG with `out`), lcd_text?: bool (subpixel, ClearType-like text antialiasing, as the app draws its pages at low DPI; default false: grayscale), high_contrast?: bool (draw the pages with the app's high-contrast palette, as View › High-contrast colours: black page, white text, bright series colours, images unchanged; the file does not change; default false), cache_abf?: string (PBIP: read this cache.abf instead of the project's, read-only), fail_on_empty?: bool (error naming the visuals without data), key_influencers?: \"placeholder\"|\"estimate\" (key influencers visuals: the placeholder naming their fields, the default, or BIcraft's own estimate from the data, badged and never Power BI's result; default the viewer's state, see view.interact; docs/key-influencers.md)}: draws the page with its theme, evaluated data, slicer selections, images and formatting; returns per-visual status (what was drawn: drawn, preview = made-up values, placeholder = not drawn, blank = no field bound, skipped) and data (what the evaluated dataset holds, whatever the language: ok, no_rows, blank_values, partial_blank, not_bound, not_evaluated; with rows, value_cells, blank_cells), and per page visuals_without_data (no_rows + blank_values + not_evaluated); `warnings` (only when there are some) lists the parameters that were taken but had no effect",
         run: crate::cache_abf::report_render,
         server: ServerPolicy::paths(&[
             PathParam::one("out"),
@@ -3320,6 +3353,7 @@ pub static COMMANDS: &[Command] = &[
             P::opt("as_of", K::Text),
             P::flag("text_dump", false),
             P::flag("lcd_text", false),
+            P::flag("high_contrast", false),
             P::opt("cache_abf", K::Path),
             P::flag("fail_on_empty", false),
             P::opt("key_influencers", K::Enum(&["placeholder", "estimate"])),
@@ -3328,7 +3362,7 @@ pub static COMMANDS: &[Command] = &[
     Command {
         id: "report.export_pdf",
         label: "Export report pages to a PDF file (vector shapes, selectable text with embedded fonts), as Desktop's Export to PDF",
-        params: "{out: string (the .pdf file), pages?: \"all\" (default: every page not hidden) | \"current\" (the active page) | \"2-4\" (a 1-based range, \"1,3-5\") | a page name, display name or 0-based index | [those] (pages named one by one are exported even when hidden), hidden?: bool (include hidden pages in \"all\" and ranges; default false), title?: string (the document title; default the file's name), scale?: number (1–4, default 2: the resolution of images and of parts placed as images), font_dirs?: [string], system_fonts?: bool (default true), ui_language?: string, format_culture?: string, as_of?: string}: one PDF page per report page at its size (0.75 pt per report pixel), drawn as report.render draws it; returns {path, bytes, title, pages: [{index, page, display_name, width_pt, height_pt, visuals: [{name, type, status}], raster_parts}], fonts: [{name, embedded, glyphs}], skipped_hidden, warnings?}. Also `bicraft export-pdf`",
+        params: "{out: string (the .pdf file), pages?: \"all\" (default: every page not hidden) | \"current\" (the active page) | \"2-4\" (a 1-based range, \"1,3-5\") | a page name, display name or 0-based index | [those] (pages named one by one are exported even when hidden), hidden?: bool (include hidden pages in \"all\" and ranges; default false), title?: string (the document title; default the file's name), scale?: number (1–4, default 2: the resolution of images and of parts placed as images), font_dirs?: [string], system_fonts?: bool (default true), ui_language?: string, format_culture?: string, as_of?: string, pdf_ua?: bool (default true: identified as PDF/UA-1 in its XMP metadata; the structure tree, with tables tagged as tables, is written either way), pdf_a?: bool (default false: identified as PDF/A-2b, with XMP metadata and an sRGB output intent)}: one PDF page per report page at its size (0.75 pt per report pixel), drawn as report.render draws it; returns {path, bytes, title, pages: [{index, page, display_name, width_pt, height_pt, visuals: [{name, type, status}], raster_parts}], fonts: [{name, embedded, glyphs}], conformance: {pdf_ua, pdf_a: \"2b\"|null}, skipped_hidden, warnings?}. Also `bicraft-cli export-pdf`",
         run: |s, p| crate::export_pdf::report_export_pdf(s, p),
         server: ServerPolicy::paths(&[PathParam::one("out"), PathParam::many("font_dirs")]),
         replay: Replay::Skip,
@@ -3346,6 +3380,8 @@ pub static COMMANDS: &[Command] = &[
             P::opt("ui_language", K::Text),
             P::opt("format_culture", K::Text),
             P::opt("as_of", K::Text),
+            P::flag("pdf_ua", true),
+            P::flag("pdf_a", false),
         ],
     },
     Command {
@@ -3370,7 +3406,7 @@ pub static COMMANDS: &[Command] = &[
     Command {
         id: "visual.export_data",
         label: "Export a visual's data (summarized or underlying) to a CSV or XLSX file, as the visual's More options > Export data",
-        params: "{visual: string, page?: string (needed when several pages have a visual of that name), out: string (.csv or .xlsx), format?: \"csv\"|\"xlsx\" (default from out's extension), kind?: \"summarized\" (default: the visual's fields as it aggregates them) | \"underlying\" (aggregated columns grouped instead, measures on each row; only when the report allows it)}: under the visual's filters, slicers and cross-filters; at most 30,000 rows to CSV and 150,000 to XLSX (Power BI's limits; `truncated` says when rows were left out); refused when the report's export setting (report.settings {export_data}) forbids it; returns {path, bytes, format, kind, page, visual, columns, rows, total_rows, limit, truncated, export_data_mode, warnings?}",
+        params: "{visual: string, page?: string (needed when several pages have a visual of that name), out: string (.csv or .xlsx), format?: \"csv\"|\"xlsx\" (default from out's extension), kind?: \"summarized\" (default: the visual's fields as it aggregates them) | \"underlying\" (aggregated columns grouped instead, measures on each row; only when the report allows it) | \"current_layout\" (XLSX only: the summarized data in the visual's shape, a matrix with column fields as a cross table; at most 150,000 cells of values)}: under the visual's filters, slicers and cross-filters; at most 30,000 rows to CSV and 150,000 to XLSX (Power BI's limits; `truncated` says when rows were left out); refused when the report's export setting (report.settings {export_data}) forbids it; returns {path, bytes, format, kind, page, visual, columns, rows, total_rows, limit, truncated, export_data_mode, warnings?}",
         run: |s, p| crate::export_data::visual_export_data(s, p),
         server: ServerPolicy::paths(&[PathParam::one("out")]),
         replay: Replay::Skip,
@@ -3382,7 +3418,7 @@ pub static COMMANDS: &[Command] = &[
             P::opt("page", K::Name(Obj::Page)),
             P::req("out", K::Path),
             P::opt("format", K::Enum(&["csv", "xlsx"])),
-            P::opt("kind", K::Enum(&["summarized", "underlying"])),
+            P::opt("kind", K::Enum(&["summarized", "underlying", "current_layout"])),
         ],
     },
     Command {
@@ -3428,7 +3464,7 @@ pub static COMMANDS: &[Command] = &[
     Command {
         id: "view.interact",
         label: "Act on the report as a reader in the live viewer: click slicer items, select data points (cross-filtering), change page, click buttons",
-        params: "{action: \"page\" {page} | \"back\" | \"slicer_toggle\" {page, visual, value, ctrl?} |                  \"slicer_select_all\" {page, visual} | \"slicer_set\" {page, visual, values: [], inverted?} |                  \"slicer_clear\" {page, visual} | \"slicer_range\" {page, visual, from?, to?} (numbers, or ISO dates for a                  date column; null: open) | \"slicer_text\" {page, visual, text} | \"slicer_relative\" {page, visual,                  range: last|next|this, duration, period: days|weeks|calendar weeks|months|calendar months|years|calendar                  years} | \"select\" {page, visual, point: [{c, v}] (data column, value) | null, points?: [[{c, v}]] (several points selected together, point their first), ctrl?} |                  \"clear_selection\" {page} | \"clear_slicers\" {page} | \"apply_slicers\" {page} | \"button\" {page,                  visual, destination? (a conditional (fx) destination: the page, bookmark or URL the snapshot evaluated, interaction.button.destination; refused for a fixed one)} (the button's visualLink: PageNavigation, Back, ApplyAllSlicers, ClearAllSlicers, Drillthrough, WebUrl, Bookmark; a drillthrough button needs one selected data point, interaction.button.enabled) | \"bookmark\" {bookmark} (name or display name; in this view only: its page unless suppressActiveSection, its hidden and shown visuals unless suppressDisplay, its report, page and visual filters unless suppressData; a bookmark navigator's buttons send it) | \"bookmark_deselect\" (a bookmark navigator with Allow deselection and no deselection bookmark: no bookmark shows as selected) | \"decomp_path\" {page, visual, level, value, path?} | \"decomp_expand\" {page, visual, level, value, column | ai: high|low, path?, columns?} | \"decomp_collapse\" {page, visual, level} | \"decomp_scroll\" {page, visual, level, start} | {page, visual, shift} (decomposition trees: move the selected path, add a level, remove a level, show a level's members from `start` on (its scroll arrows), scroll a tree wider than the visual by `shift` levels; a new path or level resets the scroll of the levels below) | \"key_influencers\" {mode: \"estimate\"|\"placeholder\"} (key influencers visuals show BIcraft's estimate or the placeholder; kept by reset) | \"drill_down\" {page, visual, point, role?} | \"drill_up\" {page, visual, role?} | \"drill_next\" {page, visual, role?} (go to the next level) | \"drill_expand\" {page, visual, role?} (expand all down one level) | \"drill_mode\" {page, visual, on?} (a click on a point drills into it) | \"matrix_expand\" / \"matrix_collapse\" {page, visual, path: [values, top level shown first] | level: n | all: true, role?} (a matrix's +/-, entire level, all) | \"drillthrough\" {page, visual, point, target} (opens the drillthrough page filtered on the point; Keep all filters carries the visual's filters; cross-report pages refused) | \"tooltip\" {page, visual, point | null} (the report-page tooltip of the hovered point; null hides it) | \"focus\" {page, visual | null} (focus mode: the visual shown alone; null leaves it; a page change leaves it too) | \"show_table\" {page, visual, on?: bool (default true)} (Show as a table: the visual in focus with its data as a table under it; off keeps the focus) | \"spotlight\" {page, visual | null} (Spotlight: the page's other visuals fade; null ends it; a page change and reset too; a bookmark captures and applies it) | \"sort\" {page, visual, field | null, direction?: asc|desc} (the reader's sort, as visual.set_sort takes it, the report unchanged; null goes back to the report's sort; reset drops it; a bookmark carries it as orderBy) | \"tree_toggle\" {page, visual, id} (a BIcraft Org Chart node's collapse button: the reader's toggled nodes replace the stored tree.toggled in this view; visual.toggle_node saves them) | \"filter\" {page?, visual?, field, then in | not_in | op, value | conditions, logic? | relative | top, by, direction: top|bottom (visual only), as visual.filter takes them} (the reader changes a filter card the author did not lock or hide: of the visual with page and visual, of the page with page, of every page with neither; a bound field of a visual counts as a card; changing the card's type needs report.settings allow_change_filter_types; this view only, the report unchanged; reset drops it) | \"filter_clear\" {page?, visual?, field} (the reader clears that card's condition, the card kept) | \"view_as\" {roles: [role names] | null, user?: string} (Modeling › View as: every evaluation applies the roles' row filters, united, through the relationships; USERPRINCIPALNAME() and USERNAME() return `user`; an unknown role is an error; roles null without user stops; cleared by reset) | \"reset\"}:                  Power BI Desktop's click rules (docs/view-snapshot.md, Interactions); returns {action, changed, state}.                  The snapshot shows the report under this state; the model, the report and the files are never changed",
+        params: "{action: \"page\" {page} | \"back\" | \"slicer_toggle\" {page, visual, value, ctrl?} |                  \"slicer_select_all\" {page, visual} | \"slicer_set\" {page, visual, values: [], inverted?} |                  \"slicer_clear\" {page, visual} | \"slicer_range\" {page, visual, from?, to?} (numbers, or ISO dates for a                  date column; null: open) | \"slicer_text\" {page, visual, text} | \"slicer_relative\" {page, visual,                  range: last|next|this, duration, period: days|weeks|calendar weeks|months|calendar months|years|calendar                  years} | \"select\" {page, visual, point: [{c, v}] (data column, value) | null, points?: [[{c, v}]] (several points selected together, point their first), ctrl?} |                  \"clear_selection\" {page} | \"clear_slicers\" {page} | \"apply_slicers\" {page} | \"slicer_apply\" {page, visual} (a slicer's own Apply button, with query reduction's isSlicerSelectionsButtonEnabled: its pending selection and its synced copies' become the applied ones) | \"button\" {page,                  visual, destination? (a conditional (fx) destination: the page, bookmark or URL the snapshot evaluated, interaction.button.destination; refused for a fixed one)} (the button's visualLink: PageNavigation, Back, ApplyAllSlicers, ClearAllSlicers, Drillthrough, WebUrl, Bookmark; a drillthrough button needs one selected data point, interaction.button.enabled) | \"bookmark\" {bookmark} (name or display name; in this view only: its page unless suppressActiveSection, its hidden and shown visuals unless suppressDisplay, its report, page and visual filters unless suppressData; a bookmark navigator's buttons send it) | \"bookmark_deselect\" (a bookmark navigator with Allow deselection and no deselection bookmark: no bookmark shows as selected) | \"decomp_path\" {page, visual, level, value, path?} | \"decomp_expand\" {page, visual, level, value, column | ai: high|low, path?, columns?} | \"decomp_collapse\" {page, visual, level} | \"decomp_scroll\" {page, visual, level, start} | {page, visual, shift} (decomposition trees: move the selected path, add a level, remove a level, show a level's members from `start` on (its scroll arrows), scroll a tree wider than the visual by `shift` levels; a new path or level resets the scroll of the levels below) | \"key_influencers\" {mode: \"estimate\"|\"placeholder\"} (key influencers visuals show BIcraft's estimate or the placeholder; kept by reset) | \"drill_down\" {page, visual, point, role?} | \"drill_up\" {page, visual, role?} | \"drill_next\" {page, visual, role?} (go to the next level) | \"drill_expand\" {page, visual, role?} (expand all down one level) | \"drill_mode\" {page, visual, on?} (a click on a point drills into it) | \"matrix_expand\" / \"matrix_collapse\" {page, visual, path: [values, top level shown first] | level: n | all: true, role?} (a matrix's +/-, entire level, all) | \"drillthrough\" {page, visual, point, target} (opens the drillthrough page filtered on the point; Keep all filters carries the visual's filters; cross-report pages refused) | \"tooltip\" {page, visual, point | null} (the report-page tooltip of the hovered point; null hides it) | \"focus\" {page, visual | null} (focus mode: the visual shown alone; null leaves it; a page change leaves it too) | \"show_table\" {page, visual, on?: bool (default true)} (Show as a table: the visual in focus with its data as a table under it; off keeps the focus) | \"spotlight\" {page, visual | null} (Spotlight: the page's other visuals fade; null ends it; a page change and reset too; a bookmark captures and applies it) | \"sort\" {page, visual, field | null, direction?: asc|desc} (the reader's sort, as visual.set_sort takes it, the report unchanged; null goes back to the report's sort; reset drops it; a bookmark carries it as orderBy) | \"tree_toggle\" {page, visual, id} (a BIcraft Org Chart node's collapse button: the reader's toggled nodes replace the stored tree.toggled in this view; visual.toggle_node saves them) | \"gantt_toggle\" {page, visual, path: [the category's members, top level first], collapsed: bool} (a Gantt's expand/collapse icon: the category's tasks hidden or shown in this view, over the saved row state) | \"filter\" {page?, visual?, field, then in | not_in | op, value | conditions, logic? | relative | top, by, direction: top|bottom (visual only), as visual.filter takes them} (the reader changes a filter card the author did not lock or hide: of the visual with page and visual, of the page with page, of every page with neither; a bound field of a visual counts as a card; changing the card's type needs report.settings allow_change_filter_types; this view only, the report unchanged; reset drops it) | \"filter_clear\" {page?, visual?, field} (the reader clears that card's condition, the card kept) | \"view_as\" {roles: [role names] | null, user?: string} (Modeling › View as: every evaluation applies the roles' row filters, united, through the relationships; USERPRINCIPALNAME() and USERNAME() return `user`; an unknown role is an error; roles null without user stops; cleared by reset) | \"reset\"}:                  Power BI Desktop's click rules (docs/view-snapshot.md, Interactions); returns {action, changed, state}.                  The snapshot shows the report under this state; the model, the report and the files are never changed",
         run: crate::interact::view_interact,
         server: ServerPolicy::ALLOWED,
         replay: Replay::Skip,
@@ -3468,6 +3504,7 @@ pub static COMMANDS: &[Command] = &[
             P::opt("field", K::Field),
             P::opt("direction", K::Enum(&["asc", "desc", "top", "bottom"])),
             P::opt("id", K::Text),
+            P::opt("collapsed", K::Bool),
             P::opt("in", K::List),
             P::opt("not_in", K::List),
             P::opt("op", K::Enum(FILTER_OPS)),
@@ -3729,7 +3766,7 @@ pub static COMMANDS: &[Command] = &[
                  report (the same bytes), which visual.import_custom reads back; existing files are \
                  replaced. A list or \"all\" always writes into a folder. Needs no open file and \
                  leaves the session as it is. Returns {out, count, files: [{name, guid, display_name, \
-                 version, path, bytes}]}. Also `bicraft visual export`",
+                 version, path, bytes}]}. Also `bicraft-cli visual export`",
         run: crate::builtin_visuals::visual_export_bicraft_visual,
         server: ServerPolicy::paths(&[PathParam::one("out")]),
         replay: Replay::Skip,
@@ -4369,8 +4406,8 @@ pub static COMMANDS: &[Command] = &[
         label: "Show a visual's value field as a percentage of the grand total, or of its matrix column or row total",
         params: "{page, visual, role, field? | index?, as: none | percent_of_grand_total | \
                  percent_of_column_total | percent_of_row_total}: the field is a measure or a \
-                 summarized column; column and row totals need a matrix with a column in Columns / \
-                 Rows. Written as the projection's Arithmetic(field / ScopedEval(field, scope)). \
+                 summarized column; column and row totals need a matrix with a column or a \
+                 hierarchy level in Columns / Rows (the scope lists them). Written as the projection's Arithmetic(field / ScopedEval(field, scope)). \
                  Returns {fields, as}",
         run: crate::visual_fields::visual_show_value_as,
         server: ServerPolicy::ALLOWED,
@@ -4508,11 +4545,12 @@ pub static COMMANDS: &[Command] = &[
         id: "visual.calculation.add",
         label: "Add a visual calculation to a visual: a DAX expression over the visual matrix (RUNNINGSUM, MOVINGAVERAGE, PREVIOUS, COLLAPSE…)",
         params: "{page, visual, expression, name? (default Calculation, Calculation 2…), role? (default the \
-                 visual's value role), hidden?, force?}: the expression refers to the visual's fields by \
-                 name in brackets ([Sum of Amount]) and to its axes (ROWS, COLUMNS, ROWS COLUMNS); it is \
-                 bound against them first (force keeps an invalid one, its diagnostics in warnings). \
-                 Written as a NativeVisualCalculation projection. Returns {name, expression, role, \
-                 hidden, fields, warnings}",
+                 visual's value role), hidden?, force?, preview?}: the expression refers to the visual's \
+                 fields by name in brackets ([Sum of Amount]) and to its axes (ROWS, COLUMNS, ROWPAGES, \
+                 ROWS COLUMNS); it is bound against them first (force keeps an invalid one, its \
+                 diagnostics in warnings). Written as a NativeVisualCalculation projection. Returns \
+                 {name, expression, role, hidden, fields, warnings}; preview changes nothing and adds \
+                 the data the visual would show with the calculation (data)",
         run: crate::visual_calcs::add,
         server: ServerPolicy::ALLOWED,
         replay: Replay::Exact,
@@ -4527,16 +4565,18 @@ pub static COMMANDS: &[Command] = &[
             P::opt("role", K::Name(Obj::DataRole)),
             P::flag("hidden", false),
             P::flag("force", false),
+            P::flag("preview", false),
         ],
     },
     Command {
         id: "visual.calculation.set",
         label: "Change a visual calculation's expression or name, or hide or show any field of a visual",
-        params: "{page, visual, name, expression?, new_name?, hidden?, force?}: name is a visual \
+        params: "{page, visual, name, expression?, new_name?, hidden?, force?, preview?}: name is a visual \
                  calculation's name or the name of a field of the visual; expression and new_name apply to \
                  calculations only (a calculation others refer to keeps its name); hidden keeps the field \
                  in the visual matrix but not on the visual (the projection's hidden). Returns {name, \
-                 expression, role, hidden, fields, warnings}",
+                 expression, role, hidden, fields, warnings}; preview changes nothing and adds the data \
+                 the visual would show with the change (data)",
         run: crate::visual_calcs::set,
         server: ServerPolicy::ALLOWED,
         replay: Replay::Exact,
@@ -4551,6 +4591,7 @@ pub static COMMANDS: &[Command] = &[
             P::opt("new_name", K::Text),
             P::opt("hidden", K::Bool),
             P::flag("force", false),
+            P::flag("preview", false),
         ],
     },
     Command {
@@ -4880,7 +4921,8 @@ pub static COMMANDS: &[Command] = &[
     Command {
         id: "visual.remove",
         label: "Remove a visual (a group is removed with its members)",
-        params: "{page, visual, visuals?: [names] (more visuals removed in the same step)}",
+        params: "{page, visual, visuals?: [names] (more visuals removed in the same step)}: a group \
+                 left without members goes too; a group that keeps some is refitted to them",
         run: report::visual_remove,
         server: ServerPolicy::ALLOWED,
         replay: Replay::Exact,
@@ -4951,15 +4993,16 @@ pub static COMMANDS: &[Command] = &[
                  column of the visual and its value; none: every row), points?: [[{c, v}]] (a mark that \
                  stands for several points, as view.interact `select` takes them: the rows of every one, at \
                  most 1000), limit? (1-10000, default 1000)}: the \
-                 rows of the table the visual summarizes (its first measure's home table, else its first \
-                 aggregated or grouping column's table) under the point's values, through the model's \
-                 relationships and the report, page and visual filters and the page's slicer selections \
-                 (the reader's view state included), computed by bicraft's DAX evaluator (EVALUATE \
-                 CALCULATETABLE). A filter on a measure keeps the points it keeps (FILTER over the \
-                 visual's grouping columns, under the other filters); a condition over several tables \
+                 rows of the table the visual summarizes (the table its first measure reads, else that \
+                 measure's home table, else its first aggregated or grouping column's table; the rows \
+                 of that measure's detail rows expression when it has one) under the point's values, \
+                 through the model's relationships and the report, page and visual filters and the page's slicer selections (the reader's view state included), computed \
+                 by bicraft's DAX evaluator (EVALUATE CALCULATETABLE). A filter on a measure keeps the \
+                 points it keeps (FILTER over the visual's grouping columns, under the other filters; \
+                 on a card, no rows when its value fails the condition); a condition over several tables \
                  reads them through RELATED; when another visual's selection cross-highlights this one, \
                  the rows of the highlighted part. What cannot be applied is listed in not_applied. \
-                 Returns {page, visual, table, point: [{table, column, value}] (the first), points (how \
+                 Returns {page, visual, table, detail_rows, point: [{table, column, value}] (the first), points (how \
                  many), query, columns: [{name, \
                  data_type}], rows: [[values]], row_count, truncated, filters_applied, filters: [DAX \
                  filter arguments], not_applied: [reasons], cross_highlight (the source visual, or null)}",
@@ -4975,6 +5018,76 @@ pub static COMMANDS: &[Command] = &[
             P::opt("point", K::Json),
             P::opt("points", K::Json),
             P::opt("limit", K::Integer),
+        ],
+    },
+    Command {
+        id: "visual.analyze",
+        label: "Analyze a data point: explain its increase or decrease, or find where its distribution is different",
+        params: "{page, visual, point: [{c, v}] (the data point as view.interact `select` takes it), \
+                 kind?: \"auto\"|\"change\"|\"distribution\" (default auto: change on a date or number \
+                 axis, distribution otherwise), fields?: [columns like Product[Color]] (the candidates, \
+                 at most 40; default every visible column of the model but the point's), top? (1-100, \
+                 default 10)}: BIcraft's own ranking of the model's fields, not Power BI's result \
+                 (docs/analyze-point.md), under the visual's filters, the page's slicers and the model's \
+                 relationships, on the visual's first measure. change: the point against the previous \
+                 point of its axis, each field scored by the share of the members' changes its \
+                 member moving most in the direction of the total change carries (0-1); distribution: \
+                 the field's shares under the point against the mean of its shares under the other \
+                 points, scored by their total variation distance (0-1). Returns {page, visual, kind, \
+                 measure, point, change: {axis, current, previous_point, previous, delta, direction} \
+                 (change) | value, other_points (distribution), candidates: [{field, score, member, \
+                 members, member_current, member_previous, member_change, share_of_change (change) | \
+                 share_at_point, share_elsewhere (distribution)}] (best first), found, considered, \
+                 skipped: [{field, reason}], estimate}. A point that cannot be analyzed (no measure, \
+                 a change on a categorical axis or on the first point, no other point) is an error",
+        run: |s, p| crate::visual_analyze::visual_analyze(s, p),
+        server: ServerPolicy::ALLOWED.read_only(),
+        replay: Replay::Skip,
+        place: Place::menu(Menu::Visual, "Analyze this point", "search"),
+        shortcut: None,
+        enabled: &[Need::Model, Need::Report],
+        form: &[
+            P::req("page", K::Name(Obj::Page)),
+            P::req("visual", K::Name(Obj::Visual)),
+            P::opt("point", K::Json),
+            P::opt("kind", K::Enum(&["auto", "change", "distribution"])),
+            P::opt("fields", K::List),
+            P::opt("top", K::Integer),
+        ],
+    },
+    Command {
+        id: "visual.explain_anomaly",
+        label: "Explain an anomaly the line chart's Find anomalies flags: rank the fields that account for it",
+        params: "{page, visual, point?: [{c, v}] (the anomaly as view.interact `select` takes it; \
+                 default the anomaly furthest outside its expected range), compare?: \
+                 \"expected\"|\"previous\" (default expected), fields?: [columns like Product[Color]] \
+                 (the candidates, at most 40; default every visible column of the model but the \
+                 axis), top? (1-100, default 10)}: BIcraft's own explanation of BIcraft's own \
+                 anomaly estimate, not Power BI's result (docs/analyze-point.md), under the visual's \
+                 filters, the page's slicers and the model's relationships. expected: each field's \
+                 members run through the same detection as the line, the field scored by the share \
+                 of the members' deviations from their expected values its member deviating most in \
+                 the anomaly's direction carries (0-1); previous: the anomaly against the previous \
+                 point, as visual.analyze's change. Returns {page, visual, compare, measure, \
+                 anomaly: {axis, at, value, expected, low, high, deviation, direction, \
+                 sensitivity}, anomalies (the axis values flagged), candidates: [{field, score, \
+                 member, members, member_current, member_expected, member_deviation, \
+                 share_of_deviation}] (best first; visual.analyze's change fields with previous), \
+                 found, considered, skipped: [{field, reason}], estimate}. A visual without anomaly \
+                 detection, a point that is not an anomaly or a line with no anomaly is an error",
+        run: |s, p| crate::visual_analyze::visual_explain_anomaly(s, p),
+        server: ServerPolicy::ALLOWED.read_only(),
+        replay: Replay::Skip,
+        place: Place::menu(Menu::Visual, "Explain the anomaly", "search"),
+        shortcut: None,
+        enabled: &[Need::Model, Need::Report],
+        form: &[
+            P::req("page", K::Name(Obj::Page)),
+            P::req("visual", K::Name(Obj::Visual)),
+            P::opt("point", K::Json),
+            P::opt("compare", K::Enum(&["expected", "previous"])),
+            P::opt("fields", K::List),
+            P::opt("top", K::Integer),
         ],
     },
     Command {
@@ -5593,7 +5706,7 @@ pub static COMMANDS: &[Command] = &[
         run: crate::optimize::pause_visuals,
         server: ServerPolicy::ALLOWED,
         replay: Replay::Exact,
-        place: Place::ribbon(Tab::Analyze, "Optimize", "Pause visuals", "eye-off"),
+        place: Place::ribbon(Tab::Optimize, "Pause visuals", "Pause visuals", "eye-off"),
         shortcut: None,
         enabled: &[Need::Report],
         form: &[P::flag("paused", true)],
@@ -5606,10 +5719,25 @@ pub static COMMANDS: &[Command] = &[
         run: crate::optimize::refresh_visuals,
         server: ServerPolicy::ALLOWED,
         replay: Replay::Skip,
-        place: Place::ribbon(Tab::Analyze, "Optimize", "Refresh all visuals", "reload"),
+        place: Place::ribbon(Tab::Optimize, "Pause visuals", "Refresh all visuals", "reload"),
         shortcut: None,
         enabled: &[Need::Report],
         form: &[],
+    },
+    Command {
+        id: "visual.refresh",
+        label: "Refresh one visual: evaluate it once on the next view, the report's other visuals staying paused",
+        params: "{page, visual}: the Refresh of a paused visual's pending-changes banner (Desktop's Optimize                  › Pause visuals): the next view evaluates that visual once; the report stays paused and its                  other visuals keep their last state. The report and the model are not changed. Returns                  {paused, page, visual, refresh}",
+        run: crate::optimize::refresh_visual,
+        server: ServerPolicy::ALLOWED,
+        replay: Replay::Skip,
+        place: Place::menu(Menu::Visual, "Refresh visual", "reload"),
+        shortcut: None,
+        enabled: &[Need::Report],
+        form: &[
+            P::req("page", K::Name(Obj::Page)),
+            P::req("visual", K::Name(Obj::Visual)),
+        ],
     },
     Command {
         id: "report.query_reduction",
@@ -5625,7 +5753,12 @@ pub static COMMANDS: &[Command] = &[
         run: crate::optimize::query_reduction,
         server: ServerPolicy::ALLOWED,
         replay: Replay::Exact,
-        place: Place::ribbon(Tab::Analyze, "Optimize", "Optimization presets", "settings"),
+        place: Place::ribbon(
+            Tab::Optimize,
+            "Optimization presets",
+            "Optimization presets",
+            "settings",
+        ),
         shortcut: None,
         enabled: &[Need::Report],
         form: &[
@@ -5735,9 +5868,12 @@ pub static COMMANDS: &[Command] = &[
         id: "visual.copy",
         label: "Copy visuals to the clipboard (a JSON document visual.paste takes, in this report or another)",
         params: "{page, visual? | visuals?: [names]}: a group is copied with its members. Returns {page, \
-                 count, clip}, where `clip` is {bicraft: \"visuals\", version: 1, page: {name, display_name, \
-                 width, height}, visuals: [the visuals' records: position, type, fields, formatting, filters]}; \
-                 the app puts it on the clipboard as JSON text",
+                 count, images, clip, warnings}, where `clip` is {bicraft: \"visuals\", version: 1, page: \
+                 {name, display_name, width, height}, visuals: [the visuals' records: position, type, fields, \
+                 formatting, filters], images?: [{name, data: base64}] (the report images the visuals show, \
+                 at most 4 MB; those left out are named in `warnings`)}; the app puts it on the clipboard as \
+                 JSON text; the clip also holds `mobile`, the copied visuals' phone layout documents by \
+                 name, when some are on it",
         run: |s, p| crate::canvas_edit::visual_copy(s, p),
         server: ServerPolicy::ALLOWED.read_only(),
         replay: Replay::Skip,
@@ -5775,8 +5911,14 @@ pub static COMMANDS: &[Command] = &[
                  default: the copied place, moved 20 px right and down while a visual is there)}: the \
                  visuals get new names and go on top of the page, kept on it when they fit; groups keep \
                  their members. Fields the model lacks are kept as broken references and listed in \
-                 `warnings`. The clip is checked (at most 500 visuals, types, positions, sizes). Returns \
-                 {page, visuals, top, selectable, offset, warnings}",
+                 `warnings`. The clip's images are added to the report (one with the same name and bytes \
+                 is reused, another gets a file of its own). The clip is checked (at most 500 visuals, \
+                 types, positions, sizes, images as image.add checks them). Returns \
+                 {page, visuals, top, selectable, offset, warnings}. mobile?: true (a paste on the phone \
+                 canvas) also places them on the page's mobile layout, on top: at the copied phone place \
+                 (moved one 18 × 20 grid cell while taken) with the copied mobile formatting, else under \
+                 the layout, as wide as the phone at most; groups stay off it. The answer adds \
+                 `mobile: [{visual, mobile}]`",
         run: crate::canvas_edit::visual_paste,
         server: ServerPolicy::ALLOWED,
         replay: Replay::Exact,
@@ -5788,6 +5930,7 @@ pub static COMMANDS: &[Command] = &[
             P::req("clip", K::Json),
             P::opt("x", K::Number),
             P::opt("y", K::Number),
+            P::opt("mobile", K::Bool),
         ],
     },
     Command {
@@ -5818,7 +5961,8 @@ pub static COMMANDS: &[Command] = &[
         label: "Duplicate visuals on their page",
         params: "{page, visual? | visuals?: [names]}: as visual.copy then visual.paste on the same page, \
                  in one step: the copies are moved 20 px right and down while their place is taken. \
-                 Returns visual.paste's answer",
+                 Returns visual.paste's answer. mobile?: true places the copies on the mobile layout \
+                 too, as visual.paste's `mobile`",
         run: crate::canvas_edit::visual_duplicate,
         server: ServerPolicy::ALLOWED,
         replay: Replay::Exact,
@@ -5829,6 +5973,7 @@ pub static COMMANDS: &[Command] = &[
             P::req("page", K::Name(Obj::Page)),
             P::opt("visual", K::Name(Obj::Visual)),
             P::opt("visuals", K::List),
+            P::opt("mobile", K::Bool),
         ],
     },
     Command {
@@ -5955,6 +6100,38 @@ pub static COMMANDS: &[Command] = &[
         ],
     },
     Command {
+        id: "visual.mobile_auto",
+        label: "Auto-create the page's mobile (phone) layout from its desktop layout",
+        params: "{page}: in one step the phone layout is made anew by BIcraft's own rule (not Power BI \
+                 Desktop's): the shown visuals in the desktop layout's reading order (top to bottom, \
+                 then left to right), stacked from the top of the 324-wide phone canvas with one \
+                 20-pixel grid row between rows; each takes the full width, its desktop ratio kept \
+                 between 120 and 480 high; two cards or slicers next in that order share a row, half \
+                 the width each, 60 to 240 high. A visual's mobile formatting is kept; hidden visuals \
+                 are taken off. Returns {page, changed, visuals: [{visual, mobile}], removed}",
+        run: crate::visual_extras::visual_mobile_auto,
+        server: ServerPolicy::ALLOWED,
+        replay: Replay::Exact,
+        place: Place::ribbon(Tab::View, "Mobile layout", "Auto-create", "layers"),
+        shortcut: None,
+        enabled: &[Need::Report],
+        form: &[P::req("page", K::Name(Obj::Page))],
+    },
+    Command {
+        id: "visual.mobile_remove_all",
+        label: "Remove every visual from the page's mobile (phone) layout",
+        params: "{page}: in one step every visual of the page leaves its phone layout (its mobile.json, \
+                 position and mobile formatting, is removed); the visuals stay on the page. Returns \
+                 {page, changed, removed: [names]}",
+        run: crate::visual_extras::visual_mobile_remove_all,
+        server: ServerPolicy::ALLOWED,
+        replay: Replay::Exact,
+        place: Place::ribbon(Tab::View, "Mobile layout", "Remove all", "delete"),
+        shortcut: None,
+        enabled: &[Need::Report],
+        form: &[P::req("page", K::Name(Obj::Page))],
+    },
+    Command {
         id: "visual.series",
         label: "Format one series or one category value of a visual: data color, data labels, line style, any selector-scoped property",
         params: "{page, visual, target: \"[Measure]\" | \"Table[Column]\" (a bound field) | \
@@ -5999,7 +6176,7 @@ pub static COMMANDS: &[Command] = &[
                  {field, cases: [{op, value, icon}] | preset + thresholds: [low, high], else?, \
                  position?: before|after|only, align?: top|middle|bottom}} | {data_bars: {positive?, \
                  negative?, axis?, reverse?, show_bar_only?, min?, max?}} | {web_url: {field}} | null} \
-                 or {page, visual, conditional: [items like that]}: stops are \"#hex\" or {color, value}",
+                 or {page, visual, conditional: [items like that]}: stops are \"#hex\", {color, value} or {color, value: 0-100, percent: true} (a percent of                  the lowest to highest value)",
         run: crate::visual_conditional::visual_conditional,
         server: ServerPolicy::ALLOWED,
         replay: Replay::Exact,
@@ -6307,6 +6484,29 @@ pub static COMMANDS: &[Command] = &[
             P::opt("max_width", K::Integer),
             P::opt("indent", K::Integer),
             P::opt("style", K::Enum(&["query", "formula"])),
+        ],
+    },
+    Command {
+        id: "dax.define_query",
+        label: "Write a DAX query that defines a table's measures, or a measure and the measures it references",
+        params: "{table?: string, measure?: string, references?: bool (default false)}: give `table` \
+                 (every measure of that table) or `measure` (that measure). With `references`, every \
+                 measure they reference is defined too, transitively, after the binder's dependency \
+                 graph, each before the measures that use it. Returns {query (`DEFINE` with one \
+                 `MEASURE 'Table'[Name] = expression` per measure, the expressions as the model has \
+                 them, then `EVALUATE ROW(\"Name\", [Name], …)` of the measures asked for), measures \
+                 (the names defined, in order), evaluated}. The DAX query view's Define all measures \
+                 and Define with references quick queries; nothing is changed",
+        run: |s, p| crate::dax_define::dax_define_query(s, p),
+        server: ServerPolicy::ALLOWED.read_only(),
+        replay: Replay::Skip,
+        place: Place::palette("Define measures query", "measure"),
+        shortcut: None,
+        enabled: &[Need::Model],
+        form: &[
+            P::opt("table", K::Name(Obj::Table)),
+            P::opt("measure", K::Name(Obj::Measure)),
+            P::flag("references", false),
         ],
     },
     Command {

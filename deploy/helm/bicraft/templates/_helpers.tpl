@@ -112,7 +112,7 @@ public URL's host (added by the server itself) and auth.allowedHosts. */}}
 {{- join "," (uniq $hosts) -}}
 {{- end -}}
 
-{{/* Refuse configurations `bicraft serve` would refuse at start, before anything is created. */}}
+{{/* Refuse configurations `bicraft-cli serve` would refuse at start, before anything is created. */}}
 {{- define "bicraft.validate" -}}
 {{- if not (regexMatch "^[A-Za-z0-9_-][A-Za-z0-9._-]{0,63}$" .Values.workspace.id) -}}
 {{- fail "workspace.id must be 1 to 64 of [A-Za-z0-9._-] and must not start with a dot" -}}

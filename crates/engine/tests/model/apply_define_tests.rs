@@ -179,3 +179,113 @@ fn what_it_writes_is_saved_to_pbip_and_pbix() {
         );
     }
 }
+
+/// `dax.define_query`'s query: it parses, `dax.evaluate` runs it, and applying it back changes
+/// nothing (it defines the measures as the model has them).
+fn defines_the_model(s: &mut Session, query: &str) -> Value {
+    let checked = run(s, "dax.validate_query", json!({"query": query}));
+    assert_eq!(checked["valid"], true, "{query}\n{checked}");
+    let back = run(s, "dax.apply_define", json!({"query": query}));
+    assert_eq!(back["changed"], false, "{query}\n{back}");
+    run(s, "dax.evaluate", json!({"query": query}))
+}
+
+#[test]
+fn define_query_writes_a_tables_measures_or_a_measure_with_its_references() {
+    let mut s = shop();
+    for (name, expression) in [
+        ("Count", "COUNTROWS(Sales)"),
+        ("Average", "DIVIDE([Total], [Count])"),
+        ("Doubled", "[Average] * 2"),
+    ] {
+        run(
+            &mut s,
+            "measure.add",
+            json!({"table": "Sales", "name": name, "expression": expression}),
+        );
+    }
+    // a measure of another table, used across tables
+    run(
+        &mut s,
+        "measure.add",
+        json!({"table": "Product", "name": "Share", "expression": "DIVIDE([Doubled], [Total])"}),
+    );
+    // every measure of Sales, in the model's order, all evaluated
+    let r = run(&mut s, "dax.define_query", json!({"table": "Sales"}));
+    assert_eq!(r["measures"], json!(["Total", "Count", "Average", "Doubled"]));
+    assert_eq!(r["evaluated"], r["measures"]);
+    let q = r["query"].as_str().unwrap();
+    assert!(
+        q.contains("MEASURE 'Sales'[Average] = DIVIDE([Total], [Count])"),
+        "{q}"
+    );
+    assert!(!q.contains("Share"), "{q}");
+    let e = defines_the_model(&mut s, q);
+    assert_eq!(e["results"][0]["row_count"], 1, "{e}");
+    // a measure with what it references, transitively, each before what uses it
+    let r = run(
+        &mut s,
+        "dax.define_query",
+        json!({"measure": "share", "references": true}),
+    );
+    let names: Vec<&str> = r["measures"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(Value::as_str)
+        .collect();
+    let at = |n: &str| names.iter().position(|x| *x == n).unwrap();
+    assert_eq!(names.len(), 5, "{names:?}");
+    assert!(
+        at("Total") < at("Average") && at("Count") < at("Average"),
+        "{names:?}"
+    );
+    assert!(
+        at("Average") < at("Doubled") && at("Doubled") < at("Share"),
+        "{names:?}"
+    );
+    assert_eq!(r["evaluated"], json!(["Share"]));
+    let q = r["query"].as_str().unwrap();
+    assert!(q.contains("MEASURE 'Product'[Share] ="), "{q}");
+    let e = defines_the_model(&mut s, q);
+    assert_eq!(e["results"][0]["row_count"], 1, "{e}");
+    // without references: that measure alone
+    let r = run(&mut s, "dax.define_query", json!({"measure": "Share"}));
+    assert_eq!(r["measures"], json!(["Share"]));
+    // nothing to define, or a wrong ask: errors
+    for p in [
+        json!({"table": "Product", "measure": "Share"}),
+        json!({}),
+        json!({"table": "Nowhere"}),
+        json!({"measure": "Nothing"}),
+    ] {
+        assert!(s.execute("dax.define_query", &p).is_err(), "{p}");
+    }
+    run(
+        &mut s,
+        "table.import",
+        json!({"name": "Empty", "m": "#table(type table [A = number], {{1}})"}),
+    );
+    assert!(s.execute("dax.define_query", &json!({"table": "Empty"})).is_err());
+}
+
+#[test]
+fn define_query_with_references_walks_a_cycle_once() {
+    let mut s = shop();
+    run(
+        &mut s,
+        "measure.add",
+        json!({"table": "Sales", "name": "A", "expression": "[B] + 1", "force": true}),
+    );
+    run(
+        &mut s,
+        "measure.add",
+        json!({"table": "Sales", "name": "B", "expression": "[A] + 1", "force": true}),
+    );
+    let r = run(
+        &mut s,
+        "dax.define_query",
+        json!({"measure": "A", "references": true}),
+    );
+    assert_eq!(r["measures"], json!(["B", "A"]));
+}

@@ -63,7 +63,7 @@ pub fn hash_token(token: &str) -> Result<String, String> {
     let token = token.trim();
     if token.len() < MIN_TOKEN_LEN {
         return Err(format!(
-            "a token needs at least {MIN_TOKEN_LEN} characters of random text (use `bicraft serve token create`)"
+            "a token needs at least {MIN_TOKEN_LEN} characters of random text (use `bicraft-cli serve token create`)"
         ));
     }
     if !token.bytes().all(|b| b.is_ascii_graphic()) {

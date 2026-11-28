@@ -1,11 +1,11 @@
-//! `bicraft-desktop --register` / `--unregister`: per-user Windows integration, under
+//! `bicraft --register` / `--unregister`: per-user Windows integration, under
 //! `HKEY_CURRENT_USER` only (no administrator rights, nothing machine-wide):
 //!
 //! - a Start menu shortcut `BIcraft Desktop.lnk` with the AppUserModelID `BIcraft.Desktop`;
-//! - `Software\Classes\Applications\bicraft-desktop.exe`: the open command, the friendly name,
+//! - `Software\Classes\Applications\bicraft.exe`: the open command, the friendly name,
 //!   the icon and `SupportedTypes` (.pbix, .pbit, .pbip, .bim), so the app is offered in
 //!   "Open with";
-//! - `Software\Classes\.<ext>\OpenWithList\bicraft-desktop.exe` for each type.
+//! - `Software\Classes\.<ext>\OpenWithList\bicraft.exe` for each type.
 //!
 //! The user's default application for these types is never changed: no `ProgId` is written as
 //! the default of `.pbix`, no `UserChoice` is touched. `--unregister` removes exactly these keys
@@ -14,9 +14,13 @@
 use std::path::{Path, PathBuf};
 
 /// The executable's name in the registry.
-pub const EXE: &str = "bicraft-desktop.exe";
-/// The AppUserModelID of the shortcut and the window.
+pub const EXE: &str = "bicraft.exe";
+/// The AppUserModelID of the shortcut and the window (Windows).
 pub const APP_ID: &str = "BIcraft.Desktop";
+/// The freedesktop application id (Linux): the window's Wayland app id and X11 class, the name
+/// of the `.desktop` file, the icons and the metainfo file the Linux release archive installs
+/// (`cargo xtask dist`, docs/releasing.md).
+pub const DESKTOP_ID: &str = "io.github.digorpeptra.bicraft";
 /// The Start menu shortcut's file name.
 pub const SHORTCUT: &str = "BIcraft Desktop.lnk";
 
@@ -139,13 +143,13 @@ mod tests {
 
     #[test]
     fn entries_stay_per_user_and_never_take_the_default() {
-        let exe = Path::new(r"C:\x\bicraft-desktop.exe");
+        let exe = Path::new(r"C:\x\bicraft.exe");
         let e = entries(exe);
         let cmd = e
             .iter()
             .find(|(k, _, _)| k.ends_with(r"shell\open\command"))
             .unwrap();
-        assert_eq!(cmd.2, r#""C:\x\bicraft-desktop.exe" "%1""#);
+        assert_eq!(cmd.2, r#""C:\x\bicraft.exe" "%1""#);
         for ext in crate::EXTENSIONS {
             assert!(
                 e.iter()

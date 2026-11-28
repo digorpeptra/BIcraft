@@ -1,15 +1,15 @@
 # Render oracle
 
-Compares `bicraft render` with Power BI Desktop's own rendering, per visual, on synthetic
+Compares `bicraft-cli render` with Power BI Desktop's own rendering, per visual, on synthetic
 reports covering each visual family (and, locally only, on real reports). Method, metrics and
 limits: `docs/render.md`.
 
 ```powershell
 $w = "$env:TEMP\oracle-reports\render"   # any work folder outside the repository
 cargo xtask oracle-gen synth $w\synth.pbix $w\cmds.json $w\layout.json
-bicraft run --file $w\cmds.json
+bicraft-cli run --file $w\cmds.json
 Test-Path $w\synth.pbix    # capture.ps1 refuses a missing file, but check before taking the lock
-bicraft render $w\synth.pbix --out $w\ours --lang fr-FR --text-json
+bicraft-cli render $w\synth.pbix --out $w\ours --lang fr-FR --text-json
 if (-not $env:BICRAFT_LOCKS_DIR) { $env:BICRAFT_LOCKS_DIR = "$env:LOCALAPPDATA\bicraft\locks" }
 mkdir $env:BICRAFT_LOCKS_DIR\desktop  # one Desktop at a time; wait while the priority lock exists
 .\capture.ps1 -File $w\synth.pbix -Out $w\desktop -Pages Cards,Columns,Lines,Parts,Tables,Stress,Labels,Combo,Axes
@@ -30,7 +30,7 @@ missing or empty report file and closes the Desktop it started when the window n
 SSIM, ΔE00, matched texts with the missing / extra / different ones) and a per-family summary;
 `--json` prints the same as JSON, `--diff DIR` writes Desktop | BIcraft | difference crops,
 `--min-sim X` and `--floors FILE` return non-zero below the thresholds. The text check runs when
-both folders have the `NN-<page>.json` files (`bicraft render --text-json` writes ours).
+both folders have the `NN-<page>.json` files (`bicraft-cli render --text-json` writes ours).
 
 `cargo xtask oracle-gen uilang OUT.pbix CMDS.json LAYOUT.json [CULTURE]` writes the UI-language report
 (M10.2: auto titles, aggregation names, (Blank), Total, empty visuals, formats; pages
@@ -38,21 +38,21 @@ Titles,Aggs,Blanks,Empty,Formats); run it for en-US and fr-FR and capture both u
 UI language (`docs/view-snapshot.md`, "UI language").
 
 The generators are `cargo xtask oracle-gen <set>` (xtask/src/oracles; each file's header has its
-steps). They only write `bicraft run` command and layout JSON:
+steps). They only write `bicraft-cli run` command and layout JSON:
 
 - `synth OUT.pbix CMDS.json LAYOUT.json`: the report above, one page per visual family.
 - `grids OUT.pbix CMDS.json LAYOUT.json`: the tables and matrices report (scroll thumbs at
   several row counts and heights, grids wider than the visual, matrix `subTotals` options), in
-  one `bicraft run` like `synth`.
+  one `bicraft-cli run` like `synth`.
 - `expand DIR` / `kpis DIR` (two runs, as `parts`): expanded matrices (the `expansionStates`,
   `active` flags and per-level `subTotals` Desktop saves; pages ExpandA,ExpandB,ExpandC) and
   KPI display units per format string and magnitude (pages KpiA,KpiB,KpiC,KpiD); render both
   with `{"ui_language": "fr-FR"}`. The patch step also writes `$visual` keys (`expansionStates`)
   and `$active` / `$activeAt` projection flags.
 - `parts DIR` / `slicers DIR`: the pie / donut / gauge / card / KPI / funnel / treemap report and
-  the slicer report (one page per slicer mode family). Two runs: `bicraft run --file
+  the slicer report (one page per slicer mode family). Two runs: `bicraft-cli run --file
   DIR\cmds1.json` writes a project, `cargo xtask oracle-gen parts DIR patch` writes the visual
-  objects into its PBIR (new-card objects in the `default` state), `bicraft run --file
+  objects into its PBIR (new-card objects in the `default` state), `bicraft-cli run --file
   DIR\cmds2.json` writes the report.
 - `states DIR`, then `states DIR check [CAPTURE_DIR]`: whether Desktop applies the formatting of
   stateful objects (docs/formats/visual-options.md, "State selectors").

@@ -1,6 +1,6 @@
-//! `bicraft sources PATH` (sources.list), `bicraft sources rebase PATH --from A [--to B]
-//! [--param NAME] [--server OLD=NEW]... [--dry-run]` (sources.rebase), `bicraft env apply PATH
-//! PROFILE [--env-file F] [--dry-run]` (env.apply) and `bicraft env check PATH PROFILE
+//! `bicraft-cli sources PATH` (sources.list), `bicraft-cli sources rebase PATH --from A [--to B]
+//! [--param NAME] [--server OLD=NEW]... [--dry-run]` (sources.rebase), `bicraft-cli env apply PATH
+//! PROFILE [--env-file F] [--dry-run]` (env.apply) and `bicraft-cli env check PATH PROFILE
 //! [--env-file F]` (env.check). Data sources and environment profiles: docs/sources-env.md.
 //!
 //! Rebase and apply save the file unless `--dry-run`. Output is JSON on stdout. Exit codes:
@@ -12,18 +12,18 @@ use serde_json::{Map, Value, json};
 
 use super::{Failure, INVALID, OK, USAGE_ERROR, open_with, print_json, usage, value};
 
-pub(crate) const SOURCES_HELP: &str = "usage: bicraft sources PATH
-       bicraft sources rebase PATH [--from ROOT] [--to ROOT] [--param NAME]
-                              [--server OLD=NEW]... [--database OLD=NEW]... [--host OLD=NEW]...
-                              [--http-path OLD=NEW]... [--url OLD=NEW]... [--dry-run]
+pub(crate) const SOURCES_HELP: &str = "usage: bicraft-cli sources PATH
+       bicraft-cli sources rebase PATH [--from ROOT] [--to ROOT] [--param NAME]
+                                  [--server OLD=NEW]... [--database OLD=NEW]... [--host OLD=NEW]...
+                                  [--http-path OLD=NEW]... [--url OLD=NEW]... [--dry-run]
   sources          list the M data sources (JSON): files, folders, databases, Databricks, web
   rebase           move file paths from ROOT to ROOT (or make them relative to the text parameter
                    NAME, added when missing), map servers, databases, hosts, URL prefixes; only
                    literals are rewritten; the file is saved unless --dry-run
 Exit codes: 0 done, 1 the edit or the save failed, 2 usage error or unreadable file.";
 
-pub(crate) const ENV_HELP: &str = "usage: bicraft env apply PATH PROFILE [--env-file FILE] [--dry-run]
-       bicraft env check PATH PROFILE [--env-file FILE]
+pub(crate) const ENV_HELP: &str = "usage: bicraft-cli env apply PATH PROFILE [--env-file FILE] [--dry-run]
+       bicraft-cli env check PATH PROFILE [--env-file FILE]
   apply   set the profile's parameters and map its paths, servers, hosts, URLs (one edit); the
           file is saved unless --dry-run
   check   what the profile does not cover and what would change (read-only)

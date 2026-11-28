@@ -3,7 +3,7 @@
 BIcraft is licensed under MIT OR Apache-2.0. It includes material from the third parties
 listed below, under their own licenses. The licence texts of the material embedded in the
 binary are also under [`licenses/`](licenses/); release archives and the container image ship
-that folder, and `bicraft licenses` prints this file and those texts. Every asset is listed in
+that folder, and `bicraft-cli licenses` prints this file and those texts. Every asset is listed in
 [ATTRIBUTION.md](ATTRIBUTION.md).
 
 ## Microsoft XPress9 (Extensible Storage Engine)
@@ -137,9 +137,10 @@ allows it ([docs/render.md](docs/render.md), "PDF").
 | License | SIL Open Font License 1.1. Copyright 2013 The Carlito Project Authors, with Reserved Font Name "Carlito". |
 | Used in | `crates/render` (`bicraft-render`): the stand-in for Calibri (the same advance widths) in `report.render`, `report.export_pdf` and the report pages of the app, when no Calibri face is installed |
 
-Each subset keeps the Latin characters listed in `crates/render/fonts/carlito/SOURCE.txt` (with
-the source URLs and SHA-256 of the upstream files and of the subsets) and drops the others; they
-were made by `cargo xtask font-subset carlito`. They are Modified Versions under the OFL, so
+Each subset keeps the Latin, Vietnamese, Greek and Cyrillic characters listed in
+`crates/render/fonts/carlito/SOURCE.txt` (with the source URLs and SHA-256 of the upstream files
+and of the subsets) and the font's kerning between them, and drops the others; they were made by
+`cargo xtask font-subset carlito`. They are Modified Versions under the OFL, so
 they do not use the Reserved Font Name: their `name` table calls them "BIcraft Metric Sans" and
 keeps the font's copyright, version, designer and licence strings. They ship with the full
 licence text (`crates/render/fonts/carlito/OFL-Carlito.txt`, the upstream `OFL.txt`
@@ -152,7 +153,7 @@ unmodified; `licenses/carlito/`) and are not sold by themselves.
 | Component | A glyph subset of Noto Sans Symbols 2 Regular (`crates/ui/fonts/NotoSansSymbols2-subset.ttf`) |
 | Upstream | <https://github.com/notofonts/symbols>, release `NotoSansSymbols2-v2.008` (`NotoSansSymbols2-v2.008.zip`, file `NotoSansSymbols2/unhinted/ttf/NotoSansSymbols2-Regular.ttf`) |
 | License | SIL Open Font License 1.1. Copyright 2022 The Noto Project Authors. No Reserved Font Name. |
-| Used in | `crates/ui` (`bicraft-ui`): the symbols of the app's UI (`✓`, `✕`, `✖`, `⚠`, `●`, `▶`…), in the desktop app and in the browser app that `bicraft` serves |
+| Used in | `crates/ui` (`bicraft-ui`): the symbols of the app's UI (`✓`, `✕`, `✖`, `⚠`, `●`, `▶`…), in the desktop app and in the browser app that `bicraft-cli` serves |
 
 The subset keeps the outlines of the characters listed in `crates/ui/fonts/SOURCE.txt` (with the
 SHA-256 of the release archive, of the source font and of the subset) and drops the others; it
@@ -279,7 +280,7 @@ image-webp (MIT OR Apache-2.0), all pure Rust, through Cargo.
 
 ## Crates of the desktop app
 
-`bicraft-desktop` (`apps/bicraft-desktop`, docs/desktop.md) also links, from crates.io and
+`bicraft` (`apps/bicraft-desktop`, docs/desktop.md) also links, from crates.io and
 unmodified: egui, eframe, egui-wgpu, egui-winit, epaint, emath, ecolor and wgpu (MIT OR
 Apache-2.0), winit and its platform crates (Apache-2.0 and MIT), accesskit (MIT OR Apache-2.0),
 rfd (MIT), sys-locale (MIT OR Apache-2.0), windows-registry (MIT OR Apache-2.0, Windows only),
@@ -299,7 +300,7 @@ fonts' included.
 | Upstream | <https://github.com/microsoft/Analysis-Services>, file `BestPracticeRules/BPARules.json` |
 | Commit | `50e8ce5028dd7046e73974ec69cb79af225e41b0` (2026-01-21) |
 | License | MIT. Copyright (c) 2016 Microsoft. The repository's license; the `BestPracticeRules` folder carries no other terms. |
-| Used in | `crates/bpa` (`bicraft-bpa`): the default rule set of `model.analyze` / `bicraft analyze` |
+| Used in | `crates/bpa` (`bicraft-bpa`): the default rule set of `model.analyze` / `bicraft-cli analyze` |
 
 The English rule file is vendored unmodified under `crates/bpa/rules/`, next to the upstream
 license (`crates/bpa/rules/LICENSE`) and a `SOURCE.txt`, and embedded in the binary; the
@@ -321,7 +322,7 @@ license text is in `crates/locale/LICENSE-UNICODE` and the provenance in
 ## HTTPS client of the Databricks, Web and OData connectors, TLS of the SQL Server connector
 
 `crates/databricks`, `crates/webdata` and `crates/sqlserver` (which uses `rustls`, `ring` and
-`webpki-roots` directly for TDS encryption), and so the `bicraft` binary, link these crates from
+`webpki-roots` directly for TDS encryption), and so the `bicraft-cli` binary, link these crates from
 crates.io, under their own permissive licences (no source was copied); `crates/webdata` also
 reads OData `$metadata` with `roxmltree` (MIT OR Apache-2.0), already linked for SVG:
 
@@ -338,7 +339,7 @@ reads OData `$metadata` with `roxmltree` (MIT OR Apache-2.0), already linked for
 ## TypeScript compiler of custom visual projects (swc)
 
 `crates/tsbuild` (`bicraft-tsbuild`, used by `visual.build` and `visual.pack`), and so the
-`bicraft` binary and the desktop app, link swc (<https://swc.rs>) from crates.io, unmodified and
+`bicraft-cli` binary and the desktop app, link swc (<https://swc.rs>) from crates.io, unmodified and
 under its own licence (no source was copied):
 
 | Crate | Licence |
@@ -346,9 +347,9 @@ under its own licence (no source was copied):
 | `swc_bundler`, `swc_common`, `swc_ecma_ast`, `swc_ecma_codegen`, `swc_ecma_loader`, `swc_ecma_parser`, `swc_ecma_transforms_base`, `swc_ecma_transforms_typescript` and the swc crates they use (`swc_atoms`, `swc_visit`, `swc_ecma_utils`, `swc_ecma_visit`, `swc_ecma_transforms_optimization`, `swc_ecma_transforms_react`, `swc_graph_analyzer`, `hstr`, …) | Apache-2.0 |
 | `anyhow`, `petgraph`, `stacker`, `psm`, `relative-path`, `bumpalo` and the other crates they pull in | MIT OR Apache-2.0, MIT, BSL-1.0 (`ryu`, `dragonbox_ecma`) or Unicode-3.0 (`icu_*`) |
 
-## YAML reader of `bicraft test`
+## YAML reader of `bicraft-cli test`
 
-`crates/engine` (and so the `bicraft` binary) links these crates from crates.io to read
+`crates/engine` (and so the `bicraft-cli` binary) links these crates from crates.io to read
 `bicraft.tests.yaml` (`docs/ci-tests.md`), under their own permissive licences (no source was
 copied):
 

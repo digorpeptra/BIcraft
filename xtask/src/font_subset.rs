@@ -20,7 +20,9 @@
 //!
 //! In both, the character map lists the kept characters only (format 4, plus format 12 for
 //! characters outside the BMP), `post` becomes format 3 (no glyph names), and the layout tables
-//! (`GSUB`, `GPOS`, `GDEF`…) and hinting tables are dropped. `head`, `hhea`, `maxp`, `OS/2`,
+//! (`GSUB`, `GPOS`, `GDEF`…) and hinting tables are dropped, except the kerning: the pair
+//! adjustments of the font's GPOS `kern` feature between the kept glyphs become a `kern` table,
+//! which the shaper applies when a face has no GPOS. `head`, `hhea`, `maxp`, `OS/2`,
 //! `name` and `hmtx` are kept (the `name` table keeps the font's copyright and licence strings,
 //! as the OFL asks). Characters the font does not have are reported and left out.
 
@@ -330,8 +332,9 @@ fn bundle(src: &Path) -> Result<(), String> {
          Noto fonts, made by `cargo xtask font-subset bundle SRC_DIR` (xtask/src/font_subset.rs:\n\
          the release, file and SHA-256 of each source; the Unicode ranges and emoji asked for). Each face keeps\n\
          the characters of those blocks it has that Selawik and the faces before it lack, with its\n\
-         glyphs renumbered; cmap of these characters only; post format 3; layout and hinting tables\n\
-         dropped; name table kept. Licence: SIL Open Font License 1.1, no Reserved Font Name;\n\
+         glyphs renumbered; cmap of these characters only; post format 3; the GPOS kerning between\n\
+         the kept glyphs written as a kern table, other layout and hinting tables dropped; name\n\
+         table kept. Licence: SIL Open Font License 1.1, no Reserved Font Name;\n\
          copyright The Noto Project Authors (Noto Emoji: Google LLC). The OFL-*.txt files here\n\
          are the upstream OFL.txt files, unmodified.\n",
     );
@@ -449,17 +452,22 @@ pub const CARLITO: &[(&str, &str, &str)] = &[
     ),
 ];
 
-/// The characters kept in the Carlito faces (inclusive): Western and Central European Latin
-/// text with its punctuation, superscripts, currency and common letterlike symbols, chosen to
-/// keep the four faces small. Greek, Cyrillic, Vietnamese and symbols are left to the fallback
-/// chain (Noto Sans: other widths than Calibri's, docs/gaps.md).
+/// The characters kept in the Carlito faces (inclusive): Latin text with its punctuation,
+/// superscripts, currency and common letterlike symbols, Vietnamese, Greek and Cyrillic, so
+/// Calibri text in those scripts keeps Calibri's widths. Combining marks and symbols are left to
+/// the fallback chain (the subsets have no mark positioning).
 pub const CARLITO_RANGES: &[(u32, u32)] = &[
     (0x0020, 0x007E),
     (0x00A0, 0x017F),
     (0x0192, 0x0192),
+    (0x01A0, 0x01B0),
     (0x0218, 0x021B),
     (0x02C6, 0x02C7),
     (0x02D8, 0x02DD),
+    (0x0370, 0x03FF),
+    (0x0400, 0x045F),
+    (0x0490, 0x0491),
+    (0x1EA0, 0x1EF9),
     (0x2010, 0x2027),
     (0x2030, 0x203A),
     (0x2044, 0x2044),
@@ -566,7 +574,8 @@ fn carlito(src: &Path) -> Result<(), String> {
          used when a visual asks for Calibri and no Calibri face is installed. Glyph subsets made by\n\
          `cargo xtask font-subset carlito SRC_DIR` (xtask/src/font_subset.rs: the files, SHA-256 and\n\
          the Unicode ranges kept): glyphs renumbered; cmap of the kept characters only; post format 3;\n\
-         layout (kerning) and hinting tables dropped. Licence: SIL Open Font License 1.1, with\n\
+         the GPOS kerning between the kept glyphs written as a kern table, other layout and hinting\n\
+         tables dropped. Licence: SIL Open Font License 1.1, with\n\
          Reserved Font Name \"Carlito\": the subsets are a Modified Version, so their name table\n\
          calls them \"{CARLITO_SUBSET_FAMILY}\" (copyright, version, designer, URL and licence\n\
          strings kept). OFL-Carlito.txt here is the upstream OFL.txt, unmodified.\n\n\
@@ -834,6 +843,289 @@ fn new_cmap(map: &BTreeMap<char, u16>) -> Result<Vec<u8>, String> {
 /// The subset font, the characters kept and those the font lacks.
 type Subset = (Vec<u8>, Vec<char>, Vec<char>);
 
+/// Lookups of a GPOS `kern` feature examined (a bound on hostile input).
+const MAX_KERN_LOOKUPS: usize = 64;
+
+/// The coverage index of glyph `g` in a coverage table at `o` (formats 1 and 2).
+fn coverage_index(d: &[u8], o: usize, g: u16) -> Result<Option<u16>, String> {
+    let n = usize::from(u16_at(d, o + 2)?);
+    match u16_at(d, o)? {
+        1 => {
+            for i in 0..n {
+                if u16_at(d, o + 4 + 2 * i)? == g {
+                    return Ok(u16::try_from(i).ok());
+                }
+            }
+            Ok(None)
+        }
+        2 => {
+            for i in 0..n {
+                let r = o + 4 + 6 * i;
+                let (start, end, first) = (u16_at(d, r)?, u16_at(d, r + 2)?, u16_at(d, r + 4)?);
+                if (start..=end).contains(&g) {
+                    return Ok(first.checked_add(g - start));
+                }
+            }
+            Ok(None)
+        }
+        f => Err(format!("coverage format {f}")),
+    }
+}
+
+/// The class of glyph `g` in a class definition table at `o` (formats 1 and 2; 0 when absent).
+fn class_of(d: &[u8], o: usize, g: u16) -> Result<u16, String> {
+    match u16_at(d, o)? {
+        1 => {
+            let start = u16_at(d, o + 2)?;
+            let n = u16_at(d, o + 4)?;
+            if g < start || g - start >= n {
+                return Ok(0);
+            }
+            u16_at(d, o + 6 + 2 * usize::from(g - start))
+        }
+        2 => {
+            let n = usize::from(u16_at(d, o + 2)?);
+            for i in 0..n {
+                let r = o + 4 + 6 * i;
+                if (u16_at(d, r)?..=u16_at(d, r + 2)?).contains(&g) {
+                    return u16_at(d, r + 4);
+                }
+            }
+            Ok(0)
+        }
+        f => Err(format!("class definition format {f}")),
+    }
+}
+
+/// Bytes of a value record of format `vf`.
+fn value_size(vf: u16) -> usize {
+    2 * (vf & 0xFF).count_ones() as usize
+}
+
+/// The X advance of the value record of format `vf` at `o` (0 when the format has none).
+fn x_advance(d: &[u8], o: usize, vf: u16) -> Result<i16, String> {
+    if vf & 0x4 == 0 {
+        return Ok(0);
+    }
+    let at = o + 2 * (vf & 0x3).count_ones() as usize;
+    Ok(u16_at(d, at)? as i16)
+}
+
+/// The first glyph's X advance adjustment a pair positioning subtable at `o` (format 1 or 2)
+/// gives the pair `(a, b)`: `None` when the subtable does not apply to it (the next subtable of
+/// the lookup is tried, as in a shaper), `Some(0)` when it applies with no adjustment (a format
+/// 2 subtable applies to every pair whose first glyph it covers).
+fn pair_adjustment(d: &[u8], o: usize, a: u16, b: u16) -> Result<Option<i16>, String> {
+    let format = u16_at(d, o)?;
+    let cov = o + usize::from(u16_at(d, o + 2)?);
+    let (vf1, vf2) = (u16_at(d, o + 4)?, u16_at(d, o + 6)?);
+    let Some(ci) = coverage_index(d, cov, a)? else {
+        return Ok(None);
+    };
+    let rec = 2 + value_size(vf1) + value_size(vf2);
+    match format {
+        1 => {
+            if ci >= u16_at(d, o + 8)? {
+                return Ok(None);
+            }
+            let set = o + usize::from(u16_at(d, o + 10 + 2 * usize::from(ci))?);
+            let n = usize::from(u16_at(d, set)?);
+            for i in 0..n {
+                let r = set + 2 + i * rec;
+                if u16_at(d, r)? == b {
+                    return Ok(Some(x_advance(d, r + 2, vf1)?));
+                }
+            }
+            Ok(None)
+        }
+        2 => {
+            let cd1 = o + usize::from(u16_at(d, o + 8)?);
+            let cd2 = o + usize::from(u16_at(d, o + 10)?);
+            let (n1, n2) = (u16_at(d, o + 12)?, u16_at(d, o + 14)?);
+            let (c1, c2) = (class_of(d, cd1, a)?, class_of(d, cd2, b)?);
+            if c1 >= n1 || c2 >= n2 {
+                return Ok(None);
+            }
+            let r = o + 16 + (usize::from(c1) * usize::from(n2) + usize::from(c2)) * (rec - 2);
+            Ok(Some(x_advance(d, r, vf1)?))
+        }
+        _ => Ok(None),
+    }
+}
+
+/// The kerning of the font's GPOS `kern` feature between the glyphs of `keep` (old ids): each
+/// pair's first-glyph advance adjustment, summed over the feature's pair positioning lookups
+/// (types 2, and 9 extensions of them) in lookup order, the first subtable of a lookup that
+/// applies to a pair giving its value; zero pairs left out. Contextual kerning (type 8 lookups)
+/// and adjustments of the second glyph are not kept: a `kern` table cannot express them.
+fn gpos_kerning(gpos: &[u8], keep: &BTreeSet<u16>) -> Result<BTreeMap<(u16, u16), i32>, String> {
+    let features = usize::from(u16_at(gpos, 6)?);
+    let lookups = usize::from(u16_at(gpos, 8)?);
+    let mut kern: BTreeSet<u16> = BTreeSet::new();
+    for i in 0..usize::from(u16_at(gpos, features)?) {
+        let r = features + 2 + 6 * i;
+        if gpos.get(r..r + 4) != Some(b"kern".as_slice()) {
+            continue;
+        }
+        let f = features + usize::from(u16_at(gpos, r + 4)?);
+        for k in 0..usize::from(u16_at(gpos, f + 2)?) {
+            kern.insert(u16_at(gpos, f + 4 + 2 * k)?);
+        }
+    }
+    let mut out: BTreeMap<(u16, u16), i32> = BTreeMap::new();
+    for li in kern.into_iter().take(MAX_KERN_LOOKUPS) {
+        let l = lookups + usize::from(u16_at(gpos, lookups + 2 + 2 * usize::from(li))?);
+        let kind = u16_at(gpos, l)?;
+        let mut subs = Vec::new();
+        for s in 0..usize::from(u16_at(gpos, l + 4)?) {
+            let at = l + usize::from(u16_at(gpos, l + 6 + 2 * s)?);
+            match kind {
+                2 => subs.push(at),
+                9 if u16_at(gpos, at + 2)? == 2 => subs.push(at + u32_at(gpos, at + 4)? as usize),
+                _ => {}
+            }
+        }
+        if subs.is_empty() {
+            continue;
+        }
+        for &a in keep {
+            // the subtables whose coverage has the first glyph (the others never apply)
+            let mut covering = Vec::new();
+            for &s in &subs {
+                let cov = s + usize::from(u16_at(gpos, s + 2)?);
+                if coverage_index(gpos, cov, a)?.is_some() {
+                    covering.push(s);
+                }
+            }
+            if covering.is_empty() {
+                continue;
+            }
+            for &b in keep {
+                for &s in &covering {
+                    if let Some(v) = pair_adjustment(gpos, s, a, b)? {
+                        if v != 0 {
+                            *out.entry((a, b)).or_insert(0) += i32::from(v);
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    out.retain(|_, v| *v != 0);
+    Ok(out)
+}
+
+/// A `kern` table (version 0) holding `pairs` (new glyph ids, font units) as horizontal class
+/// kerning subtables (format 2, a third of the size of a pair list for class-based kerning):
+/// second glyphs with the same kerning share a column, first glyphs with the same row share it,
+/// and each subtable takes a run of first glyphs small enough for its 16-bit offsets. `None`
+/// without pairs.
+fn kern_table(pairs: &BTreeMap<(u16, u16), i16>) -> Result<Option<Vec<u8>>, String> {
+    let (Some(first_right), Some(last_right)) =
+        (pairs.keys().map(|k| k.1).min(), pairs.keys().map(|k| k.1).max())
+    else {
+        return Ok(None);
+    };
+    // columns: second glyphs with the same (first glyph, value) list share a class; 0 is none
+    let mut by_right: BTreeMap<u16, Vec<(u16, i16)>> = BTreeMap::new();
+    for ((a, b), v) in pairs {
+        by_right.entry(*b).or_default().push((*a, *v));
+    }
+    let mut col_of_list: BTreeMap<&Vec<(u16, i16)>, u16> = BTreeMap::new();
+    let mut col: BTreeMap<u16, u16> = BTreeMap::new();
+    for (b, list) in &by_right {
+        let next = u16::try_from(col_of_list.len() + 1).map_err(|_| "too many kerning classes")?;
+        col.insert(*b, *col_of_list.entry(list).or_insert(next));
+    }
+    let cols = col_of_list.len() + 1;
+    let row_width = 2 * cols;
+    let right_n = usize::from(last_right - first_right) + 1;
+    // rows of the first glyphs, in glyph order
+    let mut rows: BTreeMap<u16, Vec<i16>> = BTreeMap::new();
+    for ((a, b), v) in pairs {
+        let c = usize::from(col.get(b).copied().unwrap_or(0));
+        if let Some(x) = rows.entry(*a).or_insert_with(|| vec![0; cols]).get_mut(c) {
+            *x = *v;
+        }
+    }
+    // the size of a subtable for first glyphs `lo..=hi` with `distinct` rows (+ the zero row)
+    let size = |lo: u16, hi: u16, distinct: usize| {
+        6 + 8 + 4 + 2 * (usize::from(hi - lo) + 1) + 4 + 2 * right_n + (distinct + 1) * row_width
+    };
+    let mut chunks: Vec<Vec<(u16, &Vec<i16>)>> = Vec::new();
+    let mut cur: Vec<(u16, &Vec<i16>)> = Vec::new();
+    let mut distinct: BTreeSet<&Vec<i16>> = BTreeSet::new();
+    for (a, r) in &rows {
+        let grows = usize::from(!distinct.contains(r));
+        let lo = cur.first().map_or(*a, |c| c.0);
+        if !cur.is_empty() && size(lo, *a, distinct.len() + grows) > usize::from(u16::MAX) {
+            chunks.push(std::mem::take(&mut cur));
+            distinct.clear();
+        }
+        cur.push((*a, r));
+        distinct.insert(r);
+    }
+    chunks.push(cur);
+    let mut t = Vec::new();
+    t.extend(0u16.to_be_bytes());
+    t.extend(
+        u16::try_from(chunks.len())
+            .map_err(|_| "too many kern subtables")?
+            .to_be_bytes(),
+    );
+    let w16 = |v: usize| u16::try_from(v).map_err(|_| "kern subtable too long".to_string());
+    for c in &chunks {
+        let (Some(lo), Some(hi)) = (c.first().map(|x| x.0), c.last().map(|x| x.0)) else {
+            continue;
+        };
+        let mut row_at: BTreeMap<&Vec<i16>, usize> = BTreeMap::new();
+        for (_, r) in c {
+            let next = row_at.len() + 1;
+            row_at.entry(r).or_insert(next);
+        }
+        let left_n = usize::from(hi - lo) + 1;
+        let left_off = 6 + 8;
+        let right_off = left_off + 4 + 2 * left_n;
+        let array_off = right_off + 4 + 2 * right_n;
+        let len = array_off + (row_at.len() + 1) * row_width;
+        // subtable header: version, length, coverage (format 2, horizontal)
+        for v in [0, w16(len)?, 0x0201] {
+            t.extend(v.to_be_bytes());
+        }
+        for v in [w16(row_width)?, w16(left_off)?, w16(right_off)?, w16(array_off)?] {
+            t.extend(v.to_be_bytes());
+        }
+        // left classes: the offset of each first glyph's row from the subtable's start
+        let at: BTreeMap<u16, usize> = c
+            .iter()
+            .map(|(a, r)| (*a, row_at.get(r).copied().unwrap_or(0)))
+            .collect();
+        t.extend(lo.to_be_bytes());
+        t.extend(w16(left_n)?.to_be_bytes());
+        for g in lo..=hi {
+            let row = at.get(&g).copied().unwrap_or(0);
+            t.extend(w16(array_off + row * row_width)?.to_be_bytes());
+        }
+        // right classes: the offset of each second glyph's column in a row
+        t.extend(first_right.to_be_bytes());
+        t.extend(w16(right_n)?.to_be_bytes());
+        for g in first_right..=last_right {
+            t.extend(w16(2 * usize::from(col.get(&g).copied().unwrap_or(0)))?.to_be_bytes());
+        }
+        // the rows: the zero row, then each distinct row in order
+        let mut ordered: Vec<(&usize, &&Vec<i16>)> = row_at.iter().map(|(r, i)| (i, r)).collect();
+        ordered.sort();
+        t.extend(std::iter::repeat_n(0u8, row_width));
+        for (_, r) in ordered {
+            for v in r.iter() {
+                t.extend(v.to_be_bytes());
+            }
+        }
+    }
+    Ok(Some(t))
+}
+
 /// Glyph ids a composite glyph refers to, with the offset of each id in the glyph's bytes.
 fn components(gd: &[u8]) -> Result<Vec<(usize, u16)>, String> {
     let mut out = Vec::new();
@@ -964,8 +1256,20 @@ pub fn subset(d: &[u8], wanted: &BTreeSet<char>, compact: bool) -> Result<Subset
             *g = renum.get(g).copied().unwrap_or(0);
         }
     }
+    // the GPOS kerning between the kept glyphs, as a `kern` table on the new ids
+    let kerning = match t.get(b"GPOS") {
+        Some(gpos) => gpos_kerning(gpos, &keep)?,
+        None => BTreeMap::new(),
+    };
+    let kerning: BTreeMap<(u16, u16), i16> = kerning
+        .into_iter()
+        .filter_map(|((a, b), v)| Some(((*renum.get(&a)?, *renum.get(&b)?), i16::try_from(v).ok()?)))
+        .collect();
     let keep_tables: [&[u8; 4]; 6] = [b"OS/2", b"hhea", b"hmtx", b"maxp", b"name", b"head"];
     t.retain(|tag, _| keep_tables.contains(&tag));
+    if let Some(k) = kern_table(&kerning)? {
+        t.insert(*b"kern", k);
+    }
     t.insert(*b"head", head);
     t.insert(*b"post", post);
     t.insert(*b"cmap", new_cmap(&map)?);
@@ -1098,6 +1402,54 @@ mod tests {
             sha256_hex(b"abc"),
             "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
         );
+    }
+
+    /// The kerning of `(a, b)` in a `kern` table of format 2 subtables, read as a shaper reads
+    /// it (read-fonts' `Subtable2::kerning`, summed over the subtables).
+    fn kern_value(t: &[u8], a: u16, b: u16) -> i32 {
+        let mut o = 4;
+        let mut sum = 0;
+        for _ in 0..u16_at(t, 2).unwrap() {
+            let len = usize::from(u16_at(t, o + 2).unwrap());
+            let class = |at: usize, g: u16| {
+                let first = u16_at(t, o + at).unwrap();
+                let n = u16_at(t, o + at + 2).unwrap();
+                (g >= first && g - first < n)
+                    .then(|| usize::from(u16_at(t, o + at + 4 + 2 * usize::from(g - first)).unwrap()))
+            };
+            let left_off = usize::from(u16_at(t, o + 8).unwrap());
+            let right_off = usize::from(u16_at(t, o + 10).unwrap());
+            let array_off = usize::from(u16_at(t, o + 12).unwrap());
+            if let Some(l) = class(left_off, a).filter(|l| *l >= array_off) {
+                let r = class(right_off, b).unwrap_or(0);
+                sum += i32::from(u16_at(t, o + l + r).unwrap() as i16);
+            }
+            o += len;
+        }
+        sum
+    }
+
+    #[test]
+    fn kern_table_holds_every_pair_across_subtables() {
+        // every row distinct: more than one subtable's 16-bit offsets can hold
+        let mut pairs = BTreeMap::new();
+        for a in 1..250u16 {
+            for b in (1..300u16).step_by(2) {
+                let v = (i32::from(a) * 3 + i32::from(b)) % 251 - 125;
+                if v != 0 {
+                    pairs.insert((a, b), v as i16);
+                }
+            }
+        }
+        let t = kern_table(&pairs).unwrap().unwrap();
+        assert!(u16_at(&t, 2).unwrap() > 1);
+        for a in 0..302u16 {
+            for b in 0..302u16 {
+                let want = pairs.get(&(a, b)).copied().map_or(0, i32::from);
+                assert_eq!(kern_value(&t, a, b), want, "{a} {b}");
+            }
+        }
+        assert!(kern_table(&BTreeMap::new()).unwrap().is_none());
     }
 
     #[test]

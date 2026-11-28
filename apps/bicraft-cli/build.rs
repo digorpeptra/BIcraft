@@ -1,4 +1,4 @@
-//! Embeds the git commit the binary was built from, shown by `bicraft --version`.
+//! Embeds the git commit the binary was built from, shown by `bicraft-cli --version`.
 //!
 //! The commit is read from the `.git` directory directly (no `git` process: inside WSL a checkout
 //! on `/mnt/c` is often refused by git as "dubious ownership"). `BICRAFT_GIT_COMMIT` overrides it,

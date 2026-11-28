@@ -3,7 +3,7 @@
 //!
 //! - every YAML file parses (the chart's templates are Go templates: their braces must balance);
 //! - every `BICRAFT_*` variable named in `deploy/` or `docs/kubernetes.md` is read by the code, and
-//!   every `bicraft serve` flag used by the manifests, the chart or the image exists, so the
+//!   every `bicraft-cli serve` flag used by the manifests, the chart or the image exists, so the
 //!   deployment cannot drift from the binary;
 //!   every `.Values.x.y` a template uses exists in `values.yaml`;
 //! - the security invariants: non-root fixed UID, read-only root file system, no privilege
@@ -13,7 +13,7 @@
 //!   CPU limit, terminationGracePeriodSeconds above --shutdown-grace, TMPDIR and
 //!   BICRAFT_SPILL_DIR on a disk-backed emptyDir with a size limit;
 //! - the image: pinned bases (tag and digest), an empty final base, a numeric non-root USER, the
-//!   `bicraft serve` entry point, a `--locked` build;
+//!   `bicraft-cli serve` entry point, a `--locked` build;
 //! - the metrics listener: its own port, declared as the `metrics` container port, and `POD_IP`
 //!   from the downward API when `--metrics-listen` binds `$(POD_IP)`.
 
@@ -78,7 +78,7 @@ pub fn run(root: &Path) -> Result<Summary, Vec<String>> {
             }
             for flag in template_flags(&text) {
                 if !ctl_flags.contains(&flag) {
-                    errors.push(format!("{rel}: `bicraft controller` has no flag {flag}"));
+                    errors.push(format!("{rel}: `bicraft-cli controller` has no flag {flag}"));
                 }
                 s.flags.insert(flag);
             }
@@ -289,12 +289,12 @@ pub fn known_env_vars(root: &Path) -> BTreeSet<String> {
     out
 }
 
-/// The flags `bicraft serve` parses (`"--flag" =>` arms of serve_cmd.rs).
+/// The flags `bicraft-cli serve` parses (`"--flag" =>` arms of serve_cmd.rs).
 pub fn known_serve_flags(root: &Path) -> BTreeSet<String> {
     flags_in(root, "serve_cmd.rs")
 }
 
-/// The flags of `bicraft controller` (controller_cmd.rs; it also takes the authentication flags of
+/// The flags of `bicraft-cli controller` (controller_cmd.rs; it also takes the authentication flags of
 /// serve_cmd.rs).
 pub fn known_controller_flags(root: &Path) -> BTreeSet<String> {
     flags_in(root, "controller_cmd.rs")
@@ -422,7 +422,7 @@ pub fn env_names(text: &str) -> Vec<String> {
 
 fn check_flag(rel: &str, flag: &str, known: &BTreeSet<String>, errors: &mut Vec<String>) {
     if !known.contains(flag) {
-        errors.push(format!("{rel}: `bicraft serve` has no flag {flag}"));
+        errors.push(format!("{rel}: `bicraft-cli serve` has no flag {flag}"));
     }
 }
 
@@ -931,7 +931,7 @@ pub fn check_manifest(
     let Some(c) = container(doc) else { return };
     for a in c.args.iter().filter(|a| a.starts_with("--")) {
         if !known_flags.contains(a) {
-            err(format!("`bicraft serve` has no flag {a}"));
+            err(format!("`bicraft-cli serve` has no flag {a}"));
         }
         flags.insert(a.clone());
     }
@@ -1055,7 +1055,7 @@ pub fn check_manifest(
 // ---------------------------------------------------------------------------------------------
 // Dockerfile
 
-/// Checks the Dockerfile; returns the `bicraft serve` flags of its CMD.
+/// Checks the Dockerfile; returns the `bicraft-cli serve` flags of its CMD.
 fn check_dockerfile(rel: &str, text: &str, errors: &mut Vec<String>) -> Vec<String> {
     let mut err = |m: String| errors.push(format!("{rel}: {m}"));
     let mut stages: Vec<String> = Vec::new();
@@ -1111,10 +1111,10 @@ fn check_dockerfile(rel: &str, text: &str, errors: &mut Vec<String>) -> Vec<Stri
     match &entrypoint {
         Some(e)
             if e.len() == 2
-                && e.first().is_some_and(|b| b.ends_with("/bicraft"))
+                && e.first().is_some_and(|b| b.ends_with("/bicraft-cli"))
                 && e.get(1).is_some_and(|s| s == "serve") => {}
         e => err(format!(
-            "ENTRYPOINT must be [\"…/bicraft\", \"serve\"] (JSON form), not {e:?}"
+            "ENTRYPOINT must be [\"…/bicraft-cli\", \"serve\"] (JSON form), not {e:?}"
         )),
     }
     if !text.contains("--locked") {
@@ -1133,7 +1133,7 @@ fn check_dockerfile(rel: &str, text: &str, errors: &mut Vec<String>) -> Vec<Stri
         ),
         (
             "build-info | grep -q '\"embedded\":true'",
-            "the image must check `bicraft build-info` for the browser app",
+            "the image must check `bicraft-cli build-info` for the browser app",
         ),
     ] {
         if !text.contains(needle) {
@@ -1355,7 +1355,7 @@ mod tests {
 
     #[test]
     fn dockerfile_rules() {
-        let ok = "FROM rust:1.99@sha256:0000000000000000000000000000000000000000000000000000000000000000 AS b\nRUN cargo xtask webui --out /w && BICRAFT_REQUIRE_WEBUI=1 cargo build --locked\nRUN bicraft build-info | grep -q '\"embedded\":true'\nCOPY LICENSE-MIT LICENSE-APACHE THIRD_PARTY_NOTICES.md /d/\nCOPY licenses/ /d/licenses/\nFROM scratch\nENV TMPDIR=/tmp\nUSER 65532:65532\nENTRYPOINT [\"/usr/local/bin/bicraft\", \"serve\"]\nCMD [\"--root\", \"/srv\"]\n";
+        let ok = "FROM rust:1.99@sha256:0000000000000000000000000000000000000000000000000000000000000000 AS b\nRUN cargo xtask webui --out /w && BICRAFT_REQUIRE_WEBUI=1 cargo build --locked\nRUN bicraft-cli build-info | grep -q '\"embedded\":true'\nCOPY LICENSE-MIT LICENSE-APACHE THIRD_PARTY_NOTICES.md /d/\nCOPY licenses/ /d/licenses/\nFROM scratch\nENV TMPDIR=/tmp\nUSER 65532:65532\nENTRYPOINT [\"/usr/local/bin/bicraft-cli\", \"serve\"]\nCMD [\"--root\", \"/srv\"]\n";
         let mut e = Vec::new();
         assert_eq!(check_dockerfile("D", ok, &mut e), ["--root"]);
         assert!(e.is_empty(), "{e:?}");
@@ -1382,7 +1382,11 @@ mod tests {
             (" THIRD_PARTY_NOTICES.md", "", "THIRD_PARTY_NOTICES.md"),
             ("BICRAFT_REQUIRE_WEBUI=1 ", "", "BICRAFT_REQUIRE_WEBUI"),
             ("cargo xtask webui --out /w && ", "", "xtask webui"),
-            ("RUN bicraft build-info", "RUN bicraft --version #", "build-info"),
+            (
+                "RUN bicraft-cli build-info",
+                "RUN bicraft-cli --version #",
+                "build-info",
+            ),
         ] {
             let mut e = Vec::new();
             check_dockerfile("D", &ok.replace(from, to), &mut e);

@@ -2,7 +2,7 @@
 // strings of the data view's columns (`source.format`), for tooltips and labels. Our own code for
 // the common custom number and date formats of Power BI's format strings (Microsoft Learn's
 // "Custom format strings" page): digit placeholders `0` and `#`, `.`, `,` (grouping, or ÷1000
-// before the decimal point), `%`, `‰`, exponents `E+0`/`E-0`, sections `positive;negative;zero`,
+// before the decimal point, at the end of the digits or right after the last decimal), `%`, `‰`, exponents `E+0`/`E-0`, sections `positive;negative;zero`,
 // quoted and escaped literals; the date and time format strings of DAX `FORMAT` (`dd/mm/yyyy`,
 // `mmmm yyyy`, `hh:nn`, `AM/PM`, …) and the named formats General Number, Fixed, Standard,
 // Percent, Short Date, Long Date, General Date… English and French separators and names.
@@ -281,6 +281,69 @@ function general(v: number, c: Culture): string {
     return (v < 0 ? "-" : "") + s;
 }
 
+/** A section's text with the commas right after its last decimal placeholder moved before its decimal point. */
+function scaleSection(sec: [string, boolean][]): string {
+    const text = (r: [string, boolean][]) => r.map((x) => x[0]).join("");
+    let d = -1;
+    let l = -1;
+    let sci = false;
+    for (let i = 0; i < sec.length; i++) {
+        const c = sec[i][0];
+        if (!sec[i][1]) {
+            continue;
+        }
+        if (c === "." && d < 0) {
+            d = i;
+        }
+        if (c === "0" || c === "#") {
+            l = i;
+        }
+        if (c === "E" || c === "e") {
+            sci = true;
+        }
+    }
+    let n = 0;
+    while (l >= 0 && l + 1 + n < sec.length && sec[l + 1 + n][1] && sec[l + 1 + n][0] === ",") {
+        n++;
+    }
+    if (d < 0 || l < 0 || sci || l < d || n === 0) {
+        return text(sec);
+    }
+    return text(sec.slice(0, d)) + ",".repeat(n) + text(sec.slice(d, l + 1)) + text(sec.slice(l + 1 + n));
+}
+
+/**
+ * Format string `f` with the commas right after a section's last decimal placeholder moved before its decimal point
+ * (`$#,0.00,,"M"` → `$#,0,,.00"M"`): read as scaling commas, ÷1000 each, as before the point. Quoted and escaped text
+ * and scientific sections stay as they are. The twin of crates/render/src/chart_pack/gauge.rs `scale_commas`;
+ * [`formatNumber`] applies it, so every visual reads them alike.
+ */
+function scaleCommas(f: string): string {
+    let sec: [string, boolean][] = [];
+    let out = "";
+    let quoted = false;
+    let esc = false;
+    for (const c of Array.from(f)) {
+        if (esc || quoted) {
+            quoted = quoted && c !== "\"";
+            esc = false;
+            sec.push([c, false]);
+            continue;
+        }
+        if (c === "\"") {
+            quoted = true;
+        } else if (c === "\\") {
+            esc = true;
+        } else if (c === ";") {
+            out += scaleSection(sec) + ";";
+            sec = [];
+            continue;
+        }
+        sec.push([c, c !== "\"" && c !== "\\"]);
+    }
+    return out + scaleSection(sec);
+}
+
 /** Writes a number with a custom or named number format. */
 export function formatNumber(v: number, format: string, locale?: string | null): string {
     const c = cultureOf(locale);
@@ -295,7 +358,7 @@ export function formatNumber(v: number, format: string, locale?: string | null):
     if (f === "" || f.toLowerCase() === "general") {
         return general(v, c);
     }
-    const secs = sections(f);
+    const secs = sections(scaleCommas(f));
     if (v < 0 && secs.length > 1 && secs[1] !== "") {
         return applyPattern(-v, readPattern(secs[1]), c)[0];
     }

@@ -1,10 +1,10 @@
 //! The UI control channel in a real browser (docs/webui.md, "Control channel in the browser"):
-//! headless Firefox loads the browser app from `bicraft view --control` and from
-//! `bicraft serve --viewer-control`, and `bicraft ui` drives the page through the server's relay:
+//! headless Firefox loads the browser app from `bicraft-cli view --control` and from
+//! `bicraft-cli serve --viewer-control`, and `bicraft-cli ui` drives the page through the server's relay:
 //! open a file, run a command, switch the page and the ribbon tab, the palette and a form, and a
 //! screenshot of the canvas as the GPU drew it.
 //!
-//! Ignored by default: it needs a `bicraft` built with the browser app embedded
+//! Ignored by default: it needs a `bicraft-cli` built with the browser app embedded
 //! (`cargo xtask webui`, then `BICRAFT_WEBUI_DIR` at build time) and Firefox. Run it with
 //!
 //! ```text
@@ -61,7 +61,7 @@ fn free_port() -> u16 {
 /// Starts `bicraft ARGS` and waits for a stderr line containing `ready`; `None` (with a note)
 /// when the binary has no browser app.
 fn spawn(args: &[&str], ready: &str) -> Option<Kill> {
-    let mut child = Command::new(env!("CARGO_BIN_EXE_bicraft"))
+    let mut child = Command::new(env!("CARGO_BIN_EXE_bicraft-cli"))
         .args(args)
         .env_remove("BICRAFT_VIEWER_CONTROL_TOKEN")
         .stdin(Stdio::piped())
@@ -129,9 +129,9 @@ fn browser(exe: &Path, profile: &Path, url: &str) -> Kill {
     Kill(child)
 }
 
-/// `bicraft ui ARGS`: the exit code and the reply.
+/// `bicraft-cli ui ARGS`: the exit code and the reply.
 fn ui(args: &[&str]) -> (i32, Value) {
-    let out = Command::new(env!("CARGO_BIN_EXE_bicraft"))
+    let out = Command::new(env!("CARGO_BIN_EXE_bicraft-cli"))
         .arg("ui")
         .args(args)
         .env_remove("BICRAFT_CONTROL_TOKEN")
@@ -142,12 +142,15 @@ fn ui(args: &[&str]) -> (i32, Value) {
     let text = String::from_utf8_lossy(&out.stdout).into_owned();
     let v = serde_json::from_str(&text).unwrap_or(Value::Null);
     if v.is_null() {
-        eprintln!("bicraft ui {args:?}: {}", String::from_utf8_lossy(&out.stderr));
+        eprintln!(
+            "bicraft-cli ui {args:?}: {}",
+            String::from_utf8_lossy(&out.stderr)
+        );
     }
     (out.status.code().unwrap_or(-1), v)
 }
 
-/// A driver of one page through `bicraft ui` with the target options `base`.
+/// A driver of one page through `bicraft-cli ui` with the target options `base`.
 struct Agent {
     base: Vec<String>,
     shots: PathBuf,
@@ -235,7 +238,7 @@ fn page_names(inspect: &Value) -> Vec<String> {
         .unwrap_or_default()
 }
 
-/// `bicraft view --control`: the page connects to the relay, takes the requests and answers them.
+/// `bicraft-cli view --control`: the page connects to the relay, takes the requests and answers them.
 #[test]
 #[ignore = "needs Firefox and the embedded browser app: BICRAFT_FIREFOX (module docs)"]
 fn bicraft_view_in_firefox() {
@@ -283,7 +286,7 @@ fn bicraft_view_in_firefox() {
     assert!(s.to_string().contains(&second), "{s}");
     agent.call("ui.wait", json!({}));
     agent.shot("view-2-page.png");
-    // a command: bicraft view runs no engine command, and the page says so
+    // a command: bicraft-cli view runs no engine command, and the page says so
     let why = agent.fails(
         "command",
         json!({"command": "page.add", "params": {"display_name": "X"}}),
@@ -299,7 +302,7 @@ fn bicraft_view_in_firefox() {
     agent.shot("view-4-model.png");
 }
 
-/// `bicraft serve --viewer-control`: the workspace's app page opens a file in a document tab,
+/// `bicraft-cli serve --viewer-control`: the workspace's app page opens a file in a document tab,
 /// runs a command on it, switches page and tab, opens the palette and a form; the agent lists its
 /// views and addresses the document view.
 #[test]

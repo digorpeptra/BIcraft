@@ -427,7 +427,11 @@ pub(crate) fn to_legacy(query: &Value, sv: &mut Object, at: &str, errors: &mut V
         };
         for k in rs.keys() {
             match k.as_str() {
-                "projections" => {}
+                // a field parameter's range: its fields are the role's projections (labels as
+                // `columnProperties.displayName`), which is what the legacy form keeps; the
+                // range itself has no legacy key we have seen in a Desktop file, so it is not
+                // written (docs/formats/parameters.md, "In a legacy layout")
+                "projections" | "fieldParameters" => {}
                 "showAll" => {
                     if rs.get("showAll") == Some(&Value::Bool(true)) {
                         show_all.push(json!(role));

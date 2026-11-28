@@ -109,7 +109,7 @@ into `BICRAFT_OPEN_BENCH_DIR` when it is set; the files under `BICRAFT_TESTDATA`
 when it is set, printed by number only.
 
 ```text
-cargo test -p bicraft-desktop --lib open_speed -- --nocapture --test-threads 1
+cargo test -p bicraft --lib open_speed -- --nocapture --test-threads 1
 ```
 
 ## Measured on 2026-11-25: opening and resizing

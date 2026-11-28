@@ -216,3 +216,124 @@ pub(crate) fn dax_apply_define(s: &mut Session, p: &Value) -> Result<Value, Stri
     }
     Ok(out)
 }
+
+/// `'Sales'[Total]`: the table always quoted, so any name parses.
+fn defined_name(table: &str, name: &str) -> String {
+    format!("'{}'{}", table.replace('\'', "''"), edit::dax_measure(name))
+}
+
+/// The measures `seeds` reference, transitively, after the binder's dependency graph, each after
+/// the measures it uses and before the seed that uses it (a depth-first walk, iterative so a long
+/// chain cannot exhaust the stack; a cycle is walked once). Positions are (table, measure).
+fn with_references(m: &bicraft_model::SemanticModel, seeds: &[(usize, usize)]) -> Vec<(usize, usize)> {
+    use bicraft_dax::deps::{self, ObjectRef};
+    let graph = deps::dependencies(m);
+    let position = |name: &str| edit::measure_position(m, name).ok();
+    let at = |&(ti, mi): &(usize, usize)| {
+        m.tables
+            .get(ti)
+            .and_then(|t| t.measures.get(mi))
+            .map(|x| ObjectRef::Measure {
+                table: m.tables.get(ti).map(|t| t.name.clone()).unwrap_or_default(),
+                name: x.name.clone(),
+            })
+    };
+    let mut seen = std::collections::HashSet::new();
+    let mut out = Vec::new();
+    for seed in seeds {
+        // (position, its dependencies pushed already)
+        let mut stack = vec![(*seed, false)];
+        while let Some((pos, expanded)) = stack.pop() {
+            if out.len() >= MAX_MEASURES {
+                return out;
+            }
+            if expanded {
+                out.push(pos);
+                continue;
+            }
+            if !seen.insert(pos) {
+                continue;
+            }
+            stack.push((pos, true));
+            let Some(node) = at(&pos) else { continue };
+            let used: Vec<(usize, usize)> = graph
+                .dependencies_of(&node)
+                .into_iter()
+                .filter_map(|d| match d {
+                    ObjectRef::Measure { name, .. } => position(name),
+                    _ => None,
+                })
+                .collect();
+            // pushed in reverse, so they come out in the graph's order
+            for u in used.into_iter().rev() {
+                if !seen.contains(&u) {
+                    stack.push((u, false));
+                }
+            }
+        }
+    }
+    out
+}
+
+/// `dax.define_query {table?, measure?, references?}`: the DAX query view's "Define all measures"
+/// and "Define with references" quick queries, written from the model (nothing is changed).
+pub(crate) fn dax_define_query(s: &Session, p: &Value) -> Result<Value, String> {
+    allow(p, &["table", "measure", "references"])?;
+    let m = crate::commands::model(s)?;
+    let table = crate::params::opt_str(p, "table")?;
+    let measure = crate::params::opt_str(p, "measure")?;
+    let references = crate::params::opt_bool(p, "references")?.unwrap_or(false);
+    let seeds: Vec<(usize, usize)> = match (table, measure) {
+        (Some(_), Some(_)) => return Err("give `table` or `measure`, not both".into()),
+        (None, None) => {
+            return Err("give `table` (every measure of it) or `measure` (that measure)".into());
+        }
+        (Some(t), None) => {
+            let ti = edit::table_index(m, t)?;
+            let n = m.tables.get(ti).map_or(0, |t| t.measures.len());
+            if n == 0 {
+                return Err(format!("table `{t}` has no measure"));
+            }
+            (0..n.min(MAX_MEASURES)).map(|mi| (ti, mi)).collect()
+        }
+        (None, Some(name)) => vec![edit::measure_position(m, name)?],
+    };
+    let defined = if references {
+        with_references(m, &seeds)
+    } else {
+        seeds.clone()
+    };
+    let get = |&(ti, mi): &(usize, usize)| {
+        let t = m.tables.get(ti)?;
+        Some((t.name.as_str(), t.measures.get(mi)?))
+    };
+    let mut query = String::from("DEFINE\n");
+    let mut names = Vec::new();
+    for pos in &defined {
+        let Some((table, x)) = get(pos) else { continue };
+        query.push_str(&format!(
+            "    MEASURE {} = {}\n",
+            defined_name(table, &x.name),
+            x.expression.trim()
+        ));
+        names.push(x.name.clone());
+    }
+    let shown: Vec<String> = seeds
+        .iter()
+        .filter_map(get)
+        .map(|(_, x)| {
+            format!(
+                "\"{}\", {}",
+                x.name.replace('"', "\"\""),
+                edit::dax_measure(&x.name)
+            )
+        })
+        .collect();
+    query.push_str(&format!("\nEVALUATE\n    ROW({})\n", shown.join(", ")));
+    let evaluated: Vec<&str> = seeds
+        .iter()
+        .filter_map(get)
+        .map(|(_, x)| x.name.as_str())
+        .collect();
+    Ok(json!({"query": query, "measures": names, "evaluated": evaluated}))
+}

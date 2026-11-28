@@ -1,6 +1,6 @@
 [package]
 name = "bicraft-auth"
-description = "L0: authentication of bicraft serve (OIDC / OAuth 2.1 bearer JWTs, trusted identity header behind an auth proxy, hashed static API tokens) and the workspace ACL"
+description = "L0: authentication of bicraft-cli serve (OIDC / OAuth 2.1 bearer JWTs, trusted identity header behind an auth proxy, hashed static API tokens) and the workspace ACL"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

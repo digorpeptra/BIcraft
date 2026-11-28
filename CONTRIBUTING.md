@@ -17,7 +17,7 @@ the rules that keep BIcraft safe to run on hostile files and clean to distribute
 
 ```bash
 cargo build                                   # the workspace
-cargo build --release -p bicraft-cli         # the bicraft binary
+cargo build --release -p bicraft-cli         # the bicraft-cli binary
 cargo test -p bicraft-dax                    # one crate
 cargo test -p bicraft-dax some_test_name     # one test
 ```

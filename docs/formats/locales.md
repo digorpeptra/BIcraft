@@ -172,6 +172,25 @@ de `Tsd. Mio. Mrd. Bio.`, es `mil M mil M B`, it `k Mln Mld Bln`, nl `K mln. mld
 `mil mi bi tri` (BIcraft's choices, not compared with Desktop); other languages take CLDR's short compact
 forms when CLDR abbreviates by thousands, else the English ones (ja, zh, ko).
 
+## Visuals: format strings in cells and tooltips
+
+The renderer (`crates/render/src/fmt.rs` `fmt_val`, used by table and matrix cells, card values,
+slicers and tooltips) writes a number under a format string with scaling commas or literal text
+with the whole format string, through the same path as the Gauge / KPI+ and Waterfall+ labels
+(`chart_pack::gauge::full_format`: `bicraft_locale::vb` after `scale_commas`, grouped with the
+culture's display separator; [waterfall-gauge.md](waterfall-gauge.md)). That covers a comma
+right after the last digit placeholder before the decimal point (`#,##0,"K"` of 1,234,567 is
+`1,235K`, `0,,"M"` of 7,500,000 is `8M`), commas right after the last decimal, read as scaling
+commas too (`#,0.0,"K"` is `1,234.6K`, `1 234,6K` in fr-FR), and quoted or escaped text other
+than a currency symbol and spaces (`#,0 "units"`, `0\h`). Other format strings keep the
+renderer's own reading (digits, grouping, `%`, a leading `+`, the currency with a no-break
+space), unchanged; scientific and General formats already went to `bicraft_locale::vb`. Values
+drawn with auto display units (data labels, axes, cards in auto mode) keep their display units.
+The reading of commas after the decimals follows BIcraft's visual runtime (`scaleCommas`), not
+DAX `FORMAT`, which leaves them out ([dax-functions.md](dax-functions.md)); Desktop's own
+drawing of these formats in cells and tooltips is not checked yet. The HTML viewer
+(`crates/view/src/page.html`) still keeps only the digits and the currency for them.
+
 ## UI phrases
 
 The text BIcraft generates for a visual in the session's UI language (auto titles, implicit-measure

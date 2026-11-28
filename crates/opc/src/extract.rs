@@ -1,4 +1,4 @@
-//! Safe extraction of an uploaded ZIP archive (a zipped PBIP project, `bicraft serve`).
+//! Safe extraction of an uploaded ZIP archive (a zipped PBIP project, `bicraft-cli serve`).
 //!
 //! The archive is hostile. [`for_each_entry`] walks its entries and hands each plain file's
 //! decompressed bytes to the caller as a stream, never as a whole buffer, after these checks:
@@ -15,7 +15,7 @@
 //!   [`ZipLimits::max_ratio`] times its compressed size (ZIP bombs stop early);
 //! - CRC-32 mismatches fail (the zip crate checks them at the end of each entry).
 //!
-//! Where the bytes go is the caller's business: `bicraft serve` resolves every name with the
+//! Where the bytes go is the caller's business: `bicraft-cli serve` resolves every name with the
 //! engine's workspace sandbox and writes plain files only (never links).
 
 use std::collections::HashSet;

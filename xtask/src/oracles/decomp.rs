@@ -10,9 +10,9 @@
 //!
 //! ```text
 //! cargo xtask oracle-gen decomp DIR           -> DIR/sales.csv, cmds1.json, cmds2.json, plan.json
-//! bicraft run --file DIR/cmds1.json          -> DIR/proj/Decomp.pbip
+//! bicraft-cli run --file DIR/cmds1.json          -> DIR/proj/Decomp.pbip
 //! cargo xtask oracle-gen decomp DIR patch     -> expansion states, options, filters
-//! bicraft run --file DIR/cmds2.json          -> DIR/decomp.pbix
+//! bicraft-cli run --file DIR/cmds2.json          -> DIR/decomp.pbix
 //! xtask/decomposition-tree-oracle/record.ps1 -Dir DIR     -> DIR/readings.json (Desktop: every tree's drawing)
 //! cargo xtask oracle-gen decomp DIR collect   -> testsupport/decomp_oracle/corpus.json
 //! ```
@@ -511,7 +511,7 @@ fn generate(dir: &str) -> Result<(), String> {
     write_json(&d.join("cmds2.json"), &cmds2(dir), 1)?;
     write_json(&d.join("plan.json"), &plan(), 1)?;
     println!(
-        "{} trees; next: bicraft run --file {}",
+        "{} trees; next: bicraft-cli run --file {}",
         trees().len(),
         join(dir, &["cmds1.json"])
     );

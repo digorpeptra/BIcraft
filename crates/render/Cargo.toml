@@ -20,6 +20,11 @@ gif = { version = "0.14", default-features = false, features = ["std"] }
 image-webp = "0.2"
 bicraft-locale.workspace = true
 
+# The render times of the browser build (wasm32, where `std::time::Instant` panics): the version
+# eframe already pulls in.
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+web-time = "1.1"
+
 [dev-dependencies]
 bicraft-env.workspace = true
 

@@ -1,4 +1,4 @@
-//! Authentication of `bicraft serve` and the workspace ACL (docs/auth.md).
+//! Authentication of `bicraft-cli serve` and the workspace ACL (docs/auth.md).
 //!
 //! Three modes, any combination:
 //!

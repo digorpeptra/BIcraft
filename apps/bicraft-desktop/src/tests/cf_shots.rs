@@ -127,14 +127,17 @@ fn conditional_dialog_screenshots() {
             d.min = Stop {
                 color: "#D64550".into(),
                 number: Some("0".into()),
+                percent: false,
             };
             d.mid = Some(Stop {
                 color: "#FFFFFF".into(),
                 number: Some("50".into()),
+                percent: false,
             });
             d.max = Stop {
                 color: "#1AAB40".into(),
                 number: Some("150".into()),
+                percent: false,
             };
             d.blank = cf::Blank::Zero;
             d.apply = "values_and_totals";

@@ -4,7 +4,7 @@
 on the local real sample. Each case is measured in two ways:
 
 - **in-process**: the crates are called directly, the way the engine calls them
-- **end to end**: through the release `bicraft` binary, process start included
+- **end to end**: through the release `bicraft-cli` binary, process start included
 
 The harness lives in `xtask/src/bench.rs`, the cases in `xtask/src/bench/inproc.rs`, and the
 generators in `xtask/src/bench/synth.rs` and `xtask/src/bench/vertipaq.rs`.
@@ -25,7 +25,7 @@ cargo xtask bench [--quick] [--real] [--real-file PATH] [--filter TEXT] [--json 
 | `--real` | Adds the local-only sample `$BICRAFT_TESTDATA/sample1/report.pbix`; `--real-file` points at another file. Only timings and counts are printed. Nothing from the file is written anywhere. |
 | `--filter TEXT` | Runs only the cases whose group or name contains `TEXT` (case-insensitive). |
 | `--json PATH` | Also writes the raw results (median, p95 and min seconds, items, bytes). |
-| `--no-build` | Uses the existing `target/release/bicraft`. Without it, the bench first runs `cargo build --release -p bicraft-cli`. |
+| `--no-build` | Uses the existing `target/release/bicraft-cli`. Without it, the bench first runs `cargo build --release -p bicraft-cli`. |
 | `--cli-only` | Runs only the end-to-end cases (CLI and MCP). |
 | `--keep` | Keeps the generated inputs (under the OS temp dir), for profiling a case by hand. |
 
@@ -77,7 +77,7 @@ The two columns are full runs (`cargo xtask bench --real`). The complete tables 
 
 | What | Windows | WSL |
 |---|---:|---:|
-| Process start (`bicraft --version`) | 28.6 ms | 2.3 ms |
+| Process start (`bicraft-cli --version`) | 28.6 ms | 2.3 ms |
 | `dax.validate`, one expression, no model | 7.0 µs | 2.9 µs |
 | `dax.validate`, one expression, 1,000-measure model | 23 µs | 11 µs |
 | `dax.validate`, 10,000 expressions, 1,000-measure model | 1.16 s | 0.62 s |
@@ -87,8 +87,8 @@ The two columns are full runs (`cargo xtask bench --real`). The complete tables 
 | PBIR read, 100 pages × 20 visuals (2,105 files) | 275 ms | 71 ms |
 | `report.validate` with model cross-checks, 100 pages | 250 ms | 162 ms |
 | `project.new` end to end (CLI, 100 tables) | 188 ms | 46 ms |
-| Edit loop ×100 (`measure.add` → `file.save` → `report.validate`), one `bicraft run` | 4.7 s | 2.2 s |
-| The same as 100 separate `bicraft run` processes | 10.2 s | 3.8 s |
+| Edit loop ×100 (`measure.add` → `file.save` → `report.validate`), one `bicraft-cli run` | 4.7 s | 2.2 s |
+| The same as 100 separate `bicraft-cli run` processes | 10.2 s | 3.8 s |
 | MCP: 100 `validate_dax` calls over one stdio session, process included | 25 ms | 5.6 ms |
 | XPress9 decompress (64 MB; after hot spot 5, was 102 / 180 MB/s; harness, best of 5) | 1,217 MB/s | 908 MB/s |
 | XPress9 compress, 1 / 16 / 64 MB (after the G6 fix; was 4.7–20 / 3.2–6.7 / 3.9–5.5 and 20 / 6.7 / 4.4 MB/s) | 70 / 295 / 200 MB/s | 56 / 178 / 235 MB/s |
@@ -116,7 +116,7 @@ Windows and WSL compared:
   appears to pay for scanning.
 - **Real sample on WSL.** The CLI cases on the real sample are slower on WSL than on Windows. The
   sample is read from `/mnt/c` through the 9p bridge.
-- **Batching amortizes process start.** One `bicraft run` batch (or one MCP session) is about
+- **Batching amortizes process start.** One `bicraft-cli run` batch (or one MCP session) is about
   2× faster than 100 separate processes on both systems. It is also the only way to amortize the
   25 ms process start on Windows.
 
@@ -183,7 +183,7 @@ itself. There is no sampling profiler on the Windows side.
 
 3. **PBIR schema validation re-parsed the vendored schemas on every call** (G11). Fixed on
    2026-10-14.
-   - In the edit-loop profile (300 commands in one `bicraft run`), the top frames were
+   - In the edit-loop profile (300 commands in one `bicraft-cli run`), the top frames were
      `serde_json` map building and SipHash under `pbir::schema` and `pbir::validate`, then the
      PBIR and TMDL writers.
    - `validate_documents` built a new `Store` and parsed the schemas again for each call. The
@@ -218,12 +218,12 @@ itself. There is no sampling profiler on the Windows side.
 
 4. **Windows process start and small-file I/O** ([gaps](gaps.md) G23). Worked on 2026-10-14.
 
-   - **Process start is the operating system's floor, not ours.** `bicraft --version` (18 MB
+   - **Process start is the operating system's floor, not ours.** `bicraft-cli --version` (18 MB
      release binary) starts as fast as a 160 KB Rust hello-world on the same machine: medians of
      19–30 ms for both over three runs of 200 starts, alternating, with or without the 64 MiB
-     worker thread (`whoami.exe`: 27 ms). `bicraft` has no static initializers; the schemas and
+     worker thread (`whoami.exe`: 27 ms). `bicraft-cli` has no static initializers; the schemas and
      catalogs are already built lazily on first use. On WSL both start in 1–3 ms. The only remedy
-     is not starting processes: one `bicraft run` batch or an MCP session (see above).
+     is not starting processes: one `bicraft-cli run` batch or an MCP session (see above).
    - **Small files: overlap the opens.** On Windows each file open and folder listing costs far
      more than the bytes (on-access scanning, NTFS), and a PBIR report keeps every visual in a
      folder of its own: the 100-page bench report is 2,105 files in 2,200 folders. Measured on
@@ -246,7 +246,7 @@ itself. There is no sampling profiler on the Windows side.
 
    | Case | Windows before | Windows after | WSL before | WSL after |
    |---|---:|---:|---:|---:|
-   | `bicraft --version` | 24–30 ms | 20–30 ms (= hello-world) | 7.4 ms* | 7.5 ms* |
+   | `bicraft-cli --version` | 24–30 ms | 20–30 ms (= hello-world) | 7.4 ms* | 7.5 ms* |
    | CLI `validate-report`, 100 pages | 608–775 ms | 377–534 ms | 378–400 ms | 317–319 ms |
    | `pbir::read_dir`, 100 pages | 619–624 ms | 152–161 ms | 74–89 ms | 50–53 ms |
    | `pbir::write_dir`, 100 pages, new folder | 2.74–2.86 s | 1.31–1.47 s | 87–91 ms | 39 ms |
@@ -393,15 +393,15 @@ before the fix are in the hot spots above.
 
 | Case | Windows median (p95) | WSL median (p95) | Throughput (Windows / WSL) | Notes |
 |---|---:|---:|---|---|
-| CLI bicraft --version (process start) | 28.6 ms (36.5 ms) | 2.3 ms (3.1 ms) | 35 process/s / 435 process/s |  |
+| CLI bicraft-cli --version (process start) | 28.6 ms (36.5 ms) | 2.3 ms (3.1 ms) | 35 process/s / 435 process/s |  |
 | CLI validate-dax, 1 expression, no model | 27.5 ms (43.1 ms) | 2.7 ms (3.4 ms) | 36 process/s / 374 process/s |  |
 | CLI validate-model, 1000 measures | 60.4 ms (79.8 ms) | 45.8 ms (59.2 ms) | 16.5 kmeasure/s / 21.8 kmeasure/s |  |
 | CLI validate-model, 10000 measures | 320.7 ms (356.5 ms) | 262.0 ms (418.2 ms) | 31.2 kmeasure/s / 38.2 kmeasure/s |  |
 | project.new from model.bim, 100 tables (in-process) | 253.0 ms (275.0 ms) | 27.5 ms (39.2 ms) | 395 table/s / 3.6 ktable/s |  |
 | CLI new-project --open model.bim, 100 tables | 187.9 ms (207.5 ms) | 46.4 ms (52.0 ms) | 532 table/s / 2.2 ktable/s |  |
 | edit loop ×100 (measure.add → file.save → report.validate), in-process | 5.75 s (10.51 s) | 2.01 s (2.09 s) | 17 iteration/s / 50 iteration/s |  |
-| edit loop ×100, one `bicraft run` batch (300 commands) | 4.71 s (4.95 s) | 2.21 s (2.25 s) | 21 iteration/s / 45 iteration/s |  |
-| edit loop ×100, 100 separate `bicraft run` processes | 10.15 s (15.43 s) | 3.83 s (3.91 s) | 10 iteration/s / 26 iteration/s |  |
+| edit loop ×100, one `bicraft-cli run` batch (300 commands) | 4.71 s (4.95 s) | 2.21 s (2.25 s) | 21 iteration/s / 45 iteration/s |  |
+| edit loop ×100, 100 separate `bicraft-cli run` processes | 10.15 s (15.43 s) | 3.83 s (3.91 s) | 10 iteration/s / 26 iteration/s |  |
 
 ### MCP (stdio, one session)
 
@@ -475,11 +475,11 @@ multi-chunk inputs.
 
 ## Concurrency on one workspace (2026-10-28)
 
-`cargo xtask concurrency-bench` measures `bicraft serve` with several calls on one workspace
+`cargo xtask concurrency-bench` measures `bicraft-cli serve` with several calls on one workspace
 (`docs/web-deployment.md`, "Concurrency on one workspace"). It reports BIcraft figures only.
 
 ```text
-cargo xtask concurrency-bench --bin target/release/bicraft --data <bench-data>/r10m/bench.pbix
+cargo xtask concurrency-bench --bin target/release/bicraft-cli --data <bench-data>/r10m/bench.pbix
                               [--base-bin <main build>] [--parallel 4] [--rounds 2]
                               [--queries Q01,Q05,...] [--long QID|DAX] [--json OUT]
 ```
@@ -594,17 +594,17 @@ the dates equal at every size).
 
 ## PBIX refresh (2026-11-06)
 
-`bicraft refresh X.pbix --data-root DIR [--table T]` (`model.refresh` on a PBIX, M11.18) on the
+`bicraft-cli refresh X.pbix --data-root DIR [--table T]` (`model.refresh` on a PBIX, M11.18) on the
 engine bench's star schema (`engine-bench gen --rows N`: `Ventes` N rows from a CSV file,
 `Produit` 1,000, `Magasin` 200, `Calendrier` 1,826; three relationships), its PBIX built by
-BIcraft (`bicraft run --file build.json`). Each run is a fresh process (wall time from process
+BIcraft (`bicraft-cli run --file build.json`). Each run is a fresh process (wall time from process
 start, peak working set sampled every 50 ms), release build, medians of 3, on the machine of the
 engine bench below, with other agents' builds running (measured, but not under the bench-quiet
 lock). Every run reopens its output with BIcraft's reader before replacing the file.
 
 | Rows | Run | Time | Peak memory | Against |
 |---:|---|---:|---:|---|
-| 1 M | build the PBIX from the CSV files (`bicraft run`) | 1.21 s | 316 MB | baseline |
+| 1 M | build the PBIX from the CSV files (`bicraft-cli run`) | 1.21 s | 316 MB | baseline |
 | 1 M | refresh every table | 1.09 s | 353 MB | ×1.1 faster than building it |
 | 1 M | refresh `Produit` only | 0.29 s | 196 MB | ×3.8 faster than every table |
 | 1 M | the same data refreshed as a PBIP project (BIcraft's own snapshot) | 4.42 s | 548 MB | the PBIX refresh is ×4.1 faster |
@@ -628,7 +628,7 @@ lock). Every run reopens its output with BIcraft's reader before replacing the f
 ## The DAX engine bench
 
 `cargo xtask engine-bench` runs 22 DAX queries, shaped like report visuals, through BIcraft's
-evaluator (`dax.evaluate` over `bicraft mcp`) on a star schema from 10 k to 100 M fact rows. It
+evaluator (`dax.evaluate` over `bicraft-cli mcp`) on a star schema from 10 k to 100 M fact rows. It
 records BIcraft's times and peak memory, and checks every answer cell by cell against reference
 results. The storage engine it exercises is described in [storage engine](storage-engine.md),
 and the memory budget and limit in [beyond RAM](beyond-ram.md).
@@ -676,11 +676,11 @@ and the memory budget and limit in [beyond RAM](beyond-ram.md).
 
 | Step | What it does |
 |---|---|
-| `seed` | `engine-bench gen` writes CSV files of 10,000 sales lines and `build.json`; `bicraft run` builds `seed.pbix` from them (M partitions `Csv.Document(File.Contents(...))`); then the CSV files of N lines replace them at the same paths. |
+| `seed` | `engine-bench gen` writes CSV files of 10,000 sales lines and `build.json`; `bicraft-cli run` builds `seed.pbix` from them (M partitions `Csv.Document(File.Contents(...))`); then the CSV files of N lines replace them at the same paths. |
 | `refresh` | Power BI Desktop opens `seed.pbix`, refreshes the model by TOM over the N-line files and saves the database with AMO `ImageSave`; `engine-bench swap-datamodel` puts that image in the package as its `DataModel` → `bench.pbix`. The VertiPaq data is then encoded, compressed and segmented by the real engine. |
-| `own` | Instead of `seed` + `refresh`, without Desktop: CSV files of N lines, and `bicraft run` builds `bench.pbix` with the data encoded by BIcraft itself. |
+| `own` | Instead of `seed` + `refresh`, without Desktop: CSV files of N lines, and `bicraft-cli run` builds `bench.pbix` with the data encoded by BIcraft itself. |
 | `desktop` | `desktop.ps1` runs each query once in Desktop on `bench.pbix` and records its answers, untimed: the reference results. |
-| `bicraft` | `engine-bench bicraft` runs the queries through `bicraft mcp` → `bicraft.json`. |
+| `bicraft` | `engine-bench bicraft` runs the queries through `bicraft-cli mcp` → `bicraft.json`. |
 | `compare` | Checks BIcraft's answers against the reference → `answers.md`, `answers.json`, with BIcraft's own times of the queries that agree. |
 
 A tier's files stay in `<data-dir>`; nothing is committed. The comparison requires the same
@@ -723,7 +723,7 @@ powershell -ExecutionPolicy Bypass -File xtask\engine-bench\run.ps1 -Rows 100000
 #   -Steps desktop,bicraft,compare reuses the tier's bench.pbix; -Only Q01,Q05 runs a subset
 #   -Variant bigdim|skew: the variants (r<N>-<variant>)
 #   -Steps own,bicraft: data encoded by BIcraft, no Desktop
-<target-dir>\release\xtask.exe engine-bench rounds --bin <target-dir>\release\bicraft.exe --pbix <data-dir>\r1m\bench.pbix --dir <data-dir>\r1m
+<target-dir>\release\xtask.exe engine-bench rounds --bin <target-dir>\release\bicraft-cli.exe --pbix <data-dir>\r1m\bench.pbix --dir <data-dir>\r1m
 <target-dir>\release\xtask.exe engine-bench check --data <data-dir>
 ```
 

@@ -554,8 +554,8 @@ tables (int64 `qty`, nine values) loaded from our own CSV files.
   files open with their row counts.
 - The writer now picks the type from the segment count (`SegmentMap::partition`,
   `crates/metadata/src/structural/data.rs`), per partition of a table of several partitions too.
-  Opened after the fix: PBIX files `bicraft run` built with 1,048,577, 2,097,153 and 10,000,000
-  rows, and one `bicraft refresh` grew from 1,000 to 1,200,000 rows, each with a card and a table
+  Opened after the fix: PBIX files `bicraft-cli run` built with 1,048,577, 2,097,153 and 10,000,000
+  rows, and one `bicraft-cli refresh` grew from 1,000 to 1,200,000 rows, each with a card and a table
   of `qty`, `COUNTROWS` and `SUM` measures equal to the expected counts and sums.
 
 ### Verification (local, counts only)

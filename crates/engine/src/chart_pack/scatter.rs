@@ -18,7 +18,7 @@ pub(crate) const DEF: Def = Def {
     guid: "bicraftScatterPlus4E8A2C6F0B3D5A7C9E1F",
     name: "bicraftScatterPlus",
     display_name: "BIcraft Scatter+",
-    version: "1.0.3.0",
+    version: "1.0.4.0",
     description: "A scatter chart that draws every point up to 10,000, switches to a density view when dense, with marginal distributions, a trend line, quadrants and point labels (BIcraft, docs/formats/chart-pack.md)",
     roles: &[
         Role {

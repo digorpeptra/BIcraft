@@ -1,4 +1,4 @@
-//! The native client of a BIcraft server (`bicraft serve`, `docs/web-deployment.md`): the
+//! The native client of a BIcraft server (`bicraft-cli serve`, `docs/web-deployment.md`): the
 //! workspace's viewer endpoints compute the snapshots and run the interactions; the app only
 //! draws them. The pure half (URLs, the reading of answers, [`Failure`]) is shared with the
 //! browser shell in [`bicraft_ui::remote`].

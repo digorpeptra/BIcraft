@@ -1,4 +1,4 @@
-//! `bicraft test [PATH] [--tests FILE] [--format text|json|junit|sarif] [--output FILE]
+//! `bicraft-cli test [PATH] [--tests FILE] [--format text|json|junit|sarif] [--output FILE]
 //! [--fail-on error|warning]`: the engine's `project.test` (CI quality gates, docs/ci-tests.md).
 //!
 //! Exit codes (stable): 0 every gate passed; 1 a failed or errored test reaches `--fail-on`;
@@ -9,8 +9,8 @@ use serde_json::{Value, json};
 
 use super::{Failure, INVALID, OK, USAGE_ERROR, usage, value};
 
-pub(crate) const HELP: &str = "usage: bicraft test [PATH] [--tests FILE] [--format text|json|junit|sarif]
-                    [--output FILE] [--fail-on error|warning]
+pub(crate) const HELP: &str = "usage: bicraft-cli test [PATH] [--tests FILE] [--format text|json|junit|sarif]
+                        [--output FILE] [--fail-on error|warning]
   PATH      a .pbip, project folder, .pbix, .pbit or model.bim (default: the current folder)
   --tests   the test file (default: bicraft.tests.yaml, .yml or .json next to the project)
   --format  text (default), json, junit (JUnit XML) or sarif (SARIF 2.1.0)

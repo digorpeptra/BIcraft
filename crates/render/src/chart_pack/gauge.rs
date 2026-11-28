@@ -46,7 +46,7 @@ fn num_of(v: Option<&Value>) -> Option<f64> {
 /// Format string `f` with the commas right after a section's last decimal placeholder moved
 /// before its decimal point (`$#,0.00,,"M"` → `$#,0,,.00"M"`): read as scaling commas, ÷1000
 /// each, as before the point. Quoted and escaped text and scientific sections stay as they are.
-/// The twin of `gauge.ts` `scaleCommas`.
+/// The twin of `scaleCommas` in `crates/engine/src/visual_runtime/format.ts`.
 pub fn scale_commas(f: &str) -> String {
     // each character, and whether it is outside quotes and escapes
     let mut sec: Vec<(char, bool)> = Vec::new();

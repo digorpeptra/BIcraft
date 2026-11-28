@@ -7,7 +7,7 @@
 //!
 //! The data root is never inferred: it is `None` (no file access) until a command is given
 //! `data_root` (`file.open`, `file.save`, `file.save_as`, `table.import`, `table.set_data`, or
-//! `bicraft view --data-root`).
+//! `bicraft-cli view --data-root`).
 
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};

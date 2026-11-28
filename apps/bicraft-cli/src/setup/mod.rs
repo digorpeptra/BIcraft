@@ -1,4 +1,4 @@
-//! `bicraft setup`: register the `bicraft mcp` server with agent clients (Claude Code, Claude
+//! `bicraft-cli setup`: register the `bicraft-cli mcp` server with agent clients (Claude Code, Claude
 //! Desktop, VS Code, Cursor, Codex).
 //!
 //! Setup detects the clients, plans the change for each selected one, shows the plan, and writes
@@ -30,14 +30,14 @@ pub const SERVER_ARGS: [&str; 1] = ["mcp"];
 /// The environment variable that sandboxes every path, like `--config-root`.
 const ROOT_ENV: &str = "BICRAFT_SETUP_HOME";
 
-pub const USAGE: &str = "usage: bicraft setup [--client ID]... [--all-detected] [--scope user|project]
+pub const USAGE: &str = "usage: bicraft-cli setup [--client ID]... [--all-detected] [--scope user|project]
                       [--project-dir DIR] [--command PATH] [--config-root DIR]
                       [--dry-run] [--yes] [--json] [--uninstall]
-       bicraft setup uninstall [same options]
-       bicraft setup doctor [--client ID]... [--scope user|project] [--project-dir DIR]
+       bicraft-cli setup uninstall [same options]
+       bicraft-cli setup doctor [--client ID]... [--scope user|project] [--project-dir DIR]
                              [--command PATH] [--config-root DIR] [--json]
 
-Registers `bicraft mcp` (this binary, by absolute path) with agent clients.
+Registers `bicraft-cli mcp` (this binary, by absolute path) with agent clients.
 Clients: claude_code, claude_desktop, vscode, cursor, codex.
 
   --client ID      configure this client (repeatable); skips the selection prompt
@@ -209,7 +209,7 @@ fn parse(args: &[String]) -> Result<Option<Opts>, Failure> {
     Ok(Some(o))
 }
 
-/// Entry point of `bicraft setup ARGS`.
+/// Entry point of `bicraft-cli setup ARGS`.
 pub fn main(args: &[String]) -> Result<u8, Failure> {
     let Some(mut opts) = parse(args)? else {
         outln!("{USAGE}");
@@ -658,7 +658,7 @@ fn confirm() -> Result<bool, Failure> {
 }
 
 fn header(ctx: &Ctx, want: &Want, what: &str) {
-    outln!("bicraft setup{what}");
+    outln!("bicraft-cli setup{what}");
     outln!(
         "  server   {SERVER_NAME}: {} {}",
         want.command,
@@ -793,13 +793,13 @@ fn run_doctor(opts: &Opts, ctx: &Ctx, want: &Want) -> Result<u8, Failure> {
         if in_scope {
             match reg {
                 "stale" => problems.push(format!(
-                    "{}: registered with another command ({}); run `bicraft setup --client {}`",
+                    "{}: registered with another command ({}); run `bicraft-cli setup --client {}`",
                     r.client.id(),
                     r.registered_command().unwrap_or("none"),
                     r.client.id()
                 )),
                 "absent" if explicit => problems.push(format!(
-                    "{}: not registered; run `bicraft setup --client {}`",
+                    "{}: not registered; run `bicraft-cli setup --client {}`",
                     r.client.id(),
                     r.client.id()
                 )),

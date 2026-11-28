@@ -393,7 +393,10 @@ pub(super) fn levels(
                     .collect();
                 let pv = with_fields(v, &keep);
                 let q = Query { filters, extra: &[] };
-                let grid = grid(ctx, &pv, &q).map_err(reason)?;
+                let mut grid = grid(ctx, &pv, &q).map_err(reason)?;
+                // "Show items with no data": a level lists its members without values too (why
+                // they could not be listed is the visual's own note, from its leaf rows)
+                let _ = super::show::add_items_with_no_data(ctx, &pv, &mut grid, filters);
                 let plan = Plan {
                     items: Vec::new(),
                     values: Vec::new(),

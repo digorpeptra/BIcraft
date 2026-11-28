@@ -1,4 +1,4 @@
-//! End-to-end tests of the `bicraft` binary.
+//! End-to-end tests of the `bicraft-cli` binary.
 
 use std::io::{BufRead, BufReader, Write};
 use std::process::{Command, Stdio};
@@ -10,7 +10,7 @@ mod tempdir;
 use tempdir::TempDir;
 
 fn bicraft() -> Command {
-    Command::new(env!("CARGO_BIN_EXE_bicraft"))
+    Command::new(env!("CARGO_BIN_EXE_bicraft-cli"))
 }
 
 fn exit_code(args: &[&str]) -> (i32, Value) {
@@ -73,7 +73,7 @@ fn mcp_handshake_and_validate_dax_over_stdio() {
     assert!(status.success());
 }
 
-/// `bicraft visual new / build / pack`: a project scaffolded, compiled with swc and packaged.
+/// `bicraft-cli visual new / build / pack`: a project scaffolded, compiled with swc and packaged.
 #[test]
 fn visual_new_build_and_pack() {
     let dir = temp_dir("visual");
@@ -113,7 +113,7 @@ fn visual_new_build_and_pack() {
     assert_eq!(exit_code(&["visual", "build", p, "--role", "x"]).0, 2);
 }
 
-/// `bicraft visual export`: one of BIcraft's visuals to a named file, all of them into a folder.
+/// `bicraft-cli visual export`: one of BIcraft's visuals to a named file, all of them into a folder.
 #[test]
 fn visual_export_writes_bicraft_visuals() {
     let dir = temp_dir("visual-export");
@@ -256,8 +256,8 @@ fn commands_describe_version() {
     assert!(out.status.success());
     let line = String::from_utf8(out.stdout).unwrap();
     let line = line.trim_end();
-    let base = format!("bicraft {}", env!("CARGO_PKG_VERSION"));
-    // `bicraft X.Y.Z`, or `bicraft X.Y.Z (commit <12 hex>)` when built from a git checkout.
+    let base = format!("bicraft-cli {}", env!("CARGO_PKG_VERSION"));
+    // `bicraft-cli X.Y.Z`, or `bicraft-cli X.Y.Z (commit <12 hex>)` when built from a git checkout.
     match line.strip_prefix(&base) {
         Some("") => {}
         Some(rest) => {
@@ -728,7 +728,7 @@ fn usage_and_unused_subcommands() {
     assert_eq!(exit_code(&["usage", bim, "[Nope]"]).0, 2);
 }
 
-/// `bicraft build-info`: what release checks read (docs/webui.md): the version and whether the
+/// `bicraft-cli build-info`: what release checks read (docs/webui.md): the version and whether the
 /// browser app is embedded, matching the build's `BICRAFT_WEBUI_DIR`.
 #[test]
 fn build_info_reports_the_browser_app() {

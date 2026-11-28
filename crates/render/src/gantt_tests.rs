@@ -245,9 +245,9 @@ fn a_task_click_selects_it_with_its_category_and_shows_its_fields() {
     assert_eq!(a["point"], json!([{"c": 0, "v": "Build"}, {"c": 1, "v": "Code"}]));
     let labels: Vec<&str> = h.tip.iter().map(|(k, _)| k.as_str()).collect();
     assert_eq!(labels, vec!["Phase", "Task", "Start", "End", "Done", "Owner"]);
-    // a category row selects its member
+    // a category row selects its member (off its expand/collapse icon)
     let cat = &l.lines[3];
-    let a = hits::hit_at(&img.hits, 20.0, 5.0 + cat.y + 4.0)
+    let a = hits::hit_at(&img.hits, 60.0, 5.0 + cat.y + 4.0)
         .and_then(|h| h.action_for(false))
         .unwrap();
     assert_eq!(a["point"], json!([{"c": 0, "v": "Launch"}]));
@@ -306,4 +306,209 @@ fn rows_below_the_body_are_counted_and_hostile_snapshots_do_not_crash() {
         v["data"]["rows"] = rows;
         let _ = run(&page(v));
     }
+}
+
+/// The layout under the reader's `view`.
+fn lay_in(v: &Value, view: gantt::View) -> gantt::Layout {
+    let fonts = FontBook::bundled_only();
+    let s = page(v.clone());
+    let ctx = data::Ctx::new(&s, &fonts, None);
+    let ds = data::dataset(v, "gantt", &ctx);
+    gantt::layout_in(v, &ds, 900.0, 300.0, view)
+}
+
+/// A Gantt of `n` tasks without categories, a week each, one after the other.
+fn many_tasks(n: usize) -> Value {
+    let mut v = visual(json!({}), json!({}));
+    v["data"]["columns"][0]["role"] = json!("Tooltips");
+    let rows: Vec<Value> = (0..n)
+        .map(|i| {
+            let d = 1 + (i % 20);
+            json!([
+                "P",
+                format!("T{i}"),
+                format!("2025-03-{d:02}"),
+                format!("2025-03-{:02}", d + 7),
+                0.5,
+                "x"
+            ])
+        })
+        .collect();
+    v["data"]["rows"] = Value::Array(rows);
+    v
+}
+
+fn texts_with(s: &Value, views: &[(&str, gantt::View)]) -> Vec<String> {
+    let fonts = FontBook::bundled_only();
+    let o = RenderOptions {
+        system_fonts: false,
+        text_dump: true,
+        hits: true,
+        raw: true,
+        gantt: views.iter().map(|(k, v)| (k.to_string(), *v)).collect(),
+        ..RenderOptions::default()
+    };
+    let img = render_page(s, 0, &HashMap::<String, Vec<u8>>::new(), &fonts, &o).unwrap();
+    img.texts.iter().map(|r| r.text.clone()).collect()
+}
+
+#[test]
+fn scrolling_reveals_the_tasks_below_the_visual() {
+    let v = many_tasks(40);
+    let top = lay_in(&v, gantt::View::default());
+    let last = json!("T39");
+    assert!(top.vbar && top.cut > 0, "more tasks than fit: a scroll bar");
+    assert!(top.lines.iter().all(|l| l.path.last() != Some(&last)));
+    // scrolled to the end (and past it: clamped), the last task shows and the first does not
+    let end = lay_in(
+        &v,
+        gantt::View {
+            first: 1000,
+            ..gantt::View::default()
+        },
+    );
+    assert!(end.first > 0 && end.cut == 0);
+    assert_eq!(end.lines.last().and_then(|l| l.path.last()), Some(&last));
+    assert!(end.lines.iter().all(|l| l.path.last() != Some(&json!("T0"))));
+    assert_eq!(end.lines.len(), top.lines.len(), "the list stays full");
+    // the lines start under the header whatever the scroll
+    assert_eq!(end.lines.first().map(|l| l.y), Some(end.header_h));
+    // drawn: the app's view state reaches the page
+    let s = page(v);
+    assert!(!texts_with(&s, &[]).contains(&"T39".to_string()));
+    let scrolled = texts_with(
+        &s,
+        &[(
+            "g",
+            gantt::View {
+                first: 1000,
+                ..gantt::View::default()
+            },
+        )],
+    );
+    assert!(scrolled.contains(&"T39".to_string()), "{scrolled:?}");
+    // a list that fits does not scroll
+    let few = lay_in(
+        &many_tasks(3),
+        gantt::View {
+            first: 5,
+            ..gantt::View::default()
+        },
+    );
+    assert!(!few.vbar && few.first == 0 && few.lines.len() == 3);
+}
+
+#[test]
+fn zooming_narrows_the_time_line_and_moves_along_it() {
+    let v = visual(json!({}), json!({}));
+    let whole = lay_in(&v, gantt::View::default());
+    let (a, b) = whole.domain.unwrap();
+    let z = lay_in(
+        &v,
+        gantt::View {
+            zoom: 4.0,
+            ..gantt::View::default()
+        },
+    );
+    let (lo, hi) = z.domain.unwrap();
+    assert!(z.hbar && !whole.hbar);
+    assert_eq!(z.full, whole.domain);
+    assert!((hi - lo) < (b - a) / 3.0, "a quarter of the time line");
+    assert!((lo - a).abs() < 1e-6, "at its start");
+    // zoomed in, the axis auto-scales to a finer unit
+    assert_eq!(whole.units, vec![gantt::Unit::Month]);
+    assert_eq!(z.units, vec![gantt::Unit::Day]);
+    // at the end of the time line
+    let end = lay_in(
+        &v,
+        gantt::View {
+            zoom: 4.0,
+            at: 1.0,
+            ..gantt::View::default()
+        },
+    );
+    let (_, ehi) = end.domain.unwrap();
+    assert!((ehi - b).abs() < 1e-6 && end.domain.unwrap().0 > lo);
+    // a bar outside the window is not drawn into the task list
+    let design = &end.lines[1];
+    assert!(
+        end.bar(design)
+            .is_none_or(|(x, w)| x + w <= end.chart_x || x >= end.chart_x)
+    );
+    // hostile zooms: the whole time line, or at most MAX_ZOOM (a day at least)
+    for zoom in [f32::NAN, -3.0, 0.0, 1.0] {
+        assert_eq!(
+            lay_in(
+                &v,
+                gantt::View {
+                    zoom,
+                    ..gantt::View::default()
+                }
+            )
+            .domain,
+            whole.domain
+        );
+    }
+    let deep = lay_in(
+        &v,
+        gantt::View {
+            zoom: f32::INFINITY,
+            at: f32::NAN,
+            ..gantt::View::default()
+        },
+    );
+    assert_eq!(deep.domain, whole.domain);
+    let deep = lay_in(
+        &v,
+        gantt::View {
+            zoom: 1e9,
+            at: 0.5,
+            ..gantt::View::default()
+        },
+    );
+    let (dlo, dhi) = deep.domain.unwrap();
+    assert!(dhi - dlo >= 1.0 - 1e-9);
+}
+
+#[test]
+fn the_expand_collapse_icon_sends_the_readers_toggle() {
+    let v = visual(json!({}), json!({}));
+    let l = lay(&v);
+    let img = run(&page(v));
+    let build = &l.lines[0];
+    let a = hits::hit_at(&img.hits, 5.0 + 4.0 + 5.0, 5.0 + build.y + l.row_h / 2.0)
+        .and_then(|h| h.action_for(false))
+        .unwrap();
+    assert_eq!(
+        a,
+        json!({"action": "gantt_toggle", "page": "p1", "visual": "g", "path": ["Build"], "collapsed": true})
+    );
+    // a collapsed one opens
+    let shut = visual(
+        json!({}),
+        json!({"gantt_rows": [{"path": [{"c": 0, "v": "Build"}], "collapsed": true}]}),
+    );
+    let img = run(&page(shut));
+    let a = hits::hit_at(&img.hits, 5.0 + 9.0, 5.0 + build.y + l.row_h / 2.0)
+        .and_then(|h| h.action_for(false))
+        .unwrap();
+    assert_eq!(a["collapsed"], json!(false));
+    // elsewhere on the row: the category's selection, as before
+    let a = hits::hit_at(&img.hits, 5.0 + 80.0, 5.0 + build.y + l.row_h / 2.0)
+        .and_then(|h| h.action_for(false))
+        .unwrap();
+    assert_eq!(a["action"], "select");
+    // the view region the app lays its controls on
+    let view = img
+        .hits
+        .iter()
+        .find_map(|h| match &h.action {
+            hits::HitAction::Menu(m) if m["kind"] == "gantt_view" => Some(m.clone()),
+            _ => None,
+        })
+        .unwrap();
+    assert_eq!(
+        (view["first"].clone(), view["total"].clone()),
+        (json!(0), json!(4))
+    );
 }

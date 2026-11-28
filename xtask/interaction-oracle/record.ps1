@@ -14,7 +14,7 @@ $raw = Join-Path $Dir $Raw
 New-Item -ItemType Directory -Force $raw | Out-Null
 $pbix = Join-Path $Dir 'interactions.pbix'
 $plan = Join-Path $Dir 'plan.json'
-foreach ($f in $pbix, $plan) { if (-not (Test-Path $f)) { "missing $f (run oracle-gen interactions, bicraft run, patch first)"; exit 2 } }
+foreach ($f in $pbix, $plan) { if (-not (Test-Path $f)) { "missing $f (run oracle-gen interactions, bicraft-cli run, patch first)"; exit 2 } }
 
 $locks = if ($env:BICRAFT_LOCKS_DIR) { $env:BICRAFT_LOCKS_DIR } else { Join-Path $env:LOCALAPPDATA 'bicraft\locks' }
 $priorityLock = if ($env:BICRAFT_PRIORITY_LOCK) { $env:BICRAFT_PRIORITY_LOCK } else { 'priority' }

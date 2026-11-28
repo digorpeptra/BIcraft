@@ -2,8 +2,8 @@
 //! ROADMAP M11.27) with Craft Anything, a local development aid (never a dependency).
 //!
 //! The command builds `bicraft` (debug), copies a synthetic fixture of ours (the layout-oracle
-//! `visuals` project) outside the repository and adds a bookmark to it with `bicraft run`, starts
-//! `bicraft view` on it on a free loopback port, and runs walkthroughs of the HTML viewer: Craft
+//! `visuals` project) outside the repository and adds a bookmark to it with `bicraft-cli run`, starts
+//! `bicraft-cli view` on it on a free loopback port, and runs walkthroughs of the HTML viewer: Craft
 //! Anything's MCP server (`craft-anything-cli mcp`, its restricted mode) opens the page in a private
 //! headless browser (`web_site_open`) and takes a screenshot after each step
 //! (`web_page_screenshot_take`); the steps are the reader gestures the page's clicks send
@@ -36,7 +36,7 @@ usage: cargo xtask webcheck record|check [--dir DIR] [--bicraft PATH] [--only WA
   check           run them again and compare each screenshot with its baseline
   --dir DIR       where the fixture copy, baselines and runs go (default $BICRAFT_WEBCHECK_DIR,
                   else the local data folder's bicraft/webcheck); never inside the repository
-  --bicraft PATH  use this bicraft binary (default: cargo build -p bicraft-cli, debug)
+  --bicraft PATH  use this bicraft-cli binary (default: cargo build -p bicraft-cli, debug)
   --only WALK     run one walkthrough (open, pages, slicer, point, drill, bookmark, states)
   --tolerance N   per-channel difference a pixel must exceed to count (0..=255, default 16)
   --max-diff F    share of changed pixels a step may have and still pass (0..=1, default 0.0005)
@@ -173,7 +173,7 @@ pub fn default_dir(
 /// The walkthroughs, by id.
 pub const WALKS: &[&str] = &["open", "pages", "slicer", "point", "drill", "bookmark", "states"];
 
-/// The fixture's pages and visuals the walkthroughs use (`bicraft run --cmd report.summary`).
+/// The fixture's pages and visuals the walkthroughs use (`bicraft-cli run --cmd report.summary`).
 const CHARTS: &str = "ReportSection68b399afc6ae";
 const TABLES: &str = "ReportSection0d3d12eff6b5";
 const SHAPES: &str = "ReportSection604b5fcb060f";
@@ -456,17 +456,19 @@ fn build_bicraft() -> Result<PathBuf, String> {
     let target = std::env::var_os("CARGO_TARGET_DIR")
         .map(PathBuf::from)
         .unwrap_or_else(|| root().join("target"));
-    let exe = target
-        .join("debug")
-        .join(if cfg!(windows) { "bicraft.exe" } else { "bicraft" });
+    let exe = target.join("debug").join(if cfg!(windows) {
+        "bicraft-cli.exe"
+    } else {
+        "bicraft-cli"
+    });
     if exe.is_file() {
         Ok(exe)
     } else {
-        Err(format!("webcheck: no bicraft binary at {}", exe.display()))
+        Err(format!("webcheck: no bicraft-cli binary at {}", exe.display()))
     }
 }
 
-/// The `bicraft run` commands that complete the fixture: a second level on the bar chart's axis
+/// The `bicraft-cli run` commands that complete the fixture: a second level on the bar chart's axis
 /// (Sales[Category] then Sales[Product]: drillable) and a bookmark of the Charts page.
 pub fn fixture_commands() -> Vec<String> {
     vec![
@@ -503,7 +505,7 @@ fn prepare_fixture(bicraft: &Path, dir: &Path) -> Result<PathBuf, String> {
         .map_err(|e| format!("webcheck: cannot run {}: {e}", bicraft.display()))?;
     if !out.status.success() {
         return Err(format!(
-            "webcheck: bicraft run (completing the fixture) failed: {}",
+            "webcheck: bicraft-cli run (completing the fixture) failed: {}",
             clip(&String::from_utf8_lossy(&out.stdout), 600)
         ));
     }
@@ -526,9 +528,9 @@ fn copy_dir(from: &Path, to: &Path) -> Result<(), String> {
 }
 
 // ------------------------------------------------------------------------------------------------
-// bicraft view
+// bicraft-cli view
 
-/// `bicraft view` on a free loopback port (port 0: the system picks one, read from its
+/// `bicraft-cli view` on a free loopback port (port 0: the system picks one, read from its
 /// "live viewer at" line), with the page's interaction token.
 struct Viewer {
     child: Child,
@@ -550,7 +552,7 @@ impl Viewer {
             .map_err(|e| format!("webcheck: cannot start {}: {e}", bicraft.display()))?;
         let Some(err) = child.stderr.take() else {
             let _ = child.kill();
-            return Err("webcheck: no stderr from bicraft view".into());
+            return Err("webcheck: no stderr from bicraft-cli view".into());
         };
         let (tx, rx) = channel();
         // reads every line (so the pipe never fills) and hands the URL over
@@ -565,7 +567,7 @@ impl Viewer {
             Ok(url) => url,
             Err(_) => {
                 let _ = child.kill();
-                return Err("webcheck: bicraft view printed no URL within 60 s".into());
+                return Err("webcheck: bicraft-cli view printed no URL within 60 s".into());
             }
         };
         let token = http(&url, "GET", "/", &[], "")
@@ -576,7 +578,7 @@ impl Viewer {
             .map_err(|e| format!("webcheck: the viewer's page at {url}: {e}"));
         match token {
             Ok(token) => {
-                eprintln!("webcheck: bicraft view at {url}");
+                eprintln!("webcheck: bicraft-cli view at {url}");
                 Ok(Viewer { child, url, token })
             }
             Err(e) => {
@@ -616,7 +618,7 @@ impl Viewer {
     }
 }
 
-/// The URL of `bicraft view`'s "bicraft: live viewer at URL" line (loopback only).
+/// The URL of `bicraft-cli view`'s "bicraft: live viewer at URL" line (loopback only).
 pub fn viewer_url(line: &str) -> Option<String> {
     let u = line.trim().strip_prefix("bicraft: live viewer at ")?.trim();
     let loopback = u.starts_with("http://127.0.0.1:") || u.starts_with("http://localhost:");
@@ -1092,7 +1094,7 @@ mod tests {
             }
             assert!(w.states || w.steps.first().is_some_and(|s| s.id == "open"));
         }
-        // `bicraft run --cmd ID={JSON}`: the drill and bookmark walks need these
+        // `bicraft-cli run --cmd ID={JSON}`: the drill and bookmark walks need these
         let cmds = fixture_commands();
         for c in &cmds {
             let (id, params) = c.split_once('=').unwrap();

@@ -9,7 +9,7 @@ pub(crate) const DEF: Def = Def {
     guid: "bicraftOrgChart3C8E1A6F2D4B9E7A5C1F0D2B",
     name: "bicraftOrgChart",
     display_name: "BIcraft Org Chart",
-    version: "1.3.5.0",
+    version: "1.3.6.0",
     description: "An organization or hierarchy chart from id and parent id columns, drawn as a tidy tree with collapsible nodes (BIcraft, docs/formats/chart-pack.md)",
     roles: &[
         Role {

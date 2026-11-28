@@ -40,7 +40,7 @@ pub const TABLE: &[(&str, Class)] = &[
     ("bicraft-tsbuild", Class::Layer(0)),
     // std HTTP/1.1 plumbing shared by the viewer and the MCP HTTP endpoint (both L6)
     ("bicraft-http", Class::Layer(0)),
-    // authentication of `bicraft serve` (OIDC, trusted header, API tokens) and the workspace ACL
+    // authentication of `bicraft-cli serve` (OIDC, trusted header, API tokens) and the workspace ACL
     ("bicraft-auth", Class::Layer(0)),
     ("bicraft-model", Class::Layer(1)),
     ("bicraft-report", Class::Layer(1)),

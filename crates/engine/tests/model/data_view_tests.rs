@@ -488,10 +488,11 @@ fn see_records_applies_a_condition_over_several_tables() {
     );
 }
 
-/// A measure filter on a visual without grouping columns (a card) has no points to keep: it is
-/// named, not applied.
+/// A measure filter on a visual without grouping columns (a card) keeps the card's records
+/// when the condition holds in the card's filter context and drops them all when it fails, as
+/// the card then shows blank (docs/gaps.md G49).
 #[test]
-fn a_measure_filter_on_a_card_is_named_not_applied() {
+fn a_measure_filter_on_a_card_keeps_or_drops_its_records() {
     let (mut s, page, _) = star();
     let card = run(
         &mut s,
@@ -502,19 +503,183 @@ fn a_measure_filter_on_a_card_is_named_not_applied() {
         .as_str()
         .unwrap()
         .to_string();
+    let all = json!({"page": page, "visual": card});
+    // the total is 150
     run(
         &mut s,
         "visual.filter",
         json!({"page": page, "visual": card, "field": "[Total]", "op": ">", "value": 1000}),
     );
-    let v = run(&mut s, "visual.records", json!({"page": page, "visual": card}));
-    assert_eq!(amounts(&v).len(), 5, "{v}");
-    assert!(
-        v["not_applied"][0]
-            .as_str()
-            .is_some_and(|t| t.contains("without grouping columns")),
-        "{v}"
+    let v = run(&mut s, "visual.records", all.clone());
+    assert!(amounts(&v).is_empty(), "{v}");
+    assert_eq!(v["not_applied"], json!([]), "{v}");
+    run(
+        &mut s,
+        "visual.filter",
+        json!({"page": page, "visual": card, "field": "[Total]", "op": ">", "value": 100}),
     );
+    let v = run(&mut s, "visual.records", all.clone());
+    assert_eq!(amounts(&v).len(), 5, "{v}");
+    assert_eq!(v["not_applied"], json!([]), "{v}");
+    // the measure is computed under the other filters: Toys' total is 80, under 100
+    run(
+        &mut s,
+        "page.filter",
+        json!({"page": page, "field": "Product[Category]", "in": ["Toys"]}),
+    );
+    let v = run(&mut s, "visual.records", all.clone());
+    assert!(amounts(&v).is_empty(), "{v}");
+    run(
+        &mut s,
+        "visual.filter",
+        json!({"page": page, "visual": card, "field": "[Total]", "op": ">", "value": 50}),
+    );
+    let v = run(&mut s, "visual.records", all);
+    assert_eq!(amounts(&v), [10.0, 30.0, 40.0], "{v}");
+}
+
+/// A measure filter on a table whose grouping columns the records' table cannot reach through
+/// `RELATED` (here a table with no relationship) keeps the points it keeps, the points then the
+/// combinations of each table's values, as the visual crosses them (docs/gaps.md G49).
+#[test]
+fn a_measure_filter_applies_to_columns_related_cannot_reach() {
+    let (mut s, page, _) = star();
+    let region = r#"#table(type table [Name = text], {{"North"}, {"South"}})"#;
+    for (id, p) in [
+        (
+            "table.add",
+            json!({"name": "Region", "partition": {"source_type": "m", "expression": region}}),
+        ),
+        (
+            "column.add",
+            json!({"table": "Region", "name": "Name", "data_type": "string"}),
+        ),
+    ] {
+        run(&mut s, id, p);
+    }
+    let table = run(
+        &mut s,
+        "visual.add",
+        json!({"page": page, "visual_type": "tableEx", "x": 0, "y": 320, "width": 400, "height": 200,
+               "fields": [{"role": "Values", "field": "Product[Category]"},
+                          {"role": "Values", "field": "Region[Name]"},
+                          {"role": "Values", "field": "[Total]"}]}),
+    )["visual"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    // Toys 80, Games 70, the same in every region
+    run(
+        &mut s,
+        "visual.filter",
+        json!({"page": page, "visual": table, "field": "[Total]", "op": ">", "value": 75}),
+    );
+    let v = run(&mut s, "visual.records", json!({"page": page, "visual": table}));
+    assert_eq!(amounts(&v), [10.0, 30.0, 40.0], "{v}");
+    assert_eq!(v["not_applied"], json!([]), "{v}");
+    // a point of a kept row, and of a dropped one
+    let v = run(
+        &mut s,
+        "visual.records",
+        json!({"page": page, "visual": table, "point": [{"c": 0, "v": "Toys"}, {"c": 1, "v": "North"}]}),
+    );
+    assert_eq!(amounts(&v), [10.0, 30.0, 40.0], "{v}");
+    let v = run(
+        &mut s,
+        "visual.records",
+        json!({"page": page, "visual": table, "point": [{"c": 0, "v": "Games"}, {"c": 1, "v": "South"}]}),
+    );
+    assert!(amounts(&v).is_empty(), "{v}");
+    // grouped by the unrelated table only: every region's total is 150
+    let chart = run(
+        &mut s,
+        "visual.add",
+        json!({"page": page, "visual_type": "clusteredColumnChart", "x": 420, "y": 320, "width": 300, "height": 200,
+               "fields": [{"role": "Category", "field": "Region[Name]"}, {"role": "Y", "field": "[Total]"}]}),
+    )["visual"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let all = json!({"page": page, "visual": chart});
+    run(
+        &mut s,
+        "visual.filter",
+        json!({"page": page, "visual": chart, "field": "[Total]", "op": ">", "value": 1000}),
+    );
+    let v = run(&mut s, "visual.records", all.clone());
+    assert!(amounts(&v).is_empty(), "{v}");
+    assert_eq!(v["not_applied"], json!([]), "{v}");
+    run(
+        &mut s,
+        "visual.filter",
+        json!({"page": page, "visual": chart, "field": "[Total]", "op": ">", "value": 100}),
+    );
+    assert_eq!(amounts(&run(&mut s, "visual.records", all)).len(), 5);
+}
+
+/// The records' table is the table the visual's first measure reads, not the table the
+/// measure is stored in (docs/gaps.md G49).
+#[test]
+fn see_records_reads_the_table_of_the_measures_columns() {
+    let (mut s, page, _) = star();
+    run(
+        &mut s,
+        "measure.add",
+        json!({"table": "Product", "name": "Sold", "expression": "SUM(Sales[Amount])"}),
+    );
+    let chart = run(
+        &mut s,
+        "visual.add",
+        json!({"page": page, "visual_type": "clusteredColumnChart", "x": 0, "y": 320, "width": 400, "height": 300,
+               "fields": [{"role": "Category", "field": "Product[Category]"}, {"role": "Y", "field": "[Sold]"}]}),
+    )["visual"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let v = run(
+        &mut s,
+        "visual.records",
+        json!({"page": page, "visual": chart, "point": [{"c": 0, "v": "Toys"}]}),
+    );
+    assert_eq!(v["table"], "Sales", "{v}");
+    assert_eq!(amounts(&v), [10.0, 30.0, 40.0], "{v}");
+}
+
+/// A measure with a detail rows expression shows that expression's rows under the point and the
+/// filters, its columns in its order (docs/gaps.md G49).
+#[test]
+fn see_records_shows_a_measures_detail_rows() {
+    let (mut s, page, visual) = star();
+    let detail = "SELECTCOLUMNS(Sales, \"Key\", Sales[ProductKey], \"Double\", Sales[Amount] * 2)";
+    s.model
+        .as_mut()
+        .unwrap()
+        .tables
+        .iter_mut()
+        .flat_map(|t| t.measures.iter_mut())
+        .find(|m| m.name == "Total")
+        .unwrap()
+        .extra
+        .insert("detailRowsDefinition".into(), json!({"expression": detail}));
+    run(
+        &mut s,
+        "visual.filter",
+        json!({"page": page, "visual": visual, "field": "Sales[Amount]", "op": ">", "value": 15}),
+    );
+    let v = run(
+        &mut s,
+        "visual.records",
+        json!({"page": page, "visual": visual, "point": [{"c": 0, "v": "Toys"}]}),
+    );
+    let names: Vec<&str> = v["columns"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|c| c["name"].as_str().unwrap())
+        .collect();
+    assert_eq!(names, ["Key", "Double"], "{v}");
+    // Toys above 15: 30 and 40, doubled
+    assert_eq!(amounts(&v), [60.0, 80.0], "{v}");
 }
 
 /// See records of a visual another visual's selection cross-highlights lists the rows of the

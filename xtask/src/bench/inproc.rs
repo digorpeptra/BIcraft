@@ -1,5 +1,5 @@
 //! The benchmark cases: in-process (the crates, as the engine calls them) and end to end through
-//! the `bicraft` binary. Inputs are generated into the scratch folder first.
+//! the `bicraft-cli` binary. Inputs are generated into the scratch folder first.
 
 use std::path::{Path, PathBuf};
 
@@ -412,7 +412,7 @@ fn reports(b: &mut Bencher, opts: &Opts, bin: &Path, scratch: &Path) {
 
 fn projects(b: &mut Bencher, opts: &Opts, bin: &Path, scratch: &Path) {
     b.group("Process start and projects (end to end)");
-    b.case("CLI bicraft --version (process start)", 40, || {
+    b.case("CLI bicraft-cli --version (process start)", 40, || {
         cli(bin, &["--version"], &[0])?;
         Ok(Work::items(1, "process"))
     });
@@ -516,7 +516,7 @@ fn projects(b: &mut Bencher, opts: &Opts, bin: &Path, scratch: &Path) {
         );
     }
     b.case_with_setup(
-        "edit loop ×100, one `bicraft run` batch (300 commands)",
+        "edit loop ×100, one `bicraft-cli run` batch (300 commands)",
         3,
         || copy("batch"),
         |p| {
@@ -535,7 +535,7 @@ fn projects(b: &mut Bencher, opts: &Opts, bin: &Path, scratch: &Path) {
         },
     );
     b.case_with_setup(
-        "edit loop ×100, 100 separate `bicraft run` processes",
+        "edit loop ×100, 100 separate `bicraft-cli run` processes",
         3,
         || copy("sep"),
         |p| {

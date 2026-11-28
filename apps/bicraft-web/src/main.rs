@@ -17,6 +17,6 @@ fn main() {
 #[cfg(not(target_arch = "wasm32"))]
 fn main() {
     eprintln!(
-        "bicraft-web runs in a browser: build it with `cargo xtask webui` and open bicraft view's /app/ (docs/webui.md)"
+        "bicraft-web runs in a browser: build it with `cargo xtask webui` and open bicraft-cli view's /app/ (docs/webui.md)"
     );
 }

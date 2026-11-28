@@ -1,6 +1,6 @@
 //! The browser app (docs/webui.md): the shared egui UI of `crates/ui` in its browser shell,
-//! compiled to WebAssembly (`apps/bicraft-web`), served under `/app/` by `bicraft view` and,
-//! per workspace, by `bicraft serve` (`/w/<id>/view/app/`), next to the HTML page.
+//! compiled to WebAssembly (`apps/bicraft-web`), served under `/app/` by `bicraft-cli view` and,
+//! per workspace, by `bicraft-cli serve` (`/w/<id>/view/app/`), next to the HTML page.
 //!
 //! The page ([`app_page`]) is a canvas, a loading line and `boot.js`, which loads the module
 //! wasm-bindgen generated (`bicraft_web.js`) and its WebAssembly (`bicraft_web_bg.wasm`). The
@@ -50,7 +50,7 @@ fn hex32(t: &str) -> bool {
 }
 
 /// The app page with its tokens: the interaction token (`None`: read-only), the
-/// open-in-Desktop token (`bicraft view` only) and the private view id (`bicraft serve` only).
+/// open-in-Desktop token (`bicraft-cli view` only) and the private view id (`bicraft-cli serve` only).
 /// Each must be 32 lowercase hex digits; anything else leaves its slot empty.
 pub fn app_page(interact_token: Option<&str>, open_token: Option<&str>, view_id: Option<&str>) -> String {
     let mut page = APP.to_string();
@@ -70,7 +70,7 @@ pub fn app_page(interact_token: Option<&str>, open_token: Option<&str>, view_id:
     page
 }
 
-/// The app page `page` with the page token of the UI control channel's relay (`bicraft view
+/// The app page `page` with the page token of the UI control channel's relay (`bicraft-cli view
 /// --control`, [`crate::control`]): the app then takes the relayed requests and posts its replies
 /// with it. Anything but 32 lowercase hex digits leaves the slot empty (no relay).
 pub fn with_control(page: &str, token: &str) -> String {

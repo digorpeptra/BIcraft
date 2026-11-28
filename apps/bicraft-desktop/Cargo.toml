@@ -7,7 +7,7 @@ license.workspace = true
 rust-version.workspace = true
 
 [[bin]]
-name = "bicraft-desktop"
+name = "bicraft"
 path = "src/main.rs"
 
 [lib]
@@ -62,7 +62,7 @@ bicraft-env.workspace = true
 # for the executable on Windows).
 resvg = { version = "0.48", default-features = false }
 tiny-skia = { version = "0.12", default-features = false, features = ["std", "png-format"] }
-# Embeds the icon and version information in bicraft-desktop.exe (Windows targets only).
+# Embeds the icon and version information in bicraft.exe (Windows targets only).
 winresource = "0.1"
 
 [features]

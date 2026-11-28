@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The file types the BIcraft desktop app opens, for the shared MIME database
+     (installed as share/mime/packages/io.github.digorpeptra.bicraft.xml; docs/releasing.md). -->
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+  <mime-type type="application/x-pbix">
+    <comment>Power BI report</comment>
+    <sub-class-of type="application/zip"/>
+    <generic-icon name="x-office-spreadsheet"/>
+    <glob pattern="*.pbix"/>
+  </mime-type>
+  <mime-type type="application/x-pbit">
+    <comment>Power BI report template</comment>
+    <sub-class-of type="application/zip"/>
+    <generic-icon name="x-office-spreadsheet"/>
+    <glob pattern="*.pbit"/>
+  </mime-type>
+  <mime-type type="application/x-pbip">
+    <comment>Power BI project</comment>
+    <sub-class-of type="application/json"/>
+    <generic-icon name="x-office-spreadsheet"/>
+    <glob pattern="*.pbip"/>
+  </mime-type>
+</mime-info>

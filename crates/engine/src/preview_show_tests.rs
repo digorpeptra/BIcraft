@@ -538,3 +538,121 @@ fn the_commands_refuse_what_they_cannot_do() {
     run(&mut s, "edit.undo", json!({}));
     assert!(visual(&s, &c)["fields"][0].get("show_all").is_none());
 }
+
+/// The members of a subtotal level of `d` (its first cell) with their value at `at`.
+fn level_members(d: &Value, rows: u64, at: usize) -> Vec<(Value, Value)> {
+    cells(&subtotal(d, rows, 0), 1, at)
+        .into_iter()
+        .map(|(k, v)| (k.first().cloned().unwrap_or(Value::Null), v))
+        .collect()
+}
+
+#[test]
+fn a_matrix_subtotal_level_lists_its_items_with_no_data() {
+    // Rows Category › Product: Games (Doll) sells nothing, so it has a leaf row with no value
+    // once Rows shows its items with no data, and its Category subtotal must be listed too
+    let mut s = shop();
+    let m = add_visual(
+        &mut s,
+        "pivotTable",
+        json!([{"role": "Rows", "field": "Product[Category]"}, {"role": "Rows", "field": "Product[Product]"},
+               {"role": "Values", "field": "[Total]"}]),
+    );
+    let before = level_members(&data(&s, &m), 1, 2);
+    assert!(!before.iter().any(|(k, _)| k == "Games"), "{before:?}");
+    run(
+        &mut s,
+        "visual.show_items_no_data",
+        json!({"page": "Main", "visual": m, "role": "Rows", "show": true}),
+    );
+    let d = data(&s, &m);
+    let leaves = cells(&d["rows"], 2, 2);
+    assert!(
+        leaves.contains(&(vec![json!("Games"), json!("Doll")], Value::Null)),
+        "{leaves:?}"
+    );
+    let after = level_members(&d, 1, 2);
+    // the empty category joins the level; the others keep their subtotals
+    assert!(after.contains(&(json!("Games"), Value::Null)), "{after:?}");
+    for (k, v) in &before {
+        assert!(after.contains(&(k.clone(), v.clone())), "{k}: {after:?}");
+    }
+    assert!(after.len() > before.len());
+}
+
+#[test]
+fn a_percentage_over_hierarchy_level_rows_writes_the_levels_in_its_scope() {
+    let mut s = shop();
+    run(
+        &mut s,
+        "hierarchy.add",
+        json!({"table": "Product", "name": "Range", "levels": ["Category", "Product"]}),
+    );
+    let m = add_visual(
+        &mut s,
+        "pivotTable",
+        json!([{"role": "Columns", "field": "Sales[Region]"}, {"role": "Values", "field": "Sum(Sales[Amount])"}]),
+    );
+    run(
+        &mut s,
+        "visual.bind_hierarchy",
+        json!({"page": "Main", "visual": m, "role": "Rows", "hierarchy": "Range"}),
+    );
+    let at = visual(&s, &m)["fields"]
+        .as_array()
+        .and_then(|f| f.iter().position(|x| x["role"] == "Values"))
+        .unwrap_or_else(|| panic!("no value field"));
+    show_as(&mut s, &m, "percent_of_row_total");
+    // the top level shows: Wheels in North is 400 of its row's 450
+    let d = data(&s, &m);
+    assert!(
+        d["rows"].as_array().into_iter().flatten().any(|r| r
+            .as_array()
+            .is_some_and(|a| a.contains(&json!("Wheels")) && a.contains(&json!("North")))
+            && close(&r[at], 400.0 / 450.0)),
+        "{d}"
+    );
+    let dir = crate::tempdir::TempDir::new("engine-show-as-levels");
+    let path = dir.path().join("Shop.pbip");
+    run(&mut s, "file.save_as", json!({"path": path.to_string_lossy()}));
+    let visual_json = walk(dir.path())
+        .into_iter()
+        .find(|p| {
+            p.file_name().is_some_and(|n| n == "visual.json")
+                && std::fs::read_to_string(p).is_ok_and(|t| t.contains("pivotTable"))
+        })
+        .unwrap_or_else(|| panic!("no matrix visual.json under {}", dir.path().display()));
+    let doc: Value = serde_json::from_str(&std::fs::read_to_string(&visual_json).unwrap_or_default())
+        .unwrap_or_else(|e| panic!("{e}"));
+    let qs = &doc["visual"]["query"]["queryState"];
+    let scope = qs["Values"]["projections"][0]["field"]["Arithmetic"]["Right"]["ScopedEval"]["Scope"].clone();
+    let rows: Vec<Value> = qs["Rows"]["projections"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .map(|p| p["field"].clone())
+        .collect();
+    // the scope is the row levels, as their projections name them
+    assert_eq!(scope, Value::Array(rows.clone()), "{qs}");
+    assert!(
+        rows.len() == 2 && rows.iter().all(|f| f.get("HierarchyLevel").is_some()),
+        "{qs}"
+    );
+    let orig = s
+        .report
+        .as_ref()
+        .and_then(|r| r.pages.iter().flat_map(|p| &p.visuals).find(|v| v.name == m))
+        .map(|v| v.fields.clone());
+    let pbix = dir.path().join("Shop.pbix");
+    run(&mut s, "file.save_as", json!({"path": pbix.to_string_lossy()}));
+    for file in [path, pbix] {
+        let mut back = Session::new();
+        run(&mut back, "file.open", json!({"path": file.to_string_lossy()}));
+        let fields = back
+            .report
+            .as_ref()
+            .and_then(|r| r.pages.iter().flat_map(|p| &p.visuals).find(|v| v.name == m))
+            .map(|v| v.fields.clone());
+        assert_eq!(fields, orig, "{}", file.display());
+    }
+}

@@ -247,7 +247,7 @@ fn rank(v: &V) -> u8 {
 enum Ax {
     Rows,
     Cols,
-    /// The small multiples (`ROWPAGES`): kept at every level, walked only when named.
+    /// The small multiples (`ROWPAGES`): kept by the visual's own cells, walked only when named.
     Pages,
 }
 
@@ -258,8 +258,10 @@ enum Blanks {
     Last,
 }
 
-/// A level: how many fields of the row axis and of the column axis it keeps.
-type Lv = (usize, usize);
+/// A level: how many fields of the row axis, of the column axis and of the small multiples it
+/// keeps. The visual's own cells keep every small multiple; `COLLAPSE` along `ROWPAGES` and
+/// `LOOKUPWITHTOTALS` reach the levels across them.
+type Lv = (usize, usize, usize);
 
 #[derive(Debug, Clone, Default)]
 struct Level {
@@ -275,7 +277,8 @@ struct Matrix {
     rows: Vec<usize>,
     /// Column-axis grouping fields.
     cols: Vec<usize>,
-    /// Small-multiple fields: every level keeps them, every calculation partitions by them.
+    /// Small-multiple fields: the visual's cells keep them, a walk partitions by them unless it
+    /// walks `ROWPAGES`.
     pages: Vec<usize>,
     /// Per field: the names it is referred to by.
     names: Vec<Vec<String>>,
@@ -286,13 +289,9 @@ struct Matrix {
 }
 
 impl Matrix {
-    /// How many fields of axis `ax` level `lv` keeps (every small multiple at every level).
+    /// How many fields of axis `ax` level `lv` keeps.
     fn kept_on(&self, lv: Lv, ax: Ax) -> usize {
-        match ax {
-            Ax::Rows => lv.0,
-            Ax::Cols => lv.1,
-            Ax::Pages => self.pages.len(),
-        }
+        level_of(lv, ax)
     }
 
     /// Field `f` of cell (`lv`, `row`) as the axis orders it: its sort-by value when it has one.
@@ -308,6 +307,7 @@ impl Matrix {
     fn kept(&self, lv: Lv) -> Vec<usize> {
         self.pages
             .iter()
+            .take(lv.2)
             .chain(self.rows.iter().take(lv.0))
             .chain(self.cols.iter().take(lv.1))
             .copied()
@@ -376,10 +376,13 @@ impl Matrix {
             .position(|n| n.iter().any(|x| x.eq_ignore_ascii_case(name)))
     }
 
-    /// The axis and level (0-based) of grouping field `f`.
+    /// The axis and level (0-based) of grouping field `f` (a small multiple's on `ROWPAGES`).
     fn axis_of(&self, f: usize) -> Option<(Ax, usize)> {
         if let Some(k) = self.rows.iter().position(|x| *x == f) {
             return Some((Ax::Rows, k));
+        }
+        if let Some(k) = self.pages.iter().position(|x| *x == f) {
+            return Some((Ax::Pages, k));
         }
         self.cols.iter().position(|x| *x == f).map(|k| (Ax::Cols, k))
     }
@@ -402,21 +405,21 @@ impl Matrix {
     }
 }
 
-/// The depth of `lv` on the row or column axis (the small multiples have no levels: 0).
+/// The depth of `lv` on axis `ax`.
 fn level_of(lv: Lv, ax: Ax) -> usize {
     match ax {
         Ax::Rows => lv.0,
         Ax::Cols => lv.1,
-        Ax::Pages => 0,
+        Ax::Pages => lv.2,
     }
 }
 
-/// `lv` at depth `d` on the row or column axis (unchanged for the small multiples).
+/// `lv` at depth `d` on axis `ax`.
 fn with_level(lv: Lv, ax: Ax, d: usize) -> Lv {
     match ax {
-        Ax::Rows => (d, lv.1),
-        Ax::Cols => (lv.0, d),
-        Ax::Pages => lv,
+        Ax::Rows => (d, lv.1, lv.2),
+        Ax::Cols => (lv.0, d, lv.2),
+        Ax::Pages => (lv.0, lv.1, d),
     }
 }
 
@@ -967,12 +970,8 @@ impl Eval<'_> {
         let collapse = up.starts_with("COLLAPSE");
         let all = up.ends_with("ALL");
         if let Some(mut axes) = rest.first().and_then(|e| axes_of(e)) {
-            // an axis that is not on the visual is ignored; the small multiples have no level
-            // without them in the visual matrix BIcraft builds
-            axes.retain(|a| *a != Ax::Pages || !self.m.pages.is_empty());
-            if axes.contains(&Ax::Pages) {
-                return unsupported(format!("{up} along ROWPAGES is not evaluated by BIcraft"));
-            }
+            // an axis that is not on the visual is ignored
+            axes.retain(|a| self.m.depth(*a) > 0);
             let n = match rest.get(1) {
                 Some(e) => number(e)
                     .filter(|x| *x >= 0.0)
@@ -1035,11 +1034,11 @@ impl Eval<'_> {
         let mut rows = Vec::new();
         for r in cx.cells() {
             self.tick(1)?;
-            if target.0 <= lv.0 && target.1 <= lv.1 {
+            if target.0 <= lv.0 && target.1 <= lv.1 && target.2 <= lv.2 {
                 if let Some(a) = self.m.ancestor(lv, r, target) {
                     rows.push(a);
                 }
-            } else if target.0 >= lv.0 && target.1 >= lv.1 {
+            } else if target.0 >= lv.0 && target.1 >= lv.1 && target.2 >= lv.2 {
                 let ds = self.m.descendants(lv, r, target);
                 self.tick(ds.len())?;
                 rows.extend(ds);
@@ -1184,7 +1183,7 @@ impl Eval<'_> {
                         .m
                         .field(name)
                         .ok_or_else(|| Fail::Unsupported(format!("no field [{name}]")))?;
-                    if self.m.axis_of(f).is_none() && !self.m.pages.contains(&f) {
+                    if self.m.axis_of(f).is_none() {
                         return unsupported(format!(
                             "{up} filters [{name}], which is on no axis of the visual"
                         ));
@@ -1206,20 +1205,8 @@ impl Eval<'_> {
                 _ => return unsupported(format!("an argument of {up}")),
             }
         }
-        if totals && let Some(p) = self.m.pages.iter().find(|p| !pairs.iter().any(|(f, _)| f == *p)) {
-            let name = self
-                .m
-                .names
-                .get(*p)
-                .and_then(|n| n.first())
-                .cloned()
-                .unwrap_or_default();
-            return unsupported(format!(
-                "LOOKUPWITHTOTALS without a value for the small multiple [{name}]: the total across them is not in the visual matrix"
-            ));
-        }
         // the level: the current one (or the total), deep enough for every field filtered
-        let mut target: Lv = if totals { (0, 0) } else { lv };
+        let mut target: Lv = if totals { (0, 0, 0) } else { lv };
         for (f, _) in &pairs {
             if let Some((ax, k)) = self.m.axis_of(*f) {
                 let need = k.saturating_add(1).max(level_of(target, ax));
@@ -1238,12 +1225,7 @@ impl Eval<'_> {
             // current cell
             let axes: Vec<Ax> = pairs
                 .iter()
-                .filter_map(|(f, _)| {
-                    self.m
-                        .axis_of(*f)
-                        .map(|(ax, _)| ax)
-                        .or_else(|| self.m.pages.contains(f).then_some(Ax::Pages))
-                })
+                .filter_map(|(f, _)| self.m.axis_of(*f).map(|(ax, _)| ax))
                 .collect();
             self.tick(level.rows.len())?;
             let matching: Vec<&Vec<V>> = level
@@ -1398,7 +1380,7 @@ impl Eval<'_> {
                 let lv = cx.lv();
                 Ok(V::Bool(match self.m.axis_of(f) {
                     Some((ax, k)) => k < level_of(lv, ax),
-                    // a small multiple, or not grouping: present at every level
+                    // not grouping: present at every level
                     None => true,
                 }))
             }
@@ -1922,7 +1904,7 @@ pub(super) fn apply(
             }
         }
     }
-    let (n, c) = (m.rows.len(), m.cols.len());
+    let (n, c, p) = (m.rows.len(), m.cols.len(), m.pages.len());
     let rows_of = |x: Option<&Value>| -> Vec<Vec<V>> {
         x.and_then(Value::as_array)
             .into_iter()
@@ -1932,9 +1914,9 @@ pub(super) fn apply(
             .collect()
     };
     // the levels the data holds
-    m.add((n, c), rows_of(d.get("rows")));
+    m.add((n, c, p), rows_of(d.get("rows")));
     if let Some(t) = d.get("totals").and_then(Value::as_array) {
-        m.add((0, 0), vec![full_row(sp, t)]);
+        m.add((0, 0, p), vec![full_row(sp, t)]);
     }
     let subtotal_levels: Vec<(Lv, Vec<Vec<V>>)> = d
         .get("subtotals")
@@ -1944,7 +1926,7 @@ pub(super) fn apply(
         .filter_map(|l| {
             let r = usize::try_from(l.get("rows")?.as_u64()?).ok()?;
             let k = usize::try_from(l.get("columns")?.as_u64()?).ok()?;
-            Some(((r.min(n), k.min(c)), rows_of(l.get("data"))))
+            Some(((r.min(n), k.min(c), p), rows_of(l.get("data"))))
         })
         .collect();
     for (lv, rows) in subtotal_levels {
@@ -1957,7 +1939,10 @@ pub(super) fn apply(
         e.as_ref().is_some_and(navigates)
     });
     if nav && aligned {
-        let all: Vec<Lv> = (0..=n).flat_map(|i| (0..=c).map(move |j| (i, j))).collect();
+        // with the levels across the small multiples (COLLAPSE along ROWPAGES, LOOKUPWITHTOTALS)
+        let all: Vec<Lv> = (0..=n)
+            .flat_map(|i| (0..=c).flat_map(move |j| (0..=p).map(move |k| (i, j, k))))
+            .collect();
         if all.len() > MAX_LEVELS {
             notes.push(format!(
                 "more than {MAX_LEVELS} levels: the visual matrix is not navigated"
@@ -2004,11 +1989,11 @@ pub(super) fn apply(
     }
     if let Some(rows) = o.get_mut("rows").and_then(Value::as_array_mut) {
         for r in rows {
-            insert_cells(r, sp, &m, (n, c), &results);
+            insert_cells(r, sp, &m, (n, c, p), &results);
         }
     }
     if let Some(t) = o.get_mut("totals") {
-        insert_cells(t, sp, &m, (0, 0), &results);
+        insert_cells(t, sp, &m, (0, 0, p), &results);
     }
     if let Some(levels) = o.get_mut("subtotals").and_then(Value::as_array_mut) {
         for l in levels {
@@ -2016,7 +2001,7 @@ pub(super) fn apply(
             let k = l.get("columns").and_then(Value::as_u64).unwrap_or(0) as usize;
             if let Some(data) = l.get_mut("data").and_then(Value::as_array_mut) {
                 for row in data {
-                    insert_cells(row, sp, &m, (r.min(n), k.min(c)), &results);
+                    insert_cells(row, sp, &m, (r.min(n), k.min(c), p), &results);
                 }
             }
         }

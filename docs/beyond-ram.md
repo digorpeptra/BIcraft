@@ -187,7 +187,7 @@ dimension, a relationship) saved as a PBIX by BIcraft:
 
 ### Measured (2026-10-25, Windows, release, engine bench files)
 
-**Same answers.** The 22 bench queries run twice in one session (`bicraft run`, 44 answers)
+**Same answers.** The 22 bench queries run twice in one session (`bicraft-cli run`, 44 answers)
 under each budget, compared with a session without one: **0 differences** at every budget.
 
 | Rows | Budget | Evictions | Kept at the end (columns + caches) | Largest single query's working set | Backup |
@@ -662,7 +662,7 @@ limit, against a session without one (`bench_queries_under_limits_equal_the_unli
   8 MB a fact segment (2.5 MB) no longer fits (lot 3's rule).
 
 **The process against the limit** (`engine-bench bicraft`, `BICRAFT_MEMORY_LIMIT` in the
-environment of `bicraft mcp`, aggregations off; peak working set of the warm session; 22/22
+environment of `bicraft-cli mcp`, aggregations off; peak working set of the warm session; 22/22
 identical to Desktop in every run):
 
 | Rows | Limit | Peak working set | Over the limit |

@@ -18,7 +18,7 @@ pub(crate) const DEF: Def = Def {
     guid: "bicraftLineAreaPlus9D2B6F4A8C0E3B5D7F1A",
     name: "bicraftLineAreaPlus",
     display_name: "BIcraft Line / Area+",
-    version: "1.0.4.0",
+    version: "1.0.5.0",
     description: "Lines or areas on a continuous date axis with a band between two measures, threshold shading, labels on the last or extreme points, colours by rule, a dashed forecast and series named at the line ends (BIcraft, docs/formats/chart-pack.md)",
     roles: &[
         Role {

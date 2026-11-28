@@ -194,8 +194,13 @@ pub struct PreviewCache {
     /// Refresh visuals (`report.refresh_visuals`, `optimize.rs`): the next snapshot evaluates the
     /// visuals of a paused report once.
     refresh: AtomicBool,
+    /// A visual's own Refresh (`visual.refresh`, `optimize.rs`): the next snapshot evaluates
+    /// these (page, visual) of a paused report once, the others staying paused.
+    refresh_one: Mutex<std::collections::HashSet<(String, String)>>,
     /// The data each visual last showed, by (page, visual): what a paused report keeps showing.
     shown: Mutex<HashMap<(String, String), Value>>,
+    /// The measure-bound values (`report_bound`) each visual last showed, likewise.
+    shown_bound: Mutex<HashMap<(String, String), Value>>,
     /// Tests: times background work took the lock.
     #[cfg(test)]
     background_locks: std::sync::atomic::AtomicU64,
@@ -280,8 +285,32 @@ impl PreviewCache {
         self.refresh.swap(false, Ordering::AcqRel)
     }
 
+    /// A visual's Refresh: the next snapshot evaluates visual `visual` of page `page` once.
+    pub(crate) fn request_refresh_one(&self, page: &str, visual: &str) {
+        self.refresh_one
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .insert((page.to_string(), visual.to_string()));
+    }
+
+    /// The visuals whose Refresh was asked for since the last call (and takes them).
+    pub(crate) fn take_refresh_one(&self) -> std::collections::HashSet<(String, String)> {
+        std::mem::take(
+            &mut *self
+                .refresh_one
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner),
+        )
+    }
+
     fn shown(&self) -> MutexGuard<'_, HashMap<(String, String), Value>> {
         self.shown
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+    }
+
+    fn shown_bound(&self) -> MutexGuard<'_, HashMap<(String, String), Value>> {
+        self.shown_bound
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner)
     }
@@ -624,6 +653,21 @@ const MAX_DOMAIN_ROWS: usize = 50_000_000;
 /// `{min, max}` of a numeric or date column over every row of the stored data (or the table's
 /// literal partitions); `None` when there is no data, no numeric/date value, or on any error.
 pub(crate) fn column_domain(s: &Session, table: &str, column: &str) -> Option<Value> {
+    let (lo, hi, date) = column_bounds(s, table, column)?;
+    let j = |x: f64| {
+        if date {
+            ole_to_iso(x).map_or(Value::Null, Value::String)
+        } else {
+            num_json(x)
+        }
+    };
+    Some(json!({"min": j(lo), "max": j(hi)}))
+}
+
+/// The minimum and maximum of a numeric or date column over every row of the stored data (or the
+/// table's literal partitions), date serial numbers for a date column, and whether it holds
+/// dates; `None` as [`column_domain`].
+pub(crate) fn column_bounds(s: &Session, table: &str, column: &str) -> Option<(f64, f64, bool)> {
     let model = s.model.as_ref()?;
     let mut st = s.preview.acquire(s);
     let limits = PreviewLimits {
@@ -667,15 +711,7 @@ pub(crate) fn column_domain(s: &Session, table: &str, column: &str) -> Option<Va
         lo = Some(lo.map_or(x, |l| l.min(x)));
         hi = Some(hi.map_or(x, |h| h.max(x)));
     }
-    let (lo, hi) = (lo?, hi?);
-    let j = |x: f64| {
-        if date {
-            ole_to_iso(x).map_or(Value::Null, Value::String)
-        } else {
-            num_json(x)
-        }
-    };
-    Some(json!({"min": j(lo), "max": j(hi)}))
+    Some((lo?, hi?, date))
 }
 
 /// Puts decoded columns in the preview cache as the data of `table` (as if loaded from its
@@ -1284,12 +1320,22 @@ fn visual_hash(v: &Visual) -> u64 {
 
 /// Pause visuals (`optimize.rs`) as one `report_data` call sees it.
 #[derive(Debug, Clone, Copy)]
-pub(crate) struct Pause {
+pub(crate) struct Pause<'a> {
     /// The report is paused: a visual not in the result cache is not evaluated.
     pub on: bool,
     /// The call computes the data the snapshot shows (not the highlight report's): it keeps
     /// each visual's last data, and a paused visual shows it again, marked `pending`.
     pub main: bool,
+    /// The (page, visual) whose own Refresh was asked for (`visual.refresh`): evaluated once
+    /// even while paused.
+    pub only: &'a std::collections::HashSet<(String, String)>,
+}
+
+impl Pause<'_> {
+    /// Whether visual `visual` of page `page` waits (paused and not refreshed on its own).
+    fn holds(&self, page: &str, visual: &str) -> bool {
+        self.on && !self.only.contains(&(page.to_string(), visual.to_string()))
+    }
 }
 
 /// `visual.data` for every visual that gets one in this snapshot, keyed by (page name, visual
@@ -1303,7 +1349,7 @@ pub(crate) fn report_data(
     pages: usize,
     visuals_per_page: usize,
     limits: &PreviewLimits,
-    pause: Pause,
+    pause: Pause<'_>,
 ) -> HashMap<(String, String), Value> {
     let start = Instant::now();
     let mut out = HashMap::new();
@@ -1369,7 +1415,7 @@ pub(crate) fn report_data(
             let data = match st.results.get(&key) {
                 Some(d) => d.clone(),
                 // paused: the last state, never an evaluation
-                None if pause.on => {
+                None if pause.holds(&page.name, &v.name) => {
                     if !pause.main {
                         continue;
                     }
@@ -1479,6 +1525,79 @@ pub(crate) fn export_rows(
     }
 }
 
+/// The data `v` would show on page `page` of the session's report, as the snapshot gives a
+/// visual's `data`, for a visual not in the report (the visual calculation window's preview,
+/// `visual_calcs.rs`): `v` is evaluated under the filters of the page and of the visual of the
+/// same name, and nothing is cached.
+pub(crate) fn visual_data(s: &Session, page: &str, v: &Visual) -> Value {
+    let Some(report) = s.report.as_ref() else {
+        return status("error", "no report");
+    };
+    let Some(pg) = report.pages.iter().find(|p| p.name == page) else {
+        return status("error", format!("no page `{page}`"));
+    };
+    let now = filters::clock(s);
+    let defaults = crate::SnapshotLimits::default();
+    let limits = PreviewLimits {
+        rows_per_visual: defaults.data_rows_per_visual,
+        table_rows: STORAGE_TABLE_ROWS,
+        fallback_rows: defaults.data_table_rows,
+        budget: Duration::from_secs(60),
+        now,
+        utc_offset: filters::utc_offset(s),
+    };
+    let applied = filters::collect(report, pg, v, now);
+    let drilled = at_drill_level(v);
+    let v = drilled.as_ref().unwrap_or(v);
+    let mut st = s.preview.acquire(s);
+    match catch_unwind(AssertUnwindSafe(|| compute(s, &mut st, v, &applied, &limits))) {
+        Ok(d) => d,
+        Err(_) => status("error", "internal error while computing the preview"),
+    }
+}
+
+/// One grouped query for `visual.analyze` (`visual_analyze.rs`): a flat table of `groups` then
+/// `values`, under the filters of visual `v` of page `page` of `report`, at most `rows` rows (the
+/// answer's `rows`, `truncated`, or its `status` and `reason`).
+pub(crate) fn grouped_rows(
+    s: &Session,
+    report: &Report,
+    page: &bicraft_report::Page,
+    v: &Visual,
+    groups: &[FieldRef],
+    values: &[FieldRef],
+    rows: usize,
+) -> Value {
+    let mut flat = v.clone();
+    flat.visual_type = Some("tableEx".into());
+    flat.visual_extra = Default::default();
+    flat.fields = groups
+        .iter()
+        .chain(values)
+        .map(|f| bicraft_report::FieldBinding {
+            display_name: None,
+            show_as: None,
+            role: "Values".into(),
+            field: f.clone(),
+        })
+        .collect();
+    let now = filters::clock(s);
+    let limits = PreviewLimits {
+        rows_per_visual: rows,
+        table_rows: STORAGE_TABLE_ROWS,
+        fallback_rows: crate::SnapshotLimits::default().data_table_rows,
+        budget: Duration::from_secs(60),
+        now,
+        utc_offset: filters::utc_offset(s),
+    };
+    let applied = filters::collect(report, page, v, now);
+    let mut st = s.preview.acquire(s);
+    match catch_unwind(AssertUnwindSafe(|| compute(s, &mut st, &flat, &applied, &limits))) {
+        Ok(d) => d,
+        Err(_) => status("error", "internal error while analyzing the point"),
+    }
+}
+
 /// What cached results depend on in the clock: the day, or the exact `as_of` when one is set.
 fn clock_key(s: &Session, limits: &PreviewLimits) -> u64 {
     if s.as_of_now().is_some() {
@@ -1490,17 +1609,22 @@ fn clock_key(s: &Session, limits: &PreviewLimits) -> u64 {
 
 /// The measure-bound properties' values (`bound_values.rs`) of every visual that has some, as
 /// the `visual.data` of a field-less copy binding just those measures, keyed by (page name,
-/// visual name). Visuals not reached within the budget get none.
+/// visual name). Visuals not reached within the budget get none. While the report is paused
+/// (`pause`), a value not in the result cache is not evaluated: the visual keeps the values it
+/// last showed, marked `pending`, or gets the `pending` status (a formatting change that needs
+/// a query waits, as Pause visuals has it).
 pub(crate) fn report_bound(
     s: &Session,
     report: &Report,
     pages: usize,
     visuals_per_page: usize,
     limits: &PreviewLimits,
+    pause: Pause<'_>,
 ) -> HashMap<(String, String), Value> {
     let start = Instant::now();
     let mut out = HashMap::new();
     let mut st = s.preview.acquire(s);
+    let mut last = std::mem::take(&mut *s.preview.shown_bound());
     let (generation, model_hash) = (st.generation, st.model_hash(s));
     let now = limits.now;
     let clock = clock_key(s, limits);
@@ -1520,8 +1644,24 @@ pub(crate) fn report_bound(
                 &applied.hash.to_le_bytes(),
                 &clock.to_le_bytes(),
             ]);
+            let id = (page.name.clone(), v.name.clone());
             let data = match st.results.get(&key) {
                 Some(d) => d.clone(),
+                // paused: the values last shown, never an evaluation
+                None if pause.holds(&page.name, &v.name) => {
+                    let mut d = last.remove(&id).unwrap_or_else(|| {
+                        status(
+                            "pending",
+                            "visual queries are paused: Refresh visuals evaluates the visuals once",
+                        )
+                    });
+                    if let Some(o) = d.as_object_mut()
+                        && o.get("status").and_then(Value::as_str) != Some("pending")
+                    {
+                        o.insert("pending".into(), json!(true));
+                    }
+                    d
+                }
                 None if start.elapsed() < limits.budget => {
                     let d =
                         match catch_unwind(AssertUnwindSafe(|| compute(s, &mut st, &sv, &applied, limits))) {
@@ -1533,9 +1673,10 @@ pub(crate) fn report_bound(
                 }
                 None => continue,
             };
-            out.insert((page.name.clone(), v.name.clone()), data);
+            out.insert(id, data);
         }
     }
+    *s.preview.shown_bound() = out.clone();
     out
 }
 

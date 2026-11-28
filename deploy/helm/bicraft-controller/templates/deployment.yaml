@@ -51,9 +51,9 @@ spec:
         - name: controller
           image: {{ include "bicraft-controller.image" . | quote }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          # The image's entry point is `bicraft serve`: the controller is another subcommand.
+          # The image's entry point is `bicraft-cli serve`: the controller is another subcommand.
           command:
-            - /usr/local/bin/bicraft
+            - /usr/local/bin/bicraft-cli
           args:
             - controller
             - --config

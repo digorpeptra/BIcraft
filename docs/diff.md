@@ -1,6 +1,6 @@
 # Semantic diff
 
-`bicraft diff` compares two Power BI files of any format and reports what changed in the
+`bicraft-cli diff` compares two Power BI files of any format and reports what changed in the
 model and the report. A PBIX is compared with a PBIP project, a PBIT, a TMSL or TMDL project,
 or a `model.bim`.
 
@@ -16,12 +16,12 @@ The diff reads both files into the format-neutral model and report (`bicraft-mod
 ## Use it
 
 ```sh
-bicraft diff Sales.pbix Sales/Sales.pbip                  # text (the default)
-bicraft diff old.pbix new.pbix --markdown > comment.md    # for a pull-request comment
-bicraft diff old.pbit new.pbit --json                     # structured
-bicraft diff a.pbix b.pbix --model-only --ignore-whitespace --exit-code   # CI gate
-bicraft diff --git main HEAD Sales.pbip                   # a project between two revisions
-bicraft diff --git HEAD Sales.pbip                        # last commit vs working tree
+bicraft-cli diff Sales.pbix Sales/Sales.pbip              # text (the default)
+bicraft-cli diff old.pbix new.pbix --markdown > comment.md    # for a pull-request comment
+bicraft-cli diff old.pbit new.pbit --json                 # structured
+bicraft-cli diff a.pbix b.pbix --model-only --ignore-whitespace --exit-code   # CI gate
+bicraft-cli diff --git main HEAD Sales.pbip               # a project between two revisions
+bicraft-cli diff --git HEAD Sales.pbip                    # last commit vs working tree
 ```
 
 | Option | Effect |
@@ -183,7 +183,7 @@ each expression. Its fences are longer than any backtick run in the content.
 
 ### PBIX and PBIT in `git diff` (textconv)
 
-`bicraft diff --textconv FILE` (command `file.textconv`) prints a canonical text form of one
+`bicraft-cli diff --textconv FILE` (command `file.textconv`) prints a canonical text form of one
 file. Objects are sorted by name, there is one property per line, expressions are indented
 blocks, and noise is left out. Git then diffs these texts line by line:
 
@@ -194,7 +194,7 @@ blocks, and noise is left out. Git then diffs these texts line by line:
 ```
 
 ```sh
-git config diff.bicraft.textconv "bicraft diff --textconv"
+git config diff.bicraft.textconv "bicraft-cli diff --textconv"
 git config diff.bicraft.cachetextconv true     # optional: cache per blob
 ```
 
@@ -204,7 +204,7 @@ The textconv text is still a line diff. To get the semantic diff, with renames a
 changes recognised, as git's external diff:
 
 ```sh
-git config diff.bicraft.command "bicraft diff"
+git config diff.bicraft.command "bicraft-cli diff"
 ```
 
 Git calls it with its 7 arguments (`path old-file old-hex old-mode new-file new-hex new-mode`).
@@ -216,7 +216,7 @@ where git does not use external drivers by default. When both `textconv` and `co
 ### difftool
 
 ```sh
-git config difftool.bicraft.cmd 'bicraft diff "$LOCAL" "$REMOTE"'
+git config difftool.bicraft.cmd 'bicraft-cli diff "$LOCAL" "$REMOTE"'
 git difftool -t bicraft -- '*.pbix'
 ```
 
@@ -226,8 +226,8 @@ A file whose extension git dropped is still recognised as a package by its ZIP s
 ### A PBIP project between revisions
 
 ```sh
-bicraft diff --git REV1 REV2 path/to/Sales.pbip
-bicraft diff --git REV1 path/to/Sales.pbip      # REV1 against the working tree
+bicraft-cli diff --git REV1 REV2 path/to/Sales.pbip
+bicraft-cli diff --git REV1 path/to/Sales.pbip  # REV1 against the working tree
 ```
 
 `PATH` can be a `.pbip` file, a project folder, or a `.pbix`/`.pbit`/`.bim` in the

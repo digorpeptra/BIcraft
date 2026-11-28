@@ -1,5 +1,5 @@
 //! A PBIX built without an existing `DataModel` (M5): `file.save_as` / `file.convert` /
-//! `bicraft convert` to `.pbix` from a new model (`model.new`, `project.new`), a `model.bim`, a
+//! `bicraft-cli convert` to `.pbix` from a new model (`model.new`, `project.new`), a `model.bim`, a
 //! PBIT, or a PBIP project without `.pbi/cache.abf`.
 //!
 //! The model-level part of the model becomes the image of a brand-new database

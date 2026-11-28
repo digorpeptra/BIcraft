@@ -27,8 +27,9 @@
 //! evaluates it (`crates/engine/src/preview_format.rs`). OK sends **one** `visual.conditional`
 //! command (one undo step); Remove sends the same command with `rule: null`. The dialog reads an
 //! existing format back from `visual.props` (`props.conditional`), so it opens on what the visual
-//! has. Rules' Percent bounds and the gradient's Percent and Percentile stops are not offered
-//! (docs/gaps.md G54).
+//! has. Rules' bounds and the gradient's stops take a Number or a Percent (of the range from the
+//! lowest to the highest value); the gradient's Percentile stops are not offered (docs/gaps.md
+//! G54).
 
 use std::collections::BTreeMap;
 
@@ -261,6 +262,8 @@ pub struct Stop {
     pub color: String,
     /// `Some(text)`: a number typed; `None`: the lowest / middle / highest value.
     pub number: Option<String>,
+    /// The number is a percent (0 to 100) of the range from the lowest to the highest value.
+    pub percent: bool,
 }
 
 impl Stop {
@@ -268,6 +271,7 @@ impl Stop {
         Stop {
             color: c.into(),
             number: None,
+            percent: false,
         }
     }
 }
@@ -539,13 +543,14 @@ fn parse_num(s: &str) -> Option<f64> {
         .filter(|x| x.is_finite())
 }
 
-/// A colour stop as `visual.props` gives it: `"#hex"` or `{color, value}`.
+/// A colour stop as `visual.props` gives it: `"#hex"` or `{color, value, percent?}`.
 fn read_stop(v: Option<&Value>) -> Option<Stop> {
     match v? {
         Value::String(s) => Some(Stop::color(s)),
         Value::Object(o) => Some(Stop {
             color: o.get("color").and_then(Value::as_str)?.to_string(),
             number: o.get("value").map(num_text).filter(|s| !s.is_empty()),
+            percent: o.get("percent").and_then(Value::as_bool) == Some(true),
         }),
         _ => None,
     }
@@ -966,21 +971,40 @@ impl CfDialog {
                     ("mid", self.mid.as_ref(), ("Center", "Centre")),
                     ("max", Some(&self.max), ("Maximum", "Maximum")),
                 ];
-                let mut at: Vec<f64> = Vec::new();
+                // (value, is a percent): numbers and percents each go up
+                let mut at: Vec<(f64, bool)> = Vec::new();
                 for (key, stop, what) in stops {
                     let Some(s) = stop else {
                         continue;
                     };
                     let v = match number(&s.number, what)? {
+                        Some(n) if s.percent => {
+                            if !(0.0..=100.0).contains(&n) {
+                                return Err(format!(
+                                    "{}: {}",
+                                    l.t(what.0, what.1),
+                                    l.t(
+                                        "a percent is a number from 0 to 100.",
+                                        "un pourcentage est un nombre de 0 à 100."
+                                    )
+                                ));
+                            }
+                            at.push((n, true));
+                            json!({"color": s.color, "value": n, "percent": true})
+                        }
                         Some(n) => {
-                            at.push(n);
+                            at.push((n, false));
                             json!({"color": s.color, "value": n})
                         }
                         None => json!(s.color),
                     };
                     g.insert(key.into(), v);
                 }
-                if at.windows(2).any(|w| w.first() >= w.get(1)) {
+                let down = |p: bool| {
+                    let xs: Vec<f64> = at.iter().filter(|a| a.1 == p).map(|a| a.0).collect();
+                    xs.windows(2).any(|w| w.first() >= w.get(1))
+                };
+                if down(false) || down(true) {
                     return Err(l
                         .t(
                             "The numbers must go up from the minimum to the maximum.",
@@ -1112,9 +1136,10 @@ impl CfDialog {
                 n(&self.bars.min).unwrap_or(-25.0),
                 n(&self.bars.max).unwrap_or(100.0),
             ),
+            // a Percent stop's number is not a value: the samples keep 0–100
             _ if self.style == Style::Gradient => (
-                n(&self.min.number).unwrap_or(0.0),
-                n(&self.max.number).unwrap_or(100.0),
+                n(&self.min.number).filter(|_| !self.min.percent).unwrap_or(0.0),
+                n(&self.max.number).filter(|_| !self.max.percent).unwrap_or(100.0),
             ),
             _ => {
                 // a Percent rule's numbers are not values: they spread over the samples' range
@@ -1198,7 +1223,11 @@ impl CfDialog {
                         if let Some(st) = stop
                             && let Some(c) = hex(&st.color)
                         {
-                            let at = st.number.as_deref().and_then(parse_num).unwrap_or(def);
+                            let at = match st.number.as_deref().and_then(parse_num) {
+                                Some(p) if st.percent => lo + (hi - lo) * p / 100.0,
+                                Some(n) => n,
+                                None => def,
+                            };
                             stops.push((c, at));
                         }
                     }
@@ -1852,12 +1881,20 @@ fn gradient_ui(ui: &mut Ui, d: &mut CfDialog, swatch: &mut Swatch<'_>, l: Lang) 
                     continue;
                 };
                 ui.label(l.t(cap.0, cap.1));
-                let list: [(&'static str, &'static str, &'static str); 2] =
-                    [("auto", auto.0, auto.1), ("number", "Number", "Nombre")];
-                let now = if stop.number.is_some() { "number" } else { "auto" };
+                let list: [(&'static str, &'static str, &'static str); 3] = [
+                    ("auto", auto.0, auto.1),
+                    ("number", "Number", "Nombre"),
+                    ("percent", "Percent", "Pourcentage"),
+                ];
+                let now = match (&stop.number, stop.percent) {
+                    (None, _) => "auto",
+                    (Some(_), false) => "number",
+                    (Some(_), true) => "percent",
+                };
                 let name = format!("{} {}", l.t(cap.0, cap.1), l.t("type", "type"));
                 if let Some(k) = choice(ui, &format!("{key}-kind"), now, &list, 150.0, &name, l) {
-                    stop.number = (k == "number").then(|| stop.number.clone().unwrap_or_default());
+                    stop.number = (k != "auto").then(|| stop.number.clone().unwrap_or_default());
+                    stop.percent = k == "percent";
                 }
                 match &mut stop.number {
                     Some(n) => {
@@ -2317,6 +2354,7 @@ mod tests {
         d.mid = Some(Stop {
             color: "#FFFF00".into(),
             number: Some("50".into()),
+            percent: false,
         });
         d.max.number = Some("200".into());
         d.blank = Blank::Color("#EEEEEE".into());
@@ -2352,6 +2390,46 @@ mod tests {
             (back.min.clone(), back.mid.clone(), back.blank.clone(), back.apply),
             (d.min.clone(), d.mid.clone(), d.blank.clone(), "values_and_totals")
         );
+    }
+
+    /// The gradient's Percent stops (G54): sent with `percent`, checked from 0 to 100, drawn in
+    /// the preview at that percent of the samples' range, read back.
+    #[test]
+    fn the_gradient_takes_percent_stops() {
+        let fields = fields();
+        let mut d = CfDialog::new(&sel(), &table(), None, "font_color", "Values Font".into(), &[]);
+        let pct = |c: &str, n: &str| Stop {
+            color: c.into(),
+            number: Some(n.into()),
+            percent: true,
+        };
+        d.min = pct("#000000", "20");
+        d.mid = Some(pct("#FFFF00", "50"));
+        d.max = pct("#FFFFFF", "80");
+        let r = d.rule(&fields, Lang::En).unwrap();
+        assert_eq!(
+            r,
+            json!({"gradient": {"field": "[Total]",
+                "min": {"color": "#000000", "value": 20.0, "percent": true},
+                "mid": {"color": "#FFFF00", "value": 50.0, "percent": true},
+                "max": {"color": "#FFFFFF", "value": 80.0, "percent": true}}})
+        );
+        // the samples 0..100: the middle one at 50 % gets the centre colour, the ends clamp
+        let p = d.preview();
+        assert_eq!(p.get(2).and_then(|s| s.color), Some([255, 255, 0]), "{p:?}");
+        assert_eq!(p.first().and_then(|s| s.color), Some([0, 0, 0]), "{p:?}");
+        assert_eq!(p.last().and_then(|s| s.color), Some([255, 255, 255]), "{p:?}");
+        let props = json!({"conditional": [{"target": "font_color", "series": "[Total]", "rule": r}]});
+        let back = CfDialog::new(&sel(), &table(), Some(&props), "font_color", String::new(), &[]);
+        assert_eq!(
+            (back.min.clone(), back.mid.clone()),
+            (d.min.clone(), d.mid.clone())
+        );
+        // over 100 is refused; percents going down too
+        d.max.number = Some("120".into());
+        assert!(d.rule(&fields, Lang::En).is_err());
+        d.max.number = Some("40".into());
+        assert!(d.rule(&fields, Lang::En).is_err());
     }
 
     #[test]

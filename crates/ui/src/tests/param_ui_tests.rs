@@ -9,7 +9,7 @@ use bicraft_engine::Session;
 use egui::accesskit::Role;
 use egui::{Key, Modifiers};
 use egui_kittest::Harness;
-use egui_kittest::kittest::Queryable;
+use egui_kittest::kittest::{NodeT, Queryable};
 use serde_json::{Value, json};
 
 use super::backstage_tests::{engine_shell, steps};
@@ -198,4 +198,105 @@ fn the_dialogs_speak_french_and_the_palette_opens_them() {
         Some(Kind::Fields)
     );
     h.get_by_label("Champs, dans l'ordre");
+}
+
+/// A report with a what-if parameter Rate (0 to 10 by 1, default 5), its slicer and a card of
+/// `[Rate Value]`, shown in the Report view.
+fn what_if_app() -> Harness<'static, App> {
+    let make = || {
+        let mut s = session();
+        s.execute(
+            "parameter.what_if",
+            &json!({"name": "Rate", "min": 0, "max": 10, "increment": 1, "default": 5}),
+        )
+        .unwrap();
+        let page = s.report.as_ref().unwrap().pages[0].name.clone();
+        s.execute(
+            "visual.add",
+            &json!({"page": page, "visual_type": "card", "x": 500, "y": 300, "width": 200, "height": 120,
+                    "fields": [{"role": "Values", "field": "[Rate Value]"}]}),
+        )
+        .unwrap();
+        s.dirty = false;
+        s.report_dirty = false;
+        s
+    };
+    let mut app = App::new("en-US", engine_shell(Caps::DESKTOP, make)).with_sync_render();
+    app.open_path(Path::new("rate.pbip"));
+    let mut h = harness(app, (1400.0, 860.0));
+    for _ in 0..200 {
+        h.step();
+        if h.state().shown.is_some() && h.state().placed.is_some() {
+            break;
+        }
+    }
+    steps(&mut h, 2);
+    h
+}
+
+/// The card's value in the latest snapshot.
+fn card_value(h: &Harness<'_, App>) -> Value {
+    let snap = &h.state().loaded.as_ref().unwrap().snap;
+    snap["report"]["pages"][0]["visuals"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|v| v["type"] == json!("card"))
+        .map(|v| v["data"]["rows"].clone())
+        .unwrap_or(Value::Null)
+}
+
+fn settle(h: &mut Harness<'_, App>) {
+    for _ in 0..50 {
+        h.step();
+    }
+}
+
+/// G64: the what-if slicer is a single-value slider, labelled for the accessibility tree with the
+/// value shown; the keyboard and a drag pick a value through `view.interact`, and the
+/// parameter's measure follows.
+#[test]
+fn the_what_if_slider_drags_to_a_value_and_the_measure_follows() {
+    let mut h = what_if_app();
+    let slider = |h: &Harness<'_, App>| {
+        let n = h.get_by(|n| n.role() == Role::Slider && n.label().as_deref() == Some("Rate"));
+        (n.rect(), n.accesskit_node().numeric_value())
+    };
+    // nothing selected: the default
+    assert_eq!(card_value(&h), json!([[5]]));
+    assert_eq!(slider(&h).1, Some(5.0));
+    // → with the focus on the slider: the next value
+    h.get_by(|n| n.role() == Role::Slider && n.label().as_deref() == Some("Rate"))
+        .focus();
+    h.step();
+    h.key_press(Key::ArrowRight);
+    settle(&mut h);
+    assert_eq!(card_value(&h), json!([[6]]));
+    assert_eq!(slider(&h).1, Some(6.0));
+    // a drag from the handle to the track's start: the smallest value
+    let (track, _) = slider(&h);
+    let from = egui::pos2(track.min.x + track.width() * 0.6, track.center().y);
+    let to = egui::pos2(track.min.x - 20.0, track.center().y);
+    h.hover_at(from);
+    h.step();
+    h.event(egui::Event::PointerButton {
+        pos: from,
+        button: egui::PointerButton::Primary,
+        pressed: true,
+        modifiers: Modifiers::NONE,
+    });
+    h.step();
+    for k in 1..=10 {
+        h.event(egui::Event::PointerMoved(from + (to - from) * (k as f32 / 10.0)));
+        h.step();
+    }
+    h.event(egui::Event::PointerButton {
+        pos: to,
+        button: egui::PointerButton::Primary,
+        pressed: false,
+        modifiers: Modifiers::NONE,
+    });
+    settle(&mut h);
+    assert_eq!(card_value(&h), json!([[0]]));
+    assert_eq!(slider(&h).1, Some(0.0));
 }

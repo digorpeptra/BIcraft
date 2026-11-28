@@ -1129,7 +1129,7 @@ fn items(ui: &mut Ui, cx: &Cx<'_>, out: &mut Out, menu: &[(&'static str, Value, 
 /// One row: a chevron for a branch (`open`), the icon, the name; selected rows are lit, hidden
 /// or inactive objects dimmed. Its accessible label is its text (a generic name when empty).
 #[allow(clippy::too_many_arguments)]
-fn row(
+pub(crate) fn row(
     ui: &mut Ui,
     l: Lang,
     depth: usize,

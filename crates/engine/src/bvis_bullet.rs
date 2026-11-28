@@ -16,7 +16,7 @@ pub(super) const DEF: Def = Def {
     guid: "bicraftBullet9A3D6F1C8E2B5A7D4F0E",
     name: "bicraftBullet",
     display_name: "BIcraft Bullet",
-    version: "1.3.2.0",
+    version: "1.3.3.0",
     description: "A value against its target over qualitative bands (BIcraft, docs/formats/bicraft-visuals.md)",
     roles: &[
         Role {

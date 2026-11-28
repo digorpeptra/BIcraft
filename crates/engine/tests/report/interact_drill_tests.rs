@@ -811,3 +811,53 @@ fn a_bookmark_captures_and_restores_the_drill() {
     run(&mut s, "bookmark.apply", json!({"bookmark": plain}));
     assert_eq!(rows(&s, &v), top);
 }
+
+/// A bookmark captures a visual's drill mode (G55): turned on, it is written as BIcraft's own
+/// formatting-object update (`singleVisual.objects.merge.bicraftDrill`, valid against the
+/// public bookmark schema), and applying the bookmark turns it back on, in the reader and with
+/// `bookmark.apply`; a bookmark taken with it off turns it off.
+#[test]
+fn a_bookmark_round_trips_the_drill_mode() {
+    let mut s = shop();
+    let (main, v) = chart(&mut s);
+    let mode = |s: &Session| visual_json(&s.snapshot(), &v)["drill"]["mode"].clone();
+    let off = run(&mut s, "bookmark.capture", json!({"display_name": "Off"}))["bookmark"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    act(
+        &mut s,
+        json!({"action": "drill_mode", "page": main, "visual": v, "on": true}),
+    );
+    assert_eq!(mode(&s), json!(true));
+    let on = run(&mut s, "bookmark.capture", json!({"display_name": "On"}))["bookmark"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let report = s.report.as_ref().unwrap();
+    let doc = &report.bookmarks.last().unwrap().document;
+    let c = &doc["explorationState"]["sections"][&main]["visualContainers"][&v];
+    assert_eq!(
+        c.pointer("/singleVisual/objects/merge/bicraftDrill/0/properties/drillMode/expr/Literal/Value"),
+        Some(&json!("true")),
+        "{c}"
+    );
+    let issues: Vec<_> = bicraft_pbir::validate_documents(&bicraft_pbir::write_documents(report))
+        .into_iter()
+        .filter(|i| i.path.contains("bookmarks"))
+        .collect();
+    assert!(issues.is_empty(), "{issues:?}");
+
+    // off again; the bookmark turns it on, the other one off
+    act(
+        &mut s,
+        json!({"action": "drill_mode", "page": main, "visual": v, "on": false}),
+    );
+    assert_eq!(mode(&s), json!(false));
+    act(&mut s, json!({"action": "bookmark", "bookmark": on}));
+    assert_eq!(mode(&s), json!(true), "view.interact bookmark");
+    act(&mut s, json!({"action": "bookmark", "bookmark": off}));
+    assert_eq!(mode(&s), json!(false), "the bookmark without it");
+    run(&mut s, "bookmark.apply", json!({"bookmark": on}));
+    assert_eq!(mode(&s), json!(true), "bookmark.apply");
+}

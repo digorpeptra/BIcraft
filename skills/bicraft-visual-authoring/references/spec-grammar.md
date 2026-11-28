@@ -119,4 +119,4 @@ The Spec visual's behaviour comes from BIcraft's runtime, with nothing to write:
 - a landing page with no fields;
 - names in English and French.
 
-`bicraft render` draws the visual unselected, with the same marks as Power BI.
+`bicraft-cli render` draws the visual unselected, with the same marks as Power BI.

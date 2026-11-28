@@ -3039,9 +3039,10 @@ const ORIENTATIONS: &[(&str, &str, &str)] = &[
     ("0", "Grid", "Grille"),
 ];
 
-/// A navigator's buttons' Shape (one for every state, written without selector), Glow and Shadow
-/// (by state) cards: the report theme schema's `shape`, `glow` and `shadow` objects of
-/// `pageNavigator` / `bookmarkNavigator`.
+/// The Shape, Glow and Shadow (by state) cards of a navigator's buttons and of an action button:
+/// the report theme schema's `shape`, `glow` and `shadow` objects of `pageNavigator`,
+/// `bookmarkNavigator` and `actionButton` (a navigator's Shape is one for every state, written
+/// without selector).
 const NAV_SHAPE: &[ObjSpec] = &[
     ObjSpec {
         object: "shape",
@@ -3313,12 +3314,11 @@ pub fn visual_cards(vtype: &str) -> Vec<Card> {
     }
     // buttons and navigators: Desktop's Format button / Format navigator cards, as the catalog
     // gives them to the type (Grid layout, Pages, Bookmarks, then Style's Text, Icon, Fill,
-    // Border, Accent bar; a navigator's buttons also their Shape, Glow and Shadow, G55)
+    // Border, Accent bar; then the buttons' Shape, Glow and Shadow, G55)
     if matches!(vtype, "actionButton" | "pageNavigator" | "bookmarkNavigator") {
-        let navigator = vtype != "actionButton";
         return NAV_OBJECTS
             .iter()
-            .chain(NAV_SHAPE.iter().filter(|_| navigator))
+            .chain(NAV_SHAPE.iter())
             .filter_map(|spec| card_for(vtype, spec))
             .collect();
     }

@@ -9,7 +9,7 @@ pub(crate) const DEF: Def = Def {
     guid: "bicraftWaterfallPlus3C5E7A9B1D2F4A6C8E0B",
     name: "bicraftWaterfallPlus",
     display_name: "BIcraft Waterfall+",
-    version: "1.0.3.0",
+    version: "1.0.4.0",
     description: "A waterfall: a running total step by step with subtotals, a total and a target, vertical or horizontal, coloured by sign, category or rule; several measures become the steps (BIcraft, docs/formats/chart-pack.md)",
     roles: &[
         Role {

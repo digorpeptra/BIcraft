@@ -1,5 +1,5 @@
-//! Operations of `bicraft serve` over real sockets (docs/web-deployment.md, "Operating
-//! `bicraft serve`"): file upload, download, listing and deletion per workspace (streamed, capped,
+//! Operations of `bicraft-cli serve` over real sockets (docs/web-deployment.md, "Operating
+//! `bicraft-cli serve`"): file upload, download, listing and deletion per workspace (streamed, capped,
 //! sandboxed, no overwrite by default, plain files only), zipped projects (zip-slip, links, bombs),
 //! authentication and ACL on the file routes, uploads against an open session, the probes, the
 //! graceful drain, and the idle close with lazy reopen.

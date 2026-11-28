@@ -105,7 +105,7 @@ impl Status {
 }
 
 // ---------------------------------------------------------------------------------------------
-// Response notes (metrics and request logs of `bicraft serve`)
+// Response notes (metrics and request logs of `bicraft-cli serve`)
 
 thread_local! {
     /// The status of the first response head written on this thread since the last

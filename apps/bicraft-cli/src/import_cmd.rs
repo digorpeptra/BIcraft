@@ -1,4 +1,4 @@
-//! `bicraft import SOURCE TARGET [selectors] [options]`: copies objects from SOURCE into TARGET
+//! `bicraft-cli import SOURCE TARGET [selectors] [options]`: copies objects from SOURCE into TARGET
 //! with `objects.import`, then saves TARGET with `file.save` (not with `--dry-run`).
 
 use bicraft_engine::Session;
@@ -73,7 +73,7 @@ pub(crate) fn import(args: &[String]) -> Result<u8, Failure> {
         }
     }
     let [source, target] = positional.as_slice() else {
-        return Err(usage("import needs SOURCE and TARGET (see `bicraft help`)"));
+        return Err(usage("import needs SOURCE and TARGET (see `bicraft-cli help`)"));
     };
     params.insert("source".into(), json!(source));
     let dry_run = params.get("dry_run") == Some(&Value::Bool(true));

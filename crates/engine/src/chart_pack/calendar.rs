@@ -9,7 +9,7 @@ pub(crate) const DEF: Def = Def {
     guid: "bicraftCalendarHeatmap1E3B5D7F9A2C4E6B8D0F",
     name: "bicraftCalendarHeatmap",
     display_name: "BIcraft Calendar Heatmap",
-    version: "1.3.3.0",
+    version: "1.3.4.0",
     description: "A calendar heatmap: one cell per day, weeks as columns and weekdays as rows, coloured by the day's value (BIcraft, docs/formats/chart-pack.md)",
     roles: &[
         Role {

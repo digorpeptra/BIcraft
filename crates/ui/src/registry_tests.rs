@@ -15,6 +15,7 @@ fn tab(t: ETab) -> &'static str {
         ETab::Data => "Tab::Data",
         ETab::Analyze => "Tab::Analyze",
         ETab::View => "Tab::View",
+        ETab::Optimize => "Tab::Optimize",
         ETab::Visual => "Tab::Visual",
         ETab::Table => "Tab::Table",
         ETab::Measure => "Tab::Measure",

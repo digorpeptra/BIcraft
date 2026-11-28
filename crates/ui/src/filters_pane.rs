@@ -5,7 +5,11 @@
 //! edits the condition:
 //!
 //! - **Basic filtering**: a search box and the column's values (from the engine,
-//!   `column.values`) as checkboxes, with Select all; each click applies at once;
+//!   `column.values`) as checkboxes, with Select all; each click applies at once, unless the
+//!   report's query reduction (`report.query_reduction` `filters`) asks for Apply buttons: then
+//!   the clicks wait in the pane (pure view state, marked "Not applied" in words) until the
+//!   card's Apply filter (`apply_buttons`) or the pane's single Apply all (`single_button`) runs
+//!   the waiting edits;
 //! - **Advanced filtering**: one or two conditions (is, is not, is less than…, contains, starts
 //!   with, is blank…) joined by And / Or, applied with Apply filter;
 //! - **Top N** (visual filters only, as in Desktop): Top or Bottom, the count and the field it
@@ -170,6 +174,43 @@ pub struct FiltersUi {
     pub values: BTreeMap<String, (u64, Vec<Value>, bool)>,
     /// Columns whose values were asked for (field text, revision).
     pub asked: BTreeSet<(String, u64)>,
+    /// Basic-filter edits waiting for an Apply button (query reduction), by card key.
+    pub queued: BTreeMap<String, Queued>,
+}
+
+/// A basic card's edit held until applied (query reduction's Apply buttons): the command it
+/// runs and the card as it will read.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Queued {
+    pub id: &'static str,
+    pub params: Value,
+    /// The card's type and condition once applied (`none` and null for a cleared card).
+    pub ty: String,
+    pub condition: Value,
+}
+
+/// When a basic filter's change applies (query reduction's `filters` option).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Defer {
+    /// At once (Desktop's default).
+    Instantly,
+    /// With an Apply filter button on each card.
+    PerCard,
+    /// With one Apply all button for the whole pane.
+    Single,
+}
+
+/// The report's query reduction option for basic filters (the snapshot's
+/// `report.settings.query_reduction.filters`).
+pub fn defer_of(snap: &Value) -> Defer {
+    match snap
+        .pointer("/report/settings/query_reduction/filters")
+        .and_then(Value::as_str)
+    {
+        Some("apply_buttons") => Defer::PerCard,
+        Some("single_button") => Defer::Single,
+        _ => Defer::Instantly,
+    }
 }
 
 /// One filter card, from the snapshot (`filters[]`) or a bound field without one.
@@ -1051,7 +1092,34 @@ pub fn pane(app: &mut App, ui: &mut Ui) {
         }
     }
     let mut acts: Vec<Act> = Vec::new();
+    let defer = defer_of(&snap);
     let ui_state = &mut app.filters;
+    if defer == Defer::Instantly {
+        ui_state.queued.clear();
+    }
+    // query reduction's single Apply button: every waiting edit at once
+    if defer == Defer::Single && !ui_state.queued.is_empty() {
+        let n = ui_state.queued.len();
+        let mut apply = false;
+        ui.horizontal(|ui| {
+            ui.label(
+                egui::RichText::new(if n == 1 {
+                    l.t("1 change not applied", "1 changement non appliqué")
+                        .to_string()
+                } else {
+                    format!("{n} {}", l.t("changes not applied", "changements non appliqués"))
+                })
+                .color(pane_fg),
+            );
+            apply = ui.button(l.t("Apply all", "Tout appliquer")).clicked();
+        });
+        if apply {
+            for (_, q) in std::mem::take(&mut ui_state.queued) {
+                acts.push(Act::Run(q.id, q.params));
+            }
+        }
+        ui.add_space(4.0);
+    }
     let q = ui_state.find.trim().to_lowercase();
     egui::ScrollArea::vertical()
         .id_salt("bicraft-filters-pane")
@@ -1087,6 +1155,7 @@ pub fn pane(app: &mut App, ui: &mut Ui) {
                     style: &style,
                     order: &order,
                     sort: &target.sort,
+                    defer,
                 };
                 section(ui, &cx, &shown, ui_state, &mut acts);
                 ui.add_space(10.0);
@@ -1141,6 +1210,8 @@ struct SectionCx<'a> {
     order: &'a Result<(), String>,
     /// The section's sort mode (`ascending`, `descending`, `custom`).
     sort: &'a str,
+    /// When a basic filter's change applies (query reduction).
+    defer: Defer,
 }
 
 fn section(
@@ -1665,6 +1736,20 @@ fn basic_ui(ui: &mut Ui, cx: &SectionCx<'_>, c: &Card, key: &str, st: &mut Filte
     let l = cx.lang;
     let t = Tokens::get(ui.ctx());
     let enabled = cx.edit.is_ok();
+    // a waiting edit (query reduction's Apply buttons): the card as it will read once applied
+    let waiting = st.queued.get(key).cloned();
+    let shown_card;
+    let c = match &waiting {
+        Some(q) => {
+            shown_card = Card {
+                ty: q.ty.clone(),
+                condition: q.condition.clone(),
+                ..c.clone()
+            };
+            &shown_card
+        }
+        None => c,
+    };
     let (Some(table), Some(column)) = (c.table.clone(), c.name.clone()) else {
         return;
     };
@@ -1738,30 +1823,61 @@ fn basic_ui(ui: &mut Ui, cx: &SectionCx<'_>, c: &Card, key: &str, st: &mut Filte
     let clear = || {
         let mut p = cx.target.params(&c.field);
         p["keep_cards"] = json!(true);
-        Act::Run(cx.target.scope.clear_cmd(), p)
-    };
-    match clicked {
-        None => {}
-        Some(None) => {
-            if c.ty != "none" {
-                acts.push(clear());
-            }
+        Queued {
+            id: cx.target.scope.clear_cmd(),
+            params: p,
+            ty: "none".into(),
+            condition: Value::Null,
         }
+    };
+    let edit = match clicked {
+        None => None,
+        Some(None) => (c.ty != "none").then(clear),
         Some(Some(v)) => match toggle_value(c, values, &v) {
-            None => {}
-            Some(Err(())) => {
-                if c.ty != "none" {
-                    acts.push(clear());
-                }
-            }
+            None => None,
+            Some(Err(())) => (c.ty != "none").then(clear),
             Some(Ok(cond)) => {
                 let mut p = cx.target.params(&c.field);
                 if let (Some(o), Some(x)) = (p.as_object_mut(), cond.as_object()) {
                     o.extend(x.clone());
                 }
-                acts.push(Act::Run(cx.target.scope.filter_cmd(), p));
+                Some(Queued {
+                    id: cx.target.scope.filter_cmd(),
+                    params: p,
+                    ty: "basic".into(),
+                    condition: cond,
+                })
             }
         },
+    };
+    if let Some(q) = edit {
+        if cx.defer == Defer::Instantly {
+            acts.push(Act::Run(q.id, q.params));
+        } else {
+            st.queued.insert(key.to_string(), q);
+        }
+    }
+    // the waiting edit: said in words, applied by the card's own Apply filter (per card) or by
+    // the pane's Apply all (single button)
+    if cx.defer != Defer::Instantly && st.queued.contains_key(key) {
+        ui.horizontal(|ui| {
+            ui.label(
+                egui::RichText::new(l.t("Not applied", "Non appliqué"))
+                    .size(11.0)
+                    .color(t.text_dim),
+            );
+            if cx.defer == Defer::PerCard
+                && ui
+                    .add_enabled(
+                        enabled,
+                        egui::Button::new(l.t("Apply filter", "Appliquer le filtre")),
+                    )
+                    .clicked()
+                && let Some(q) = st.queued.remove(key)
+            {
+                acts.push(Act::Run(q.id, q.params));
+            }
+        });
     }
 }
 

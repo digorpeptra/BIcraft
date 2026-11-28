@@ -1,4 +1,4 @@
-//! VPAX export (M9.3): `model.export_vpax` / `bicraft vpax`. A VPAX file is the open
+//! VPAX export (M9.3): `model.export_vpax` / `bicraft-cli vpax`. A VPAX file is the open
 //! VertiPaq Analyzer format (sql-bi/VertiPaq-Analyzer, MIT license): an OPC package (ZIP with
 //! `[Content_Types].xml`) holding `DaxModel.json`, the model and its storage statistics as the
 //! `Dax.Metadata` classes serialize them, and optionally `Model.bim`, the model as TMSL.

@@ -1,6 +1,6 @@
-//! Checks run from an extracted release archive: `--version`, a model generated and validated,
-//! an MCP `initialize` + `tools/list` over stdio, the install script into a scratch folder, and
-//! the `.pbiviz` files under `visuals/`.
+//! Checks run from an extracted release archive: `--version` of both programs, a model generated
+//! and validated, the desktop app's offscreen render of it, an MCP `initialize` + `tools/list`
+//! over stdio, the install script into a scratch folder, and the `.pbiviz` visuals.
 //!
 //! The archive is extracted with the operating system's own `tar` (Windows' bsdtar reads zip),
 //! as a user would, not with the library that wrote it.
@@ -41,23 +41,30 @@ fn checks(t: Target, archive: &Path, scratch: &Path, top: &str, version: &str) -
         .arg(scratch);
     expect_ok(tar, "extract")?;
     let dir = scratch.join(top);
-    let bin = dir.join(t.exe());
+    let bin = dir.join(t.bin_dir());
+    let cli = bin.join(t.cli());
+    let app = bin.join(t.app());
 
-    // 1. --version
-    let line = stdout_of(Command::new(&bin).arg("--version"), "--version")?;
-    if !line.starts_with(&format!("bicraft {version}")) {
-        return Err(format!("smoke: --version printed `{line}`"));
+    // 1. --version of both programs
+    let line = stdout_of(Command::new(&cli).arg("--version"), "bicraft-cli --version")?;
+    if !line.starts_with(&format!("bicraft-cli {version}")) {
+        return Err(format!("smoke: bicraft-cli --version printed `{line}`"));
     }
     eprintln!("smoke: {line}");
+    let app_line = stdout_of(Command::new(&app).arg("--version"), "bicraft --version")?;
+    if app_line != format!("bicraft {version}") {
+        return Err(format!("smoke: bicraft --version printed `{app_line}`"));
+    }
+    eprintln!("smoke: {app_line}");
 
     // 2. a generated project, validated.
     let proj = scratch.join("project");
-    let mut c = Command::new(&bin);
+    let mut c = Command::new(&cli);
     c.arg("new-project").arg(&proj).arg("Smoke");
     stdout_of(&mut c, "new-project")?;
     let model = proj.join("Smoke.SemanticModel");
     let report = stdout_of(
-        Command::new(&bin).arg("validate-model").arg(&model),
+        Command::new(&cli).arg("validate-model").arg(&model),
         "validate-model",
     )?;
     let v: serde_json::Value =
@@ -67,10 +74,26 @@ fn checks(t: Target, archive: &Path, scratch: &Path, top: &str, version: &str) -
     }
     eprintln!("smoke: validate-model ok");
 
-    // 3. MCP handshake over stdio.
-    mcp(&bin, version)?;
+    // 3. the desktop app opens that project and draws its window offscreen (no display, no GPU)
+    let shot = scratch.join("app.png");
+    stdout_of(
+        Command::new(&app)
+            .arg(proj.join("Smoke.pbip"))
+            .arg("--render")
+            .arg(&shot)
+            .args(["--size", "800x500"]),
+        "bicraft --render",
+    )?;
+    let png = std::fs::read(&shot).map_err(|e| format!("smoke: {}: {e}", shot.display()))?;
+    if !png.starts_with(b"\x89PNG\r\n\x1a\n") {
+        return Err(format!("smoke: {} is not a PNG", shot.display()));
+    }
+    eprintln!("smoke: bicraft --render ok ({} bytes)", png.len());
 
-    // 4. The install script, into a scratch folder.
+    // 4. MCP handshake over stdio.
+    mcp(&cli, version)?;
+
+    // 5. The install script, into a scratch folder (a prefix on Linux).
     let dest = scratch.join("installed");
     let mut c = match t {
         Target::Windows => {
@@ -94,17 +117,42 @@ fn checks(t: Target, archive: &Path, scratch: &Path, top: &str, version: &str) -
         }
     };
     let said = stdout_of(&mut c, "install script")?;
+    let installed_bin = dest.join(t.bin_dir());
     let installed = stdout_of(
-        Command::new(dest.join(t.exe())).arg("--version"),
-        "installed --version",
+        Command::new(installed_bin.join(t.cli())).arg("--version"),
+        "installed bicraft-cli --version",
     )?;
-    if installed != line || !said.contains(&line) {
+    let installed_app = stdout_of(
+        Command::new(installed_bin.join(t.app())).arg("--version"),
+        "installed bicraft --version",
+    )?;
+    if installed != line || installed_app != app_line || !said.contains(&line) {
         return Err(format!("smoke: install script output:\n{said}"));
+    }
+    if t == Target::Linux {
+        // the menu entry runs the installed app by its absolute path; the icon and types are there
+        let entry = dest.join(format!("share/applications/{}.desktop", super::APP_ID));
+        let text = std::fs::read_to_string(&entry).map_err(|e| format!("smoke: {}: {e}", entry.display()))?;
+        let exec = format!("Exec=\"{}\" %f", installed_bin.join(t.app()).display());
+        if !text.lines().any(|l| l == exec) {
+            return Err(format!("smoke: {} has no `{exec}`:\n{text}", entry.display()));
+        }
+        for f in [
+            format!("share/icons/hicolor/256x256/apps/{}.png", super::APP_ID),
+            format!("share/mime/packages/{}.xml", super::APP_ID),
+            format!("share/metainfo/{}.metainfo.xml", super::APP_ID),
+            "share/doc/bicraft/README.md".to_owned(),
+            "share/bicraft/visuals/README.md".to_owned(),
+        ] {
+            if !dest.join(&f).is_file() {
+                return Err(format!("smoke: the install script did not install {f}"));
+            }
+        }
     }
     eprintln!("smoke: install script ok");
 
-    // 5. BIcraft's visuals (M12.5): `.pbiviz` packages next to their README.
-    let visuals = dir.join("visuals");
+    // 6. BIcraft's visuals (M12.5): `.pbiviz` packages next to their README.
+    let visuals = dir.join(t.visuals_dir());
     let packages: Vec<PathBuf> = std::fs::read_dir(&visuals)
         .map_err(|e| format!("smoke: {}: {e}", visuals.display()))?
         .flatten()

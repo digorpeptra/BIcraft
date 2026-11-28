@@ -259,6 +259,9 @@ pub enum Then {
     Perf(&'static str),
     /// The answer of the visual calculations window's Apply ([`crate::viscalc_dialog::answer`]).
     VisualCalc,
+    /// The visual calculations window's live preview of the name and expression in its key
+    /// ([`crate::viscalc_dialog::preview_answer`]).
+    VisualCalcPreview(String),
     /// The answer of Autodetect relationships ([`crate::autodetect::answer`]).
     Autodetect,
     /// The answers of Manage relationships and its Create / Edit window
@@ -423,6 +426,9 @@ pub struct App {
     /// Where the reader's pointer is over a button, shape or navigator button (hovered or
     /// pressed): the page is drawn with it in that state (`bicraft_render::states`).
     pub pointer: Option<bicraft_render::states::Pointer>,
+    /// The reader's view of each Gantt, by visual name: the lines scrolled and the time line's
+    /// zoom (view state, never in the file; [`crate::gantt_ui`]).
+    pub gantt: crate::pages::GanttViews,
     /// The status bar's zoom (fit page, fit width, actual size, a percentage): a view setting
     /// of this window over the page's View › Page view; `None` follows the page.
     pub view_zoom: Option<ViewZoom>,
@@ -515,6 +521,7 @@ impl App {
             shown: None,
             placed: None,
             pointer: None,
+            gantt: crate::pages::GanttViews::new(),
             view_zoom: None,
             popup: None,
             model_view: ModelView::default(),
@@ -1005,6 +1012,9 @@ impl App {
                     (Then::Rich(step), r) => crate::rich::answer(self, step, r),
                     (Then::Perf(id), r) => crate::perf_pane::answer(self, id, r),
                     (Then::VisualCalc, r) => crate::viscalc_dialog::answer(self, r),
+                    (Then::VisualCalcPreview(asked), r) => {
+                        crate::viscalc_dialog::preview_answer(self, &asked, r)
+                    }
                     (Then::Autodetect, r) => crate::autodetect::answer(self, r),
                     (Then::Rels(step), r) => crate::relationships_dialog::answer(self, step, r),
                     (Then::Roles(step), r) => crate::roles_dialog::answer(self, step, r),
@@ -2307,13 +2317,15 @@ impl App {
                                 .color(t.text_dim),
                         );
                     }
-                    if !self.status.is_empty() {
-                        ui.label(
-                            RichText::new(clip(&self.status, 160))
-                                .font(theme::font(12.0))
-                                .color(t.text_dim),
-                        );
-                    }
+                    // the status message is a polite live region, drawn even when empty so a
+                    // screen reader knows it before it speaks (crate::keyboard announces where
+                    // the focus went through it)
+                    let status = ui.label(
+                        RichText::new(clip(&self.status, 160))
+                            .font(theme::font(12.0))
+                            .color(t.text_dim),
+                    );
+                    crate::keyboard::live_region(ui.ctx(), status.id, &clip(&self.status, 160));
                     if self.pages.as_ref().is_some_and(Pages::busy) {
                         ui.spinner();
                     }
@@ -2934,11 +2946,17 @@ impl App {
         let key = Key::new(loaded.seq, page, scale)
             .with_view(view)
             .with_contrast(self.prefs.report_contrast)
-            .with_pointer(pointer.as_ref());
+            .with_pointer(pointer.as_ref())
+            .with_gantt(&self.gantt)
+            .with_grid(crate::canvas::grid_under(
+                self,
+                scale / ui.ctx().pixels_per_point(),
+            ));
+        let gantt = self.gantt.clone();
         let got = self
             .pages
             .as_mut()
-            .and_then(|p| p.get_at(loaded, key, pointer.as_ref()));
+            .and_then(|p| p.get_at(loaded, key, pointer.as_ref(), &gantt));
         if let Some(r) = got {
             self.shown = Some(r);
         }
@@ -3056,11 +3074,25 @@ impl App {
         let on_icon = crate::drill::expand_buttons(self, ui, rect, zoom) || on_icon;
         // a decomposition tree's "+", remove crosses and scroll arrows, likewise (G34)
         let on_icon = crate::decomp_ui::buttons(self, ui, rect, zoom) || on_icon;
+        // a what-if parameter's single-value slider as a slider widget (value_slider.rs)
+        let on_icon = crate::value_slider::overlay(self, ui, rect, zoom) || on_icon;
+        // paused visual queries: each waiting visual's pending-changes strip (optimize_ui.rs)
+        let on_icon = crate::optimize_ui::pending_strips(self, ui, rect, zoom) || on_icon;
+        // query reduction's Apply button on each slicer
+        let on_icon = crate::optimize_ui::slicer_apply(self, ui, rect, zoom) || on_icon;
+        // a Gantt's expand/collapse icons, scroll bar and time line zoom (G99)
+        let on_icon = crate::gantt_ui::controls(self, ui, rect, zoom) || on_icon;
         let hovered = resp
             .hover_pos()
             .and_then(|p| self.hit_at_screen(p))
             .filter(|_| !on_icon);
-        let page_tip = crate::drill::tooltip(self, ui, resp, hovered.as_ref());
+        // paused: no report-page tooltip (it would need its queries), and a waiting visual
+        // shows no tooltip at all
+        let paused = crate::optimize_ui::paused(self);
+        let page_tip = !paused && crate::drill::tooltip(self, ui, resp, hovered.as_ref());
+        let hovered_waits = hovered
+            .as_ref()
+            .is_some_and(|h| crate::optimize_ui::visual_pending(self, &h.visual));
         // a button, shape or navigator button under the pointer is drawn in its hover or press
         // state (Desktop's button states); the page is drawn again when that changes
         let pressed = ui.input(|i| i.pointer.primary_down());
@@ -3073,7 +3105,7 @@ impl App {
             ui.ctx().request_repaint();
         }
         if let Some(h) = hovered {
-            if !h.tip.is_empty() && !page_tip {
+            if !h.tip.is_empty() && !page_tip && !hovered_waits {
                 let tip = h.tip.clone();
                 let _ = resp.clone().on_hover_ui_at_pointer(|ui| {
                     egui::Grid::new("bicraft-tip").num_columns(2).show(ui, |ui| {
@@ -3085,7 +3117,8 @@ impl App {
                     });
                 });
             }
-            if !matches!(h.action, HitAction::None) {
+            // a region that only carries a right-click menu or the app's controls is not a link
+            if matches!(h.action, HitAction::Send { .. } | HitAction::Popup(_)) {
                 ui.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
             }
         }
@@ -3276,9 +3309,14 @@ impl App {
         // the diagram's drags and the Properties pane edit through `diagram.move` and `*.set`
         self.model_view.editable = crate::ribbon::state(self, "diagram.move").is_ok();
         self.model_view.ui(ui, self.loaded.as_ref(), self.lang);
-        // its Data and Properties panes are sections of their own (Ctrl+F6)
-        for r in std::mem::take(&mut self.model_view.panes) {
-            crate::keyboard::section(self, ui, Section::Pane, r);
+        // its Data and Properties panes (drawn in that order) are sections of their own (Ctrl+F6)
+        for (i, r) in std::mem::take(&mut self.model_view.panes).into_iter().enumerate() {
+            let pane = if i == 0 {
+                crate::keyboard::Region::Data
+            } else {
+                crate::keyboard::Region::Properties
+            };
+            crate::keyboard::pane(self, ui, pane, r);
         }
         // a gesture's or a property's command, with all its values: sent as it is
         if let Some((id, p)) = self.model_view.run.take()

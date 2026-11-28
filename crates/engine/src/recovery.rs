@@ -2,7 +2,7 @@
 //!
 //! **Off by default.** A host turns it on with [`Session::set_recovery`] and a per-user folder
 //! ([`RecoveryConfig::default_dir`]: `%LOCALAPPDATA%\bicraft\recovery` on Windows,
-//! `$XDG_STATE_HOME/bicraft/recovery` elsewhere; `bicraft serve` uses its own `--recovery-dir`).
+//! `$XDG_STATE_HOME/bicraft/recovery` elsewhere; `bicraft-cli serve` uses its own `--recovery-dir`).
 //! The journal is never written next to the user's file.
 //!
 //! **The journal.** Every successful command that edits the open file and whose registry row

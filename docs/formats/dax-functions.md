@@ -427,7 +427,7 @@ context clearing), and for `TOPNSKIP` the public description on
   no wildcards.
 - Without `utc_offset_minutes`, `NOW()`/`TODAY()` are the process's local time and `UTCNOW()`/
   `UTCTODAY()` that minus its offset at the instant (`crate::clock`: the machine's time zone in
-  the desktop app and the CLI, UTC or `--local-offset` in `bicraft serve`), in `dax.evaluate`,
+  the desktop app and the CLI, UTC or `--local-offset` in `bicraft-cli serve`), in `dax.evaluate`,
   visuals, the viewer and RLS; an `as_of` is local time, read in the same zone. The parameter,
   when given, still wins. Calculated tables and columns read the same clock since the
   "Calendar-based time intelligence" lot below.

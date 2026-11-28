@@ -241,6 +241,20 @@ fn query_model<'m>(
                 let body = text
                     .get(expr_span.start..expr_span.end)
                     .ok_or_else(|| format!("MEASURE {table}[{name}]: bad expression span"))?;
+                // The model's own definition, as a Define quick query writes it: nothing to
+                // replace (model measures that use it see the same expression either way).
+                let same = model
+                    .tables
+                    .iter()
+                    .find(|t| t.name.eq_ignore_ascii_case(table))
+                    .is_some_and(|t| {
+                        t.measures
+                            .iter()
+                            .any(|x| x.name.eq_ignore_ascii_case(name) && x.expression.trim() == body.trim())
+                    });
+                if same {
+                    continue;
+                }
                 // A query measure replaces a model measure for the query's own references only:
                 // model measures keep using the model's (Desktop 2.158). Refused when one does.
                 let needle = format!("[{}]", name.replace(']', "]]")).to_lowercase();
@@ -396,7 +410,7 @@ pub(crate) fn dax_evaluate(s: &Session, p: &Value) -> Result<Value, String> {
             off,
         ),
         // without an offset, the process's local clock (the machine's time zone in the desktop
-        // app and the CLI, UTC or `--local-offset` in `bicraft serve`)
+        // app and the CLI, UTC or `--local-offset` in `bicraft-cli serve`)
         None => match as_of {
             Some(t) => (t, filters::offset_days_at(t)),
             None => (filters::clock(s), filters::utc_offset(s)),

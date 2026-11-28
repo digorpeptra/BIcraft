@@ -2,8 +2,8 @@
 
 Decision of 2026-10-29: the web viewer and the desktop app must not differ. There is **one UI**:
 the egui app of [`crates/ui`](../crates/ui) (`bicraft_ui::App`). It runs natively in
-[`bicraft-desktop`](desktop.md), and compiled to WebAssembly in the browser, served by
-`bicraft view` and `bicraft serve`. The HTML viewer (`crates/view/src/page.html`) stays the
+[`bicraft`](desktop.md), and compiled to WebAssembly in the browser, served by
+`bicraft-cli view` and `bicraft-cli serve`. The HTML viewer (`crates/view/src/page.html`) stays the
 default until the egui path has every one of its features (the checklist below); then it is
 removed.
 
@@ -38,7 +38,7 @@ The look (tokens, fonts, chrome, icons, widgets, light and dark) is specified in
   as its dev-dependency only).
 - The app, its rendering (`bicraft-render` at the canvas size and DPI), its hit map and every
   `view.interact` action are the same code in both shells. The browser draws the page with the
-  same renderer as `bicraft render` and the desktop, so a page looks the same everywhere.
+  same renderer as `bicraft-cli render` and the desktop, so a page looks the same everywhere.
 - **The shell** (`bicraft_ui::shell::Shell`) is all a front end supplies: its capabilities
   (`Caps`: open files, connect to a server, quit; open-in-Desktop and download for phase 2), how
   a data source starts, the Open dialog, where preferences are kept, how the title is set, and
@@ -72,16 +72,16 @@ The look (tokens, fonts, chrome, icons, widgets, light and dark) is specified in
 
 ## The browser data source
 
-The app page (`/app/` on `bicraft view`, `/w/<id>/view/app/` on `bicraft serve`) carries the
+The app page (`/app/` on `bicraft-cli view`, `/w/<id>/view/app/` on `bicraft-cli serve`) carries the
 same `<meta>` slots as the HTML page: `bicraft-interact-token`, `bicraft-open-token`
-(`bicraft view` only), `bicraft-view-id` (`bicraft serve` only). The API root is the page's
+(`bicraft-cli view` only), `bicraft-view-id` (`bicraft-cli serve` only). The API root is the page's
 path without its last `app/` segment:
 
 ```text
 GET  {root}api/state[?v=VIEW]          the snapshot (on each change; once per burst of events)
 GET  {root}api/asset/ID[?v=VIEW]       its images (kept across snapshots by id)
 GET  {root}api/events[?v=VIEW]         EventSource: `event: snapshot`; an inline snapshot
-                                       (bicraft view, up to 1 MiB) is used without a fetch
+                                       (bicraft-cli view, up to 1 MiB) is used without a fetch
 POST {root}api/interact[?v=VIEW]       view.interact, X-Bicraft-Token from the page
 ```
 
@@ -106,13 +106,13 @@ POST {root}api/interact[?v=VIEW]       view.interact, X-Bicraft-Token from the p
 
 ## Serving
 
-| Route | `bicraft view` | `bicraft serve` |
+| Route | `bicraft-cli view` | `bicraft-cli serve` |
 |---|---|---|
 | app page | `/app/` (`/app` → 308) | `/w/<id>/view/app/` (new private view, as `…/view/`) |
 | files | `/app/boot.js`, `/app/bicraft_web.js`, `/app/bicraft_web_bg.wasm` | same under `/w/<id>/view/app/` |
 | default UI | `/` (HTML) unless `--ui egui` | `/w/<id>/view/` (HTML) |
 
-- `bicraft view FILE --ui egui` prints (and with `--open` opens) the `/app/` URL. The HTML page
+- `bicraft-cli view FILE --ui egui` prints (and with `--open` opens) the `/app/` URL. The HTML page
   stays at `/`.
 - **Same checks as the HTML page**: `Host` (DNS rebinding), authentication, the workspace ACL,
   GET only; interactions keep the token, `Origin` and `Sec-Fetch-Site` checks.
@@ -146,14 +146,14 @@ cargo build --release -p bicraft-cli
   two files when `BICRAFT_WEBUI_DIR` (an absolute path) is set, gzip-compressed with their entity
   tags. Without it, `cargo build` and `cargo xtask ci` need no wasm tools, and the app routes
   answer 404 with "This bicraft was built without the browser app…". `BICRAFT_REQUIRE_WEBUI=1`
-  makes a missing bundle a build error. `bicraft build-info` (JSON) says whether a binary embeds
+  makes a missing bundle a build error. `bicraft-cli build-info` (JSON) says whether a binary embeds
   it (`webui.embedded`).
 - **Release binaries always embed it**: `cargo xtask dist` builds the bundle once (or takes
   `--webui DIR`), passes it to the Windows build and to the WSL Linux build, builds with
   `BICRAFT_REQUIRE_WEBUI=1` and refuses a binary whose `build-info` says otherwise; the release
   workflow does the same per target; the container image (`deploy/docker/Dockerfile`) installs
   the wasm32 target and the wasm-bindgen CLI (`ARG WASM_BINDGEN_VERSION`), runs
-  `cargo xtask webui`, builds with `BICRAFT_REQUIRE_WEBUI=1`, and checks `bicraft build-info` on
+  `cargo xtask webui`, builds with `BICRAFT_REQUIRE_WEBUI=1`, and checks `bicraft-cli build-info` on
   the binary it ships, prebuilt ones included. `cargo xtask deploy check` fails when the Dockerfile
   lacks any of these or pins another wasm-bindgen than Cargo.lock, and
   `cargo xtask deploy check --binary PATH` fails on a binary without the app.
@@ -180,7 +180,7 @@ A browser downloads it once; later loads revalidate (304). The bulk is wgpu/naga
 ## Tests and checks
 
 - `apps/bicraft-web/src/protocol.rs`: the page's configuration (bad tokens ignored), the API
-  root and URLs for `bicraft view` and `bicraft serve`, answers (state, interactions accepted,
+  root and URLs for `bicraft-cli view` and `bicraft-cli serve`, answers (state, interactions accepted,
   refused, forbidden, malformed), inline snapshots, the role, refetch coalescing, back-off.
 - `crates/view/src/webui.rs`: the page's slots (only 32-hex values), the CSP, gzip negotiation,
   the files (gzip, inflated, 304 on the entity tag, unknown names).
@@ -200,10 +200,10 @@ A browser downloads it once; later loads revalidate (304). The bulk is wgpu/naga
   snapshot; light by default and the dark toggle kept (a blocked store too), the chrome's pills,
   `✓`/`✕` from the symbol face, the pages' bundled fonts on the render thread.
 - The desktop's own tests cover the app through the native shell (clicks give the viewer's
-  results, pages equal `bicraft render`, a `.bim` without an error bar): the same code runs in
+  results, pages equal `bicraft-cli render`, a `.bim` without an error bar): the same code runs in
   the browser.
 - **Browser check, 2026-11-05, parallel document tabs** (not part of CI): headless Firefox
-  159.0.1, throwaway profile, WebDriver BiDi (pointer actions inside the page), on `bicraft serve`
+  159.0.1, throwaway profile, WebDriver BiDi (pointer actions inside the page), on `bicraft-cli serve`
   (loopback, no authentication, `--allow-origin` its own origin) with a workspace holding the
   `visuals.pbip` fixture (opened in the workspace's session over MCP first, as an agent would) and
   `reports/model.bim`, at `/w/ws1/view/app/`: Open > Browse opened `reports/model.bim` and then
@@ -216,7 +216,7 @@ A browser downloads it once; later loads revalidate (304). The bulk is wgpu/naga
   file closed the new tab and the tab strip showed the server's 429 message
   (`⚠ too many open files: at most 1 per user on this server; close a tab first`).
 - **Browser check, 2026-11-04, File view and tabs** (not part of CI): headless Firefox 159.0.1,
-  throwaway profile, WebDriver BiDi (pointer actions inside the page), on `bicraft serve` (loopback,
+  throwaway profile, WebDriver BiDi (pointer actions inside the page), on `bicraft-cli serve` (loopback,
   no authentication, `--allow-origin` its own origin) with a workspace holding the `visuals.pbip`
   fixture and `crates/engine/tests/dax_queries/model.bim`, at `/w/ws1/view/app/`, light and dark:
   the page tabs (with the `⚠ 2` badge of the Shapes page) and their menu, File > Home, Open >
@@ -226,30 +226,30 @@ A browser downloads it once; later loads revalidate (304). The bulk is wgpu/naga
   `{theme, zoom, ribbon, tab, recent: [{path: "reports/model.bim", ws: "ws1", opened, pinned}]}`.
   The same screens match the desktop's `backstage_screenshots`.
 - **Browser check, 2026-11-04, design system** (not part of CI): headless Firefox 159.0.1, throwaway
-  profile, WebDriver BiDi, on `bicraft view …/visuals.pbip --ui egui --lang fr` and on
+  profile, WebDriver BiDi, on `bicraft-cli view …/visuals.pbip --ui egui --lang fr` and on
   `crates/engine/tests/dax_queries/model.bim`: for light and dark and each tab, the preference
   `{"theme", "tab", "zoom", "ribbon"}` written to `localStorage` (`bicraft.ui`, the only key)
   and the page reloaded; the window starts in that theme and tab, and matches the desktop's
   screenshots of `side_by_side_with_the_browser` (same chrome, same page pixels).
 - **Browser check, 2026-11-04** (not part of CI, after phase 2 step 1): headless Firefox
-  159.0.1, throwaway profile, WebDriver BiDi, on `bicraft view …/visuals.pbip --ui egui` and on
+  159.0.1, throwaway profile, WebDriver BiDi, on `bicraft-cli view …/visuals.pbip --ui egui` and on
   `crates/engine/tests/dax_queries/model.bim`: the chrome draws in Selawik exactly as the desktop
   (`side_by_side_with_the_browser` in `apps/bicraft-desktop/src/tests/shots.rs` takes the
   desktop's at the same size; the text inside visuals follows the session's language, so start
-  `bicraft view --lang fr` to compare a French window), `document.title` reads `visuals.pbip · rev 0` and
+  `bicraft-cli view --lang fr` to compare a French window), `document.title` reads `visuals.pbip · rev 0` and
   `model.bim · rev 0`, the page has the viewer's two icons, the File menu shows Reload only,
   the Model tab has semibold headers and the filter-direction `▶`, and the `.bim` shows
   "Pas de rapport dans ce fichier" without an error bar.
 - **Browser check, 2026-10-29** (not part of CI): headless Firefox 159 with a throwaway profile,
-  driven over WebDriver BiDi, on `bicraft view …/visuals.pbip --ui egui`: the report page draws
+  driven over WebDriver BiDi, on `bicraft-cli view …/visuals.pbip --ui egui`: the report page draws
   with WebGPU, and with WebGPU turned off (`dom.webgpu.enabled = false`) through the WebGL2
   fallback; a click on a page tab changes the page, a click on a slicer item filters
   the visuals (French chrome from the browser's language). `?webgl` forces WebGL2.
-- **Manual check**: build the bundle, build `bicraft`
-  with `BICRAFT_WEBUI_DIR`, run `bicraft view crates/engine/tests/fixtures/layout-oracle/visuals/legacy/visuals.pbip --ui egui --open`,
+- **Manual check**: build the bundle, build `bicraft-cli`
+  with `BICRAFT_WEBUI_DIR`, run `bicraft-cli view crates/engine/tests/fixtures/layout-oracle/visuals/legacy/visuals.pbip --ui egui --open`,
   check that the page tabs and the page appear, a slicer click filters, the Model and
   Validation tabs show, and a change to the file appears without a reload. Then
-  `bicraft serve` with a token, `POST /w/<id>/view/login`, open the login URL and
+  `bicraft-cli serve` with a token, `POST /w/<id>/view/login`, open the login URL and
   `/w/<id>/view/app/`.
 
 
@@ -264,8 +264,8 @@ to the active document's source as `Request::Command` and answered with `Update:
 |---|---|---|
 | desktop, local file | the engine session on the worker thread | the Open dialog |
 | desktop, server | `POST /w/<id>/mcp`, `tools/call run_command` with the bearer token | `GET /w/<id>/files/` |
-| browser on `bicraft serve` | the same MCP call, same origin, with the browser's credentials (the auth proxy's) | `GET /w/<id>/files/` |
-| browser on `bicraft view` | none: the answer says so (no MCP endpoint there) | not shown (no workspace) |
+| browser on `bicraft-cli serve` | the same MCP call, same origin, with the browser's credentials (the auth proxy's) | `GET /w/<id>/files/` |
+| browser on `bicraft-cli view` | none: the answer says so (no MCP endpoint there) | not shown (no workspace) |
 
 - The server's rules apply unchanged: readers are refused by the MCP endpoint, the server mode's
   path sandbox and command policy (`docs/server-mode.md`) hold, a busy workspace answers 503 and
@@ -469,20 +469,20 @@ request to the server, the server hands it to the app page over an event stream,
 it in the window (`bicraft_ui::control`, the code the desktop runs) and posts the reply back.
 
 ```text
-bicraft view Sales.pbip --ui egui --open --control     # the app page and the relay
-bicraft ui --view ui.inspect                            # the token file of bicraft view
-bicraft ui --view ui.screenshot --out page.png          # the canvas as drawn (WebGPU or WebGL2)
+bicraft-cli view Sales.pbip --ui egui --open --control     # the app page and the relay
+bicraft-cli ui --view ui.inspect                        # the token file of bicraft-cli view
+bicraft-cli ui --view ui.screenshot --out page.png      # the canvas as drawn (WebGPU or WebGL2)
 ```
 
 ```text
-agent ── POST /api/control (Authorization: Bearer <control token>) ──▶ bicraft view
+agent ── POST /api/control (Authorization: Bearer <control token>) ──▶ bicraft-cli view
                                                                          │ queue (64)
 app page ◀── GET /api/control/events (SSE `event: control` {seq, request}) ┘
    │ runs it between frames: crates/ui/src/control.rs
    └── POST /api/control/reply {seq, reply} (X-Bicraft-Token: page token, same origin) ──▶ the agent's answer
 ```
 
-- **Opt-in.** `bicraft view --control [--control-file F]` (needs the embedded browser app). Off,
+- **Opt-in.** `bicraft-cli view --control [--control-file F]` (needs the embedded browser app). Off,
   the three routes answer 404 and the page has no control slot. The **control token** is new at
   each start, separate from the page's token, and written, never printed, to an owner-only file
   (`--control-file`, `BICRAFT_CONTROL_FILE`, else `control-view.json` next to the desktop's
@@ -506,15 +506,15 @@ app page ◀── GET /api/control/events (SSE `event: control` {seq, request})
 - **Security model.** The relay adds nothing a web page can reach: the agent's route refuses
   browsers and needs the control token, which only the file's owner can read; the page's routes
   need the page token, which only same-origin pages of this viewer have (the CSP and the
-  `Host` check stand), and they only carry requests the agent sent. As with `bicraft view` in
+  `Host` check stand), and they only carry requests the agent sent. As with `bicraft-cli view` in
   general, other local processes can load the page and connect to its event stream: on a shared
   machine they could take (and answer) a relayed request, never send one. What a request may do
-  is what the page may do: on `bicraft view` the page runs no engine command (its answer says
+  is what the page may do: on `bicraft-cli view` the page runs no engine command (its answer says
   so), so the channel switches views, pages and selections, reads the state and takes
   screenshots; reader interactions go through `view.interact` as clicks do.
 - **Screenshots** are egui's screenshot viewport command in the browser too: the canvas as the
   GPU drew it (eframe reads the WebGPU or WebGL2 frame back), PNG in base64.
-- **On `bicraft serve`** (`--viewer-control`, [web-deployment.md](web-deployment.md), "UI control
+- **On `bicraft-cli serve`** (`--viewer-control`, [web-deployment.md](web-deployment.md), "UI control
   channel"): the same three routes per workspace under `/w/<id>/view/`, behind the server's
   authentication. The agent's route needs an editor credential and the control token in
   `X-Bicraft-Control` (the bearer is the server's credential); each app page's slot carries its
@@ -525,13 +525,13 @@ app page ◀── GET /api/control/events (SSE `event: control` {seq, request})
   caller's page connected last. The app opens its document views with `?v=<its view>` so the
   server knows which page holds them.
 - **In a real browser** (2026-11-05, Firefox 159.0.1 headless, throwaway profile, nothing but the
-  page and `bicraft ui`): `apps/bicraft-cli/tests/browser_control.rs`, ignored by default. It
-  starts `bicraft view <visuals.pbip> --ui egui --control` and `bicraft serve --viewer-control`
+  page and `bicraft-cli ui`): `apps/bicraft-cli/tests/browser_control.rs`, ignored by default. It
+  starts `bicraft-cli view <visuals.pbip> --ui egui --control` and `bicraft-cli serve --viewer-control`
   (a workspace holding the `visuals.pbip` fixture), loads the app page in Firefox and drives it
-  through the relay: the page tabs, a command (refused on `bicraft view`, run on the document
-  view's own session on `bicraft serve`), `app.open` of a workspace file into a document tab,
+  through the relay: the page tabs, a command (refused on `bicraft-cli view`, run on the document
+  view's own session on `bicraft-cli serve`), `app.open` of a workspace file into a document tab,
   `server.views` and a request addressed to that document view, the palette, a form, the Model
-  view, and `ui.screenshot` of the canvas (PNG). Run it with a `bicraft` built with the app
+  view, and `ui.screenshot` of the canvas (PNG). Run it with a `bicraft-cli` built with the app
   embedded:
 
   ```text
@@ -569,7 +569,7 @@ difference is the shell's.
 | Snapshot version pill (newer format) | ❌ | ❌ | |
 | Document title `● file · rev N` | ✅ window title | ✅ `document.title` | the shared `App::window_title`; the browser shell sets `document.title` |
 | Connection state (connecting, live, offline · retrying in N s) | 🟡 status bar pill (live, connecting, offline) | 🟡 | no retry countdown |
-| "Open in Power BI Desktop" button (token, busy, messages, unsaved warning) | ❌ | ❌ | `bicraft view` only; the token is read by the browser source |
+| "Open in Power BI Desktop" button (token, busy, messages, unsaved warning) | ❌ | ❌ | `bicraft-cli view` only; the token is read by the browser source |
 | Download of the saved file (server mode, unsaved warning) | ❌ | ❌ | server only |
 | Role (reader/editor) | ✅ status bar | ✅ status bar (`view.role`) | |
 | Favicon | ➖ window icon ✅ | ✅ | `/app/` carries the viewer's two icons (a test keeps them equal) |
@@ -582,7 +582,7 @@ difference is the shell's.
 | File view: New, Open, Recent, Info, Save, Save As, Export (convert, PNG, compare) | ✅ | ✅ (Browse = workspace files) | not in page.html; commands through the source (see "Editing from the window") |
 | Several files open (document tabs) | ✅ up to 8 | ✅ up to 8, each a document view of its own on the server (parallel) | "Document tabs in the browser" |
 | Page change sends `page` when interactive; "Follow active page" otherwise | ✅ sends `page` | ✅ | follow mode: read-only viewers |
-| Rendered mode (theme, data, wallpaper, page background, images) | ✅ bicraft-render | ✅ | the same renderer as `bicraft render` |
+| Rendered mode (theme, data, wallpaper, page background, images) | ✅ bicraft-render | ✅ | the same renderer as `bicraft-cli render` |
 | Wireframe mode (type icon, title, fields per role) | ❌ | ❌ | |
 | Page info (size, visual count, theme name, hidden, top-500 note) | ❌ | ❌ | |
 | Visual selection → details panel (issues, fields, data preview 30 rows, position, identity, group members, raw JSON) | partly: the Build pane (type, fields by well) | partly: the same | the egui app edits the fields (Build and Data panes, drag and drop, below); issues, data preview, position and raw JSON not shown yet |
@@ -665,7 +665,7 @@ difference is the shell's.
 - Decided 2026-11-04: the page canvas uses the bundled faces only in both shells
   (`bicraft_ui::pages::font_book`, Selawik), so the desktop draws the browser's pixels (tested:
   `pages_use_the_bundled_fonts_everywhere`, the render thread against the browser's synchronous
-  path). `bicraft render` keeps the system's fonts plus `BICRAFT_FONT_DIRS`, for comparisons with
+  path). `bicraft-cli render` keeps the system's fonts plus `BICRAFT_FONT_DIRS`, for comparisons with
   Power BI Desktop. The symbols (`✓`, `✕`, `⚠`…) come from a bundled Noto Sans Symbols 2 subset
   in both shells.
 - The look is DeckCraft's design system with BIcraft's amber accent ([design.md](design.md)):
@@ -684,10 +684,10 @@ difference is the shell's.
 - The Home ribbon's File group has Reload only: no Open, recent files, Connect or Quit (no
   file dialog; the file and the server are the page's); Ctrl+O opens the File view's Open; files
   dropped on the canvas are ignored (no paths in a browser). Everywhere else the two shells draw the same frames.
-- The File view: Open lists Recent and Browse (the server workspace's files on `bicraft serve`;
-  nothing on `bicraft view`), no Servers; Export and Save As take a workspace-relative name instead
+- The File view: Open lists Recent and Browse (the server workspace's files on `bicraft-cli serve`;
+  nothing on `bicraft-cli view`), no Servers; Export and Save As take a workspace-relative name instead
   of the Save dialog; New creates the project at the workspace's root; no template tile.
-- Local `bicraft view` sends no role, so an error bar stays until closed after the stream
+- Local `bicraft-cli view` sends no role, so an error bar stays until closed after the stream
   recovers.
 - Keyboard reservation: New is Alt+N instead of Ctrl+N, shown in its tooltip and palette row
   ("Keyboard in the browser").
@@ -704,7 +704,7 @@ difference is the shell's.
   own PDF viewer prints); when the fetch or the frame fails, the file is downloaded instead.
 - Insert › Image and the page format's images (M11.20): no file dialog, so the image is one of
   the server workspace's image files (uploaded with `PUT /w/<id>/files/<file>`), picked in a list
-  and read by the server under the workspace's path rules (`image.add {path}`); on `bicraft view`
+  and read by the server under the workspace's path rules (`image.add {path}`); on `bicraft-cli view`
   there is no workspace and the status bar says so. The desktop sends the file's bytes instead
   (`image.add {data}`), so the same command and the same stored resource result. A web URL
   button opens a new browser tab (the desktop: the system's browser).

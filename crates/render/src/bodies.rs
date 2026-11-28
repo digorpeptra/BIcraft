@@ -761,7 +761,56 @@ fn btn_icon(name: &str) -> &'static [&'static str] {
     }
 }
 
-pub fn button_body(cv: &mut Canvas, v: &Value, b: Bx, ctx: &Ctx<'_>) {
+/// The images a button draws in its current state: its fill image and its custom icon
+/// (`button.fill_image`, `button.icon_image` of the snapshot, resolved by the caller).
+#[derive(Default, Clone, Copy)]
+pub struct ButtonImages<'a> {
+    pub fill: Option<&'a crate::imgs::Image>,
+    pub icon: Option<&'a crate::imgs::Image>,
+}
+
+/// The outline of button `bt` in its `w` × `h` box at (`x`, `y`): its tile shape
+/// (`button.shape`), else the rectangle rounded by `radius`.
+fn button_path(bt: &Value, x: f32, y: f32, w: f32, h: f32, radius: f32) -> Option<tiny_skia::Path> {
+    let shape = get(bt, "shape");
+    let tile = sk(shape, "tile");
+    if tile.is_empty() || tile == "rectangle" {
+        crate::canvas::round_rect_path(x, y, w.max(1.0), h.max(1.0), radius)
+    } else {
+        nav_path(shape, x, y, w, h)
+    }
+}
+
+/// The corner radius of a button's rectangle (the visual's border radius).
+fn button_radius(v: &Value, b: Bx) -> f32 {
+    clampf(
+        nk(get(get(v, "format"), "border"), "radius", 0.0) as f32,
+        0.0,
+        b.h / 2.0,
+    )
+}
+
+/// A button's shadow and glow in its current state (`button.show_shadow`, `button.show_glow`
+/// and their properties), drawn on `cv` (the page, under the visual: they reach past its box)
+/// around its outline at (`x`, `y`). The same drawing and defaults as the navigators'
+/// buttons: BIcraft's own (`docs/formats/buttons.md`, "Shape, glow and shadow").
+pub fn button_effects(cv: &mut Canvas, v: &Value, x: f32, y: f32, b: Bx, ctx: &Ctx<'_>) {
+    let bt = get(v, "button");
+    let Some(m) = bt.as_object() else {
+        return;
+    };
+    let st = NavStyle { m: m.clone() };
+    if st.flag("show_shadow") != Some(true) && st.flag("show_glow") != Some(true) {
+        return;
+    }
+    let Some(p) = button_path(bt, x, y, b.w, b.h, button_radius(v, b)) else {
+        return;
+    };
+    nav_shadow(cv, &st, &p);
+    nav_glow(cv, &st, &p, ctx);
+}
+
+pub fn button_body(cv: &mut Canvas, v: &Value, b: Bx, ctx: &Ctx<'_>, images: ButtonImages<'_>) {
     let bt = get(v, "button");
     let px = ctx.px;
     // the visual's own state first, then the format (theme visual styles included)
@@ -779,13 +828,25 @@ pub fn button_body(cv: &mut Canvas, v: &Value, b: Bx, ctx: &Ctx<'_>) {
         .or_else(|| get(ff, "transparency").as_f64())
         .unwrap_or(0.0);
     let alpha = clampf(1.0 - transparency as f32 / 100.0, 0.0, 1.0);
-    let radius = clampf(
-        nk(get(get(v, "format"), "border"), "radius", 0.0) as f32,
-        0.0,
-        b.h / 2.0,
-    );
+    let radius = button_radius(v, b);
+    // a tile shape (Format › Shape) instead of the rounded rectangle
+    let tile = sk(get(bt, "shape"), "tile");
+    let shaped = !tile.is_empty() && tile != "rectangle";
     if let Some(c) = fill {
-        cv.round_rect(0.0, 0.0, b.w, b.h, radius, Some((c, alpha)), None);
+        if shaped {
+            if let Some(p) = button_path(bt, 0.0, 0.0, b.w, b.h, radius) {
+                cv.fill_path(&p, c, alpha);
+            }
+        } else {
+            cv.round_rect(0.0, 0.0, b.w, b.h, radius, Some((c, alpha)), None);
+        }
+    }
+    // the fill image of the state (Format › Style › Fill › Image), over the fill colour, in the
+    // button's box (not cut to a tile shape)
+    if get(bt, "show_fill") != &Value::Bool(false)
+        && let Some(img) = images.fill
+    {
+        crate::draw_image_in(cv, img, sk(get(bt, "fill_image"), "fit"), 0.0, 0.0, b.w, b.h);
     }
     // the button's own outline (Style › Border), drawn when its state turns it on
     if get(bt, "show_outline") == &Value::Bool(true)
@@ -794,15 +855,28 @@ pub fn button_body(cv: &mut Canvas, v: &Value, b: Bx, ctx: &Ctx<'_>) {
         let w = clampf(nk(bt, "outline_weight", 1.0) as f32, 0.0, 20.0);
         let a = clampf(1.0 - nk(bt, "outline_transparency", 0.0) as f32 / 100.0, 0.0, 1.0);
         if w > 0.0 && a > 0.0 {
-            cv.round_rect(
-                w / 2.0,
-                w / 2.0,
-                (b.w - w).max(0.0),
-                (b.h - w).max(0.0),
-                radius,
-                None,
-                Some((c.mix(ctx.bg, 1.0 - a), w, None)),
-            );
+            if shaped {
+                if let Some(p) = button_path(
+                    bt,
+                    w / 2.0,
+                    w / 2.0,
+                    (b.w - w).max(1.0),
+                    (b.h - w).max(1.0),
+                    radius,
+                ) {
+                    cv.stroke(&p, c, a, w, None);
+                }
+            } else {
+                cv.round_rect(
+                    w / 2.0,
+                    w / 2.0,
+                    (b.w - w).max(0.0),
+                    (b.h - w).max(0.0),
+                    radius,
+                    None,
+                    Some((c.mix(ctx.bg, 1.0 - a), w, None)),
+                );
+            }
         }
     }
     let color = Rgb::from_value(get(bt, "font_color"))
@@ -833,19 +907,25 @@ pub fn button_body(cv: &mut Canvas, v: &Value, b: Bx, ctx: &Ctx<'_>) {
     } else {
         sk(bt, "text").chars().take(300).collect()
     };
+    let icon_name = sk(bt, "icon").to_lowercase();
     let paths = if get(bt, "show_icon") == &Value::Bool(false) {
         &[][..]
     } else {
-        btn_icon(&sk(bt, "icon").to_lowercase())
+        btn_icon(&icon_name)
     };
+    // a custom icon (Icon › Custom, its image) takes the icon's place
+    let custom = images
+        .icon
+        .filter(|_| icon_name == "custom" && get(bt, "show_icon") != &Value::Bool(false));
+    let has_icon = !paths.is_empty() || custom.is_some();
     let isz = (b.h * 0.6).min((px * 1.2).max(size * 1.1));
     let f = Font::new(&family, size).weight(weight);
-    let gap = if paths.is_empty() || text.is_empty() {
+    let gap = if !has_icon || text.is_empty() {
         0.0
     } else {
         size * 0.4
     };
-    let icon_w = if paths.is_empty() { 0.0 } else { isz };
+    let icon_w = if has_icon { isz } else { 0.0 };
     let tmax = (b.w - icon_w - gap).max(0.0);
     let t = ctx.fonts.fit(&f, &text, tmax);
     let tw_ = ctx.fonts.measure(&f, &t);
@@ -859,6 +939,11 @@ pub fn button_body(cv: &mut Canvas, v: &Value, b: Bx, ctx: &Ctx<'_>) {
     let right = sk(bt, "icon_placement") == "right";
     let ic = Rgb::from_value(get(bt, "icon_color")).unwrap_or(color);
     let draw_icon = |cv: &mut Canvas, x: f32| {
+        if let Some(img) = custom {
+            let fit = sk(get(bt, "icon_image"), "fit");
+            crate::draw_image_in(cv, img, fit, x, (b.h - isz) / 2.0, isz, isz);
+            return;
+        }
         let k = isz / 16.0;
         let tf = tiny_skia::Transform::from_translate(x, (b.h - isz) / 2.0).pre_scale(k, k);
         for d in paths {
@@ -867,7 +952,7 @@ pub fn button_body(cv: &mut Canvas, v: &Value, b: Bx, ctx: &Ctx<'_>) {
             }
         }
     };
-    if !right && !paths.is_empty() {
+    if !right && has_icon {
         draw_icon(cv, x);
         x += icon_w + gap;
     }
@@ -875,7 +960,7 @@ pub fn button_body(cv: &mut Canvas, v: &Value, b: Bx, ctx: &Ctx<'_>) {
         line_text(cv, ctx, &t, f, color, x, b.h / 2.0, Anchor::Start);
         x += tw_ + gap;
     }
-    if right && !paths.is_empty() {
+    if right && has_icon {
         draw_icon(cv, x);
     }
 }

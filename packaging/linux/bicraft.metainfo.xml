@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- AppStream metadata of the BIcraft desktop app (installed as
+     share/metainfo/io.github.digorpeptra.bicraft.metainfo.xml; docs/releasing.md). -->
+<component type="desktop-application">
+  <id>io.github.digorpeptra.bicraft</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT OR Apache-2.0</project_license>
+  <name>BIcraft</name>
+  <summary>Read, edit and validate Power BI files</summary>
+  <developer id="io.github.digorpeptra">
+    <name>BIcraft contributors</name>
+  </developer>
+  <description>
+    <p>
+      BIcraft opens Power BI reports, templates and projects (.pbix, .pbit, .pbip) and semantic
+      models, and shows their pages, model and data. It edits and saves them through the same
+      commands as its command-line tool, bicraft-cli, which is also an MCP server for AI agents.
+    </p>
+    <p>
+      It needs neither Power BI Desktop nor a web engine.
+    </p>
+  </description>
+  <launchable type="desktop-id">io.github.digorpeptra.bicraft.desktop</launchable>
+  <url type="homepage">https://github.com/digorpeptra/BIcraft</url>
+  <url type="bugtracker">https://github.com/digorpeptra/BIcraft/issues</url>
+  <provides>
+    <binary>bicraft</binary>
+    <binary>bicraft-cli</binary>
+    <mediatype>application/x-pbix</mediatype>
+    <mediatype>application/x-pbit</mediatype>
+    <mediatype>application/x-pbip</mediatype>
+  </provides>
+  <categories>
+    <category>Office</category>
+    <category>Development</category>
+  </categories>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="@VERSION@"/>
+  </releases>
+</component>

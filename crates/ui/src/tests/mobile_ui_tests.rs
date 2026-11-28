@@ -306,3 +306,101 @@ fn a_narrow_window_reads_the_phone_layout_when_asked() {
     drag(&mut h, from, from + vec2(40.0, 40.0), Modifiers::ALT);
     assert_eq!(count(&h, "visual.mobile") + count(&h, "visual.move"), 0);
 }
+
+/// The phone rectangles of every visual on the phone canvas, by name.
+fn placed(app: &App) -> Vec<(String, Rect)> {
+    app.loaded.as_ref().unwrap().snap["report"]["pages"][0]["visuals"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(|v| {
+            let m = v.get("mobile").filter(|m| m.is_object())?;
+            Some((v["name"].as_str()?.to_string(), rect(m)))
+        })
+        .collect()
+}
+
+#[test]
+fn auto_create_and_remove_all_lay_out_and_empty_the_phone_in_one_step_each() {
+    let mut h = mobile_app(true);
+    let before = placed(h.state());
+    h.get_by_role_and_label(Role::Button, "Auto-create").click();
+    steps(&mut h, 6);
+    assert_eq!(count(&h, "visual.mobile_auto"), 1, "one command");
+    let all = placed(h.state());
+    assert_eq!(all.len(), 3, "the card, the chart and the slicer: {all:?}");
+    for (i, (a, ra)) in all.iter().enumerate() {
+        assert!(
+            ra.min.x >= 0.0 && ra.max.x <= PHONE_W,
+            "{a} inside the phone: {ra:?}"
+        );
+        for (b, rb) in all.iter().skip(i + 1) {
+            assert!(!ra.intersects(rb.shrink(0.01)), "{a} {ra:?} overlaps {b} {rb:?}");
+        }
+    }
+    undo(&mut h);
+    assert_eq!(placed(h.state()), before, "one undo step");
+    // Remove all, next to it; the visuals stay on the page
+    h.get_by_role_and_label(Role::Button, "Auto-create").click();
+    steps(&mut h, 6);
+    h.get_by_role_and_label(Role::Button, "Remove all").click();
+    steps(&mut h, 6);
+    assert_eq!(count(&h, "visual.mobile_remove_all"), 1);
+    assert!(placed(h.state()).is_empty(), "the layout is empty");
+    entry(h.state(), "slicer");
+    undo(&mut h);
+    assert_eq!(placed(h.state()).len(), 3, "one undo step");
+}
+
+#[test]
+fn copy_paste_and_duplicate_on_the_phone_keep_the_visual_on_its_page() {
+    let mut h = mobile_app(true);
+    let card = name(h.state(), "card");
+    let r0 = phone_rect(h.state(), "card").unwrap();
+    let at = screen(h.state(), r0.center());
+    super::canvas_ui_tests::click_with(&mut h, at, Modifiers::NONE);
+    h.event(egui::Event::Copy);
+    steps(&mut h, 4);
+    assert_eq!(count(&h, "visual.copy"), 1);
+    // Ctrl+V with no paste event: the in-app clipboard, onto the phone canvas too
+    key(&mut h, Key::V, Modifiers::COMMAND);
+    steps(&mut h, 6);
+    let paste = h
+        .state()
+        .sent
+        .iter()
+        .rev()
+        .find(|c| c.id == "visual.paste")
+        .expect("pasted");
+    assert_eq!(paste.params["mobile"], true);
+    let after = placed(h.state());
+    assert_eq!(after.len(), 2, "the copy is on the phone too: {after:?}");
+    let (copy, rc) = after.iter().find(|(n, _)| *n != card).cloned().unwrap();
+    assert_ne!(rc.min, r0.min, "not on top of the original");
+    assert!(rc.max.x <= PHONE_W);
+    // Ctrl+D duplicates the selected copy on the phone canvas
+    key(&mut h, Key::D, Modifiers::COMMAND);
+    steps(&mut h, 4);
+    let dup = h
+        .state()
+        .sent
+        .iter()
+        .rev()
+        .find(|c| c.id == "visual.duplicate")
+        .expect("duplicated");
+    assert_eq!(dup.params["mobile"], true);
+    assert_eq!(placed(h.state()).len(), 3);
+    undo(&mut h);
+    assert_eq!(placed(h.state()).len(), 2, "one undo step");
+    assert!(placed(h.state()).iter().any(|(n, _)| *n == copy));
+    // Ctrl+X and Ctrl+G are the desktop layout's: a note, nothing sent
+    key(&mut h, Key::G, Modifiers::COMMAND);
+    assert!(h.state().status.contains("stands alone"), "{}", h.state().status);
+    key(&mut h, Key::X, Modifiers::COMMAND);
+    assert!(
+        h.state().status.contains("Cut is not available"),
+        "{}",
+        h.state().status
+    );
+    assert_eq!(count(&h, "visual.cut") + count(&h, "visual.group"), 0);
+}

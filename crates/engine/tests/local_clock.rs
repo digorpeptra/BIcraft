@@ -57,7 +57,7 @@ fn local_now_follows_the_process_clock() {
     assert_eq!(offsets(&mut s, "Utc"), (0.0, 0.0));
     assert_eq!(dax_offset(&mut s, json!({})), 0.0);
 
-    // a fixed offset (`bicraft serve --local-offset -05:30`)
+    // a fixed offset (`bicraft-cli serve --local-offset -05:30`)
     set_local_clock(LocalClock::parse("-05:30", None).unwrap());
     assert_eq!(offsets(&mut s, "Fixed"), (-330.0, -5.5));
     // DAX's NOW() and UTCNOW() are apart by the same offset without `utc_offset_minutes`, with

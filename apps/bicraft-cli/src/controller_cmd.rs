@@ -1,9 +1,9 @@
-//! `bicraft controller`: the workspace controller of a Kubernetes deployment (crate
+//! `bicraft-cli controller`: the workspace controller of a Kubernetes deployment (crate
 //! `bicraft-controller`; docs/kubernetes.md, "The controller"). It reconciles `BicraftWorkspace`
 //! resources and serves the gateway: the admin API and every workspace's MCP endpoint and files,
 //! with wake on request and idle scale to zero.
 //!
-//! Authentication is the one of `bicraft serve` (same flags and `BICRAFT_*` variables, docs/auth.md);
+//! Authentication is the one of `bicraft-cli serve` (same flags and `BICRAFT_*` variables, docs/auth.md);
 //! `--admin SUBJECT` (or `BICRAFT_CONTROLLER_ADMINS`, `;`-separated) names who may create and
 //! delete workspaces. The configuration (classes, egress profiles, pod settings) is a JSON file:
 //! `--config FILE` or `BICRAFT_CONTROLLER_CONFIG`.

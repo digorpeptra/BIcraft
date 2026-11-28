@@ -846,6 +846,7 @@ dependencies = [
  "serde_json",
  "skrifa",
  "tiny-skia",
+ "web-time",
  "zune-jpeg",
 ]
 
@@ -6051,6 +6052,7 @@ dependencies = [
  "bicraft-vertipaq",
  "bicraft-xpress9",
  "flate2",
+ "resvg",
  "serde_json",
  "tiny-skia",
  "ureq",

@@ -415,3 +415,93 @@ fn cells_are_quoted_dated_and_lettered() {
     csv_field(&mut o, "a\"b");
     assert_eq!(o, "\"a\"\"b\"");
 }
+
+/// The cells of an XLSX file's sheet by reference (`B2` → text or value).
+fn xlsx_cells(path: &Path) -> (std::collections::HashMap<String, String>, String) {
+    let pkg = bicraft_opc::Package::open(path).unwrap();
+    let sheet = String::from_utf8(
+        pkg.get("xl/worksheets/sheet1.xml")
+            .unwrap()
+            .bytes()
+            .unwrap()
+            .to_vec(),
+    )
+    .unwrap();
+    let mut out = std::collections::HashMap::new();
+    for c in sheet.split("<c r=\"").skip(1) {
+        let r = c.split('"').next().unwrap().to_string();
+        let v = if let Some(t) = c.split("<t xml:space=\"preserve\">").nth(1) {
+            t.split("</t>").next().unwrap_or("").to_string()
+        } else if let Some(t) = c.split("<v>").nth(1) {
+            t.split("</v>").next().unwrap_or("").to_string()
+        } else {
+            String::new()
+        };
+        out.insert(r, v);
+    }
+    (out, sheet)
+}
+
+#[test]
+fn current_layout_writes_a_matrix_as_a_cross_table() {
+    let mut s = shop();
+    let v = add_visual(
+        &mut s,
+        "pivotTable",
+        json!([{"role": "Rows", "field": "Product[Category]"},
+               {"role": "Columns", "field": "Sales[Product]"},
+               {"role": "Values", "field": "[Total]"},
+               {"role": "Values", "field": "Sum(Sales[Qty])"}]),
+    );
+    let out = tmp("matrix.xlsx");
+    let r = run(
+        &mut s,
+        "visual.export_data",
+        json!({"visual": v, "out": out.display().to_string(), "kind": "current_layout"}),
+    );
+    assert_eq!(r["kind"], "current_layout");
+    let (cells, sheet) = xlsx_cells(&out);
+    // the second header row: the row field, then the two values under each product
+    assert_eq!(cells.get("A2").map(String::as_str), Some("Category"));
+    assert_eq!(cells.get("B2").map(String::as_str), Some("Total"));
+    assert_eq!(cells.get("D2").map(String::as_str), Some("Total"));
+    // the first header row: each product once, over its two values (merged)
+    let col = |i: usize| char::from(b'A' + i as u8).to_string();
+    let products: Vec<(usize, String)> = (1..12)
+        .step_by(2)
+        .filter_map(|i| cells.get(&format!("{}1", col(i))).map(|p| (i, p.clone())))
+        .collect();
+    let mut names: Vec<&str> = products.iter().map(|p| p.1.as_str()).collect();
+    names.sort_unstable();
+    assert_eq!(names, ["=Ball", "Bike", "Car", "Kite, red"], "{cells:?}");
+    assert_eq!(sheet.matches("<mergeCell ").count(), 4, "{sheet}");
+    // the Wheels row has Bike's total under Bike, and nothing under the ball (a toy)
+    let row = (3..8)
+        .find(|n| cells.get(&format!("A{n}")).map(String::as_str) == Some("Wheels"))
+        .unwrap_or_else(|| panic!("{cells:?}"));
+    let under = |p: &str| products.iter().find(|x| x.1 == p).unwrap().0;
+    assert_eq!(
+        cells
+            .get(&format!("{}{row}", col(under("Bike"))))
+            .map(String::as_str),
+        Some("150.5")
+    );
+    assert_eq!(cells.get(&format!("{}{row}", col(under("=Ball")))), None);
+    // the summarized export of the same matrix is a flat table; CSV has no layout
+    let flat = tmp("matrix-flat.xlsx");
+    run(
+        &mut s,
+        "visual.export_data",
+        json!({"visual": v, "out": flat.display().to_string()}),
+    );
+    let (fc, _) = xlsx_cells(&flat);
+    assert_eq!(fc.get("A1").map(String::as_str), Some("Category"));
+    assert_eq!(fc.get("B1").map(String::as_str), Some("Product"));
+    let e = s
+        .execute(
+            "visual.export_data",
+            &json!({"visual": v, "out": tmp("m.csv").display().to_string(), "kind": "current_layout"}),
+        )
+        .unwrap_err();
+    assert!(e.contains("XLSX only"), "{e}");
+}

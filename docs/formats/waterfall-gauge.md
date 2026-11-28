@@ -14,8 +14,8 @@ BIcraft's (no visual's code, text or image was read or copied).
 |---|---|---|
 | display name | BIcraft Waterfall+ | BIcraft Gauge / KPI+ |
 | guid (visual type) | `bicraftWaterfallPlus3C5E7A9B1D2F4A6C8E0B` | `bicraftGaugeKpi9E1A3C5B7D2F4E6A8C0B1D3F` |
-| name (`visual.add`, `bicraft visual export`) | `bicraftWaterfallPlus` | `bicraftGaugeKpi` |
-| version | 1.0.3.0 (1.0.2.0, 1.0.1.0 and 1.0.0.0 until 2026-11-25; 1.0.3.0 only the runtime it bundles, G119) | 1.0.3.0 (1.0.2.0 until 2026-11-26, 1.0.1.0 and 1.0.0.0 until 2026-11-25; 1.0.2.0 only the runtime it bundles, G119; 1.0.3.0 the whole format string, the arc's variance and the KPI card's sparkline, "Gauge / KPI+") |
+| name (`visual.add`, `bicraft-cli visual export`) | `bicraftWaterfallPlus` | `bicraftGaugeKpi` |
+| version | 1.0.4.0 (1.0.3.0 until 2026-11-27, 1.0.2.0, 1.0.1.0 and 1.0.0.0 until 2026-11-25; 1.0.3.0 only the runtime it bundles, G119; 1.0.4.0 the whole format string in its labels, below) | 1.0.4.0 (1.0.3.0 until 2026-11-27, 1.0.2.0 until 2026-11-26, 1.0.1.0 and 1.0.0.0 until 2026-11-25; 1.0.2.0 only the runtime it bundles, G119; 1.0.3.0 the whole format string, the arc's variance and the KPI card's sparkline, "Gauge / KPI+"; 1.0.4.0 only the runtime it bundles, which now reads the scaling commas itself) |
 | data roles | `category`, `group`, `subtotal` (Grouping), `target` (Measure), `values` (Measure, required, up to 8 fields) | `trend` (Grouping), `value` (Measure, required), `target`, `min`, `max`, `threshold1`–`threshold3`, `previous` (Measure) |
 | data view | categorical: categories `category`, `group`, `subtotal` (top 1,000), values `values`, `target` | categorical: category `trend` (top 1,000), values the eight measures |
 | format objects | `waterfall`: `orientation` (`vertical`, `horizontal`), `showTotal`, `subtotalEvery`, `connectors`; `colors`: `colorBy` (`sign`, `category`, `rule`), `increase`, `decrease`, `total`, `ruleValue`, `ruleAbove`, `ruleBelow`; `labels`: `mode` (`value`, `percent`, `both`, `none`), `fontSize`; `target`: `fill`; `style` | `gauge`: `style` (`arc`, `bullet`, `kpi`), `compareTo` (`target`, `previous`), `lowerIsBetter`, `showTrend`; `range`: `min`, `max`, `target`, `threshold1`–`threshold3`; `colors`: `value`, `valueByBand`, `band1`–`band4`, `target`; `style` |
@@ -40,21 +40,20 @@ per measure. In BIcraft the renderer collects every column of the role
 (`bicraft_render::chart_pack::multi_role`); the capabilities declare `values: {max: 8}` and the
 registry lets `visual.add` place up to 8 fields there.
 
-Numbers are written with their column's format string: by the runtime's `formatNumber` in Power
-BI and by the renderer's `fmt_val` in BIcraft, held equal on the golden cases' formats (`#,0`,
-`#,0.0`, `$#,0.00`, `0`, `0.0`, `0%`, in English and French); without a format string both write
-`fmtAuto` (no decimals for a whole number, else two). A negative value under a format with one
-section is written with the sign first (`-$40.00`); BIcraft's renderer elsewhere writes
-`$-40.00` there, so both layouts put the sign themselves. Percentages have one decimal,
-`-37.5%` in English and `-37,5 %` in French. The Gauge / KPI+ (since 1.0.3.0) writes its values
-with the whole format string instead: by `formatNumber` in Power BI and by BIcraft's `FORMAT`
-rules (`bicraft_locale::vb`, grouped with the culture's display separator) in BIcraft, so
-scaling commas and quoted text apply (`$#,0.00,,"M"` of 7,433,915 is `$7.43M`, `#,0.0,," M€"` is
-`7,4 M€` in French); before, `fmt_val` kept only the digits and the currency (`$7,433,915.00`).
-Commas right after the last decimal placeholder are read as scaling commas, moved before the
-decimal point by both drawers (`scaleCommas`, `scale_commas`), as the dashboard that found the
-bug expected; DAX `FORMAT` itself leaves them out ([dax-functions.md](dax-functions.md)), and
-Desktop's own reading of them is not checked yet. The tooltips use the same formatting. Arcs use a sine and cosine series written
+Numbers are written with their column's whole format string: by the runtime's `formatNumber` in
+Power BI and by BIcraft's `FORMAT` rules (`bicraft_locale::vb`, grouped with the culture's display
+separator) in BIcraft, so scaling commas and quoted text apply (`$#,0.00,,"M"` of 7,433,915 is
+`$7.43M`, `#,0.0,," M€"` is `7,4 M€` in French, `#,##0,"K"` of 1,234,567 is `1,235K`); without a
+format string both write `fmtAuto` (no decimals for a whole number, else two). A negative value
+under a format with one section is written with the sign first (`-$40.00`). Percentages have one
+decimal, `-37.5%` in English and `-37,5 %` in French. The Gauge / KPI+ does so since 1.0.3.0, the
+Waterfall+ since 1.0.4.0 (2026-11-27); before, the Waterfall+'s labels went through the renderer's
+`fmt_val`, which kept only the digits and the currency (`1,234,567` for `#,##0,"K"`), while its
+Power BI drawing scaled them. Commas right after the last decimal placeholder are read as scaling
+commas, moved before the decimal point (`scaleCommas` in the runtime's `formatNumber` since
+2026-11-27, so every BIcraft visual reads them alike; `scale_commas` in the renderer), as the
+dashboard that found the bug expected; DAX `FORMAT` itself leaves them out
+([dax-functions.md](dax-functions.md)), and Desktop's own reading of them is not checked yet. The tooltips use the same formatting. Arcs use a sine and cosine series written
 alike in both languages, so both drawers agree to the hundredth.
 
 ## Waterfall+
@@ -183,7 +182,7 @@ department with a target, and its horizontal, rule-coloured, Minimal, every-4-st
 and percent variants; a Gauge / KPI+ arc with a trend and a target, a bullet with two thresholds,
 a KPI card against the previous value and a lower-is-better arc coloured by band in Bold.
 
-- **Drawing.** Every one drew the same shapes and texts as `bicraft render`: steps, subtotals
+- **Drawing.** Every one drew the same shapes and texts as `bicraft-cli render`: steps, subtotals
   ("Sous-total"), total, connectors, the target line and `Écart à la cible : …`; the arc, bands,
   target tick, sparkline, `+5,0 (+7,7 %) vs cible`, `Cible : 65,0`, `Précédent : 65,0`.
 - **Tooltips.** A step: `Name Ben, Dept North, Delta +10, Cumul 30, Variation +50,0 %`; the gauge:

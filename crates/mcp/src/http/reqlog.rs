@@ -1,4 +1,4 @@
-//! Request logs of `bicraft serve` (docs/kubernetes.md, "Observability"): with
+//! Request logs of `bicraft-cli serve` (docs/kubernetes.md, "Observability"): with
 //! [`LogFormat::Json`], one JSON line per request on stderr (or a [`LogSink`]), and the server's
 //! own events (start, idle, drain) as JSON lines too. The text format (the default) keeps the
 //! human messages and writes no per-request line.
@@ -28,7 +28,7 @@ use serde_json::{Map, Value, json};
 use super::State;
 use super::metrics::Route;
 
-/// How `bicraft serve` writes its log.
+/// How `bicraft-cli serve` writes its log.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum LogFormat {
     /// Human messages for the server's events; no per-request line (the default).

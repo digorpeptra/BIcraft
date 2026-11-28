@@ -723,7 +723,7 @@ writes for Databricks (the shape of a Databricks partition template).
 ### Activation
 
 A connector runs only when the caller registers it in `SourceOptions::connectors`. The engine does
-so only for `model.refresh {allow_connectors: ["databricks"]}` (CLI `bicraft refresh PATH
+so only for `model.refresh {allow_connectors: ["databricks"]}` (CLI `bicraft-cli refresh PATH
 --allow-connector databricks`, MCP `refresh_model`). Everything else is as before:
 
 - `dax.evaluate`, `report.render`, the viewer, the structural PBIX save, `table.import` never run
@@ -1045,7 +1045,7 @@ Every place the engine needs a partition's rows calls `load_partition_opts` / `l
 |---|---|
 | `culture` | the model's `sourceQueryCulture`, else its `culture` |
 | `shared` | the model's M `expressions` and the single M partition of every other table (by table name), restricted to the names the query mentions, directly or through each other (`#"name"` or a whole identifier). Unrelated queries are never parsed. |
-| `file_roots` | the session's `data_root` as a one-folder allow-list: empty unless a command was given `data_root` (`file.open`, `file.save`, `file.save_as`, `table.import`, `table.set_data`, `bicraft view --data-root`). `file.open` without it resets it. Never inferred from the file's location. |
+| `file_roots` | the session's `data_root` as a one-folder allow-list: empty unless a command was given `data_root` (`file.open`, `file.save`, `file.save_as`, `table.import`, `table.set_data`, `bicraft-cli view --data-root`). `file.open` without it resets it. Never inferred from the file's location. |
 | `limits` | defaults, `max_rows` = the save's or the preview's row cap |
 | `clock_utc_ms`, `clock_local_offset_minutes` | the time of the evaluation (`model.refresh`: its start time) and the local clock's offset at that instant: `DateTimeZone.UtcNow()` and `DateTime.LocalNow()` give the import, save or preview time (`table.add_refresh_info` relies on it) |
 
@@ -1058,8 +1058,8 @@ daylight-saving change gets the new offset:
 
 | Host | Local clock |
 |---|---|
-| `bicraft-desktop`, the CLI (`bicraft run`, `render`, `mcp`, `view`, …) | the machine's time zone, as Power BI Desktop (jiff's system time zone, `bicraft-locale` feature `clock`: on Windows the system's time zone, resolved in jiff's bundled tz database; on Unix `TZ`, then `/etc/localtime`, names resolved in `/usr/share/zoneinfo`; UTC when none is found) |
-| `bicraft serve` (and the pods of `bicraft controller`) | **UTC**, as the Power BI service, unless `--local-offset` says otherwise: `±HH:MM` (`+02:00`), a whole number of minutes (`-300`), `UTC`, or `machine` (the host's zone). Without the flag, a non-empty `TZ` means `machine`. The container image has no zone files: give `TZ` as a POSIX rule (`CET-1CEST,M3.5.0,M10.5.0/3`) or use a fixed offset (Helm: `server.localOffset`, controller: `workspaces.pod.localOffset`) |
+| `bicraft`, the CLI (`bicraft-cli run`, `render`, `mcp`, `view`, …) | the machine's time zone, as Power BI Desktop (jiff's system time zone, `bicraft-locale` feature `clock`: on Windows the system's time zone, resolved in jiff's bundled tz database; on Unix `TZ`, then `/etc/localtime`, names resolved in `/usr/share/zoneinfo`; UTC when none is found) |
+| `bicraft-cli serve` (and the pods of `bicraft-cli controller`) | **UTC**, as the Power BI service, unless `--local-offset` says otherwise: `±HH:MM` (`+02:00`), a whole number of minutes (`-300`), `UTC`, or `machine` (the host's zone). Without the flag, a non-empty `TZ` means `machine`. The container image has no zone files: give `TZ` as a POSIX rule (`CET-1CEST,M3.5.0,M10.5.0/3`) or use a fixed offset (Helm: `server.localOffset`, controller: `workspaces.pod.localOffset`) |
 | a library caller (tests, other embedders) | UTC until it calls `set_local_clock` |
 
 `model.refresh`'s `utc_offset_minutes` (-1080 to 1080), when given, replaces that offset for the

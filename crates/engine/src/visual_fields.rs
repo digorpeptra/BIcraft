@@ -551,12 +551,18 @@ pub(crate) fn visual_show_value_as(s: &mut Session, p: &Value) -> Result<Value, 
                 v.name
             ));
         }
-        if !v
-            .fields
-            .iter()
-            .any(|x| x.role.eq_ignore_ascii_case(scope) && matches!(x.field, FieldRef::Column { .. }))
-        {
-            return Err(format!("{} needs a column in the matrix's {scope}", k.as_str()));
+        if !v.fields.iter().any(|x| {
+            x.role.eq_ignore_ascii_case(scope)
+                && match &x.field {
+                    FieldRef::Column { .. } => true,
+                    FieldRef::Other { raw } => bicraft_report::query::hierarchy_level(raw).is_some(),
+                    _ => false,
+                }
+        }) {
+            return Err(format!(
+                "{} needs a column or a hierarchy level in the matrix's {scope}",
+                k.as_str()
+            ));
         }
     }
     if b.show_as == kind {

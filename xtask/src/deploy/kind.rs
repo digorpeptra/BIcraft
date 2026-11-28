@@ -334,7 +334,7 @@ fn flow(o: &Opts, root: &Path, chart: &str, scratch: &Path, cleanup: &mut Cleanu
             "-v",
             out.as_str(),
             "--entrypoint",
-            "/usr/local/bin/bicraft",
+            "/usr/local/bin/bicraft-cli",
             o.image.as_str(),
         ];
         a.extend(args);

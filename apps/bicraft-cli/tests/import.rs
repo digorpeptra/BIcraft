@@ -1,4 +1,4 @@
-//! `bicraft import SOURCE TARGET`: copies objects between files and saves the target.
+//! `bicraft-cli import SOURCE TARGET`: copies objects between files and saves the target.
 
 use std::process::Command;
 
@@ -9,7 +9,7 @@ mod tempdir;
 use tempdir::TempDir;
 
 fn bicraft(args: &[&str]) -> (i32, String) {
-    let out = Command::new(env!("CARGO_BIN_EXE_bicraft"))
+    let out = Command::new(env!("CARGO_BIN_EXE_bicraft-cli"))
         .args(args)
         .output()
         .unwrap();

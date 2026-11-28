@@ -1,7 +1,7 @@
-//! `cargo xtask deploy smoke`: `bicraft serve` started the way the container starts it, without a
+//! `cargo xtask deploy smoke`: `bicraft-cli serve` started the way the container starts it, without a
 //! container. The arguments and variables come from `deploy/manifests/deployment.yaml` (container
 //! paths mapped into a scratch folder, `--listen` moved to 127.0.0.1 on a free port), the API token
-//! is made by `bicraft serve token create` and mounted as the Secret would be, a generated PBIP
+//! is made by `bicraft-cli serve token create` and mounted as the Secret would be, a generated PBIP
 //! project (never client data) is uploaded zipped, and the live checks of `client::checks` run over
 //! MCP Streamable HTTP, then the live viewer's checks (`client::viewer_checks`, with a reader token
 //! and a reader grant the smoke adds), and `/metrics` is scraped on its own port (`--metrics-listen` moved to
@@ -27,8 +27,8 @@ use super::client::{self, Endpoint};
 const USAGE: &str = "\
 usage: cargo xtask deploy smoke [--binary PATH] [--target TRIPLE] [--keep]
 
-  --binary PATH    test this bicraft binary (default: build it with
-                   `cargo build --release --locked -p bicraft-cli --bin bicraft`)
+  --binary PATH    test this bicraft-cli binary (default: build it with
+                   `cargo build --release --locked -p bicraft-cli --bin bicraft-cli`)
   --target TRIPLE  build for this target (e.g. x86_64-unknown-linux-musl, the image's binary)
   --keep           keep the scratch folder
 ";
@@ -74,7 +74,7 @@ pub fn binary(given: Option<PathBuf>, target: Option<&str>) -> Result<PathBuf, S
         "-p",
         "bicraft-cli",
         "--bin",
-        "bicraft",
+        "bicraft-cli",
     ];
     if let Some(t) = target {
         args.extend(["--target", t]);
@@ -90,9 +90,11 @@ pub fn binary(given: Option<PathBuf>, target: Option<&str>) -> Result<PathBuf, S
         Some(t) => dir.join(t),
         None => dir,
     };
-    Ok(dir
-        .join("release")
-        .join(if cfg!(windows) { "bicraft.exe" } else { "bicraft" }))
+    Ok(dir.join("release").join(if cfg!(windows) {
+        "bicraft-cli.exe"
+    } else {
+        "bicraft-cli"
+    }))
 }
 
 /// Runs the binary; its stdout (fails on a non-zero exit).
@@ -113,7 +115,7 @@ fn output(bin: &Path, args: &[&str]) -> Result<String, String> {
     Ok(String::from_utf8_lossy(&o.stdout).into_owned())
 }
 
-/// `bicraft serve token create`: (token, tokens-file content).
+/// `bicraft-cli serve token create`: (token, tokens-file content).
 pub fn make_token(bin: &Path, name: &str) -> Result<(String, String), String> {
     let out = output(
         bin,
@@ -357,7 +359,7 @@ fn smoke(root: &Path, bin: &Path, scratch: &Path) -> Result<(), String> {
         "BICRAFT_AUTH_READER_GRANTS",
         format!("token:smoke-reader={workspace}"),
     );
-    eprintln!("deploy smoke: bicraft serve {}", args.join(" "));
+    eprintln!("deploy smoke: bicraft-cli serve {}", args.join(" "));
     let mut child = command
         .stdin(Stdio::piped())
         .stdout(Stdio::null())
@@ -401,7 +403,7 @@ fn smoke(root: &Path, bin: &Path, scratch: &Path) -> Result<(), String> {
     });
     let addr = rx
         .recv_timeout(Duration::from_secs(30))
-        .map_err(|_| "bicraft serve printed no endpoint within 30 s".to_owned())?;
+        .map_err(|_| "bicraft-cli serve printed no endpoint within 30 s".to_owned())?;
     let ep = Endpoint {
         addr: addr.parse().map_err(|e| format!("endpoint {addr}: {e}"))?,
         host,
@@ -418,7 +420,7 @@ fn smoke(root: &Path, bin: &Path, scratch: &Path) -> Result<(), String> {
     let metrics = if check::arg_value(&c.args, "--metrics-listen").is_some() {
         let m = mrx
             .recv_timeout(Duration::from_secs(10))
-            .map_err(|_| "bicraft serve printed no metrics address".to_owned())?;
+            .map_err(|_| "bicraft-cli serve printed no metrics address".to_owned())?;
         Some(
             m.parse::<std::net::SocketAddr>()
                 .map_err(|e| format!("metrics {m}: {e}"))?,
@@ -677,7 +679,7 @@ fn drain(
             break s;
         }
         if start.elapsed() > Duration::from_secs(60) {
-            return Err("bicraft serve did not exit within 60 s of the shutdown".into());
+            return Err("bicraft-cli serve did not exit within 60 s of the shutdown".into());
         }
         std::thread::sleep(Duration::from_millis(50));
     };

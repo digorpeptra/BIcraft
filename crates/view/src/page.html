@@ -7,7 +7,7 @@
 <meta name="bicraft-interact-token" content="">
 <meta name="bicraft-view-id" content="">
 <meta name="bicraft-download" content="">
-<title>bicraft view</title>
+<title>bicraft-cli view</title>
 <link rel="icon" type="image/png" sizes="32x32" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAGvSURBVFhHY2BAAhpGLhbaJq7tWiau+7VNXP9TE4PM1DJ27dcydfZAthMM9PXtBUAWo2uiHXaZD7IT7gBtE9fp6IrMrZ3+xwZYUQXb2TliOsLYdTvEcmNnB2SJ5GCL//dnS/1/Nk/y/8FOJapgmHllccYojtAydU1gAMULsuXHehSwu5hCDArRdXVq/5tSDZHEXdYzaBu7nIcJgFxKC8th2Mjc5f/N6TJwO7RMXN+D4h/McXGyB0uia6I23tyo+j8rwgzOhzsAlFhA8YWugdp4ebUGSlqgugNuNnGjYHT5UQcMHwd8WiqGgmHiow4YdQDVHSA/rx8Fjzpg1AGjDqC7A6iNcTogwNPm/9kJ8hgaqI1BDdP8aFM4n0HbxOU+iAFqMIKaziAaXRM1MciTIM/C+CAHzIdx+nJ1/88u0cLQRC0MCnpQCMD4WiYu1xlAnQNkRVMLdP5fniwHjiuQg6iBQZ4C9TdALWLUEHaZD+4doXdGvdxswa5FN4hcDOqMhPtao4aIsetzLVN7CbADdIzdNLRNXI+jKKAhBnVIsPaStYxdKmjqEJCvjV2Ww30OBABa2jV0H+wy/gAAAABJRU5ErkJggg==">
 <link rel="icon" type="image/png" sizes="256x256" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAYAAABccqhmAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAABTvSURBVHhe7d1PjBzlmcfxOUZaZZXDKkA2wsbmj93DyolrBiMMHmN3O4CC1gjtxlqHFXEUKSCvMAoKaNlkbRThgMKChCIfLGHJ0oo94QMHIg6LuMQn1gcOESff8IFDpL342NHTM+OMv++Yfnqqnu6nq34lfS7M1PzcL/08XfXWW9ULC0m3xerwwd3VkaOL1eB0r+q/31safLLR4tJgKJJF+f7sX7L37uLS4Ji9l7etrHyD73Fta1tveeX20UAtDc71lvp/4uCKtEP/6uJS/0JvefDsfft+sJ110KnNBqBX9V9RwUt39a/2qsHb91dHdrE+WrnZYZB1v8Vq8FE5GCIdVvWv7K76P9+zZ+VbrJu536zwF5f6pxarwbXihYvIDb2lwZ9H817LK7ezjuZuGxW+vRh7UZu8WBG5hWpw3U4P5vaIoLd8+DF94ovUYx+edmrA+kq7jWb0dY4v0rTLu/b2H2S9pdrsU1+H+yKR+qdYdym20SRf8Y8VkQDn0iwsWpvhv7DJP1JE4lye+QTh2gq+y5v840QkXP9qb3nwPdblVDYLXl3ayH+UiEzL6lWCI0dZn6Hb2k061/mPEZHZsGX1rNOQbfTJr+IXyegY67XRbfWcX4f9IinZ6sGoOYHV2X5N+InkZhODAfcR2EM5yjARycYeSNLoOgGbYGCIiKR2jnW8pW10U0/5x0UkvZrLhkdP7dHafpH5VA2u17qBaB7v6nviyCPDZ44+JNK4o48/XLzf0qv6V7Y0H7D2kM7yDyawb/+h4QvHl4cf/Pre4adv7Bj+8Xfbh///398WmZrP3tk2eu99eOae4asn9g77h1aK92kWEy8SWnuST6qHedgA20B//PrO4n+GSAbWFP7r3/4h35HCaH3ABJcG7VFExR+ZkeePPaBPeJk7X5z77vC1n31/uHdfv3hPz0b/Eut8023t03/mS32ti9ohFgdWZJ5YI7APMb6/Z8H1XQSzfrCHHerbuT0HUmSe2VGsTSTy/T5NdmTPer9pm/W5vx0yfXXxtmLwRNri/Vd3ze60YNxcgD19tNhpCmxALr68uxgskTayo4EDBx4t6mBKzrLub2yzuNnHLuk1PclncwciTfvyvTuK99pWXT3/ndlcLagG11j3o82+n6z45WA2ADZJwsHxssZhpw12bpX5Oqy0i31o2Xvul/9ajdYBbPW01faz9Sz8+9FseT/r3z79z/IXI1nxb6Wj2gShDbz9T+DfFJkVm+m309itvKft/cy/F8nu7GX92+z/1B70Yec/k37y2wKgmRwyiUzA3tvnX+oV79+vY0cCU71CUA2u37Q82K4PFr8UxCb8Jjnn//zdO6c7OCINsFPSSVat2pHDVE9jq8MHbzSA0Vd28xeCTDLbb4f7M7tkItIAm6Pi+/pWbCnx1N7v1eD0jQYwrS/2mGQwfvvcnmJ/kXn006cfdM8N2KQi949gTw3a2ADCz//tNl3PbKkNVJalkyJNsfe/nc7y/b6ZqUwKrs8DrH27T/kLDbPOxhe6GRW/tJWd43uOBGyNwDROBUYPC7HJAP6gaTZ7zxe5GR32S9vZhLbnSNhOl7lv02zubyrLf21ygy+QbMKP+4m0kT3Xgu9/siYxheXCZ8Pv/bdDer44mursp0gCnqthtp6A+zWrf8kmAC+VP2iOZ+LjR0/uL/YTaTP7dB93KhB+FFD1ryzY5YDiBw2xmU++KJrWZQ+RbOzxYawHstMF7tec/tXQOwBtUo8vaCPrcFreK11lp70248+62MhWE3K/xtidgZFrAOwWSr6gjezhCNxHpEvGLY6zD8nI+bGwBmDnLnwxNItbIUUymXWd2ClA8R+bYKuZ+EI2iu5sIvNilkfKYQ1g3Mq/0HMbkTkybq7MVg9yn6aENYBxt/zGzm6KzA/P1TLu05SwBjDugR/2ormPSFeNuxoQ9ayAsAbAF0B6pJfIX41bLh+1WC6kAYyb2bQJQO4j0mXjnh5kzxTgPk0IaQDj7v6z0wPuI9JlNtPPOtko6hkBIQ3AuhVfwEZ22YP7iHTZuGXB9nPu04SQBjBuDYBu/RW5WacaQOTCBpF5pAYg0mFqACIdpgYg0mFqACIdpgYg0mFqACIdpgYg0mFqACIdpgYgnbF//8Hh2WfuHX7wwh3Dz09/c/jFa39Tm/2td0/sHB45OJ8PmVUDkE448eTe4f/96m+LAm6KNZSTT83fV8ypAUjr2Sd/ZPGvsybww0MPFfmZqQFI69khOos1yv+c/PsiPzM1AGm9P7z07aJQo9iRBvMzUwOQ1mtqws+L+ZmpAUjrsUCjMT8zNQBpPRZoNOZnpgYgrccCjcb8zNQApPVYoNGYn5kagLQeCzQa8zNTA5DWY4FGY35magDSeizQaMzPTA1AWo8FGo35makBSOuxQKMxPzM1AGk9Fmg05memBiCtxwKNxvzM1ACk9Vig0ZifmRqAtB4LNBrzM1MDkNZjgUZjfmZqANJ6LNBozM9MDUBajwUajfmZqQFI67FAozE/MzUAaT0WaDTmZ6YGIK3HAo3G/MzUAKT1WKDRmJ+ZGoC0Hgs0GvMzUwOQ1mOBRmN+ZmoA0nos0GjMz0wNQFqPBRqN+ZmpAUjrsUCjMT8zNQBpPRZoNOZnpgYgrccCjcb8zNQApPVYoNGYn5kagLQeCzQa8zNTA5DWY4FGY35magDSiAMHHh3+/tT9w0/f2DH86uJtxdhvhf2tiy/vHj5x5JEibxIs0GjMz0wNQGp7/tgDwy/fu6MY76ZYQ7H/t8z1YoFGY35magBSi33yRxb/OmsCRx9/uMj3YIFGY35magBSix2ic5yjfPz6ziLfgwUajfmZqQFILZ+9s60Y5yh2pMF8DxZoNOZnpgYgtTQ14efFfA8WaDTmZ6YGILVwjKMx34MFGo35makBSC0c42jM92CBRmN+ZmoAUgvHOBrzPVig0ZifmRqA1MIxjsZ8DxZoNOZnpgYgtXCMozHfgwUajfmZqQFILRzjaMz3YIFGY35magBSC8c4GvM9WKDRmJ+ZGoDUwjGOxnwPFmg05memBiC1cIyjMd+DBRqN+ZmpAUgtHONozPdggUZjfmZqAFILxzga8z1YoNGYn5kagNTCMY7GfA8WaDTmZ6YGILVwjKMx34MFGo35makBSC0c42jM92CBRmN+ZmoAUgvHOBrzPVig0ZifmRqA1MIxjsZ8DxZoNOZnpgYgtXCMozHfgwUajfmZqQFILRzjaMz3YIFGY35magBSC8c4GvM9WKDRmJ+ZGoDUwjGOxnwPFmg05memBiC1cIyjMd+DBRqN+ZmpAUgtHONozPdggUZjfmZqAFILxzga8z1YoNGYn5kagNTCMY7GfA8WaDTmZ6YGILVwjKMx34MFGo35makBSC0c42jM92CBRmN+ZmoAUgvHOBrzPVig0ZifmRqA1MIxjsZ8DxZoNOZnpgYgtXCMozHfgwUajfmZqQFILRzjaMz3YIFGY35magBzoHfgh8O7T54c7vjNfwy3nX9ruO29t2uzv3X3L14c7h4cLfImwTGOxnwPFmg05memBpDcrn/68XD7uTeLAm7M+beG9x3/SZHrxTGOxnwPFmg05memBpCYffKHFv+6828Ndz/2dJHvwTGOxnwPFmg05memBpCYHaIXxRpkx5l/L/I9OMbRmO/BAo3G/MzUABK7680zRaFGsSMN5ntwjKMx34MFGo35makBJNbUhJ8X8z04xtGY78ECjcb8zNQAEmOBRmO+B8c4GvM9WKDRmJ+ZGkBiLNBozPfgGEdjvgcLNBrzM1MDSIwFGo35HhzjaMz3YIFGY35magCJsUCjMd+DYxyN+R4s0GjMz0wNIDEWaDTme3CMozHfgwUajfmZqQEkxgKNxnwPjnE05nuwQKMxPzM1gMRYoNGY78ExjsZ8DxZoNOZnpgaQGAs0GvM9OMbRmO/BAo3G/MzUABJjgUZjvgfHOBrzPVig0ZifmRpAYizQaMz34BhHY74HCzQa8zNTA0iMBRqN+R4c42jM92CBRmN+ZmoAibFAozHfg2McjfkeLNBozM9MDSAxFmg05ntwjKMx34MFGo35makBJMYCjcZ8D45xNOZ7sECjMT8zNYDEWKDRmO/BMY7GfA8WaDTmZ6YGkBgLNBrzPTjG0ZjvwQKNxvzM1AASY4FGY74Hxzga8z1YoNGYn5kaQGIs0GjM9+AYR2O+Bws0GvMzUwNIjAUajfkeHONozPdggUZjfmZqAImxQKMx34NjHI35HizQaMzPTA0gMRZoNOZ7cIyjMd+DBRqN+ZmpASTGAo3GfA+OcTTme7BAozE/MzWAxFig0ZjvwTGOxnwPFmg05memBpAYCzQa8z04xtGY78ECjcb8zNQAEmOBRmO+B8c4GvM9WKDRmJ+ZGkBiLNBozPfgGEdjvgcLNBrzM1MDSIwFGo35HhzjaMz3YIFGY35magCJsUCjMd+DYxyN+R4s0GjMz0wNIDEWaDTme3CMozHfgwUajfmZqQEkxgKNxnwPjnE05nuwQKMxPzM1gMRYoNGY78ExjsZ8DxZoNOZnpgaQGAs0GvM9OMbRmO/BAo3G/MzUABJjgUZjvgfHOBrzPVig0ZifmRpAYizQaMz34BhHY74HCzQa8zNTA0iMBRqN+R4c42jM92CBRmN+ZmoAibFAozHfg2McjfkeLNBozM9MDSAxFmg05ntwjKMx34MFGo35makBJMYCjcZ8D45xNOZ7sECjMT8zNYDEWKDRmO/BMY7GfA8WaDTmZ6YGkBgLNBrzPTjG0ZjvwQKNxvzM1AASY4FGY74Hxzga8z1YoNGYn5kaQGIs0GjM9+AYR2O+Bws0GvMzUwNIjAUajfkeHONozPdggUZjfmZqAImxQKMx34NjHI35HizQaMzPTA0gMRZoNOZ7cIyjMd+DBRqN+ZmpASR211u/KYo0zPm3inyPz9+9sxjnKF9dvK3I9/jfX/5dUaRRPj/9zSI/MzWAxHb86pWyUIPc9eaZIt/jwzP3FOMc5bN3thX5Hhefu7Mo1Ch/eGlrRymzogaQ2K5/PFYUapT7jv+kyPd45uhDxThHsf+/zPf458f2FYUa5eRTe4r8zNQAkrvnueeLYm3a3b94scidxLg3URMuvry7yJ3Ea8d3FcXatHdP7Cxysxv3/04NIIFdT/3L8K7X/7Mo3LpsjmGrn/z006cfHP7xd9uLMa/L5hi2+slPP35iefjhi7cXhVuXzTHM2yf/OjUAkQ5TAxDpMDUAkQ5TAxDpMDUAkQ5TAxDpMDUAkQ5TAxDpMDUAkQ5TAxDpsFY1gBeOLxcvYKNP39hR7CPSZa1qAOPuTLN15dxHpMvsJivWyUavnthb7NOEkAbQP7RSvICNvnzvjmIfkS4b9zwHO6rmPk0IaQB79/WLF0D2O9xPpKvG3cFpR9XcpwkhDcDYpzxfxEZ2lMB9RLrqi3PfLWpkGvUS1gDGPaPu+WMPFPuIdNG+/YeK+iD7He7XhLAGYDP9fBEb6VKgyKpxl823+hBWj7AGMO6yxtXz3yn2EemiD359b1EfG0VeNl9YrAbX+B+bcPTxh4sXQj96cn+xn0iX2GT4uPmy1372/WK/piwsLvWv8j82ZdzERtTiBpF5MW7NjImaADQLi1X/Cv9jU8YtbrDTAF0OlC77+PWdRV1sFLlorrc0+PNCb2nwCX/QFE93izy8EcnMroSxHij2KLl/1eYAPip/0AzP+Y3NcB448Gixr0jb2TcssR4ocp6st9T/k10FOMcfNOn8S73iRVHdL5sQmTd25Ms6oK1+BZtf/5JNAp4qf9AcW8Bg5/p8cRS11lkkmyeOPDL2yNhEfvqbXjV4e6G3fPgx/qBpnm5npwJ26ZD7irSJfSCOWyVr7OYg7tu03VX/5wv3V0d28QdNs7mAcZcEjf2O5gOkzcbN+hv7MLSjBO7buOrwwQXb7HJA8cOGeWY8jZ33RK17FpklW/7O9/tmbN6M+0bYs2flW6MGYJMB/GGEcfcHrLMjgal0QJEpsA80zye/sfmyqRwFV/0ro+JfawChE4HrbCA8pwLGJkl0x6DMO/sg85zzGzv0j574WzeaAFzfesuD7/EXonhnQNfZQgidEsg8srv8JnmvT/NK2O7qyNEbDWDUBKYwD7DOvsOeL/7r2GFR1DPRRJpmK2A9i3w2+v2p+4u/E+nG+f/6trjUv8BfiuS5NEh2KGVdUvcPSEZW+N5z/Y2mccnvJtXgo5uKf9QAqsMHi18M9tvn9hSD4WHnSjZodog1lQkTkU3YB5HNU9nsvmex22bsfTyDD7RjrP/RFnlr8K3YJ7oVNAdmEna4ZVcYbDBtzkAkihW7vde8V7S+zrQu992kGlzftrLyDdb+aFtcGpwtdpgCWwHovTogMu/sA2+aE343619g3d/Yessrt1uHKHeKZ4fy4x6NLDLv7FRhWpf6NmNX/Fj3N212fZA7TYudC9m8wCSXTkTmhd31Ots5q/4l1nuxTXNNwK3YIHluIxaZB3ZlIMPK1rGf/uvbtJYGj2PPQhv3lUkiWdnkdNQ3+kzO8em/vt237wfbZzUXsBmbJLRTg0kXV4hMm01m29FrnsJf5f70X98Wq8Fp/pEM7PTAVgXqyECysA8m+4DKcJh/C+dY32M3u1Y4i3UBk7KJQ+u2xi6t8LqtSJPsw2f9/TbbCT2nanCtWPbr3eyGgeIPisjc6C0PnmVdT7TN8rKgiNQy+aH/Zlvko8NFJMTlWy75nXSzcwh7hvgmISKSTv+qreplHdfa7NLgNJ8ZICJbUA2uT3zJz7uNbhlOtD5ARG5WPOmn6W1azw8Ukcn0qv4rrNeQLfrrxERkUl9zm2/EpiMBkSSqwWnW51Q2+1oxTQyKzMjqfNzmj/ea1mZfLaZLhCLTZpf6gmb7J91snUCWW4hFOuBy49f5m9i0bFgkWv9CYyv8IrbR141Xg2vlP1xEtsrm2mrf2DOtbfWUYDZPGBZpn/6FLd/SO8vNJil6S4NPyhckIuNY7eza23+QdTV3m70ITRKK+Iw+NKvDB1lHc7+tPnG4f0FrB0TAbuKp+u+3svC52SymTWjoOQMidklv8OxcnuM3sY2+jWhpcMzuL9CCImk/e85m/4IVvd1iz3ro/Lb69WSj245P27qC1fMhXVaUOVMNrq1NgJ8bPWG7OnwwY8H/BWRzeLywHlJWAAAAAElFTkSuQmCC">
 <style>
@@ -322,7 +322,7 @@ svg.rels { position: absolute; left: 0; top: 0; z-index: 0; overflow: visible; }
   .mstage { max-height: 70vh; }
   .source .path { direction: ltr; }
 }
-/* Interactions (bicraft view): clickable data points, slicer items and buttons, tooltip, popups */
+/* Interactions (bicraft-cli view): clickable data points, slicer items and buttons, tooltip, popups */
 .ix .ixh { cursor: pointer; }
 .ix .ixh:hover { filter: brightness(0.92); }
 #ixtip { position: fixed; z-index: 1000; pointer-events: none; background: #ffffff; color: #252423; border: 1px solid #c8c6c4;
@@ -358,10 +358,10 @@ svg.rels { position: absolute; left: 0; top: 0; z-index: 0; overflow: visible; }
 <script>
 (() => {
 'use strict';
-// Server mode (`bicraft serve`, `/w/<id>/view/`): the server names this page's private view
+// Server mode (`bicraft-cli serve`, `/w/<id>/view/`): the server names this page's private view
 // (`?v=<id>` on every request: slicers and selections are per page), and offers a download of
 // the saved file instead of "Open in Power BI Desktop". Every URL is relative to the page, so the
-// same page works at `/` (`bicraft view`) and under a workspace prefix.
+// same page works at `/` (`bicraft-cli view`) and under a workspace prefix.
 const VIEW_ID = (() => {
   const m = document.querySelector('meta[name="bicraft-view-id"]');
   const t = m ? String(m.getAttribute('content') || '') : '';
@@ -791,9 +791,9 @@ function renderHeader() {
     }
     const base = str(src.path).split(/[\\/]/).pop();
     const dirty = d.model === true || d.report === true;
-    document.title = (dirty ? '● ' : '') + (base || 'bicraft view') + ' · rev ' + fmtNum(snap.revision);
+    document.title = (dirty ? '● ' : '') + (base || 'bicraft-cli view') + ' · rev ' + fmtNum(snap.revision);
   } else {
-    document.title = 'bicraft view';
+    document.title = 'bicraft-cli view';
   }
   fill($('#meta'), meta);
   renderOpen();
@@ -880,7 +880,7 @@ function openInDesktop() {
 
 // ---------------------------------------------------------------------------------------------
 // Interactions (docs/view-snapshot.md, "Interactions"). The page is a report reader when the
-// server embedded a token (`bicraft view` without --read-only). Every rule lives in bicraft
+// server embedded a token (`bicraft-cli view` without --read-only). Every rule lives in bicraft
 // (`view.interact`): the page only says what was clicked, then draws the next snapshot.
 const IX_TOKEN = (() => {
   const m = document.querySelector('meta[name="bicraft-interact-token"]');
@@ -3773,7 +3773,7 @@ function baseOff(px, wt, family) {
   return b;
 }
 // The renderer anti-aliases a fractional baseline; Chrome draws on a whole pixel: rounding a
-// little down the page matches the renderer's ink best (headless Edge vs `bicraft render`).
+// little down the page matches the renderer's ink best (headless Edge vs `bicraft-cli render`).
 const snapBase = yb => Math.round(yb + 0.2);
 function pText(P, x, y, s, px, color, o) {
   if (!s) return null;

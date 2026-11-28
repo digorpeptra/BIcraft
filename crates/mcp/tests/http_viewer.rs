@@ -1,4 +1,4 @@
-//! The live viewer of `bicraft serve` over real sockets (docs/kubernetes.md, "Viewer"; docs/auth.md,
+//! The live viewer of `bicraft-cli serve` over real sockets (docs/kubernetes.md, "Viewer"; docs/auth.md,
 //! "The viewer in a browser"): the page and its private views, readers seeing saved files only
 //! (also over MCP), a reader's private `file.open` keeping the editor's undo history, copies
 //! reloaded on a save, an upload and an external change, the browser login, CSRF, the trusted

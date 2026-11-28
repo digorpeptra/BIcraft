@@ -40,72 +40,10 @@ function optVal(o: any, k: string): number | null {
     return numOf(o[k]);
 }
 
-/** A section's text with the commas right after its last decimal placeholder moved before its decimal point. */
-function scaleSection(sec: [string, boolean][]): string {
-    const text = (r: [string, boolean][]) => r.map((x) => x[0]).join("");
-    let d = -1;
-    let l = -1;
-    let sci = false;
-    for (let i = 0; i < sec.length; i++) {
-        const c = sec[i][0];
-        if (!sec[i][1]) {
-            continue;
-        }
-        if (c === "." && d < 0) {
-            d = i;
-        }
-        if (c === "0" || c === "#") {
-            l = i;
-        }
-        if (c === "E" || c === "e") {
-            sci = true;
-        }
-    }
-    let n = 0;
-    while (l >= 0 && l + 1 + n < sec.length && sec[l + 1 + n][1] && sec[l + 1 + n][0] === ",") {
-        n++;
-    }
-    if (d < 0 || l < 0 || sci || l < d || n === 0) {
-        return text(sec);
-    }
-    return text(sec.slice(0, d)) + ",".repeat(n) + text(sec.slice(d, l + 1)) + text(sec.slice(l + 1 + n));
-}
-
-/**
- * Format string `f` with the commas right after a section's last decimal placeholder moved before its decimal point
- * (`$#,0.00,,"M"` → `$#,0,,.00"M"`): read as scaling commas, ÷1000 each, as before the point. Quoted and escaped text
- * and scientific sections stay as they are. The twin of gauge.rs `scale_commas`.
- */
-export function scaleCommas(f: string): string {
-    let sec: [string, boolean][] = [];
-    let out = "";
-    let quoted = false;
-    let esc = false;
-    for (const c of Array.from(f)) {
-        if (esc || quoted) {
-            quoted = quoted && c !== "\"";
-            esc = false;
-            sec.push([c, false]);
-            continue;
-        }
-        if (c === "\"") {
-            quoted = true;
-        } else if (c === "\\") {
-            esc = true;
-        } else if (c === ";") {
-            out += scaleSection(sec) + ";";
-            sec = [];
-            continue;
-        }
-        sec.push([c, c !== "\"" && c !== "\\"]);
-    }
-    return out + scaleSection(sec);
-}
-
-/** A value written with its field's whole format string (after scaleCommas); without one, as the pack writes numbers. */
+/** A value written with its field's whole format string (scaling commas included); without one, as the pack writes numbers. */
 function fmtNum(v: number, f: string, lang: string): string {
     const g = Array.from(f).slice(0, 200).join("");
-    return g.trim() === "" ? fmtAuto(v) : formatNumber(v, scaleCommas(g.trim()), lang === "fr" ? "fr-FR" : "en-US");
+    return g.trim() === "" ? fmtAuto(v) : formatNumber(v, g.trim(), lang === "fr" ? "fr-FR" : "en-US");
 }
 
 export function signed(v: number, s: string): string {

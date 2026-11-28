@@ -872,6 +872,85 @@ pub(crate) fn register_item(
     Ok(file)
 }
 
+/// The `Image` item `item` (any case) of the registered package: its name as the report writes
+/// it and its file's bytes.
+pub(crate) fn image_item_bytes<'a>(r: &'a Report, item: &str) -> Option<(String, &'a [u8])> {
+    let list = packages(r).ok()?;
+    for pkg in &list {
+        if pkg.get("type").and_then(Value::as_str) != Some(REGISTERED) {
+            continue;
+        }
+        let pkg_name = pkg.get("name").and_then(Value::as_str).unwrap_or("");
+        for i in pkg.get("items").and_then(Value::as_array).into_iter().flatten() {
+            let name = i.get("name").and_then(Value::as_str).unwrap_or("");
+            if i.get("type").and_then(Value::as_str) != Some(IMAGE_ITEM) || !name.eq_ignore_ascii_case(item) {
+                continue;
+            }
+            let path = norm(&format!(
+                "StaticResources/{pkg_name}/{}",
+                i.get("path").and_then(Value::as_str).unwrap_or(name)
+            ));
+            let res = r.resources.iter().find(|x| norm(&x.path) == path)?;
+            return Some((name.to_string(), res.bytes.as_slice()));
+        }
+    }
+    None
+}
+
+/// Registers an image a pasted visual shows, its bytes taken from a clip (untrusted, checked as
+/// `image.add` checks a file). An item of the same name with the same bytes is kept as it is
+/// (`None`); otherwise the image gets its own file, named from `name` and its bytes, whose item
+/// name is returned.
+pub(crate) fn register_pasted_image(
+    r: &mut Report,
+    name: &str,
+    bytes: Vec<u8>,
+    warnings: &mut Vec<String>,
+) -> Result<Option<String>, String> {
+    if image_item_bytes(r, name).is_some_and(|(_, b)| b == bytes.as_slice()) {
+        return Ok(None);
+    }
+    // a name made by `resource_file` loses its 16 digits: the new file gets its own
+    let stem = name.rsplit_once('.').map_or(name, |(s, _)| s);
+    let cut = stem.len().saturating_sub(16);
+    let base = match (stem.get(..cut), stem.get(cut..)) {
+        (Some(b), Some(d)) if cut > 0 && d.bytes().all(|c| c.is_ascii_digit()) => b,
+        _ => stem,
+    };
+    let img = check_image(bytes, base.to_string(), warnings)?;
+    register_image(r, img).map(Some)
+}
+
+/// Renames the registered package's items in `v`: `ItemName`s (any case) found in `map`
+/// (lowercased old name → new name).
+pub(crate) fn rename_items(v: &mut Value, map: &std::collections::HashMap<String, String>, depth: usize) {
+    if depth > 64 || map.is_empty() {
+        return;
+    }
+    match v {
+        Value::Object(o) => {
+            if let Some(Value::Object(item)) = o.get_mut("ResourcePackageItem")
+                && item.get("PackageName").and_then(Value::as_str) == Some(REGISTERED)
+                && let Some(new) = item
+                    .get("ItemName")
+                    .and_then(Value::as_str)
+                    .and_then(|n| map.get(&n.to_ascii_lowercase()))
+            {
+                item.insert("ItemName".into(), Value::String(new.clone()));
+            }
+            for x in o.values_mut() {
+                rename_items(x, map, depth.saturating_add(1));
+            }
+        }
+        Value::Array(a) => {
+            for x in a {
+                rename_items(x, map, depth.saturating_add(1));
+            }
+        }
+        _ => {}
+    }
+}
+
 pub(crate) fn resource_url(item: &str) -> Value {
     json!({"expr": {"ResourcePackageItem": {"PackageName": REGISTERED, "PackageType": 1, "ItemName": item}}})
 }

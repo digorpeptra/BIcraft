@@ -1,5 +1,5 @@
 //! The live viewer in server mode (docs/kubernetes.md, "Viewer"; docs/auth.md, "The viewer in a
-//! browser"): `bicraft serve` serves the viewer page of each workspace at `/w/<id>/view/`, with the
+//! browser"): `bicraft-cli serve` serves the viewer page of each workspace at `/w/<id>/view/`, with the
 //! same `Host` check, authentication and ACL as the MCP endpoint.
 //!
 //! | Request | Answer |
@@ -1582,7 +1582,7 @@ fn control(
         return answer(
             stream,
             Status::NotFound,
-            "the UI control channel is off on this server (bicraft serve --viewer-control)",
+            "the UI control channel is off on this server (bicraft-cli serve --viewer-control)",
         );
     };
     let want = if rest == CONTROL_EVENTS_ROUTE {

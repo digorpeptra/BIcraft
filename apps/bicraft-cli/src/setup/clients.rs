@@ -16,7 +16,7 @@
 
 use std::path::{Path, PathBuf};
 
-/// An agent client that `bicraft setup` can register the MCP server with.
+/// An agent client that `bicraft-cli setup` can register the MCP server with.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Client {
     ClaudeCode,

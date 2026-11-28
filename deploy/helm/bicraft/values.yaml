@@ -1,6 +1,6 @@
 # Values of the bicraft chart: one workspace per release (docs/kubernetes.md has the reference).
 #
-# A release runs one `bicraft serve` pod (Deployment, 1 replica, Recreate) for one workspace: the
+# A release runs one `bicraft-cli serve` pod (Deployment, 1 replica, Recreate) for one workspace: the
 # workspace's files live on their own PersistentVolumeClaim, mounted at <workspace.root>/<workspace.id>,
 # and agents reach it at <public URL>/w/<workspace.id>/mcp (files at /w/<workspace.id>/files/).
 # Authentication is mandatory (the pod listens on every interface): set at least one mode under
@@ -22,7 +22,7 @@ workspace:
   # The workspace id: the URL segment /w/<id>/ and the folder name. 1 to 64 of [A-Za-z0-9._-], not
   # starting with a dot.
   id: main
-  # The server root (`bicraft serve --root`); the workspace volume is mounted in it.
+  # The server root (`bicraft-cli serve --root`); the workspace volume is mounted in it.
   root: /srv/bicraft
 
 persistence:
@@ -94,7 +94,7 @@ server:
   localOffset: ""
   # --allow-origin: browser origins allowed to call the endpoint (agents send none).
   allowedOrigins: []
-  # More `bicraft serve` arguments, appended as given.
+  # More `bicraft-cli serve` arguments, appended as given.
   extraArgs: []
   # More environment variables (a list of EnvVar objects).
   extraEnv: []
@@ -153,7 +153,7 @@ recovery:
   # --allow-autosave: the app may save PBIP projects automatically (File > Info; off by default).
   allowAutosave: false
 
-# Prometheus metrics (docs/kubernetes.md, "Observability"): `bicraft serve --metrics-listen`, on a port of
+# Prometheus metrics (docs/kubernetes.md, "Observability"): `bicraft-cli serve --metrics-listen`, on a port of
 # their own that serves `/metrics` only, without authentication (nothing in it is model data; the MCP port
 # never serves it). Requests, command latency, queue, open workspaces, memory limit use and evictions,
 # spill bytes, aggregation builds, drain state.
@@ -195,7 +195,7 @@ auth:
   # listings; docs/auth.md "Roles"). An identity matching both kinds is an editor.
   readerGrants: []
   # Static API tokens for agents and CI. The tokens file holds SHA-256 hashes only (create entries
-  # with `bicraft serve token create --name NAME --role agent`).
+  # with `bicraft-cli serve token create --name NAME --role agent`).
   apiTokens:
     # A Secret holding the tokens file under `key`.
     existingSecret: ""

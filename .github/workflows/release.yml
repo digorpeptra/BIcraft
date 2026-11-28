@@ -1,9 +1,12 @@
-# Release: on a `v*` tag, build the `bicraft` binary for each target, package it with the README,
-# the licenses and the third-party notices, and attach the archives and their SHA-256 sums to a
-# GitHub release for that tag.
+# Release: on a `v*` tag, build the release archives with `cargo xtask dist` (docs/releasing.md),
+# the same packaging as a local release, and attach them and their SHA-256 sums to a draft GitHub
+# release for that tag.
 #
-# Archives: bicraft-<tag>-<target>.zip (Windows) or .tar.gz (Linux), each holding one folder
-# bicraft-<tag>-<target>/ with the binary and the documents. SHA256SUMS lists every archive.
+# Archives: bicraft-<version>-windows-x64.zip (`bicraft.exe`, the desktop app, `bicraft-cli.exe`,
+# the CLI and MCP server, and install.ps1) and bicraft-<version>-linux-x64.tar.gz (`bin/bicraft`,
+# `bin/bicraft-cli`, linked against glibc, the desktop integration under `share/`, and
+# install.sh), each with the README, the MCP reference, BIcraft's Power BI visuals, the licences
+# and the notices. SHA256SUMS lists every archive.
 name: Release
 
 on:
@@ -25,25 +28,20 @@ env:
 
 jobs:
   build:
-    name: build ${{ matrix.target }}
+    name: build ${{ matrix.only }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - target: x86_64-pc-windows-msvc
+          - only: windows
             os: windows-latest
-            archive: zip
-          # The oldest supported Ubuntu runner, so the binary needs a glibc that old distros have.
-          - target: x86_64-unknown-linux-gnu
+            target: x86_64-pc-windows-msvc
+          # The oldest supported Ubuntu runner, so the binaries need a glibc that old distros have
+          # (2.35). Nothing to apt-get: the window and graphics libraries are loaded at run time.
+          - only: linux
             os: ubuntu-22.04
-            archive: tar.gz
-          # Cross-compiled: bicraft is pure Rust, so only a cross linker is needed.
-          - target: aarch64-unknown-linux-gnu
-            os: ubuntu-22.04
-            archive: tar.gz
-            cross_linker: aarch64-linux-gnu-gcc
-            cross_packages: gcc-aarch64-linux-gnu
+            target: x86_64-unknown-linux-gnu
     defaults:
       run:
         shell: bash
@@ -55,79 +53,36 @@ jobs:
       - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable branch, 2026-11-05
         with:
           toolchain: stable
-          targets: ${{ matrix.target }}
+          targets: ${{ matrix.target }},wasm32-unknown-unknown
 
-      - name: Install the cross linker
-        if: matrix.cross_linker
+      # Every release bicraft-cli embeds the browser app (docs/webui.md): the wasm-bindgen CLI of
+      # the version in Cargo.lock, which `cargo xtask dist` finds through BICRAFT_WEBUI_TOOLS.
+      - name: wasm-bindgen CLI
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends ${{ matrix.cross_packages }}
-          upper=$(echo '${{ matrix.target }}' | tr 'a-z-' 'A-Z_')
-          echo "CARGO_TARGET_${upper}_LINKER=${{ matrix.cross_linker }}" >> "$GITHUB_ENV"
-
-      # Every release binary embeds the browser app (docs/webui.md): the wasm32 target, the
-      # wasm-bindgen CLI of the version in Cargo.lock, the bundle, then a build that requires it.
-      - name: Browser app bundle
-        run: |
-          rustup target add wasm32-unknown-unknown
           v=$(grep -A1 '^name = "wasm-bindgen"$' Cargo.lock | sed -n 's/^version = "\(.*\)"$/\1/p')
           cargo install wasm-bindgen-cli --version "$v" --locked --root "$RUNNER_TEMP/webui-tools"
-          BICRAFT_WEBUI_TOOLS="$RUNNER_TEMP/webui-tools" cargo xtask webui --out "$RUNNER_TEMP/webui"
-          echo "BICRAFT_WEBUI_DIR=$RUNNER_TEMP/webui" >> "$GITHUB_ENV"
-          echo "BICRAFT_REQUIRE_WEBUI=1" >> "$GITHUB_ENV"
+          echo "BICRAFT_WEBUI_TOOLS=$RUNNER_TEMP/webui-tools" >> "$GITHUB_ENV"
 
-      - name: Build
-        env:
-          # Static C runtime: the binary then runs without the Visual C++ redistributable.
-          CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_RUSTFLAGS: "-C target-feature=+crt-static"
-        run: cargo build --profile dist --locked -p bicraft-cli --bin bicraft --target ${{ matrix.target }}
+      # Builds both programs, packages them and smoke-tests the archive from its extracted copy
+      # (both --version lines against the workspace version, the desktop app's offscreen render,
+      # the MCP handshake, the install script).
+      - name: cargo xtask dist
+        run: cargo xtask dist --only ${{ matrix.only }} --out "$RUNNER_TEMP/dist"
 
       - name: Check the version against the tag
-        if: ${{ !matrix.cross_linker }}
         run: |
-          exe=target/${{ matrix.target }}/dist/bicraft
-          [ -f "$exe.exe" ] && exe="$exe.exe"
-          got=$("$exe" --version)
-          want="bicraft ${TAG#v}"
-          echo "$got"
-          # `bicraft X.Y.Z (commit <hash>)`: compare the part before the commit.
-          if [ "${got%% (commit *}" != "$want" ]; then
-            echo "::error::binary reports '$got', tag expects '$want' (bump the workspace version)"
+          ls "$RUNNER_TEMP/dist"
+          if ! ls "$RUNNER_TEMP/dist" | grep -q "^bicraft-${TAG#v}-"; then
+            echo "::error::no archive for version ${TAG#v} (bump the workspace version)"
             exit 1
           fi
-          if ! "$exe" build-info | grep -q '"embedded":true'; then
-            echo "::error::the binary has no browser app (docs/webui.md)"
-            exit 1
-          fi
-
-      - name: Package
-        id: package
-        run: |
-          name="bicraft-${TAG}-${{ matrix.target }}"
-          mkdir -p "dist/$name"
-          bin=bicraft
-          [ "${{ matrix.archive }}" = zip ] && bin=bicraft.exe
-          cp "target/${{ matrix.target }}/dist/$bin" "dist/$name/"
-          cp README.md LICENSE-MIT LICENSE-APACHE THIRD_PARTY_NOTICES.md "dist/$name/"
-          cp crates/xpress9/LICENSE-MIT-microsoft-xpress9 "dist/$name/"
-          cd dist
-          if [ "${{ matrix.archive }}" = zip ]; then
-            7z a -tzip -mx=9 "$name.zip" "$name" > /dev/null
-            file="$name.zip"
-          else
-            tar -czf "$name.tar.gz" "$name"
-            file="$name.tar.gz"
-          fi
-          sha256sum "$file" > "$file.sha256"
-          cat "$file.sha256"
-          echo "file=$file" >> "$GITHUB_OUTPUT"
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: ${{ matrix.target }}
+          name: ${{ matrix.only }}
           path: |
-            dist/${{ steps.package.outputs.file }}
-            dist/${{ steps.package.outputs.file }}.sha256
+            ${{ runner.temp }}/dist/*.zip
+            ${{ runner.temp }}/dist/*.tar.gz
           if-no-files-found: error
 
   release:
@@ -145,14 +100,13 @@ jobs:
       - name: SHA256SUMS
         working-directory: dist
         run: |
-          cat *.sha256 | sort -k2 > SHA256SUMS
-          sha256sum -c SHA256SUMS
+          sha256sum *.zip *.tar.gz | sort -k2 > SHA256SUMS
           cat SHA256SUMS
 
       - uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3.0.4
         with:
           tag_name: ${{ env.TAG }}
-          name: bicraft ${{ env.TAG }}
+          name: BIcraft ${{ env.TAG }}
           draft: true
           prerelease: ${{ contains(env.TAG, '-') }}
           generate_release_notes: true
@@ -160,5 +114,4 @@ jobs:
           files: |
             dist/*.zip
             dist/*.tar.gz
-            dist/*.sha256
             dist/SHA256SUMS

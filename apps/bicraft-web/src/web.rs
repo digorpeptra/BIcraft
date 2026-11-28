@@ -53,7 +53,7 @@ pub fn start() {
         let location = window.location();
         let pathname = location.pathname().unwrap_or_default();
         let mut app = App::new(&lang, shell());
-        // the UI control channel, when the server relays one (`bicraft view --control`)
+        // the UI control channel, when the server relays one (`bicraft-cli view --control`)
         let control = Relay::start(&mut app, &pathname);
         app.open_server(Server {
             url: location.origin().unwrap_or_default(),
@@ -348,7 +348,7 @@ fn shell() -> Shell {
     });
     // each workspace file opens in a tab of its own, a document view on the server with its own
     // session (docs/webui.md, "Document tabs"); Open > Browse lists the workspace's files on
-    // `bicraft serve`
+    // `bicraft-cli serve`
     s.ws_tabs = true;
     s.workspace = web_sys::window()
         .and_then(|w| w.location().pathname().ok())
@@ -394,7 +394,7 @@ fn shell() -> Shell {
 }
 
 /// Largest file the browser uploads: its bytes go to the server in base64 inside one MCP
-/// request, whose body `bicraft serve` and `bicraft view` cap at 8 MB by default.
+/// request, whose body `bicraft-cli serve` and `bicraft-cli view` cap at 8 MB by default.
 const MAX_BROWSER_UPLOAD: usize = 5 << 20;
 
 /// A file upload through a file input (`<input type=file>`): the chosen file is read in the page
@@ -736,23 +736,23 @@ impl Browser {
         self.link.send(Update::Interacted(r));
     }
 
-    /// `/w/<id>` of the page's workspace (`bicraft serve` only).
+    /// `/w/<id>` of the page's workspace (`bicraft-cli serve` only).
     fn workspace_root(&self) -> Option<String> {
         self.workspace().map(|ws| format!("/w/{ws}"))
     }
 
-    /// The page's workspace id (`bicraft serve` only).
+    /// The page's workspace id (`bicraft-cli serve` only).
     fn workspace(&self) -> Option<String> {
         let path = web_sys::window()?.location().pathname().ok()?;
         protocol::workspace_of(&path)
     }
 
     /// An engine command on the workspace's session through its MCP endpoint (`run_command`), with
-    /// the browser's own credentials (the auth proxy's); `bicraft view` has none.
+    /// the browser's own credentials (the auth proxy's); `bicraft-cli view` has none.
     async fn command(self: Rc<Self>, tag: u64, id: String, params: Value) {
         let result = match self.workspace() {
             None => Err(
-                "this page runs no commands (bicraft view): use the desktop app, the CLI or bicraft serve"
+                "this page runs no commands (bicraft-cli view): use the desktop app, the CLI or bicraft-cli serve"
                     .to_string(),
             ),
             Some(ws) => {
@@ -790,7 +790,7 @@ impl Browser {
     /// The workspace's files (`GET /w/<id>/files/`).
     async fn files(self: Rc<Self>) {
         let r = match self.workspace_root() {
-            None => Err("this page has no server workspace (bicraft view)".to_string()),
+            None => Err("this page has no server workspace (bicraft-cli view)".to_string()),
             Some(root) => {
                 let url = format!("{root}/files/");
                 match fetch_with(&url, "GET", &[("Accept", "application/json")], None, 32 << 20).await {

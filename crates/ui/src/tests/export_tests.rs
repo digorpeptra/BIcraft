@@ -149,13 +149,17 @@ fn export_to_pdf_picks_pages_and_writes_the_file() {
     h.get_by_label("Choose where…").click();
     steps(&mut h, 4);
     assert_eq!(last_params(&h, "report.export_pdf")["pages"], "2-2");
-    assert_eq!(
-        bicraft_render::pdf_read::inspect(&std::fs::read(&pdf).unwrap())
-            .unwrap()
-            .pages
-            .len(),
-        1
-    );
+    let info = bicraft_render::pdf_read::inspect(&std::fs::read(&pdf).unwrap()).unwrap();
+    assert_eq!(info.pages.len(), 1);
+    assert_eq!(info.conformance.pdf_a, None);
+    // the archival box asks for PDF/A-2b
+    h.get_by_label_contains("Archival PDF (PDF/A-2b)").click();
+    steps(&mut h, 2);
+    h.get_by_label("Choose where…").click();
+    steps(&mut h, 4);
+    assert_eq!(last_params(&h, "report.export_pdf")["pdf_a"], true);
+    let info = bicraft_render::pdf_read::inspect(&std::fs::read(&pdf).unwrap()).unwrap();
+    assert_eq!(info.conformance.pdf_a.as_deref(), Some("2B"));
     // a range that is not one waits for numbers
     if let Some(b) = h.state_mut().backstage.as_mut() {
         b.pdf_range = "abc".into();

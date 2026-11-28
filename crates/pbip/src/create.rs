@@ -18,7 +18,7 @@ use bicraft_versions::{
     VERSION_METADATA as VERSION_SCHEMA,
 };
 
-/// Desktop's two local files, and the data snapshot `bicraft refresh` writes next to them.
+/// Desktop's two local files, and the data snapshot `bicraft-cli refresh` writes next to them.
 const GITIGNORE_LINES: [&str; 3] = [
     "**/.pbi/localSettings.json",
     "**/.pbi/cache.abf",

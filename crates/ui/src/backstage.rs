@@ -244,6 +244,8 @@ pub struct Backstage {
     pub pdf_pages: &'static str,
     pub pdf_range: String,
     pub pdf_hidden: bool,
+    /// Export to PDF: an archival file (PDF/A-2b).
+    pub pdf_archive: bool,
     /// Redact a copy: replace the stored text values too (`file.redact {data}`).
     pub redact_data: bool,
 }
@@ -263,6 +265,7 @@ impl Backstage {
             pdf_pages: "all",
             pdf_range: String::new(),
             pdf_hidden: false,
+            pdf_archive: false,
             redact_data: false,
         }
     }
@@ -1696,10 +1699,21 @@ fn export_pdf(app: &mut App, ui: &mut Ui, bs: &mut Backstage, path: &str) {
     ) else {
         return;
     };
+    ui.checkbox(
+        &mut bs.pdf_archive,
+        l.t(
+            "Archival PDF (PDF/A-2b): metadata and sRGB colours for long-term keeping",
+            "PDF d'archivage (PDF/A-2b) : métadonnées et couleurs sRGB pour la conservation à long terme",
+        ),
+    );
+    ui.add_space(8.0);
     let ext = "pdf";
     if let Some(to) = target(app, bs, ui, &default_name(path, ext, ""), &[ext]) {
         let then = exported(app, Task::Pdf, &to);
-        app.run(actions::report_export_pdf(&to, pages, bs.pdf_hidden), then);
+        app.run(
+            actions::report_export_pdf(&to, pages, bs.pdf_hidden, bs.pdf_archive),
+            then,
+        );
     }
 }
 

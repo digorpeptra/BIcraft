@@ -27,7 +27,7 @@ pub const SPEC_GUID: &str = "bicraftSpecVisual7F3A9C2E5B1D4E6F8A0C2B4D";
 /// Its name in the Visualizations pane.
 pub const SPEC_DISPLAY_NAME: &str = "BIcraft Spec";
 /// Its version; raised with every change of its TypeScript.
-pub const SPEC_PACKAGE_VERSION: &str = "1.5.0.0";
+pub const SPEC_PACKAGE_VERSION: &str = "1.5.1.0";
 /// The data roles and their capabilities.json names.
 pub const CATEGORY_ROLE: &str = "category";
 pub const VALUES_ROLE: &str = "values";

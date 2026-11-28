@@ -1,7 +1,7 @@
 # Live viewer: snapshot contract (M8)
 
 The live viewer is a local web page that shows, as it happens, what BIcraft (and the agents
-driving it over MCP) is building. Editing stays in the CLI and MCP. With `bicraft view` the page
+driving it over MCP) is building. Editing stays in the CLI and MCP. With `bicraft-cli view` the page
 is also a **report reader** (M8.3, "Interactions" below): slicer clicks, cross-filtering on data
 points, page navigation and the slicer buttons change a reader state held in the session, never
 the files.
@@ -11,10 +11,10 @@ engine (L5)  Session::snapshot() -> JSON (this contract), Session::revision
 mcp    (L6)  calls an observer after every tools/call that may have changed the session
 view   (L5)  ViewServer: localhost HTTP, serves the embedded page, /api/state, /api/events (SSE), /api/asset/<id>,
              POST /api/open-in-desktop (the "Open in Power BI Desktop" button),
-             POST /api/interact (reader actions, `bicraft view` only)
+             POST /api/interact (reader actions, `bicraft-cli view` only)
              GET /app/ (the egui app in the browser, `--ui egui`: docs/webui.md)
-cli    (L7)  `bicraft mcp --view [--view-port N]` wires mcp → view;
-             `bicraft view PATH` opens a file/project and re-reads it when it changes on disk
+cli    (L7)  `bicraft-cli mcp --view [--view-port N]` wires mcp → view;
+             `bicraft-cli view PATH` opens a file/project and re-reads it when it changes on disk
 ```
 
 ## Snapshot JSON (version 1)
@@ -276,13 +276,14 @@ Colors resolve literals and `ThemeDataColor` (`ColorId` 0 = background, 1 = fore
                    "show_hidden_pages": false, "show_tooltip_pages": false,
                    "allow_deselection": false, "deselection_bookmark": "<name>" | null,
                    "hide_deselection_bookmark": false },  // page and bookmark navigators
-    "slicer": { "mode": "list|dropdown|tile|text|between|before|after|relative",
+    "slicer": { "mode": "list|dropdown|tile|text|between|before|after|relative|single",
                 "selected": ["Bikes"], "inverted": true,
                 "search": "bi", "match": "contains|starts_with|ends_with",
                 "single_select": false, "select_all": true,
                 "range": { "from": 1, "from_exclusive": true, "to": "2025-09-30", "to_exclusive": true,
                            "filter_only": true },
                 "domain": { "min": 0, "max": 1000 },                  // range slicers: exact column bounds
+                "default": 5,                                         // single: the what-if parameter's default
                 "relative": { "range": "last|next|this", "duration": 3,
                               "period": "days|weeks|calendar weeks|months|calendar months|years|calendar years",
                               "time_period": "minutes|hours",
@@ -419,7 +420,9 @@ per row. `r` indexes `rows`, `c` `columns`.
   `crates/render/src/shapes.rs`.
 - `slicer`: `mode` from the type (`listSlicer` list, `advancedSlicerVisual` tile, `textSlicer`
   text) or `objects.data.mode` (`Basic` list, horizontal `general.orientation` tile,
-  `Dropdown`, `Between`, `Before`, `After`, `Relative`); `selected` / `inverted` / `range` from
+  `Dropdown`, `Between`, `Before`, `After`, `Relative`, `Single`; a classic slicer without a mode on a
+  what-if parameter's column, `ParameterMetadata` without a kind, is `single` too, with `default`
+  the parameter's `SELECTEDVALUE` default, [formats/parameters.md](formats/parameters.md)); `selected` / `inverted` / `range` from
   the selection (an `In`, a `Not(In)`, an `=` comparison, other comparisons); `search` and
   `match` from a `Contains` / `StartsWith` / `EndsWith` selection (a text slicer's typed text),
   else from `objects.general.selfFilter` (the search box); `single_select`, `select_all` from
@@ -437,7 +440,7 @@ per row. `r` indexes `rows`, `c` `columns`.
   Desktop 2.158 for last / next days, last months, this week / month);
   `search_box` from `general.selfFilterEnabled`; `header_show` from `header.show`; `header_text` from `header.text` (the header shown
   instead of the field names); `domain`
-  (modes `between`/`before`/`after`, column fields) is the min and max of the column over every
+  (modes `between`/`before`/`after`/`single`, column fields) is the min and max of the column over every
   stored row (dictionary values some row uses; up to 50 M rows), numbers or ISO dates. The same objects are read from a legacy `Report/Layout`
   (`singleVisual.objects`) and from PBIR `visual.json` (`visual.objects`).
 - `format.subtitle` (`visualContainerObjects.subTitle`: `show`, `text`, `fontSize`, `fontColor`,
@@ -553,7 +556,7 @@ SSE stream**: the viewer serves them at `GET /api/asset/<id>`. A key is absent w
 - The type is sniffed from the bytes; anything else (or unreadable, > 16 MiB, past 1024 distinct
   images or 128 MiB in total) is left out of the snapshot. Resolved once per `revision` (plus a
   report fingerprint) and shared by `snapshot()` and `snapshot_assets()`.
-- `bicraft view` and `bicraft mcp --view` publish both with `ViewHandle::publish_with_assets`
+- `bicraft-cli view` and `bicraft-cli mcp --view` publish both with `ViewHandle::publish_with_assets`
   (assets first, so a page never sees an id that is not served yet; the previous set is dropped).
 
 **Server** (`crates/view`): `GET /api/asset/<id>` with `id` matching `[0-9a-f]{16,64}` (else 400;
@@ -618,7 +621,7 @@ Calendar Heatmap, Sankey, Scatter+, Line / Area+, by their guid) carries `chart_
 **Producer**: `crates/engine/src/chart_pack.rs` (`snapshot_fields`).
 
 **BIcraft visuals** (2026-11-24, docs/gaps.md G29). The page does not draw BIcraft's fourteen visuals
-itself: the publisher of `bicraft view` adds to each one whose `data.status` is `ok` (at most 64
+itself: the publisher of `bicraft-cli view` adds to each one whose `data.status` is `ok` (at most 64
 per snapshot) `drawing: {asset: "<id>", width, height, hits: [{shape: {rect: [x, y, w, h]} |
 {circle: [cx, cy, r]} | {poly: [[x, y], …]}, action: {…} | null, ctrl: bool, tip: [[label,
 value]]}]}`: the renderer's PNG of the visual at twice its size (served at `/api/asset/<id>`,
@@ -738,7 +741,7 @@ every visual. Numbers and dates follow `fmt.rs`/`data.rs`: a column's `format_st
 the column and its implicit measures (not the counts), a decimal column without one shows two
 decimals, named formats (`Long Date`, `Short Date`, `General Date` with a midnight time, `Long
 Time`…) use the culture's patterns (a copy of `bicraft-locale`'s table), a KPI goal its own
-format. `bicraft view` and `bicraft mcp --view` republish until every bound visual has its
+format. `bicraft-cli view` and `bicraft-cli mcp --view` republish until every bound visual has its
 data (a snapshot computes for at most `data_budget_ms`; `mcp --view` does it between tool calls).
 
 ### UI language (M10.2; still version 1; every field optional)
@@ -770,7 +773,7 @@ session's UI language, so the viewer and the PNG renderer only draw it.
 ```
 
 - `ui.language` is the session's UI language (`view.set_language {ui_language}`, `report.render
-  {ui_language}` for one call, `bicraft view|render|mcp --view --lang TAG`; default `en-US`). Tags
+  {ui_language}` for one call, `bicraft-cli view|render|mcp --view --lang TAG`; default `en-US`). Tags
   are BCP 47 (`fr`, `fr-CA`, `pt_BR` → `pt-BR`); a language without a table uses the English one
   and sets `fallback`. Phrase tables: en, fr, de, es, it, nl, pt, ja (de to ja are BIcraft's own
   translations of the English, [locales.md](formats/locales.md) "UI phrases").
@@ -854,12 +857,12 @@ custom header without a CORS preflight, which the server refuses. Response: JSON
 unsaved}` or `{ok: false, error}` (500 when the OS has no application for the file: on Linux
 without `xdg-open` or without a registered handler). BIcraft never depends on Power BI Desktop
 at runtime: this only hands a file to the OS on an explicit click. The same action is the
-`file.open_in_desktop {dry_run?}` command (CLI `bicraft run --open F --cmd file.open_in_desktop`,
+`file.open_in_desktop {dry_run?}` command (CLI `bicraft-cli run --open F --cmd file.open_in_desktop`,
 MCP `run_command`).
 
 ### Server mode (still version 1; every field optional)
 
-`bicraft serve` serves the same page at `/w/<id>/view/` (`docs/kubernetes.md`, "Viewer"). The page
+`bicraft-cli serve` serves the same page at `/w/<id>/view/` (`docs/kubernetes.md`, "Viewer"). The page
 uses relative URLs only (`api/state`, `api/events`, `api/asset/<id>`, `api/interact`), so it works at
 `/` and under a workspace prefix. The server fills two more meta slots: `bicraft-view-id` (the
 page's private view, sent as `?v=` on every request) and `bicraft-download` (`1`: show a download
@@ -955,6 +958,18 @@ journal holds since the last save (`copy`: it has a recovery copy; `error`: the 
 failed); `offers` are the edits other sessions left unsaved for the open file, which the app
 offers to recover ([recovery.md](recovery.md)). A document view's `view.limits` adds `recovery`
 (the server keeps journals) and `autosave` (it allows automatic saves).
+
+### Performance analyzer (2026-11-27; still version 1; every field optional)
+
+```json
+{ "perf": { "recording": true, "unrendered": { "ReportSection1": ["a1b2c3", "d4e5f6"] } } }
+```
+
+Present only while a Performance analyzer recording runs (`perf.start`). `unrendered` names, by
+page, the visuals whose latest recorded evaluation has no render time yet; the app sends the
+render times of the first drawing of that snapshot for them (`perf.render`), so the visuals the
+viewer evaluates get one without *Refresh visuals*. **Producer**: `crates/engine/src/perf.rs`
+(`Recorder::snapshot_json`).
 
 ### Field panes (2026-11-05; still version 1; every field optional)
 
@@ -1114,7 +1129,7 @@ Fields, method and thresholds: [key-influencers.md](key-influencers.md). Its `da
 
 ### Interactions (M8.3; still version 1; every field optional)
 
-`bicraft view PATH` serves the page as a report reader (`--read-only` turns it off; `mcp --view`
+`bicraft-cli view PATH` serves the page as a report reader (`--read-only` turns it off; `mcp --view`
 stays read-only). What a click does is decided in Rust (`crates/engine/src/interact.rs`); the page
 only says what was clicked and draws the next snapshot.
 
@@ -1167,7 +1182,7 @@ kept across re-reads of the files (unknown pages and visuals are ignored).
                   "enabled": true, "tooltip"?: "<the tooltip shown>" }  // docs/formats/buttons.md
     },
     "data": { "highlights": [[null, 1491], [null, null]] },  // highlighted visuals: one entry per row
-    "slicer": { "pending": true }
+    "slicer": { "pending": true, "apply_button"?: true }
   } ] } ] }
 }
 ```
@@ -1270,7 +1285,11 @@ states agree too (171 / 171).
   of type `ApplyAllSlicers`, slicer clicks on that page wait for it, whatever the storage mode
   (Import included): `slicer.pending`, the page's other visuals keep the applied selection.
   `ClearAllSlicers` clears every slicer of the page, applied and pending, and keeps the
-  data-point selection.
+  data-point selection. With query reduction's Apply button on each slicer
+  (`slowDataSourceSettings.isSlicerSelectionsButtonEnabled`, `report.query_reduction
+  {slicers: "apply_button"}`) every slicer has `slicer.apply_button: true` and its clicks wait
+  the same way, on any page, until `slicer_apply {page, visual}` applies that slicer and its
+  synced copies (the answer's `applied` says whether anything waited).
 - *Navigation.* Page tabs, `pageNavigator` items and `PageNavigation` buttons change the page
   shown (its data are computed first); `Back` returns to the previous one. Each page keeps its own
   slicers and selection; a synced slicer's selection reaches its copies on the other pages.
@@ -1333,7 +1352,11 @@ one table (`crates/engine/src/interact.rs`):
   "query_reduction"|"interactivity"|"customized", disable_cross_highlighting, slicers:
   "instantly"|"apply_button", filters: "instantly"|"apply_buttons"|"single_button"}`
   (`slowDataSourceSettings`, G60). While paused, a visual's `data` that would need an evaluation
-  is the data it last showed with `pending: true`, or `{status: "pending", reason}`.
+  is the data it last showed with `pending: true`, or `{status: "pending", reason}`; so are its
+  measure-bound values (a title or a button's text bound to a measure keeps the text it last
+  showed), and `view.interact` refuses a report-page `tooltip` (hiding one still works).
+  `visual.refresh {page, visual}` evaluates that one visual on the next view, the others staying
+  paused.
 
 With `default_interaction: "filter"` (Desktop's report option "Change default visual interaction
 from cross highlighting to cross filtering") a data-point selection filters the visuals that
@@ -1518,6 +1541,7 @@ tooltips", read 2026-11-06); not recorded in Desktop yet (**documented, not meas
 | `matrix_expand` / `matrix_collapse` | `page, visual, path: [values] \| level: n \| all: true` | a member (+/−, "Selection"; `path` from the top level shown), an entire level (0: the top one shown), or everything; expanding the deepest level shown adds the next one |
 | `drillthrough` | `page, visual, point, target` | opens `target` with its drillthrough filters set from the point; "Keep all filters" (unless `acceptsFilterContext: None`) also carries the source visual's page filters, own filters (drill and cross-filter included) and the selections of the slicers that reach it; the source page goes in the Back history |
 | `tree_toggle` | `page, visual, id` | a BIcraft Org Chart node's collapse button: the reader's list of toggled ids (the stored `tree.toggled`, the id removed or added last) replaces the stored one in this view, the report unchanged; back to the stored list, the override is dropped; `reset` drops it. The app's editing view saves it instead (`visual.toggle_node`, [formats/chart-pack.md](formats/chart-pack.md)) |
+| `gantt_toggle` | `page, visual, path, collapsed` | a Gantt's expand/collapse icon: the category named by `path` (its members, top level first, one per `Category` field down to it) collapsed or expanded in this view, over the saved `row` state; the snapshot's `format.gantt_rows` carries it last; the report unchanged; `reset` drops it ([formats/gantt.md](formats/gantt.md)) |
 | `tooltip` | `page, visual, point \| null` | shows the visual's tooltip page under the point (a line chart's legend value excluded) and the source visual's filters; `null` hides it |
 
 A `visualLink` button of type `Drillthrough` (`drillthroughSection`) drills through the page's

@@ -39,8 +39,11 @@
 //!   (`dataViewWildcard.matchingOption` 1, 0, 2).
 //! - `rule`, one of
 //!   - `{gradient: {field, min, mid?, max, empty?}}`: a color scale. Stops are `"#hex"` (lowest /
-//!     middle / highest value) or `{color, value}` (a number). `empty`: `zero`, `none` or a color
-//!     for blank values. Written as a `FillRule` (`linearGradient2` / `linearGradient3`).
+//!     middle / highest value) or `{color, value}` (a number); `{color, value, percent: true}`
+//!     reads `value` as a percent (0 to 100) of the range from the lowest to the highest value,
+//!     the stop's value then written as the Percent rules' bound below (inferred). `empty`:
+//!     `zero`, `none` or a color for blank values. Written as a `FillRule` (`linearGradient2` /
+//!     `linearGradient3`).
 //!   - `{rules: {field, cases: [{op, value | values, color}], else?}}`: `op` is `=`, `>`, `>=`,
 //!     `<`, `<=` or `between` (`values: [low, high]`, both included); `{gte?, gt?, lte?, lt?,
 //!     eq?, color}` combines up to two bounds. `= null` is "is blank". `percent: true` reads the
@@ -529,8 +532,8 @@ struct Case {
 enum Rule {
     Gradient {
         field: FieldRef,
-        /// (stop name, color, value)
-        stops: Vec<(&'static str, String, Option<f64>)>,
+        /// (stop name, color, value, the value is a percent of the field's range)
+        stops: Vec<(&'static str, String, Option<f64>, bool)>,
         empty: Option<Empty>,
     },
     Rules {
@@ -644,11 +647,18 @@ fn render(rule: &Rule, kind: PropKind) -> Result<Value, String> {
     Ok(match rule {
         Rule::Gradient { field, stops, empty } => {
             let mut g = Map::new();
-            for (name, c, v) in stops {
+            let input = field_expr(field)?;
+            for (name, c, v, percent) in stops {
                 let mut stop = Map::new();
                 stop.insert("color".into(), lit_expr(quote(c)));
-                if let Some(n) = v {
-                    stop.insert("value".into(), lit_expr(format!("{}D", num_text(*n))));
+                match (v, percent) {
+                    (Some(n), true) => {
+                        stop.insert("value".into(), percent_bound(&input, *n));
+                    }
+                    (Some(n), false) => {
+                        stop.insert("value".into(), lit_expr(format!("{}D", num_text(*n))));
+                    }
+                    (None, _) => {}
                 }
                 g.insert((*name).to_string(), Value::Object(stop));
             }
@@ -667,7 +677,7 @@ fn render(rule: &Rule, kind: PropKind) -> Result<Value, String> {
             } else {
                 "linearGradient2"
             };
-            color(json!({"FillRule": {"Input": field_expr(field)?, "FillRule": {name: g}}}))
+            color(json!({"FillRule": {"Input": input, "FillRule": {name: g}}}))
         }
         Rule::Rules {
             field,
@@ -794,11 +804,11 @@ fn number(v: &Value, what: &str) -> Result<f64, String> {
         .ok_or_else(|| format!("{what} must be a number"))
 }
 
-fn stop(v: &Value, what: &str) -> Result<(String, Option<f64>), String> {
+fn stop(v: &Value, what: &str) -> Result<(String, Option<f64>, bool), String> {
     match v {
-        Value::String(_) => Ok((color_str(Some(v), what)?, None)),
+        Value::String(_) => Ok((color_str(Some(v), what)?, None, false)),
         Value::Object(o) => {
-            check_keys(o, &["color", "value"], what)?;
+            check_keys(o, &["color", "value", "percent"], what)?;
             let c = color_str(o.get("color"), &format!("{what}.color"))?;
             let value = match o.get("value") {
                 None | Some(Value::Null) => None,
@@ -808,7 +818,18 @@ fn stop(v: &Value, what: &str) -> Result<(String, Option<f64>), String> {
                     &format!("{what}.value (a number, or min / max / middle)"),
                 )?),
             };
-            Ok((c, value))
+            let percent = match o.get("percent") {
+                None | Some(Value::Null) | Some(Value::Bool(false)) => false,
+                Some(Value::Bool(true)) => true,
+                Some(_) => return Err(format!("{what}.percent must be true or false")),
+            };
+            match value {
+                Some(p) if percent && !(0.0..=100.0).contains(&p) => Err(format!(
+                    "{what}: with percent, the value is a number from 0 to 100"
+                )),
+                None if percent => Err(format!("{what}: percent needs a value from 0 to 100")),
+                _ => Ok((c, value, percent)),
+            }
         }
         _ => Err(format!("{what} must be a color or {{color, value?}}")),
     }
@@ -826,8 +847,8 @@ fn parse_gradient(v: &Value, ctx: &Ctx<'_>, what: &str) -> Result<Rule, String> 
                 return Err(format!("{what}.{name} is missing (a color or {{color, value}})"));
             }
             Some(x) => {
-                let (c, val) = stop(x, &format!("{what}.{name}"))?;
-                stops.push((name, c, val));
+                let (c, val, percent) = stop(x, &format!("{what}.{name}"))?;
+                stops.push((name, c, val, percent));
             }
         }
     }
@@ -1671,14 +1692,17 @@ fn decode_gradient(v: &Value) -> Option<Rule> {
             return None;
         }
         let color = decode_color_lit(s.get("color")?)?;
-        let value = match s.get("value") {
-            None => None,
-            Some(x) => match decode_lit_expr(x)? {
-                Lit::Num(n, _) => Some(n),
-                _ => return None,
+        let (value, percent) = match s.get("value") {
+            None => (None, false),
+            Some(x) => match decode_percent_bound(x, &field) {
+                Some(p) => (Some(p), true),
+                None => match decode_lit_expr(x)? {
+                    Lit::Num(n, _) => (Some(n), false),
+                    _ => return None,
+                },
             },
         };
-        stops.push((*n, color, value));
+        stops.push((*n, color, value, percent));
     }
     let empty = match g.get("nullColoringStrategy") {
         None => None,
@@ -1837,10 +1861,13 @@ fn rule_json(rule: &Rule, kind: PropKind, guessed: PropKind) -> Value {
         Rule::Gradient { field, stops, empty } => {
             let mut g = Map::new();
             g.insert("field".into(), json!(field_text(field)));
-            for (name, c, v) in stops {
-                let s = match v {
-                    None => json!(c),
-                    Some(n) => json!({"color": c, "value": crate::visual_props::num_json(*n)}),
+            for (name, c, v, percent) in stops {
+                let s = match (v, percent) {
+                    (None, _) => json!(c),
+                    (Some(n), false) => json!({"color": c, "value": crate::visual_props::num_json(*n)}),
+                    (Some(n), true) => {
+                        json!({"color": c, "value": crate::visual_props::num_json(*n), "percent": true})
+                    }
                 };
                 g.insert((*name).to_string(), s);
             }

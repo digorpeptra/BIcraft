@@ -566,6 +566,78 @@ fn edits_without_a_legacy_form_are_refused_and_named() {
     }
 }
 
+/// G64: a visual bound to a field parameter (the PBIR form: the parameter's fields as the role's
+/// projections, labelled, and the role's `fieldParameters` range) is written as those
+/// projections, with the labels as `columnProperties.displayName`; the range has no legacy key
+/// seen in a Desktop file, so it is not written, and the visual reads back as its fields.
+#[test]
+fn a_field_parameter_binding_is_written_as_its_fields() {
+    let text = sample();
+    let mut r = read_layout(&text).unwrap();
+    let label = FieldRef::Column {
+        table: "Pick".into(),
+        column: "Pick".into(),
+    };
+    let fields = vec![
+        (
+            FieldRef::Column {
+                table: "Shop".into(),
+                column: "Region".into(),
+            },
+            "Area".to_string(),
+        ),
+        (
+            FieldRef::Measure {
+                table: "Shop".into(),
+                measure: "Total".into(),
+            },
+            "Total".to_string(),
+        ),
+    ];
+    let mut v = Visual {
+        name: "fp1".into(),
+        visual_type: Some("tableEx".into()),
+        fields: vec![FieldBinding {
+            display_name: None,
+            show_as: None,
+            role: "Values".into(),
+            field: label.clone(),
+        }],
+        ..Default::default()
+    };
+    v.position.width = 300.0;
+    v.position.height = 200.0;
+    let mut q = bicraft_report::query::effective(&v).unwrap();
+    assert!(bicraft_report::query::set_field_parameter(
+        &mut q, 0, &label, &fields
+    ));
+    v.visual_extra.insert("query".into(), q.clone());
+    // the engine's view: one binding of the label column
+    assert_eq!(bicraft_report::query::derive(Some(&q)), v.fields);
+    r.pages[1].visuals.push(v);
+
+    let written = write_layout(&text, &r).unwrap();
+    let back = read_layout(&written).unwrap();
+    let v2 = back.pages[1].visuals.iter().find(|v| v.name == "fp1").unwrap();
+    let projections = &v2.visual_extra["query"]["queryState"]["Values"]["projections"];
+    let fp = &q["queryState"]["Values"];
+    assert_eq!(projections, &fp["projections"], "{written}");
+    assert!(
+        v2.visual_extra["query"]["queryState"]["Values"]
+            .get("fieldParameters")
+            .is_none()
+    );
+    assert_eq!(v2.fields.len(), 2);
+    assert_eq!(v2.fields[0].display_name.as_deref(), Some("Area"));
+    // the labels went to columnProperties, keyed by the fields' queryRefs
+    assert!(
+        written.contains(r#"\"columnProperties\":{\"Shop.Region\":{\"displayName\":\"Area\"}"#),
+        "{written}"
+    );
+    // stable when written again
+    assert_eq!(write_layout(&written, &back).unwrap(), written);
+}
+
 #[test]
 fn strip_legacy_gives_the_pbir_form() {
     let mut r = read_layout(&sample()).unwrap();

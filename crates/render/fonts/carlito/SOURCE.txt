@@ -2,7 +2,8 @@ Carlito, the renderer's stand-in for Calibri (metric-compatible: the same advanc
 used when a visual asks for Calibri and no Calibri face is installed. Glyph subsets made by
 `cargo xtask font-subset carlito SRC_DIR` (xtask/src/font_subset.rs: the files, SHA-256 and
 the Unicode ranges kept): glyphs renumbered; cmap of the kept characters only; post format 3;
-layout (kerning) and hinting tables dropped. Licence: SIL Open Font License 1.1, with
+the GPOS kerning between the kept glyphs written as a kern table, other layout and hinting
+tables dropped. Licence: SIL Open Font License 1.1, with
 Reserved Font Name "Carlito": the subsets are a Modified Version, so their name table
 calls them "BIcraft Metric Sans" (copyright, version, designer, URL and licence
 strings kept). OFL-Carlito.txt here is the upstream OFL.txt, unmodified.
@@ -13,35 +14,39 @@ Licence:   OFL-Carlito.txt (ofl/carlito/OFL.txt at the same commit)
 Carlito-Regular-subset.ttf: a glyph subset of Carlito-Regular.ttf.
 Source:    https://raw.githubusercontent.com/google/fonts/07ace6abab87a122865e5cb82c7540b39551edb2/ofl/carlito/Carlito-Regular.ttf
            628032 bytes, SHA-256 f6418f708baede9789daef5d458c0f53d2a888af9820e8062934e504fedc6595
-Subset:    SHA-256 b6315e98bedf7927eda378c7e4d679fb2a910a014f1ac9a36da10e19d2cf657b (80340 bytes)
-Characters (407): U+0020-007E U+00A0-00AC U+00AE-017F U+0192 U+0218-021B U+02C6-02C7 U+02D8-02DD
-           U+2012-2022 U+2026 U+2030 U+2033-2034 U+2039-203A U+2044 U+2070-2071
-           U+2074-2079 U+20A0-20B5 U+20B8-20B9 U+2113 U+2116 U+2122 U+2126 U+212E
-           U+2153-215E U+2212 U+FB01-FB02
+Subset:    SHA-256 27d1790543436d0e292af57559ab9d4a44ccad82932ec7322428918b43ce2fcb (205764 bytes)
+Characters (739): U+0020-007E U+00A0-00AC U+00AE-017F U+0192 U+01A0-01B0 U+0218-021B U+02C6-02C7
+           U+02D8-02DD U+0374-0375 U+037A-037E U+0384-038A U+038C U+038E-03A1
+           U+03A3-03CE U+03D0-045F U+0490-0491 U+1EA0-1EF9 U+2012-2022 U+2026 U+2030
+           U+2033-2034 U+2039-203A U+2044 U+2070-2071 U+2074-2079 U+20A0-20B5
+           U+20B8-20B9 U+2113 U+2116 U+2122 U+2126 U+212E U+2153-215E U+2212 U+FB01-FB02
 
 Carlito-Bold-subset.ttf: a glyph subset of Carlito-Bold.ttf.
 Source:    https://raw.githubusercontent.com/google/fonts/07ace6abab87a122865e5cb82c7540b39551edb2/ofl/carlito/Carlito-Bold.ttf
            682468 bytes, SHA-256 bb5d20f79b82599ec72983597437373a80f2d2085fa91fc144fd74e876a594db
-Subset:    SHA-256 793a207a47e93bdec48c0a08c7cb1274acf23609882ab10a0f5e16a282c921eb (85284 bytes)
-Characters (407): U+0020-007E U+00A0-00AC U+00AE-017F U+0192 U+0218-021B U+02C6-02C7 U+02D8-02DD
-           U+2012-2022 U+2026 U+2030 U+2033-2034 U+2039-203A U+2044 U+2070-2071
-           U+2074-2079 U+20A0-20B5 U+20B8-20B9 U+2113 U+2116 U+2122 U+2126 U+212E
-           U+2153-215E U+2212 U+FB01-FB02
+Subset:    SHA-256 4cdf49418a5520218202f542c10058dd912699a1e6bdc3b6692aaf86374f2564 (224044 bytes)
+Characters (739): U+0020-007E U+00A0-00AC U+00AE-017F U+0192 U+01A0-01B0 U+0218-021B U+02C6-02C7
+           U+02D8-02DD U+0374-0375 U+037A-037E U+0384-038A U+038C U+038E-03A1
+           U+03A3-03CE U+03D0-045F U+0490-0491 U+1EA0-1EF9 U+2012-2022 U+2026 U+2030
+           U+2033-2034 U+2039-203A U+2044 U+2070-2071 U+2074-2079 U+20A0-20B5
+           U+20B8-20B9 U+2113 U+2116 U+2122 U+2126 U+212E U+2153-215E U+2212 U+FB01-FB02
 
 Carlito-Italic-subset.ttf: a glyph subset of Carlito-Italic.ttf.
 Source:    https://raw.githubusercontent.com/google/fonts/07ace6abab87a122865e5cb82c7540b39551edb2/ofl/carlito/Carlito-Italic.ttf
            615236 bytes, SHA-256 0b019225e58d702bfedcbd35c21696769f8ee115cb6343f84c2f240312450d1c
-Subset:    SHA-256 51c234237f304b906856c8cf6a832ec25a39208b6cdb9cf5e6d2fc212143f816 (79192 bytes)
-Characters (407): U+0020-007E U+00A0-00AC U+00AE-017F U+0192 U+0218-021B U+02C6-02C7 U+02D8-02DD
-           U+2012-2022 U+2026 U+2030 U+2033-2034 U+2039-203A U+2044 U+2070-2071
-           U+2074-2079 U+20A0-20B5 U+20B8-20B9 U+2113 U+2116 U+2122 U+2126 U+212E
-           U+2153-215E U+2212 U+FB01-FB02
+Subset:    SHA-256 0e56452162cdc0941e279c4944cc7da9588f93a384c4a6ea2a3962c49fd6c56a (200288 bytes)
+Characters (739): U+0020-007E U+00A0-00AC U+00AE-017F U+0192 U+01A0-01B0 U+0218-021B U+02C6-02C7
+           U+02D8-02DD U+0374-0375 U+037A-037E U+0384-038A U+038C U+038E-03A1
+           U+03A3-03CE U+03D0-045F U+0490-0491 U+1EA0-1EF9 U+2012-2022 U+2026 U+2030
+           U+2033-2034 U+2039-203A U+2044 U+2070-2071 U+2074-2079 U+20A0-20B5
+           U+20B8-20B9 U+2113 U+2116 U+2122 U+2126 U+212E U+2153-215E U+2212 U+FB01-FB02
 
 Carlito-BoldItalic-subset.ttf: a glyph subset of Carlito-BoldItalic.ttf.
 Source:    https://raw.githubusercontent.com/google/fonts/07ace6abab87a122865e5cb82c7540b39551edb2/ofl/carlito/Carlito-BoldItalic.ttf
            808508 bytes, SHA-256 b32928186c119599e03ca6a1ffc680fdcb7fac95772f4b95d989cf6cd3861517
-Subset:    SHA-256 31b4d37935c9b4968cabea187c6e1dea4ddcb6ffd526b492534848806addc4ac (102680 bytes)
-Characters (407): U+0020-007E U+00A0-00AC U+00AE-017F U+0192 U+0218-021B U+02C6-02C7 U+02D8-02DD
-           U+2012-2022 U+2026 U+2030 U+2033-2034 U+2039-203A U+2044 U+2070-2071
-           U+2074-2079 U+20A0-20B5 U+20B8-20B9 U+2113 U+2116 U+2122 U+2126 U+212E
-           U+2153-215E U+2212 U+FB01-FB02
+Subset:    SHA-256 1f18a0c00e0795ae5804873feb5d3d252374f313514f66dd0878e6866a4887cd (234228 bytes)
+Characters (739): U+0020-007E U+00A0-00AC U+00AE-017F U+0192 U+01A0-01B0 U+0218-021B U+02C6-02C7
+           U+02D8-02DD U+0374-0375 U+037A-037E U+0384-038A U+038C U+038E-03A1
+           U+03A3-03CE U+03D0-045F U+0490-0491 U+1EA0-1EF9 U+2012-2022 U+2026 U+2030
+           U+2033-2034 U+2039-203A U+2044 U+2070-2071 U+2074-2079 U+20A0-20B5
+           U+20B8-20B9 U+2113 U+2116 U+2122 U+2126 U+212E U+2153-215E U+2212 U+FB01-FB02

@@ -1,4 +1,5 @@
-//! `cargo xtask dist`: release archives of the `bicraft` binary, built and packaged locally.
+//! `cargo xtask dist`: release archives of BIcraft's two binaries, the desktop app `bicraft` and
+//! the CLI `bicraft-cli`, built and packaged locally.
 //!
 //! On Windows it builds `x86_64-pc-windows-msvc` itself and the Linux archive inside WSL (the
 //! `xtask wsl` mechanism runs `cargo xtask dist --only linux` there). On Linux it builds the Linux
@@ -35,7 +36,7 @@ impl Target {
     fn triple(self) -> &'static str {
         match self {
             Target::Windows => "x86_64-pc-windows-msvc",
-            Target::Linux => "x86_64-unknown-linux-musl",
+            Target::Linux => "x86_64-unknown-linux-gnu",
         }
     }
     fn label(self) -> &'static str {
@@ -44,10 +45,47 @@ impl Target {
             Target::Linux => "linux-x64",
         }
     }
-    fn exe(self) -> &'static str {
+    /// The CLI's file name.
+    fn cli(self) -> &'static str {
+        match self {
+            Target::Windows => "bicraft-cli.exe",
+            Target::Linux => "bicraft-cli",
+        }
+    }
+    /// The desktop app's file name.
+    fn app(self) -> &'static str {
         match self {
             Target::Windows => "bicraft.exe",
             Target::Linux => "bicraft",
+        }
+    }
+    /// Where the binaries sit in the archive: the top folder on Windows, `bin/` on Linux.
+    fn bin_dir(self) -> &'static str {
+        match self {
+            Target::Windows => "",
+            Target::Linux => "bin/",
+        }
+    }
+    /// Where the README, the licences and the MCP reference sit: the top folder on Windows,
+    /// `share/doc/bicraft/` on Linux (the layout of an installation prefix).
+    fn doc_dir(self) -> &'static str {
+        match self {
+            Target::Windows => "",
+            Target::Linux => "share/doc/bicraft/",
+        }
+    }
+    /// The MCP reference in the archive.
+    fn mcp_doc(self) -> String {
+        match self {
+            Target::Windows => "docs/mcp.md".to_owned(),
+            Target::Linux => format!("{}mcp.md", self.doc_dir()),
+        }
+    }
+    /// The folder of BIcraft's `.pbiviz` visuals in the archive.
+    fn visuals_dir(self) -> &'static str {
+        match self {
+            Target::Windows => "visuals/",
+            Target::Linux => "share/bicraft/visuals/",
         }
     }
     fn ext(self) -> &'static str {
@@ -206,7 +244,7 @@ fn in_wsl(opts: &Opts, out: &Path) -> Result<(), String> {
 /// Builds (unless `--no-build`), packages and smoke-tests the archive of the host target.
 fn package(t: Target, opts: &Opts, out: &Path, version: &str, target_dir: &Path) -> Result<(), String> {
     if opts.build {
-        let mut args = vec![
+        let args = [
             "build",
             "--profile",
             "dist",
@@ -214,17 +252,16 @@ fn package(t: Target, opts: &Opts, out: &Path, version: &str, target_dir: &Path)
             "-p",
             "bicraft-cli",
             "--bin",
+            "bicraft-cli",
+            "-p",
+            "bicraft-desktop",
+            "--bin",
             "bicraft",
             "--target",
             t.triple(),
         ];
-        if t == Target::Windows {
-            // the desktop app (docs/desktop.md) ships in the Windows archive only: the Linux
-            // archive is a static musl binary, and a window needs the system's graphics stack
-            args.extend(["-p", "bicraft-desktop", "--bin", DESKTOP_EXE_STEM]);
-        }
         let mut c = super::cargo();
-        c.args(&args);
+        c.args(args);
         if let Some(w) = &opts.webui {
             // the browser app is part of every release binary (docs/webui.md)
             c.env("BICRAFT_WEBUI_DIR", w);
@@ -233,64 +270,68 @@ fn package(t: Target, opts: &Opts, out: &Path, version: &str, target_dir: &Path)
         if t == Target::Windows {
             // the icon and version information must be in the release executable
             c.env("BICRAFT_REQUIRE_WINRES", "1");
-        }
-        if t == Target::Windows {
-            // Static CRT: without it the binary needs the Visual C++ runtime (VCRUNTIME140.dll),
+            // Static CRT: without it the binaries need the Visual C++ runtime (VCRUNTIME140.dll),
             // which a fresh Windows does not have. Applies to the target artifacts only.
             c.env(WINDOWS_RUSTFLAGS.0, WINDOWS_RUSTFLAGS.1);
         }
         super::run(c, &format!("cargo {}", args.join(" ")))?;
     }
-    let bin = target_dir.join(t.triple()).join("dist").join(t.exe());
-    let binary = std::fs::read(&bin)
-        .map_err(|e| format!("dist: {}: {e} (build it first or drop --no-build)", bin.display()))?;
-    eprintln!("dist: {} is {} bytes", bin.display(), binary.len());
-    let version_line = version_of(&bin)?;
-    if !super::webui::binary_embeds(&bin)? {
+    let built = target_dir.join(t.triple()).join("dist");
+    let read_bin = |name: &str| {
+        let path = built.join(name);
+        std::fs::read(&path).map(|b| (path.clone(), b)).map_err(|e| {
+            format!(
+                "dist: {}: {e} (build it first or drop --no-build)",
+                path.display()
+            )
+        })
+    };
+    let (cli_path, cli) = read_bin(t.cli())?;
+    let (app_path, app) = read_bin(t.app())?;
+    eprintln!("dist: {} is {} bytes", cli_path.display(), cli.len());
+    eprintln!("dist: {} is {} bytes", app_path.display(), app.len());
+    let version_line = version_of(&cli_path)?;
+    if !super::webui::binary_embeds(&cli_path)? {
         return Err(format!(
             "dist: {} has no browser app (build it with BICRAFT_WEBUI_DIR, docs/webui.md)",
-            bin.display()
+            cli_path.display()
         ));
     }
-    if !version_line.starts_with(&format!("bicraft {version}")) {
+    if !version_line.starts_with(&format!("bicraft-cli {version}")) {
         return Err(format!(
-            "dist: {} reports `{version_line}`, expected bicraft {version}",
-            bin.display()
+            "dist: {} reports `{version_line}`, expected bicraft-cli {version}",
+            cli_path.display()
         ));
     }
-    let desktop = if t == Target::Windows {
-        let bin = target_dir.join(t.triple()).join("dist").join(DESKTOP_EXE);
-        let bytes = std::fs::read(&bin)
-            .map_err(|e| format!("dist: {}: {e} (build it first or drop --no-build)", bin.display()))?;
-        let line = version_of(&bin)?;
-        if !line.starts_with(&format!("bicraft-desktop {version}")) {
-            return Err(format!(
-                "dist: {} reports `{line}`, expected bicraft-desktop {version}",
-                bin.display()
-            ));
-        }
-        Some(bytes)
-    } else {
-        None
-    };
+    let app_line = version_of(&app_path)?;
+    if !app_line.starts_with(&format!("bicraft {version}")) {
+        return Err(format!(
+            "dist: {} reports `{app_line}`, expected bicraft {version}",
+            app_path.display()
+        ));
+    }
 
     let requires = match t {
         Target::Windows => {
             "Windows 10 or later, x64. Nothing else to install: the C runtime is linked statically."
                 .to_owned()
         }
-        Target::Linux => match glibc_floor(&binary) {
-            Some((maj, min)) => {
-                eprintln!("dist: the binary needs glibc >= {maj}.{min} (its symbol versions)");
-                format!(
-                    "Linux x64 with glibc {maj}.{min} or later (`ldd --version` prints yours). \
-                     musl-based distributions (Alpine) are not supported."
-                )
-            }
-            None => "Any Linux x64 distribution (glibc or musl): the binary is static (musl), \
-                     with no system library to install."
-                .to_owned(),
-        },
+        Target::Linux => {
+            let floor = glibc_floor(&cli).max(glibc_floor(&app));
+            let libc = match floor {
+                Some((maj, min)) => {
+                    eprintln!("dist: the binaries need glibc >= {maj}.{min} (their symbol versions)");
+                    format!("glibc {maj}.{min} or later (`ldd --version` prints yours)")
+                }
+                None => "glibc".to_owned(),
+            };
+            format!(
+                "Linux x64 with {libc}; musl-based distributions (Alpine) are not supported. \
+                 `bicraft-cli` needs nothing else. The desktop app `bicraft` also needs a graphical \
+                 session (Wayland or X11, with libxkbcommon) and a Vulkan or OpenGL (EGL) driver, \
+                 which it loads at start."
+            )
+        }
     };
 
     let root = super::root();
@@ -300,44 +341,51 @@ fn package(t: Target, opts: &Opts, out: &Path, version: &str, target_dir: &Path)
         data,
         exec,
     };
+    let bin = t.bin_dir();
+    let doc = t.doc_dir();
     let mut entries = vec![
-        file(t.exe(), binary, true),
-        file(
-            "README.md",
-            readme(t, version, &version_line, &requires).into_bytes(),
-            false,
-        ),
+        file(&format!("{bin}{}", t.app()), app, true),
+        file(&format!("{bin}{}", t.cli()), cli, true),
+        match t {
+            Target::Windows => file(
+                "install.ps1",
+                include_bytes!("../../../packaging/windows/install.ps1").to_vec(),
+                false,
+            ),
+            Target::Linux => file(
+                "install.sh",
+                include_bytes!("../../../packaging/linux/install.sh").to_vec(),
+                true,
+            ),
+        },
     ];
-    if let Some(d) = desktop {
-        entries.push(file(DESKTOP_EXE, d, true));
+    if t == Target::Linux {
+        entries.extend(linux_integration(version)?);
     }
-    entries.push(match t {
-        Target::Windows => file(
-            "install.ps1",
-            include_bytes!("../../../packaging/windows/install.ps1").to_vec(),
-            false,
-        ),
-        Target::Linux => file(
-            "install.sh",
-            include_bytes!("../../../packaging/linux/install.sh").to_vec(),
-            true,
-        ),
-    });
+    entries.push(file(
+        &format!("{doc}README.md"),
+        readme(t, version, &version_line, &requires).into_bytes(),
+        false,
+    ));
     for name in [
         "LICENSE-MIT",
         "LICENSE-APACHE",
         "NOTICE",
         "THIRD_PARTY_NOTICES.md",
     ] {
-        entries.push(file(name, read(name)?, false));
+        entries.push(file(&format!("{doc}{name}"), read(name)?, false));
     }
     let crates_md = third_party_crates(t, version)?;
-    entries.push(file("THIRD_PARTY_CRATES.md", crates_md.into_bytes(), false));
+    entries.push(file(
+        &format!("{doc}THIRD_PARTY_CRATES.md"),
+        crates_md.into_bytes(),
+        false,
+    ));
     for (src, dest) in BUNDLED_LICENSES {
-        entries.push(file(dest, read(src)?, false));
+        entries.push(file(&format!("{doc}{dest}"), read(src)?, false));
     }
-    entries.push(file("docs/mcp.md", read("docs/mcp.md")?, false));
-    entries.extend(visual_entries(&bin, out, t)?);
+    entries.push(file(&t.mcp_doc(), read("docs/mcp.md")?, false));
+    entries.extend(visual_entries(&cli_path, out, t)?);
 
     let top = format!("bicraft-{version}-{}", t.label());
     let bytes = match t {
@@ -357,7 +405,66 @@ fn package(t: Target, opts: &Opts, out: &Path, version: &str, target_dir: &Path)
     Ok(())
 }
 
-/// BIcraft's own visuals as `.pbiviz` files under `visuals/` (ROADMAP M12.5): written by the
+/// The freedesktop application id of the Linux archive's files (`DESKTOP_ID` of
+/// apps/bicraft-desktop/src/register.rs, the window's Wayland app id).
+pub(crate) const APP_ID: &str = "io.github.digorpeptra.bicraft";
+
+/// The hicolor icon sizes drawn from the app icon (those the desktop app embeds on Windows).
+const ICON_SIZES: [u32; 7] = [16, 24, 32, 48, 64, 128, 256];
+
+/// The app icon, the same file the desktop app's build draws its window icon from.
+const ICON_SVG: &str = "assets/logo/bicraft-icon.svg";
+
+/// The Linux desktop integration under `share/`: the menu entry, the icons (drawn from the app
+/// icon at packaging time, no committed PNG), the file types and the AppStream metadata.
+fn linux_integration(version: &str) -> Result<Vec<Entry>, String> {
+    let svg = std::fs::read(super::root().join(ICON_SVG)).map_err(|e| format!("dist: {ICON_SVG}: {e}"))?;
+    let file = |path: String, data: Vec<u8>| Entry {
+        path,
+        data,
+        exec: false,
+    };
+    let mut entries = vec![
+        file(
+            format!("share/applications/{APP_ID}.desktop"),
+            include_bytes!("../../../packaging/linux/bicraft.desktop").to_vec(),
+        ),
+        file(
+            format!("share/mime/packages/{APP_ID}.xml"),
+            include_bytes!("../../../packaging/linux/bicraft-mime.xml").to_vec(),
+        ),
+        file(
+            format!("share/metainfo/{APP_ID}.metainfo.xml"),
+            include_str!("../../../packaging/linux/bicraft.metainfo.xml")
+                .replace("@VERSION@", version)
+                .into_bytes(),
+        ),
+    ];
+    for size in ICON_SIZES {
+        entries.push(file(
+            format!("share/icons/hicolor/{size}x{size}/apps/{APP_ID}.png"),
+            icon_png(&svg, size)?,
+        ));
+    }
+    entries.push(file(
+        format!("share/icons/hicolor/scalable/apps/{APP_ID}.svg"),
+        svg,
+    ));
+    Ok(entries)
+}
+
+/// The SVG drawn at `size` × `size` pixels, as PNG.
+fn icon_png(svg: &[u8], size: u32) -> Result<Vec<u8>, String> {
+    let tree = resvg::usvg::Tree::from_data(svg, &resvg::usvg::Options::default())
+        .map_err(|e| format!("dist: {ICON_SVG}: {e}"))?;
+    let mut pm = tiny_skia::Pixmap::new(size, size).ok_or_else(|| format!("dist: icon size {size}"))?;
+    let s = tree.size();
+    let t = tiny_skia::Transform::from_scale(size as f32 / s.width(), size as f32 / s.height());
+    resvg::render(&tree, t, &mut pm.as_mut());
+    pm.encode_png().map_err(|e| format!("dist: icon {size} px: {e}"))
+}
+
+/// BIcraft's own visuals as `.pbiviz` files under the visuals folder (ROADMAP M12.5): written by the
 /// release binary itself (`visual export --all`), with a README naming their sources.
 fn visual_entries(bin: &Path, out: &Path, t: Target) -> Result<Vec<Entry>, String> {
     let dir = out.join(format!(".visuals-{}", t.label()));
@@ -403,15 +510,15 @@ fn visual_entries(bin: &Path, out: &Path, t: Target) -> Result<Vec<Entry>, Strin
         }
         rows.push((name.clone(), text(f, "display_name")?, text(f, "version")?));
         entries.push(Entry {
-            path: format!("visuals/{name}"),
+            path: format!("{}{name}", t.visuals_dir()),
             data,
             exec: false,
         });
     }
     std::fs::remove_dir_all(&dir).map_err(|e| format!("dist: {}: {e}", dir.display()))?;
-    eprintln!("dist: {} visuals under visuals/", entries.len());
+    eprintln!("dist: {} visuals under {}", entries.len(), t.visuals_dir());
     entries.push(Entry {
-        path: "visuals/README.md".into(),
+        path: format!("{}README.md", t.visuals_dir()),
         data: visuals_readme(&rows).into_bytes(),
         exec: false,
     });
@@ -427,7 +534,7 @@ fn visuals_readme(rows: &[(String, String, String)]) -> String {
     format!(
         "# BIcraft's visuals\n\n\
          The Power BI custom visuals BIcraft writes itself, as `.pbiviz` packages: the same bytes \
-         BIcraft embeds in a report, written by `bicraft visual export --all`. Import one in Power BI \
+         BIcraft embeds in a report, written by `bicraft-cli visual export --all`. Import one in Power BI \
          Desktop with the Visualizations pane's \"…\" › Import a visual from a file, or upload it as \
          an organizational visual. They are not published on the Microsoft Marketplace (AppSource).\n\n\
          {table}\n\
@@ -437,13 +544,9 @@ fn visuals_readme(rows: &[(String, String, String)]) -> String {
          `crates/engine/src/bvis/` (histogram, bullet chart, box plot, dumbbell), \
          `crates/engine/src/chart_pack/` (organization chart, Venn, Marimekko, calendar heatmap, Sankey, Scatter+, Line / Area+, Waterfall+, Gauge / KPI+) and \
          the runtime they share, `crates/engine/src/visual_runtime/`. bicraft compiles them itself \
-         (`bicraft visual export NAME` writes one again).\n"
+         (`bicraft-cli visual export NAME` writes one again).\n"
     )
 }
-
-/// The desktop app's executable (Windows archive).
-const DESKTOP_EXE: &str = "bicraft-desktop.exe";
-const DESKTOP_EXE_STEM: &str = "bicraft-desktop";
 
 /// Per-target rustflags of the Windows build: the C runtime linked statically.
 const WINDOWS_RUSTFLAGS: (&str, &str) = (
@@ -586,15 +689,14 @@ fn third_party_crates(t: Target, version: &str) -> Result<String, String> {
     }
     let meta: serde_json::Value =
         serde_json::from_slice(&out.stdout).map_err(|e| format!("cargo metadata: bad JSON: {e}"))?;
+    // both binaries ship in both archives: the union of their graphs
     let mut crates = notices::crates(&meta, "bicraft-cli")?;
-    if t == Target::Windows {
-        for k in notices::crates(&meta, "bicraft-desktop")? {
-            if !crates.iter().any(|c| c.name == k.name && c.version == k.version) {
-                crates.push(k);
-            }
+    for k in notices::crates(&meta, "bicraft-desktop")? {
+        if !crates.iter().any(|c| c.name == k.name && c.version == k.version) {
+            crates.push(k);
         }
-        crates.sort_by(|a, b| (&a.name, &a.version).cmp(&(&b.name, &b.version)));
     }
+    crates.sort_by(|a, b| (&a.name, &a.version).cmp(&(&b.name, &b.version)));
     Ok(notices::render(&crates, version, t.triple()))
 }
 
@@ -620,75 +722,86 @@ fn write_sums(out: &Path, version: &str) -> Result<Vec<(String, String, usize)>,
     Ok(rows)
 }
 
-/// The README.md at the top of an archive.
+/// The README.md of an archive: at the top on Windows, in `share/doc/bicraft/` on Linux.
 fn readme(t: Target, version: &str, version_line: &str, requires: &str) -> String {
-    let (install, path_bin, check) = match t {
+    let (contents, install, path_bin, mcp_link, check) = match t {
         Target::Windows => (
-            "```powershell\n\
+            "| `bicraft.exe` | the desktop app: a native report reader and editor; \
+             `bicraft.exe --register` adds a Start menu entry and Open with, for your user only |\n\
+             | `bicraft-cli.exe` | the command-line tool and the MCP server for agents |\n\
+             | `install.ps1` | copies both programs to a user folder (see below) |\n\
+             | `docs/mcp.md` | MCP tools reference and client configuration |\n\
+             | `visuals/` | BIcraft's Power BI visuals as `.pbiviz` files, for Desktop's Import a visual from a file (their TypeScript sources are in the BIcraft repository: `visuals/README.md`) |\n\
+             | `LICENSE-MIT`, `LICENSE-APACHE`, `NOTICE` | bicraft's license (MIT OR Apache-2.0, at your option) and required notices |\n\
+             | `THIRD_PARTY_NOTICES.md`, `licenses/` | data bundled in the binaries (XPress9 port, fonts, JSON schemas, best-practice rules, CLDR) and their licenses |\n\
+             | `THIRD_PARTY_CRATES.md` | the Rust crates compiled in, with their license texts |\n",
+            "The programs run from anywhere; installing only copies them.\n\n\
+             ```powershell\n\
              powershell -ExecutionPolicy Bypass -File .\\install.ps1                  # to %LOCALAPPDATA%\\bicraft\\bin\n\
              powershell -ExecutionPolicy Bypass -File .\\install.ps1 -Destination D:\\tools\n\
-             ```",
-            "C:\\\\Users\\\\you\\\\AppData\\\\Local\\\\bicraft\\\\bin\\\\bicraft.exe",
+             ```\n\n\
+             The script never changes `PATH`, the registry or any configuration: it prints how to add \
+             the folder to `PATH` when it is not there.",
+            "C:\\\\Users\\\\you\\\\AppData\\\\Local\\\\bicraft\\\\bin\\\\bicraft-cli.exe",
+            "docs/mcp.md",
             "```powershell\nGet-FileHash .\\bicraft-VERSION-windows-x64.zip -Algorithm SHA256   # compare with SHA256SUMS\n```",
         ),
         Target::Linux => (
-            "```sh\n\
-             ./install.sh               # to ~/.local/bin\n\
-             ./install.sh /opt/bicraft/bin\n\
-             ```",
-            "/home/you/.local/bin/bicraft",
+            "Paths from the archive's top folder.\n\n\
+             | File | |\n|---|---|\n\
+             | `bin/bicraft` | the desktop app: a native report reader and editor |\n\
+             | `bin/bicraft-cli` | the command-line tool and the MCP server for agents |\n\
+             | `install.sh` | installs everything below under a prefix (see below) |\n\
+             | `share/applications/`, `share/icons/hicolor/`, `share/mime/packages/`, `share/metainfo/` | the menu entry, the icons, the file types (.pbix, .pbit, .pbip) and the AppStream metadata of the desktop app |\n\
+             | `share/doc/bicraft/` | this README, `mcp.md` (MCP tools reference and client configuration), bicraft's license (`LICENSE-MIT`, `LICENSE-APACHE`, MIT OR Apache-2.0 at your option), `NOTICE`, `THIRD_PARTY_NOTICES.md` and `licenses/` (data bundled in the binaries and their licenses), `THIRD_PARTY_CRATES.md` (the Rust crates compiled in, with their license texts) |\n\
+             | `share/bicraft/visuals/` | BIcraft's Power BI visuals as `.pbiviz` files, for Desktop's Import a visual from a file (their TypeScript sources are in the BIcraft repository: `share/bicraft/visuals/README.md`) |\n",
+            "The programs run from the extracted folder (`bin/bicraft`, `bin/bicraft-cli`); installing \
+             copies `bin/` and `share/` under a prefix, so the app gets its menu entry, icon and file \
+             types.\n\n\
+             ```sh\n\
+             ./install.sh               # under ~/.local (~/.local/bin, ~/.local/share)\n\
+             ./install.sh /opt/bicraft  # under another prefix\n\
+             ```\n\n\
+             The script refreshes the menu and MIME caches of that prefix when their tools are \
+             installed. It never changes `PATH`, default applications or any configuration: it prints \
+             how to add `PREFIX/bin` to `PATH` when it is not there.",
+            "/home/you/.local/bin/bicraft-cli",
+            "mcp.md",
             "```sh\nsha256sum -c --ignore-missing SHA256SUMS\n```",
         ),
     };
-    let check = check.replace("VERSION", version);
-    let exe = t.exe();
-    let desktop = match t {
-        Target::Windows => {
-            "| `bicraft-desktop.exe` | the desktop app: a native report reader; \
-             `bicraft-desktop.exe --register` adds a Start menu entry and Open with, for your user only |\n"
-        }
-        Target::Linux => "",
+    let contents = match t {
+        Target::Windows => format!("| File | |\n|---|---|\n{contents}"),
+        Target::Linux => contents.to_owned(),
     };
+    let check = check.replace("VERSION", version);
     format!(
-        "# bicraft {version} ({label})\n\n\
+        "# BIcraft {version} ({label})\n\n\
          `{version_line}`\n\n\
-         bicraft creates, reads, modifies, validates and compiles Power BI files (PBIX, PBIT, PBIP, \
-         PBIR, TMDL/TMSL, DAX) without Power BI Desktop. It is one self-contained binary: a CLI and \
-         an MCP server for agents.\n\n\
+         BIcraft creates, reads, modifies, validates and compiles Power BI files (PBIX, PBIT, PBIP, \
+         PBIR, TMDL/TMSL, DAX) without Power BI Desktop. It ships two self-contained programs: \
+         `bicraft`, the desktop app, and `bicraft-cli`, the command-line tool and MCP server for \
+         agents.\n\n\
          ## Requirements\n\n\
          {requires}\n\n\
          ## Contents\n\n\
-         | File | |\n|---|---|\n\
-         | `{exe}` | the program |\n\
-         {desktop}\
-         | `{script}` | copies `{exe}` to a user folder (see below) |\n\
-         | `docs/mcp.md` | MCP tools reference and client configuration |\n\
-         | `visuals/` | BIcraft's Power BI visuals as `.pbiviz` files, for Desktop's Import a visual from a file (their TypeScript sources are in the BIcraft repository: `visuals/README.md`) |\n\
-         | `LICENSE-MIT`, `LICENSE-APACHE`, `NOTICE` | bicraft's license (MIT OR Apache-2.0, at your option) and required notices |\n\
-         | `THIRD_PARTY_NOTICES.md`, `licenses/` | data bundled in the binary (XPress9 port, Selawik font, JSON schemas, best-practice rules, CLDR) and their licenses |\n\
-         | `THIRD_PARTY_CRATES.md` | the Rust crates compiled in, with their license texts |\n\n\
+         {contents}\n\
          ## Install\n\n\
-         The binary runs from anywhere; installing only copies it.\n\n\
          {install}\n\n\
-         The script never changes `PATH` or any configuration: it prints how to add the folder to \
-         `PATH` when it is not there.\n\n\
          ## Use\n\n\
-         ```sh\nbicraft --version\nbicraft help\nbicraft validate-model path/to/Model.pbip\n```\n\n\
+         ```sh\nbicraft Sales.pbix                     # the desktop app\n\
+         bicraft-cli --version\nbicraft-cli help\nbicraft-cli validate-model path/to/Model.pbip\n```\n\n\
          ## MCP server\n\n\
-         `bicraft mcp` serves the Model Context Protocol on stdio. Register it with a client by hand:\n\n\
+         `bicraft-cli mcp` serves the Model Context Protocol on stdio. Register it with a client by hand:\n\n\
          ```json\n{{\n  \"mcpServers\": {{\n    \"bicraft\": {{ \"command\": \"{path_bin}\", \"args\": [\"mcp\"] }}\n  }}\n}}\n```\n\n\
-         or let bicraft write the entry: `bicraft setup --dry-run` shows the plan, \
-         `bicraft setup --client claude_code --yes` applies it (also `claude_desktop`, `vscode`, \
+         or let bicraft write the entry: `bicraft-cli setup --dry-run` shows the plan, \
+         `bicraft-cli setup --client claude_code --yes` applies it (also `claude_desktop`, `vscode`, \
          `cursor`, `codex`). The tools, clients and options are described in \
-         [docs/mcp.md](docs/mcp.md).\n\n\
+         [{mcp_link}]({mcp_link}).\n\n\
          ## Verify the download\n\n\
          `SHA256SUMS`, next to the archives, lists their SHA-256:\n\n\
          {check}\n",
         label = t.label(),
-        script = match t {
-            Target::Windows => "install.ps1",
-            Target::Linux => "install.sh",
-        },
     )
 }
 
@@ -717,16 +830,18 @@ mod tests {
         let w = readme(
             Target::Windows,
             "1.2.3",
-            "bicraft 1.2.3 (commit 0123456789ab)",
+            "bicraft-cli 1.2.3 (commit 0123456789ab)",
             "Win",
         );
         assert!(w.contains("install.ps1") && !w.contains("install.sh"));
-        assert!(w.contains("bicraft-desktop.exe --register"));
+        assert!(w.contains("bicraft.exe --register") && w.contains("`bicraft-cli.exe`"));
         assert!(w.contains("bicraft-1.2.3-windows-x64.zip"));
         assert!(w.contains("(commit 0123456789ab)"));
-        let l = readme(Target::Linux, "1.2.3", "bicraft 1.2.3", "glibc 2.34");
+        let l = readme(Target::Linux, "1.2.3", "bicraft-cli 1.2.3", "glibc 2.34");
         assert!(l.contains("install.sh") && l.contains("sha256sum -c"));
-        assert!(!l.contains("bicraft-desktop"));
+        assert!(l.contains("`bin/bicraft`") && l.contains("`bin/bicraft-cli`") && !l.contains(".exe"));
+        assert!(!l.contains("bicraft-desktop") && !w.contains("bicraft-desktop"));
+        assert!(l.contains("[mcp.md](mcp.md)") && w.contains("[docs/mcp.md](docs/mcp.md)"));
         assert!(l.contains("## Requirements\n\nglibc 2.34\n"));
         // The JSON sample is valid JSON.
         let json = l.split("```json\n").nth(1).and_then(|r| r.split("\n```").next());
@@ -737,7 +852,7 @@ mod tests {
             v["mcpServers"]["bicraft"]["command"]
                 .as_str()
                 .unwrap()
-                .ends_with("bicraft.exe")
+                .ends_with("bicraft-cli.exe")
         );
     }
 
@@ -754,7 +869,64 @@ mod tests {
             assert!(r.contains(&path), "{dir}");
             assert!(crate::root().join(&path).is_dir(), "{path}");
         }
-        assert!(readme(Target::Linux, "1", "bicraft 1", "x").contains("`visuals/`"));
+        assert!(readme(Target::Linux, "1", "bicraft-cli 1", "x").contains("`share/bicraft/visuals/`"));
+        assert!(readme(Target::Windows, "1", "bicraft-cli 1", "x").contains("`visuals/`"));
+    }
+
+    #[test]
+    fn linux_files_name_the_app_and_its_id() {
+        // the window's app id (Wayland, X11) must be the one the menu entry and icons are named by
+        let register =
+            std::fs::read_to_string(crate::root().join("apps/bicraft-desktop/src/register.rs")).unwrap();
+        assert!(register.contains(&format!("DESKTOP_ID: &str = \"{APP_ID}\"")));
+        let entries = linux_integration("1.2.3").unwrap();
+        let get = |p: &str| {
+            entries
+                .iter()
+                .find(|e| e.path == p)
+                .map(|e| String::from_utf8_lossy(&e.data).into_owned())
+        };
+        let desktop = get(&format!("share/applications/{APP_ID}.desktop")).unwrap();
+        assert!(
+            desktop.contains(
+                "
+Exec=bicraft %f
+"
+            ) && desktop.contains(&format!(
+                "
+Icon={APP_ID}
+"
+            ))
+        );
+        let metainfo = get(&format!("share/metainfo/{APP_ID}.metainfo.xml")).unwrap();
+        assert!(
+            metainfo.contains(&format!("<id>{APP_ID}</id>"))
+                && metainfo.contains("<release version=\"1.2.3\"/>")
+        );
+        assert!(!metainfo.contains('@'));
+        let mime = get(&format!("share/mime/packages/{APP_ID}.xml")).unwrap();
+        for ext in ["pbix", "pbit", "pbip"] {
+            assert!(
+                mime.contains(&format!("pattern=\"*.{ext}\""))
+                    && desktop.contains(&format!("application/x-{ext};"))
+            );
+        }
+        // every hicolor size is a PNG of that size, plus the scalable SVG
+        for size in ICON_SIZES {
+            let png = entries
+                .iter()
+                .find(|e| e.path == format!("share/icons/hicolor/{size}x{size}/apps/{APP_ID}.png"))
+                .unwrap();
+            let pm = tiny_skia::Pixmap::decode_png(&png.data).unwrap();
+            assert_eq!((pm.width(), pm.height()), (size, size));
+        }
+        assert!(
+            get(&format!("share/icons/hicolor/scalable/apps/{APP_ID}.svg"))
+                .unwrap()
+                .starts_with("<svg")
+        );
+        let install = include_str!("../../../packaging/linux/install.sh");
+        assert!(install.contains(&format!("share/applications/{APP_ID}.desktop")));
     }
 
     #[test]

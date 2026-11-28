@@ -1,4 +1,4 @@
-//! Prometheus metrics of `bicraft serve` (docs/kubernetes.md, "Observability").
+//! Prometheus metrics of `bicraft-cli serve` (docs/kubernetes.md, "Observability").
 //!
 //! Counters and histograms are plain atomics updated on the request path (no lock, no
 //! allocation); everything else (open workspaces, memory, spill files, aggregation builds,
@@ -713,7 +713,7 @@ pub(super) fn render(state: &State) -> String {
     counter(
         &mut out,
         "bicraft_control_requests_total",
-        "Agents' requests to the UI control channel's relay (bicraft serve --viewer-control).",
+        "Agents' requests to the UI control channel's relay (bicraft-cli serve --viewer-control).",
         m.control_requests.load(Ordering::Relaxed),
     );
     counter(

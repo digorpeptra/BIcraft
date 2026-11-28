@@ -441,8 +441,8 @@ pub fn autosave_refusal(app: &App) -> Option<&'static str> {
     let s = snap(app)?;
     if s.pointer("/view/limits/autosave").and_then(Value::as_bool) == Some(false) {
         return Some(l.t(
-            "This server does not allow automatic saves (bicraft serve --allow-autosave).",
-            "Ce serveur n'autorise pas l'enregistrement automatique (bicraft serve --allow-autosave).",
+            "This server does not allow automatic saves (bicraft-cli serve --allow-autosave).",
+            "Ce serveur n'autorise pas l'enregistrement automatique (bicraft-cli serve --allow-autosave).",
         ));
     }
     if app.access.as_deref() == Some("reader") {

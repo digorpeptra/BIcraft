@@ -148,7 +148,7 @@ options and the Spec visual's spec) under a custom report theme of purple and or
 colours set by `theme.set_colors`. Driven by input events through the WebView2 DevTools port; each
 visual's sandbox frame DOM and screenshots were read.
 
-- **Drawing and colours.** On each page the ten draw the marks of `bicraft render`: rounded
+- **Drawing and colours.** On each page the ten draw the marks of `bicraft-cli render`: rounded
   gradient bars, the Bold edges and shadows (the frames' `stroke` and `filter`), Minimal's earlier
   flat look and blue calendar ramp; the marks take the theme's data colours from
   `host.colorPalette`, as the renderer takes them from the report theme.
@@ -166,7 +166,7 @@ visual's sandbox frame DOM and screenshots were read.
 - **Style card.** The card lists its options in French; the preset drop-down shows Moderne and
   Affirmé among its items, the palette drop-down Couleurs BIcraft; picking Affirmé on the
   histogram redraws it with edges and shadow, and Desktop's save writes `style.preset` as `bold`,
-  which `bicraft render` draws the same. The Spec visual had no Style card in that run (its `style`
+  which `bicraft-cli render` draws the same. The Spec visual had no Style card in that run (its `style`
   was in its spec; it has one since 1.3.0.0, below).
 
 The second pass (chart visuals and pack 1.2.0.0 and 1.3.0.0, Spec 1.3.0.0 and 1.4.0.0) in the
@@ -174,18 +174,18 @@ same Desktop later that day, from PBIX files `bicraft` wrote with the ten under 
 a light report and under a dark custom theme (`theme.set_colors` with background `#1F1F1F`, no
 base theme):
 
-- **Card and value chips.** On the light pages the ten draw as `bicraft render` draws them: the
+- **Card and value chips.** On the light pages the ten draw as `bicraft-cli render` draws them: the
   card behind the plot under Modern and Bold, the Bold value chips (dumbbell ends, Venn counts),
   the Sankey's bold labels (weight 600).
 - **Spec visual's Style card.** Its format pane has the Style card in French (Apparence,
   Préréglage with Affirmé, Couleurs with Thème du rapport, Coins arrondis, Dégradé, Ombre,
   Animation, Fond en carte, Pastilles de valeur). Turning Fond en carte off removed the card;
-  Desktop's save is drawn the same by `bicraft render` (the Spec visual without its card). The
+  Desktop's save is drawn the same by `bicraft-cli render` (the Spec visual without its card). The
   combo template's legend reads "First measure" and "Second measure" in both, the template's
   own field names.
-- **Dark theme.** Inside their frames the ten draw the dark-surface tokens as `bicraft render`
+- **Dark theme.** Inside their frames the ten draw the dark-surface tokens as `bicraft-cli render`
   does (dark card, light text, grid and axes). Desktop kept the page canvas and each visual's
-  container and title area white, the titles grey, where `bicraft render` paints the page and
+  container and title area white, the titles grey, where `bicraft-cli render` paints the page and
   every container in the theme's `background`: a difference in the built-in renderer's page
   and container backgrounds, left (G114).
 

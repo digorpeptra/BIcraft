@@ -2,7 +2,7 @@
 
 Status: implemented 2026-10-26 (web stage 1, lot 1; `docs/web-deployment.md`, security review
 items 1 and 2). Code: `crates/engine/src/sandbox.rs`, tests in `sandbox_tests.rs`. No network
-code: this lot is what the HTTP transport (`bicraft serve`) relies on before any exposure.
+code: this lot is what the HTTP transport (`bicraft-cli serve`) relies on before any exposure.
 
 ## Local mode and server mode
 
@@ -11,7 +11,7 @@ code: this lot is what the HTTP transport (`bicraft serve`) relies on before any
 | How | `Session::new()` | `Session::server(ServerConfig::new(root)?)`, or `Session::from_env()` with `BICRAFT_SERVER_ROOT` set |
 | Paths | as given, relative to the process' current directory | relative to the workspace root, checked (below) |
 | Commands | all | `file.open_in_desktop` refused; the Databricks connector needs the network setting |
-| Who uses it | the CLI, `bicraft mcp` (stdio), `bicraft view` | `bicraft serve` (one session per workspace, rooted at the workspace folder) |
+| Who uses it | the CLI, `bicraft-cli mcp` (stdio), `bicraft-cli view` | `bicraft-cli serve` (one session per workspace, rooted at the workspace folder) |
 
 The CLI and the stdio MCP server still call `Session::new()`: their behaviour is unchanged. The
 mode is fixed when the session is built (`Session::server` / `from_env`); the field is private and
@@ -24,7 +24,7 @@ never changes afterwards. A private session a command opens itself (`file.conver
 | `BICRAFT_SERVER_ROOT` | turns server mode on: the workspace root, an existing folder. Unset or empty: local mode. A missing folder or a file is an error (`Session::from_env` fails), never a silent local mode. |
 | `BICRAFT_SERVER_NETWORK` | `1`/`true`/`yes`/`on` allows network access (the Databricks connector of `model.refresh`); `0`/`false`/`no`/`off` or unset: refused. Anything else is an error. |
 
-Both are read through `bicraft-env` (`ServerConfig::from_env`). `bicraft serve` picks one root
+Both are read through `bicraft-env` (`ServerConfig::from_env`). `bicraft-cli serve` picks one root
 per workspace itself and reads only `BICRAFT_SERVER_NETWORK` (`ServerConfig::network_from_env`),
 or `--allow-network`. In code:
 `ServerConfig::new(root)?.allow_network(true)`. The root is canonicalized once (symbolic links and
@@ -95,7 +95,7 @@ Each row of the command table (`commands.rs`) carries `server: ServerPolicy`:
 `Session::available_commands(filter)` is `list_commands` without the denied ones.
 
 - **Denied** commands are left out of `list_commands` (and of `tools/list` when a convenience
-  tool maps to one) over `bicraft serve`, and fail before running with "`<id>` is not available in server mode: …" (the
+  tool maps to one) over `bicraft-cli serve`, and fail before running with "`<id>` is not available in server mode: …" (the
   failure is recorded in `last_command` like any other).
 - **Network** commands run, and check `ServerConfig::network_allowed` where they would connect.
 
@@ -182,7 +182,7 @@ images (read from the open package or project only; `image.add`, `image.set` and
   `desktop_target` empty, the Databricks connector refused without the network setting;
 - configuration parsing; local mode unchanged (no sandbox error for the same inputs).
 
-## Wired into `bicraft serve` (2026-10-26)
+## Wired into `bicraft-cli serve` (2026-10-26)
 
 `bicraft_mcp::http::new_session(dir, allow_network)` builds each workspace's session with
 `Session::server(ServerConfig::new(dir)?.allow_network(..))`: the workspace folder is the root,
@@ -190,7 +190,7 @@ so tool paths are relative to it and two workspaces cannot reach each other's fi
 workspace folder must really be the server root's direct child named exactly as the id
 (canonicalized: a link or junction named like a workspace that points to another workspace or
 outside the root, or another spelling of an id on a case-insensitive file system, is answered
-404). Network access follows `bicraft serve --allow-network` or `BICRAFT_SERVER_NETWORK` (default
+404). Network access follows `bicraft-cli serve --allow-network` or `BICRAFT_SERVER_NETWORK` (default
 off; the operator may enable the Databricks refresh). Over HTTP, `list_commands` and `tools/list`
 hide denied commands and calling one anyway returns the policy error. The stdio server and the
 CLI keep local sessions. Tests: `crates/mcp/tests/http.rs` (absolute paths, `..`, link escape,
@@ -207,8 +207,8 @@ Each command's policy also carries an `effect` (`Effect::Mutating` by default, `
 
 ## Files over HTTP (2026-10-26)
 
-`bicraft serve` exposes each workspace folder at `/w/<id>/files/` (`docs/web-deployment.md`,
-"Operating `bicraft serve`"). Every path of those routes goes through the same
+`bicraft-cli serve` exposes each workspace folder at `/w/<id>/files/` (`docs/web-deployment.md`,
+"Operating `bicraft-cli serve`"). Every path of those routes goes through the same
 `ServerConfig::resolve` as tool paths (lexical classes 400, a link leaving the workspace 403), and
 the writes keep the residual-risk rules above: uploads create plain files only (`create_new`
 temp file in the reserved `.bicraft-tmp/`, then a rename), never links; a zipped project is

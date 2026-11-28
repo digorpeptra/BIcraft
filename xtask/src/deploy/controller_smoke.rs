@@ -292,7 +292,7 @@ fn flow(
             "-v",
             out.as_str(),
             "--entrypoint",
-            "/usr/local/bin/bicraft",
+            "/usr/local/bin/bicraft-cli",
             o.image.as_str(),
         ];
         a.extend(args);

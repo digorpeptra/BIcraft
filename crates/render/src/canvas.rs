@@ -143,11 +143,33 @@ pub(crate) enum Op {
         opacity: f32,
         body: LayerBody,
     },
-    /// The start of a part of the page for the PDF's structure tree (a visual): its title and
-    /// its alternative text; it ends at the matching [`Op::End`]. Draws nothing.
-    Begin { title: String, alt: Option<String> },
+    /// The start of a part of the page for the PDF's structure tree (a visual, a table, a row
+    /// or a cell of it); it ends at the matching [`Op::End`]. Draws nothing.
+    Begin(Part),
     /// The end of the part opened by the last [`Op::Begin`].
     End,
+}
+
+/// A part of the page for the PDF's structure tree ([`Op::Begin`]).
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) enum Part {
+    /// A visual: its title, its alternative text (which stands for all its content), the label
+    /// of its graphics when it has no alternative text (its title, for a chart), and its place
+    /// in the reading order (smaller first).
+    Visual {
+        title: String,
+        alt: Option<String>,
+        label: Option<String>,
+        order: (f32, f32, f32),
+    },
+    /// A table of rows and cells.
+    Table,
+    /// A row of the open table.
+    Row,
+    /// A header cell (a column's header) of the open row.
+    HeadCell,
+    /// A data cell of the open row.
+    Cell,
 }
 
 /// What a composited canvas holds: its operations, or its raster when they are not available.
@@ -549,15 +571,24 @@ impl Canvas {
 
     /// Opens a part of the page for the PDF's structure tree ([`Op::Begin`]); nothing when the
     /// canvas does not record.
-    pub(crate) fn begin_part(&self, title: &str, alt: Option<&str>) {
+    pub(crate) fn begin_part(&self, part: Part) {
         if self.recording() {
-            self.push(
-                Op::Begin {
-                    title: title.chars().take(500).collect(),
-                    alt: alt.map(|a| a.chars().take(2000).collect()),
+            let cap = |s: String, n: usize| s.chars().take(n).collect::<String>();
+            let part = match part {
+                Part::Visual {
+                    title,
+                    alt,
+                    label,
+                    order,
+                } => Part::Visual {
+                    title: cap(title, 500),
+                    alt: alt.map(|a| cap(a, 2000)),
+                    label: label.map(|a| cap(a, 2000)),
+                    order,
                 },
-                0,
-            );
+                p => p,
+            };
+            self.push(Op::Begin(part), 0);
         }
     }
 

@@ -104,7 +104,7 @@ DAX queries) are 0.
 ### DAX Studio check (DAX Studio 3.6.1, 2026-10-14)
 
 A PBIX BIcraft built from scratch (two M tables, a relationship, a sort-by column, a measure
-with a dynamic format string) was exported with `bicraft vpax` and imported with DAX Studio's
+with a dynamic format string) was exported with `bicraft-cli vpax` and imported with DAX Studio's
 Advanced → Import Metrics (driven by UI Automation), next to the VPAX DAX Studio's own
 `dscmd vpax` extracts from Desktop 2.158 with the same file open.
 

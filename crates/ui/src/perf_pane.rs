@@ -6,8 +6,9 @@
 //! session; the pane only keeps the last `perf.results` it read, which rows are unrolled and the
 //! render it waits for. The times are BIcraft's own: its evaluator's (`evaluation_ms`, measured
 //! by the engine) and its renderer's draw call of each visual (`render_ms`, measured by
-//! `bicraft-render` where the page is drawn and handed back with `perf.render`; the browser has no
-//! clock there, so it shows none).
+//! `bicraft-render` where the page is drawn, the browser included, and handed back with
+//! `perf.render`: after Refresh visuals, and for the visuals the viewer evaluates while a
+//! recording runs, named by the snapshot's `perf.unrendered`).
 
 use std::collections::BTreeSet;
 use std::sync::Arc;
@@ -54,6 +55,9 @@ pub struct PerfUi {
     pub exported: Option<Result<String, String>>,
     /// A refresh whose page is drawn again: its render times go back to the engine.
     awaiting: Option<Await>,
+    /// The snapshot whose drawing's render times went back already (the viewer's own
+    /// evaluations, named by the snapshot's `perf.unrendered`).
+    viewed_seq: Option<u64>,
 }
 
 #[derive(Debug)]
@@ -221,8 +225,56 @@ fn awaiting_render(app: &mut App, v: &Value) {
     });
 }
 
-/// The render times of the refreshed page, once it is drawn again: handed to the engine.
+/// The render times of the drawing of the page shown, handed to the engine: after Refresh
+/// visuals, the refreshed page's once it is drawn again; else, while a recording runs, those of
+/// the visuals the snapshot names as evaluated by the viewer and still without a render time.
 fn collect_render(app: &mut App) {
+    if app.cmd.perf.awaiting.is_some() {
+        collect_refreshed(app);
+    } else {
+        collect_viewed(app);
+    }
+}
+
+/// The viewer's own evaluations (`perf.unrendered` of the snapshot shown): once per snapshot,
+/// from the first drawing of it.
+fn collect_viewed(app: &mut App) {
+    let (Some((k, Ok(img))), Some(loaded)) = (&app.shown, &app.loaded) else {
+        return;
+    };
+    if k.seq != loaded.seq || app.cmd.perf.viewed_seq == Some(k.seq) {
+        return;
+    }
+    let Some(unrendered) = loaded.snap.pointer("/perf/unrendered") else {
+        return;
+    };
+    let seq = k.seq;
+    let Some(page) = app.page_names().get(k.page).map(|p| p.0.clone()) else {
+        return;
+    };
+    let waiting: Vec<&str> = unrendered
+        .get(&page)
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_str)
+        .collect();
+    let mut times = Map::new();
+    for n in &img.visuals {
+        if let Some(ms) = n.render_ms
+            && waiting.contains(&n.name.as_str())
+        {
+            times.insert(n.name.clone(), json!(ms));
+        }
+    }
+    app.cmd.perf.viewed_seq = Some(seq);
+    if !times.is_empty() && crate::ribbon::state(app, "perf.render").is_ok() {
+        send(app, "perf.render", json!({"page": page, "times": times}));
+    }
+}
+
+/// After Refresh visuals: the refreshed page's times, once it is drawn again.
+fn collect_refreshed(app: &mut App) {
     let Some(a) = &app.cmd.perf.awaiting else {
         return;
     };

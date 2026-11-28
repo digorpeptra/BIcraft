@@ -1,11 +1,11 @@
-//! `bicraft diff` (`docs/diff.md`): the semantic diff (`file.diff`) and its git integrations.
+//! `bicraft-cli diff` (`docs/diff.md`): the semantic diff (`file.diff`) and its git integrations.
 //!
 //! ```text
-//! bicraft diff [OPTIONS] A B                       # two files of any format
-//! bicraft diff [OPTIONS] --git REV1 [REV2] PATH    # a project (or file) between two revisions;
+//! bicraft-cli diff [OPTIONS] A B                   # two files of any format
+//! bicraft-cli diff [OPTIONS] --git REV1 [REV2] PATH    # a project (or file) between two revisions;
 //!                                                  # REV2 omitted: the working tree
-//! bicraft diff --textconv FILE                     # git textconv: canonical text of one file
-//! bicraft diff PATH OLD HEX MODE NEW HEX MODE      # GIT_EXTERNAL_DIFF / diff.<driver>.command
+//! bicraft-cli diff --textconv FILE                 # git textconv: canonical text of one file
+//! bicraft-cli diff PATH OLD HEX MODE NEW HEX MODE  # GIT_EXTERNAL_DIFF / diff.<driver>.command
 //! OPTIONS: --json | --markdown | --text (default), --model-only | --report-only,
 //!          --ignore-formatting, --ignore-positions, --ignore-whitespace, --exit-code
 //! ```

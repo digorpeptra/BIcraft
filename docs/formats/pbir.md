@@ -150,9 +150,12 @@ matrix with a two-level hierarchy on its rows).
 the public `semanticQuery` schema's `QueryArithmeticExpression` (operator 3 is Divide) and
 `QueryScopedEvalExpression` ("evaluates an expression in a specified scope"; the scope "can
 only be Columns"); `crates/pbir/schemas/semanticQuery/1.4.0/schema.json`. BIcraft reads and
-writes three scopes as `FieldBinding::show_as`: empty (percent of grand total), the plain
-columns of the matrix's `Columns` role in order (percent of column total) and those of its
-`Rows` role (percent of row total); any other `Arithmetic` stays an `Other` field, written as
+writes three scopes as `FieldBinding::show_as`: empty (percent of grand total), the grouping
+fields of the matrix's `Columns` role in order (percent of column total) and those of its
+`Rows` role (percent of row total). A grouping field is a plain column or a hierarchy level:
+a level is written in the scope as its projection's own `HierarchyLevel` expression, every
+level of the role whether shown or not (a level groups by its column; *inferred*, no
+Desktop-saved scope over hierarchy levels has been seen); any other `Arithmetic` stays an `Other` field, written as
 read. A reused projection's scope is rewritten when the role's columns change. A new
 projection is named `Divide(Sum(T.C), ScopedEval(Sum(T.C), [T.Col, …]))` with
 `nativeQueryRef` `%GT Sum of C` (`%CT`, `%RT`), the prefixes Desktop shows; the field and its
@@ -176,7 +179,9 @@ shown as a percentage of the grand total it leaves them out and flags the visual
 icon, whose details say the two options are not compatible and ask to remove the quick
 calculation or untick the option. BIcraft's preview does the same and both commands warn
 (`warnings`) when they make that pair; the percentages of a column or row total with `showAll`
-were not tried.
+were not tried. In a matrix, each subtotal level lists the members with no data of its
+show-all fields too (a blank subtotal), so a collapsed level shows the empty members its leaf
+rows list (BIcraft's reading; not tried in Desktop).
 
 **Visual calculations.** A projection whose field is `{"NativeVisualCalculation": {"Language":
 "dax", "Expression": E, "Name": N}}` (the public `semanticQuery` schema's
@@ -288,10 +293,10 @@ keeps or rewrites); detailed provenance is kept privately by the maintainers. Im
 | Min / max / average / median / percentile | `objects.referenceLine` | `selector: {metadata: <series queryRef>, id}` (Desktop's key order); `value` = `{expr: {Aggregation: {Expression: {SelectRef: {ExpressionName: <queryRef>}}, Function: 3/4/1/6}}}` or `{expr: {Percentile: {Expression: …, K: 0.75}}}` (Desktop drops `Exclusive: false`) |
 | Trend line | `objects.trend` | one entry, no selector |
 | Forecast (**unchecked**) | `objects.forecast` (line charts, continuous x axis: Microsoft Learn) | `selector: {metadata: <series queryRef>, id}`; `transform: {algorithm: "Forecast", parameters: [{Literal: {Value: "7D"}, Name: "Unit"}, ForecastLength, IgnoreLast, ConfidenceLevel, MaxSeasonality?]}`, every parameter a double. No public schema describes `transform`: this is BIcraft's own shape, not compared with a file Desktop saved |
-| Error bars (**unchecked**) | `objects.error` (bar, column, clustered and 100% charts, line chart, both combos, ribbon chart: the theme schema's types) | one entry per series, `selector: {metadata: <series queryRef>}` (no `id`); `enabled`, `errorRange`, then the theme schema's `bar*`, `marker*`, `label*`, `tooltip*` and, on line charts only, `shade*` properties. `errorRange` is typed `Other` and no public schema describes its value: BIcraft writes `{kind: "ErrorRange", explicit: {isRelative: <bool>, upperBound: {expr: <measure or aggregation>}, lowerBound: {expr: …}}}`, its own choice, not checked against a Desktop-saved file; relative bounds are read as series value + bound |
+| Error bars (**unchecked**) | `objects.error` (bar, column, clustered and 100% charts, line chart, both combos, ribbon chart: the theme schema's types) | one entry per series, `selector: {metadata: <series queryRef>}` (no `id`); `enabled`, `errorRange`, then the theme schema's `bar*`, `marker*`, `label*`, `tooltip*` and, on line charts only, `shade*` properties. `errorRange` is typed `Other` and no public schema describes its value: BIcraft writes `{kind: "ErrorRange", explicit: {isRelative: <bool>, upperBound: {expr: <measure or aggregation>}, lowerBound: {expr: …}}}`, its own choice, not checked against a Desktop-saved file; relative bounds are read as series value + bound. Drawn per series: with a legend each legend series at its own points (the legend's value carries the one entry); on stacked and 100 % columns and bars at the top of the series' segment, each bound as far from that top as from the series' value (the `error` object has no property choosing the stack's top or the segment's: BIcraft's reading, unchecked); on combo charts on both the columns and the line |
 | Ratio line (**unchecked**) | `objects.ratioLine` (scatter chart) | one entry, no selector; `show`, `displayName`, `lineColor`, `style`, `width`, `transparency` (theme schema). BIcraft draws it from the origin through (Σx, Σy), its own reading |
 | Symmetry shading (**unchecked**) | `objects.plotAreaShading` (scatter chart) | one entry, no selector; `show`, `displayName`, `upperShadingColor`, `lowerShadingColor`, `transparency` (theme schema); drawn above and below the y = x line |
-| Anomaly detection (**unchecked**) | `objects.anomalyDetection` (line chart: the theme schema's only type) | one entry, `selector: {metadata: <series queryRef>}` (no `id`); `show`, `displayName`, `markerShow`, `markerShape` (`circle`, `square`, `diamond`, `triangle`, `droplet`), `markerShapeSize`, `markerColor`, `markerTransparency`, `confidenceBandShow`, `confidenceBandStyle` (`fill`, `line`, `none`), `confidenceBandColor`, `transparency` (theme schema). No public source names the sensitivity's property: BIcraft writes `transform: {algorithm: "AnomalyDetection", parameters: [{Literal: {Value: "70D"}, Name: "Sensitivity"}]}` (the forecast's shape), its own choice. Microsoft Learn ("Anomaly detection"): line charts with a time series axis, no legend, one value and no secondary values, at least four points, no forecast or min, max, average, median and percentile lines beside it; `visual.analytics` refuses those combinations. The expected range and the anomalies are BIcraft's own estimate (a centred moving median and the residuals' median absolute deviation, `crates/render/src/anomaly.rs`), not the SR-CNN model Learn names; the explanations (Explain by) are not modelled |
+| Anomaly detection (**unchecked**) | `objects.anomalyDetection` (line chart: the theme schema's only type) | one entry, `selector: {metadata: <series queryRef>}` (no `id`); `show`, `displayName`, `markerShow`, `markerShape` (`circle`, `square`, `diamond`, `triangle`, `droplet`), `markerShapeSize`, `markerColor`, `markerTransparency`, `confidenceBandShow`, `confidenceBandStyle` (`fill`, `line`, `none`), `confidenceBandColor`, `transparency` (theme schema). No public source names the sensitivity's property: BIcraft writes `transform: {algorithm: "AnomalyDetection", parameters: [{Literal: {Value: "70D"}, Name: "Sensitivity"}]}` (the forecast's shape), its own choice. Microsoft Learn ("Anomaly detection"): line charts with a time series axis, no legend, one value and no secondary values, at least four points, no forecast or min, max, average, median and percentile lines beside it; `visual.analytics` refuses those combinations. The expected range and the anomalies are BIcraft's own estimate (a centred moving median and the residuals' median absolute deviation, `crates/render/src/anomaly.rs`), not the SR-CNN model Learn names. The explanations are BIcraft's own ranking (`visual.explain_anomaly`, [analyze-point.md](../analyze-point.md#explain-an-anomaly)), not Power BI's; Explain by's saved fields are not modelled |
 | Small multiples | role `Rows` in `query.queryState` (Desktop orders it before `Y`); `objects.smallMultiplesLayout` (`layoutType 'custom'`, `rowCount`, `columnCount`); `objects.subheader` | |
 | Report-page tooltip | `visualContainerObjects.visualTooltip` | `show: true`, `type: 'Canvas'`, `section: '<page name>'` |
 | Tooltip / drillthrough page | `page.type` `Tooltip`/`Drillthrough`; `page.pageBinding {name, type, parameters, referenceScope?, acceptsFilterContext?}` | Desktop writes `parameters: []` when empty; `acceptsFilterContext: "None"` = keep-all-filters off; `referenceScope: "CrossReport"`; drillthrough fields = page filters with `howCreated: "Drillthrough"` plus parameters `{name, boundFilter, asAggregation?, fieldExpr}` |
@@ -318,6 +323,7 @@ corpus (`linearGradient2` with `nullColoringStrategy`). Implemented in
 |---|---|
 | Minimum / Center / Maximum: lowest, middle, highest value | the stop without `value` (`linearGradient2` / `linearGradient3` `min`, `mid`, `max` `{color}`) |
 | Minimum / Center / Maximum: Number | the stop's `value` literal beside its `color` |
+| Minimum / Center / Maximum: Percent (**inferred**) | the stop's `value` is the Percent rules' bound below over the gradient's `Input`, beside its `color` |
 | How should we format empty values? | `nullColoringStrategy.strategy` `'asZero'`, `'noColor'` or `'specificColor'` with `color`; Don't format writes nothing |
 | Apply to | the selector's `dataViewWildcard.matchingOption` 1 (values), 0 (values and totals), 2 (totals) |
 | If value `op` x and `op2` y | one `Conditional` case whose condition is `And` of two `Comparison`s (kinds 0 `=`, 1 `>`, 2 `>=`, 3 `<`, 4 `<=`); "is blank" compares with a `null` literal |
@@ -332,8 +338,11 @@ semantic query schema's `Arithmetic` (operators 0 add, 1 subtract, 2 multiply) a
 `Min + (Max - Min) * (p / 100)`, the literal `p / 100` a `D` number. The decoder reads exactly
 that shape back as `percent: true`; any other expression stays untouched in the file. No public
 source gives Desktop's own shape, so a file Desktop formats may differ (black-box oracle to
-run). The gradient's Percent and Percentile stops are not written (the dialog offers Number
-only for them). The data bars', icons', percent and two-condition rules' shapes **were not
+run). The gradient's **Percent** stops (since 2026-11-27, G54) take the same shape as the
+stop's `value`, an expression where a Number stop has a literal: the schemas type the stop's
+`value` as a number and give no Percent form, so this is BIcraft's inference, read back only in
+that exact shape (`{color, value, percent: true}` in `visual.conditional`); the viewer places
+the stop at `p` % of the visual's lowest to highest value. Percentile stops are not written. The data bars', icons', percent and two-condition rules' shapes **were not
 compared with a file Desktop formatted** through these dialogs.
 
 ### Conditional formats of the container and of labels
@@ -433,7 +442,7 @@ scaled", vendored under `crates/pbir/schemas/page/`). No Desktop file was compar
   `displayOption` (`FitToPage`, `FitToWidth`, `ActualSize`), written by
   `page.set_display_option`; a legacy layout keeps it as the section's numeric `displayOption`
   (1, 2, 3; `legacy-layout-bb.md` §3). The app's canvas scales the page by it.
-- **Show gridlines**, **Snap to grid** and **Lock objects** ("Lock all objects on the canvas so
+- **Show gridlines**, **Snap to grid**, BIcraft's **Smart guides** switch and **Lock objects** ("Lock all objects on the canvas so
   that they can't be moved or resized") have no property in the published report, page or
   visual container schemas, so BIcraft keeps them as the author's window preferences, never in
   the file. Learn says gridlines and snapping operate independently.
@@ -696,7 +705,22 @@ expression, filter, howCreated: 2}`; 2 is the filter schema's third origin, `Dri
 the order of its `howCreated` strings). `bookmark.apply` and `view.interact {action: "bookmark"}`
 read them back into the view's drill (a bookmark without them resets the visual's drill), within
 the Data option. This shape is BIcraft's reading of the public schemas: **no file Desktop saved
-with a drilled visual was compared**. The drill mode (drill down on click) is not captured.
+with a drilled visual was compared**.
+
+The drill mode (drill down on click, the reader's ↓ toggle) is captured since 2026-11-27. The
+bookmark schema has no property for it (`SingleVisualConfigState` is closed; `isDrillDisabled`
+turns drilling off, which is another thing), so BIcraft writes it as a formatting-object update
+of its own, which the schema allows (`DataViewObjectDefinitions` takes any object name):
+
+```json
+"singleVisual": { "objects": { "merge": {
+  "bicraftDrill": [ { "properties": { "drillMode": { "expr": { "Literal": { "Value": "true" } } } } } ] } } }
+```
+
+`bookmark.apply` and `view.interact {action: "bookmark"}` turn the mode on for a container that
+has it and off for one that has not (within the Data option). **Not seen in a Desktop file**:
+whether Desktop's bookmarks keep the drill mode, and where, is not known; Desktop is expected to
+ignore an object no visual declares.
 
 ### Bookmark display mode and sort
 

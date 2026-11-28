@@ -32,7 +32,7 @@ for any structural save: M partitions run in BIcraft's Power Query evaluator (fi
 the session's `data_root`), DAX literal tables, calculated tables and calculated columns in the
 DAX evaluator.
 
-- `file.save_as {path: "x.pbix"}`, `file.convert`, `bicraft convert IN OUT.pbix [--data-root DIR]`
+- `file.save_as {path: "x.pbix"}`, `file.convert`, `bicraft-cli convert IN OUT.pbix [--data-root DIR]`
   take this path whenever the source has no data (`built_from_scratch: true` in the result).
 - A table whose source BIcraft cannot run (database, web and script connectors, a file outside
   `data_root`) is refused with its name. With `empty_tables: true` (`--empty-tables`) it is
@@ -200,11 +200,11 @@ our own synthetic files only (never client files), and without timing anything:
 
 1. Build a PBIX with BIcraft from CSV and Excel sources (for example the fixture of
    `crates/engine/src/refresh_pbix_tests.rs`: `BICRAFT_FRESH_OUT` is not wired there, so run
-   `bicraft convert model.bim shop.pbix --data-root DIR` on a copy of its `model.bim`).
+   `bicraft-cli convert model.bim shop.pbix --data-root DIR` on a copy of its `model.bim`).
 2. Open it in Desktop, note the row counts (`EVALUATE ROW("n", COUNTROWS(T))` in DAX query
    view) and close it without saving.
 3. Change the sources (new rows, a changed value, a new key on the "one" side), then run
-   `bicraft refresh shop.pbix --data-root DIR` and `bicraft refresh shop.pbix --data-root DIR
+   `bicraft-cli refresh shop.pbix --data-root DIR` and `bicraft-cli refresh shop.pbix --data-root DIR
    --table Product`.
 4. Open the file in Desktop: it opens without a repair prompt; the row counts, a measure over a
    calculated column, a relationship (`RELATED`) and the RLS role (View as) show the new data;
@@ -214,15 +214,15 @@ our own synthetic files only (never client files), and without timing anything:
    duration.
 
 **Outcome, Power BI Desktop 2.160.1151.0 (Store edition, French UI, 2026-11-25).** A model built
-by `bicraft run` from two CSV files under `data_root` (Product, 40 rows; Lines, 1,000 to
+by `bicraft-cli run` from two CSV files under `data_root` (Product, 40 rows; Lines, 1,000 to
 1,200,000 rows), a relationship, a calculated column `Lines[Qty] * RELATED(Product[Price])`,
 three measures, an RLS role and a page of cards, a column chart and a table; the sources then
-changed (a 41st product, new prices, more rows) and `bicraft refresh` run.
+changed (a 41st product, new prices, more rows) and `bicraft-cli refresh` run.
 
 - **Pass up to 1,048,576 rows a table.** Refreshed to 1,200 rows (both tables), refreshed with
   unchanged sources, refreshed with `--table Product` (Lines, which reads Product through its
   calculated column, refreshed with it) and refreshed from 1,000,000 to 1,000,000 changed rows:
-  each opened without a message and showed the new data, the same as `bicraft dax-query` on the
+  each opened without a message and showed the new data, the same as `bicraft-cli dax-query` on the
   file (1,000,000 rows, revenue 17,890,218.50, 41 products; per category, for example Bakery
   243,903 rows and 3,902,445.90). On the 1,000,000-row file Desktop's own Refresh (Schéma et
   données) then succeeded and the file saved.

@@ -1410,7 +1410,26 @@ pub(crate) fn visual_remove(s: &mut Session, p: &Value) -> Result<Value, String>
         .filter(|v| doomed.contains(&v.name.to_lowercase()))
         .map(|v| v.name.clone())
         .collect();
+    // the groups that keep members are refitted to them, as after a move
+    let shrunk: HashSet<String> = page
+        .visuals
+        .iter()
+        .filter(|v| doomed.contains(&v.name.to_lowercase()))
+        .filter_map(|v| v.parent_group.as_ref().map(|g| g.to_lowercase()))
+        .filter(|g| !doomed.contains(g))
+        .collect();
     page.visuals.retain(|v| !doomed.contains(&v.name.to_lowercase()));
+    let touched: HashSet<String> = page
+        .visuals
+        .iter()
+        .filter(|v| {
+            v.parent_group
+                .as_ref()
+                .is_some_and(|g| shrunk.contains(&g.to_lowercase()))
+        })
+        .map(|v| v.name.to_lowercase())
+        .collect();
+    crate::canvas_edit::refit_groups(page, &touched, &HashSet::new());
     let out = json!({"page": page.name, "removed": removed, "remaining_visuals": page.visuals.len()});
     s.report_dirty = true;
     Ok(out)

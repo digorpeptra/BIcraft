@@ -99,12 +99,14 @@ pub fn report_render(page: &str, out: &str) -> Call {
     call("report.render", json!({"page": page, "out": out}))
 }
 
-/// `report.export_pdf`: `pages` as the command takes it ("all", "current", a range, a list).
-pub fn report_export_pdf(out: &str, pages: Value, hidden: bool) -> Call {
-    call(
-        "report.export_pdf",
-        json!({"out": out, "pages": pages, "hidden": hidden}),
-    )
+/// `report.export_pdf`: `pages` as the command takes it ("all", "current", a range, a list);
+/// `archive` asks for a PDF/A-2b file.
+pub fn report_export_pdf(out: &str, pages: Value, hidden: bool, archive: bool) -> Call {
+    let mut p = json!({"out": out, "pages": pages, "hidden": hidden});
+    if archive {
+        p["pdf_a"] = json!(true);
+    }
+    call("report.export_pdf", p)
 }
 
 /// `report.print`: the pages as [`report_export_pdf`] takes them; `out` only on a server (the
@@ -252,7 +254,7 @@ mod tests {
             file_diff("a", "b"),
             project_new("d", "n"),
             report_render("p", "o.png"),
-            report_export_pdf("o.pdf", json!("all"), false),
+            report_export_pdf("o.pdf", json!("all"), false, false),
             report_print(json!("current"), false, None),
             visual_export_data("p", "v", "summarized", "o.csv"),
             report_export_setting("None"),

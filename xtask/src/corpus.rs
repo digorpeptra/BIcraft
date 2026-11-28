@@ -9,8 +9,9 @@
 //!
 //! The maintainers host the files as the assets of a GitHub release (2026-11-24): a base URL
 //! `https://github.com/<owner>/<repo>/releases/download/<tag>` is read through the GitHub API,
-//! authenticated by `GITHUB_TOKEN`, `GH_TOKEN` or `gh auth token` (the repository is private);
-//! the token goes in a header only, never in a message. A release's assets have flat names, so
+//! authenticated by `GITHUB_TOKEN`, `GH_TOKEN` or `gh auth token` when one is found (the
+//! repository is public, so its release also answers without a token; a private fork's needs
+//! one); the token goes in a header only, never in a message. A release's assets have flat names, so
 //! each file is stored under [`asset_name`] of its path. `stage` copies a verified corpus under
 //! those names into a folder and prints the `gh release create` command that uploads it; it never
 //! runs it.
@@ -458,8 +459,8 @@ fn api_error(what: &str, e: ureq::Error) -> String {
              (set GITHUB_TOKEN to a token with read access, or `gh auth login`)"
         ),
         ureq::Error::StatusCode(404) => format!(
-            "{what}: not found (HTTP 404): no such release, or the repository is private and no \
-             token was found (set GITHUB_TOKEN or GH_TOKEN, or sign in with `gh auth login`)"
+            "{what}: not found (HTTP 404): no such release yet, or a private fork's release read \
+             without a token (set GITHUB_TOKEN or GH_TOKEN, or sign in with `gh auth login`)"
         ),
         e => format!("{what}: {e}"),
     }

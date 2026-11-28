@@ -26,10 +26,11 @@ the registry (missing or older replaced, newer kept).
 | `box_plot` | BIcraft Box Plot | `bicraftBoxPlot2E7B4D9A1F6C3E8B5D0A` | `category` (Grouping, 1): one box per value; `sample` (Grouping, 1): the items whose values make the distribution; `value` (Measure, 1) |
 | `dumbbell` | BIcraft Dumbbell | `bicraftDumbbell6F1A8C3E9D2B7F4A0C5E` | `category` (Grouping, 1); `start` (Measure, 1); `end` (Measure, 1) |
 
-The histogram, bullet chart and box plot are version 1.3.2.0, the dumbbell 1.3.5.0 (raised with every change of its TypeScript or of what it
+The histogram, bullet chart and box plot are version 1.3.3.0, the dumbbell 1.3.6.0 (raised with every change of its TypeScript or of what it
 bundles; 1.3.1.0 and 1.3.3.0 changed only the package icon, G111; 1.3.4.0, 2026-11-25, bundles the runtime's text settings and the
 Spec layout's series and numbers, G119, and changes nothing these visuals draw; 1.3.5.0, 2026-11-26, keeps the dumbbell's value labels
-inside the visual, "Dumbbell and slope chart"). Since 1.1.0.0 they draw with BIcraft's look ([visual-look.md](visual-look.md)): the
+inside the visual, "Dumbbell and slope chart"; 1.3.3.0 and the dumbbell's 1.3.6.0 only the runtime they bundle, whose number
+formatting reads commas right after the last decimal placeholder as scaling commas, 2026-11-27). Since 1.1.0.0 they draw with BIcraft's look ([visual-look.md](visual-look.md)): the
 format object `style` also holds `preset`, `palette`, `rounded`, `gradient`, `shadow`, `card` (since 1.2.0.0), `pills` (since 1.2.0.0) and
 `animation` (the Style card), and the colours follow the report theme; the Minimal preset draws
 what 1.0.3.0 drew. Since 1.2.0.0 (the look's second pass): the card and value chips, larger
@@ -284,7 +285,7 @@ Seen in Power BI Desktop 2.159.1231.0 (Store edition, French UI, 2026-11-24), on
 - Edit interactions offers Filter, Highlight and None on the nine, Highlight chosen by default;
   on the Venn diagram, the table and the card, Filter and None, Filter chosen.
 - A bar of the column chart, then a row of the table, as the selection: the nine drew their
-  highlighted parts and dimmed units as `bicraft render` draws the same selection
+  highlighted parts and dimmed units as `bicraft-cli render` draws the same selection
   (`view.interact` then `report.render`); the Venn was filtered. Neither showed the org chart's
   dimmed cards distinctly (its texts stay).
 - A visual declaring `supportsHighlight` with no field in its measure roles (a histogram without
@@ -339,7 +340,7 @@ keyboard focus was lost after a selection. High contrast was not checked.
 
 Version 1.0.2.0 in the same Desktop (2026-11-24), from a PBIX `bicraft` wrote with
 `bins.cumulative`, `style.vertical`, `box.horizontal` and `style.slope` on (the slope chart over
-12 names, so its labels are moved apart): the four drew the same shapes as `bicraft render`, and
+12 names, so its labels are moved apart): the four drew the same shapes as `bicraft-cli render`, and
 the format pane showed the new options as toggles, on (Cumulé, Vertical, Horizontal, Graphique de
 pente). The exported histogram package imported through Desktop's Import a visual from a file
 drew Score's bins with People as the frequency ([community-visuals.md](../community-visuals.md)
@@ -348,7 +349,7 @@ drew Score's bins with People as the frequency ([community-visuals.md](../commun
 Version 1.1.0.0 in the same Desktop (French UI, 2026-11-24): the Build pane shows the four's roles
 in French (Valeurs, Fréquence; Catégorie, Valeur, Cible, Plages, Maximum; Catégorie, Échantillon,
 Valeur; Catégorie, Début, Fin), and they draw under the Modern, Bold and Minimal looks as
-`bicraft render` draws them ([visual-look.md](visual-look.md) "Seen in Desktop"); their
+`bicraft-cli render` draws them ([visual-look.md](visual-look.md) "Seen in Desktop"); their
 interactions with a column chart, a table, a card and slicers are in
 [community-visuals.md](../community-visuals.md) "Interactions with built-in visuals".
 
@@ -356,7 +357,7 @@ The dumbbell 1.3.1.0 in Power BI Desktop 2.160.1151.0 (French UI, 2026-11-25), f
 `bicraft` wrote with the six close teams of the `slope_crowded` golden case as a slope chart and
 the thirteen rows of `dumbbell_crowded` as dumbbells (Modern at 360 × 200, Minimal with chips at
 360 × 260): the slope chart's labels were moved apart with their leader lines, and both
-dumbbells drew as `bicraft render` draws them. On those dumbbells the close start labels need
+dumbbells drew as `bicraft-cli render` draws them. On those dumbbells the close start labels need
 more height than the plot has, so both drawers push the top ones above the plot, over the legend
 and past the visual's top edge (clipped by Desktop's frame) ([chart-pack.md](chart-pack.md)
 "Seen in Desktop"). Fixed in 1.3.2.0 ("Dumbbell and slope chart"), checked by the golden cases,

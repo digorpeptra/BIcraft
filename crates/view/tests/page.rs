@@ -893,7 +893,7 @@ fn interactions_go_through_the_server_only() {
 
 #[test]
 fn server_mode_uses_relative_urls_a_private_view_and_a_download_link() {
-    // one page for `bicraft view` (at `/`) and `bicraft serve` (under `/w/<id>/view/`): every
+    // one page for `bicraft-cli view` (at `/`) and `bicraft-cli serve` (under `/w/<id>/view/`): every
     // request is relative and carries the private view id when the server set one
     let s = script();
     for absolute in ["'/api/", "\"/api/"] {

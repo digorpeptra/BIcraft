@@ -21,6 +21,11 @@ const NAVIGATION: &[(&str, &str, &str)] = &[
         "Menu contextuel de l'élément actif",
     ),
     (
+        "Menu",
+        "Context menu of the focused item",
+        "Menu contextuel de l'élément actif",
+    ),
+    (
         "Ctrl+F6",
         "Next section of the window",
         "Section suivante de la fenêtre",
@@ -52,9 +57,49 @@ const NAVIGATION: &[(&str, &str, &str)] = &[
         "Fermer la boîte de dialogue ou le menu",
     ),
     (
+        "Alt+Shift+1",
+        "Collapse all the tables of the Data pane",
+        "Réduire toutes les tables du volet Données",
+    ),
+    (
+        "Alt+Shift+9",
+        "Expand all the tables of the Data pane",
+        "Développer toutes les tables du volet Données",
+    ),
+    (
+        "Tab, Shift+Tab (report canvas)",
+        "Next or previous visual, in the report's tab order",
+        "Visuel suivant ou précédent, dans l'ordre de tabulation du rapport",
+    ),
+    (
+        "Arrows (focused visual)",
+        "Move the visual (Shift: 10 pixels)",
+        "Déplacer le visuel (Maj : 10 pixels)",
+    ),
+    (
+        "Escape (focused visual)",
+        "Back to the report page",
+        "Retour à la page du rapport",
+    ),
+    (
         "Ctrl+Right",
         "Enter the data points of the selected visual (arrows move, Enter or Space selects, Ctrl+Space adds, Escape clears)",
         "Entrer dans les points de données du visuel sélectionné (flèches pour se déplacer, Entrée ou Espace pour sélectionner, Ctrl+Espace pour ajouter, Échap pour effacer)",
+    ),
+    (
+        "Ctrl+/",
+        "Comment or uncomment the selected lines (DAX query view)",
+        "Commenter ou décommenter les lignes sélectionnées (vue de requête DAX)",
+    ),
+    (
+        "Ctrl+F",
+        "Find in the query (DAX query view)",
+        "Rechercher dans la requête (vue de requête DAX)",
+    ),
+    (
+        "Ctrl+H",
+        "Find and replace in the query (DAX query view)",
+        "Rechercher et remplacer dans la requête (vue de requête DAX)",
     ),
     ("Alt+F", "File view", "Mode Fichier"),
     ("Ctrl+Tab", "Next open file", "Fichier ouvert suivant"),
@@ -196,6 +241,10 @@ mod tests {
         assert_eq!(cmds.len(), declared);
         assert!(cmds.iter().any(|(k, t)| k == "Ctrl+Z" && t == "Undo"), "{cmds:?}");
         assert!(nav.iter().any(|(k, _)| k == "Shift+F10"));
+        assert!(nav.iter().any(|(k, _)| k == "Menu"));
+        // collapse and expand all the tables
+        let (_, nav) = rows(Lang::En, false, "alt+shift+");
+        assert_eq!(nav.len(), 2, "{nav:?}");
         // the browser's chord
         let (cmds, _) = rows(Lang::En, true, "alt+n");
         assert_eq!(cmds.len(), 1, "{cmds:?}");

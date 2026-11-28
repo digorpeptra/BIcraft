@@ -2,7 +2,7 @@
 #
 #   $d = "$env:TEMP\oracle-reports\layout"     # any work folder outside the repository
 #   cargo xtask layout-oracle gen $d
-#   bicraft run --file $d\cmds.json
+#   bicraft-cli run --file $d\cmds.json
 #   cargo xtask layout-oracle install $d
 #   if (-not $env:BICRAFT_LOCKS_DIR) { $env:BICRAFT_LOCKS_DIR = "$env:LOCALAPPDATA\bicraft\locks" }
 #   mkdir $env:BICRAFT_LOCKS_DIR\desktop      # one Desktop at a time

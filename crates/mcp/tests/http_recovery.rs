@@ -1,4 +1,4 @@
-//! Auto-recovery on `bicraft serve` (docs/recovery.md): with `recovery_dir`, a document view
+//! Auto-recovery on `bicraft-cli serve` (docs/recovery.md): with `recovery_dir`, a document view
 //! that expires with unsaved edits, a server restart, and the workspace's own session leave a
 //! journal; reopening the file offers it back, to the same identity only.
 

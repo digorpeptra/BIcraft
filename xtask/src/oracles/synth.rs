@@ -2,7 +2,7 @@
 //! visual family plus stress, data-label, combo and axis-end pages. Data from an M literal.
 //!
 //! `cargo xtask oracle-gen synth OUT.pbix CMDS.json LAYOUT.json`, then
-//! `bicraft run --file CMDS.json` writes OUT.pbix; LAYOUT.json lists every visual's page and
+//! `bicraft-cli run --file CMDS.json` writes OUT.pbix; LAYOUT.json lists every visual's page and
 //! rectangle for `cargo xtask render-compare`.
 
 use std::path::Path;

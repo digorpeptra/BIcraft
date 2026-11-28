@@ -353,3 +353,33 @@ fn alt_text_round_trips_through_pbir_and_pbix_into_the_pdf_figure() {
         let _ = std::fs::remove_dir_all(&dir);
     }
 }
+
+#[test]
+fn pdf_ua_by_default_and_pdf_a_on_request() {
+    let mut s = session();
+    let out = tmp("ua.pdf");
+    let r = run(
+        &mut s,
+        "report.export_pdf",
+        json!({"out": out.display().to_string(), "system_fonts": false}),
+    );
+    assert_eq!(r["conformance"], json!({"pdf_ua": true, "pdf_a": null}));
+    let info = bicraft_render::pdf_read::inspect(&std::fs::read(&out).unwrap()).unwrap();
+    assert!(info.ua_issues().is_empty(), "{:?}", info.ua_issues());
+    let r = run(
+        &mut s,
+        "report.export_pdf",
+        json!({"out": out.display().to_string(), "system_fonts": false, "pdf_a": true, "pdf_ua": false}),
+    );
+    assert_eq!(r["conformance"], json!({"pdf_ua": false, "pdf_a": "2b"}));
+    let info = bicraft_render::pdf_read::inspect(&std::fs::read(&out).unwrap()).unwrap();
+    assert!(info.pdfa_issues().is_empty(), "{:?}", info.pdfa_issues());
+    assert_eq!(info.conformance.pdf_ua, None);
+    let e = s
+        .execute(
+            "report.export_pdf",
+            &json!({"out": out.display().to_string(), "pdf_a": "yes"}),
+        )
+        .unwrap_err();
+    assert!(e.contains("pdf_a"), "{e}");
+}

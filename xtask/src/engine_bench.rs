@@ -3,11 +3,11 @@
 //! Services engine on the same data (docs/benchmarks.md, section "The DAX engine bench").
 //!
 //! - `gen --rows N --out DIR`: a synthetic star schema as CSV files (`Ventes` N rows, `Produit`
-//!   1 000, `Magasin` 200, `Calendrier` 5 years) and `DIR/build.json`, the `bicraft run` commands
+//!   1 000, `Magasin` 200, `Calendrier` 5 years) and `DIR/build.json`, the `bicraft-cli run` commands
 //!   that build `DIR/bench.pbix` from them (M partitions over the CSV files, data computed by
 //!   bicraft; Desktop opens it with the data and never refreshes);
 //! - `bicraft --bin EXE --pbix FILE --out FILE`: every query of `xtask/engine-bench/queries.json`
-//!   through `bicraft mcp` (one session: first run, then warm repetitions; plus one fresh
+//!   through `bicraft-cli mcp` (one session: first run, then warm repetitions; plus one fresh
 //!   session per query for the first-run figure), client-side wall time and `elapsed_ms`, open
 //!   time and the process' peak memory;
 //! - `compare --desktop FILE --bicraft FILE [--markdown FILE]`: results checked cell by cell.
@@ -28,7 +28,7 @@ use crate::engine_variants::Variant;
 pub const USAGE: &str = "\
 usage: cargo xtask engine-bench <step> ARGS   (docs/benchmarks.md)
   gen --rows N --out DIR [--customers C] [--variant standard|bigdim|skew] [--parts K]
-                                              CSV files + DIR/build.json (bicraft run --file);
+                                              CSV files + DIR/build.json (bicraft-cli run --file);
                                               bigdim: + a Client dimension of rows/5 customers;
                                               skew: Zipf-like keys, date order, order numbers
                                               (src/engine_variants.rs, queries-<variant>.json)
@@ -464,7 +464,7 @@ fn generate(out: &Path, rows: u64, customers: u64) -> Result<(), String> {
         &serde_json::to_string_pretty(&meta).map_err(|e| e.to_string())?,
     )?;
     eprintln!(
-        "{} rows, {customers} customers -> {} ({:.1} s); next: bicraft run --file {}",
+        "{} rows, {customers} customers -> {} ({:.1} s); next: bicraft-cli run --file {}",
         rows,
         out.display(),
         t0.elapsed().as_secs_f64(),
@@ -482,7 +482,7 @@ pub(crate) fn m_csv(path: &Path, types: &[(&str, &str)]) -> String {
     )
 }
 
-/// The `bicraft run --file` commands that build `pbix` from the CSV files in `dir`.
+/// The `bicraft-cli run --file` commands that build `pbix` from the CSV files in `dir`.
 pub fn build_commands(dir: &Path, pbix: &Path) -> Value {
     crate::engine_variants::build_commands(dir, pbix, Variant::Standard)
 }

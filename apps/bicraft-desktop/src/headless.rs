@@ -1,4 +1,4 @@
-//! `bicraft-desktop FILE --render OUT.png`: the window drawn with no window (docs/desktop.md,
+//! `bicraft FILE --render OUT.png`: the window drawn with no window (docs/desktop.md,
 //! "Headless render"). The app runs offscreen ([`bicraft_ui::offscreen::Offscreen`]) and is
 //! driven by the control channel's own requests, as an agent would drive the window: `ui.wait`
 //! (the file open, its data computed, the page drawn), `ui.set` when asked (a page, the theme,

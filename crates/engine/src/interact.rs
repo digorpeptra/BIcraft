@@ -38,7 +38,9 @@
 //! - "Apply all slicers" (`visualLink` `ApplyAllSlicers`, 17): while the page has such a button,
 //!   slicer changes are pending until it is clicked, Import models included; "Clear all slicers"
 //!   (`ClearAllSlicers`, 16) clears every slicer of the page (applied and pending) and keeps the
-//!   data-point selection;
+//!   data-point selection; query reduction's Apply button on each slicer
+//!   (`slowDataSourceSettings.isSlicerSelectionsButtonEnabled`) holds every slicer's changes the
+//!   same way until that slicer's `slicer_apply`;
 //! - page navigation (`pageNavigator`, `visualLink` `PageNavigation`, `Back`): changes the shown
 //!   page; each page keeps its slicers and selection.
 
@@ -169,7 +171,15 @@ pub struct Interactions {
     /// `tree_toggle`. The data report's visual takes the list as its `tree.toggled`; the report is
     /// not changed ([`reader`]).
     nodes: HashMap<(String, String), Vec<String>>,
+    /// The reader's expanded and collapsed Gantt categories, by (page, visual): `view.interact`
+    /// `gantt_toggle`, each category's member path (top level first) and whether it is collapsed.
+    /// The data report's visual carries them ([`reader::GANTT_STATE`]) after its saved `row`
+    /// entries; the report is not changed ([`reader`]).
+    gantt: HashMap<(String, String), Vec<GanttRow>>,
 }
+
+/// A Gantt category's member path (top level first) and whether the reader collapsed it.
+type GanttRow = (Vec<Value>, bool);
 
 /// Most roles one View as names.
 const MAX_VIEW_AS_ROLES: usize = 256;
@@ -268,6 +278,7 @@ impl Interactions {
             && self.bookmark.is_none()
             && self.sorts.is_empty()
             && self.nodes.is_empty()
+            && self.gantt.is_empty()
     }
 
     /// The data and display reports for this state; `None` when the state changes nothing.
@@ -298,6 +309,7 @@ impl Interactions {
         drill::apply_all(self, &mut data);
         reader::apply_sorts(self, &mut data);
         reader::apply_nodes(self, &mut data);
+        reader::apply_gantt(self, &mut data);
         let mut display = data.clone();
         for page in &mut display.pages {
             for v in &mut page.visuals {
@@ -359,6 +371,7 @@ impl Interactions {
     pub(crate) fn annotate(&self, r: &Report, snap: &mut Value) {
         let cf = cross_filter_default(r);
         let off = crate::optimize::interactions_off(r);
+        let own_buttons = crate::optimize::slicer_apply_buttons(r);
         let pending_pages: Vec<&str> = r
             .pages
             .iter()
@@ -426,10 +439,14 @@ impl Interactions {
                         info.insert("mode".into(), json!(mode_of(page, &sel.visual, t, cf).as_str()));
                     }
                 }
-                if self.pending.contains_key(&(page_name.clone(), name.clone()))
-                    && let Some(s) = v.get_mut("slicer").and_then(Value::as_object_mut)
-                {
-                    s.insert("pending".into(), json!(true));
+                if let Some(s) = v.get_mut("slicer").and_then(Value::as_object_mut) {
+                    if self.pending.contains_key(&(page_name.clone(), name.clone())) {
+                        s.insert("pending".into(), json!(true));
+                    }
+                    // query reduction's Apply button on each slicer
+                    if own_buttons {
+                        s.insert("apply_button".into(), json!(true));
+                    }
                 }
                 if !info.is_empty()
                     && let Some(o) = v.as_object_mut()
@@ -500,6 +517,7 @@ impl Interactions {
             "focus": self.focus.as_ref().map(|f| json!({"page": f.page, "visual": f.visual, "show_table": f.table})),
             "spotlight": self.spotlight.as_ref().map(|(p, v)| json!({"page": p, "visual": v})),
             "sorts": reader::sorts_json(self),
+            "gantt": reader::gantt_json(self),
         })
     }
 
@@ -580,7 +598,10 @@ fn interact_on(s: &Session, current: &mut Interactions, p: &Value) -> Result<Val
             }
             let field = slicer_field(v).ok_or("the slicer has no column field")?;
             let key = (page.name.clone(), v.name.clone());
-            let deferred = has_button(page, "ApplyAllSlicers");
+            // an Apply all slicers button on the page, or query reduction's Apply button on
+            // each slicer: the change waits until applied
+            let own_button = crate::optimize::slicer_apply_buttons(report);
+            let deferred = own_button || has_button(page, "ApplyAllSlicers");
             let current = next
                 .pending
                 .get(&key)
@@ -607,7 +628,7 @@ fn interact_on(s: &Session, current: &mut Interactions, p: &Value) -> Result<Val
             }
             for (tp, tv) in targets {
                 let key = (tp.name.clone(), tv.name.clone());
-                if has_button(tp, "ApplyAllSlicers") {
+                if own_button || has_button(tp, "ApplyAllSlicers") {
                     next.pending.insert(key, st.clone());
                 } else {
                     next.pending.remove(&key);
@@ -758,6 +779,10 @@ fn interact_on(s: &Session, current: &mut Interactions, p: &Value) -> Result<Val
         }
         "tooltip" => match p.get("point").filter(|x| !x.is_null()) {
             None => next.tip = None,
+            // Pause visuals turns tooltips off: a tooltip page would need its queries
+            Some(_) if crate::optimize::paused(report) => {
+                return Err("tooltips are off while visual queries are paused (report.pause_visuals)".into());
+            }
             Some(pt) => {
                 let (page, v) = find_visual(report, p)?;
                 let normal = s.model.as_ref().and_then(|m| crate::preview::normalized(m, v));
@@ -881,6 +906,7 @@ fn interact_on(s: &Session, current: &mut Interactions, p: &Value) -> Result<Val
         "spotlight" => reader::spotlight(&mut next, report, p)?,
         "sort" => reader::sort(&mut next, report, s.model.as_ref(), p)?,
         "tree_toggle" => reader::tree_toggle(&mut next, report, p)?,
+        "gantt_toggle" => reader::gantt_toggle(&mut next, report, p)?,
         "filter" | "filter_clear" => {
             reader::filter(&mut next, report, s.model.as_ref(), p, action == "filter_clear")?
         }
@@ -895,6 +921,32 @@ fn interact_on(s: &Session, current: &mut Interactions, p: &Value) -> Result<Val
         "apply_slicers" => {
             let page = find_page(report, p.get("page"))?;
             next.apply_slicers(&page.name);
+        }
+        "slicer_apply" => {
+            let (page, v) = find_visual(report, p)?;
+            if !filters::is_slicer(v) {
+                return Err(format!("visual `{}` is not a slicer", v.name));
+            }
+            // the slicer and its synced copies (they took the same pending selection)
+            let group = sync_group(v);
+            let mut keys = vec![(page.name.clone(), v.name.clone())];
+            if let Some(g) = group.as_deref() {
+                for p2 in &report.pages {
+                    for v2 in &p2.visuals {
+                        if filters::is_slicer(v2) && sync_group(v2).as_deref() == Some(g) {
+                            keys.push((p2.name.clone(), v2.name.clone()));
+                        }
+                    }
+                }
+            }
+            let mut applied = false;
+            for k in keys {
+                if let Some(st) = next.pending.remove(&k) {
+                    next.applied.insert(k, st);
+                    applied = true;
+                }
+            }
+            result.insert("applied".into(), json!(applied));
         }
         "button" => {
             crate::params::allow(p, &["action", "page", "visual", "destination", "ctrl"])?;
@@ -1143,6 +1195,7 @@ fn same_state(a: &Interactions, b: &Interactions) -> bool {
         && a.spotlight == b.spotlight
         && a.sorts == b.sorts
         && a.nodes == b.nodes
+        && a.gantt == b.gantt
         && drill::same(a, b)
 }
 
@@ -2180,6 +2233,62 @@ pub(crate) fn resolve_point(
         });
     }
     Ok(out)
+}
+
+/// The category values of data points of a visual, for Group data (`visual.group_points`):
+/// `points` (`[[{c, v}]]`), else the page's data-point selection when it is in that visual
+/// (Ctrl+click), else `point` (`[{c, v}]`, the point right-clicked). The category is the model column of the first point's first
+/// grouping value; each point gives its value of that column, once. Returns (table, column,
+/// values).
+pub(crate) fn point_values(s: &Session, p: &Value) -> Result<(String, String, Vec<Value>), String> {
+    let report = s.report.as_ref().ok_or("no report is open")?;
+    let (page, v) = find_visual(report, p)?;
+    let shown = s.interactions.shown_visual(page, v);
+    let model = s.model.as_ref();
+    let given = |k: &str| p.get(k).filter(|x| !x.is_null());
+    let selected = s
+        .interactions
+        .selections
+        .get(&page.name)
+        .filter(|x| x.visual == v.name)
+        .map(|x| x.points.clone());
+    let points: Vec<Vec<Pv>> = match (given("points"), selected, given("point")) {
+        (Some(list), _, _) => {
+            let list = list
+                .as_array()
+                .ok_or("`points` must be a list of points ([{c, v}])")?;
+            if list.len() > MAX_POINTS {
+                return Err(format!("`points` holds at most {MAX_POINTS} points"));
+            }
+            list.iter()
+                .map(|x| resolve_point(&shown, x, model))
+                .collect::<Result<_, _>>()?
+        }
+        (None, Some(sel), _) => sel,
+        (None, None, Some(point)) => vec![resolve_point(&shown, point, model)?],
+        (None, None, None) => {
+            return Err(format!(
+                "no data point of visual `{}` is selected (Ctrl+click its points, or pass `points`)",
+                v.name
+            ));
+        }
+    };
+    let first = points
+        .first()
+        .and_then(|x| x.first())
+        .ok_or("no data point is given")?;
+    let (table, column) = (first.table.clone(), first.column.clone());
+    let mut values: Vec<Value> = Vec::new();
+    for pt in &points {
+        let pv = pt
+            .iter()
+            .find(|x| x.table == table && x.column == column)
+            .ok_or_else(|| format!("a point has no value of '{table}'[{column}]"))?;
+        if !values.iter().any(|x| same_value(x, &pv.value)) {
+            values.push(pv.value.clone());
+        }
+    }
+    Ok((table, column, values))
 }
 
 fn same_point(a: &[Pv], b: &[Pv]) -> bool {

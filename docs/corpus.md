@@ -10,7 +10,7 @@ stay local under `BICRAFT_TESTDATA` (AGENTS.md §2) and are never copied into th
 | In this repository | Outside it |
 |---|---|
 | `corpus/manifest.json`: each entry's name, the file to open, how it was made (the `bicraft` steps, then what Desktop did), a content summary, its files with size and SHA-256, and the summary the tests expect | the files themselves, in a folder named by `BICRAFT_CORPUS` |
-| `corpus/recipes/*.json`: the `bicraft run --file` steps of each entry | |
+| `corpus/recipes/*.json`: the `bicraft-cli run --file` steps of each entry | |
 
 **Hosting (maintainers' decision, 2026-11-24).** The files are the assets of a GitHub release of
 the repository `digorpeptra/BIcraft`, tag `corpus-v1`: the manifest's `base_url` is
@@ -63,7 +63,7 @@ prints a note and passes, so it runs everywhere, Linux included.
 
 1. Write the steps as `corpus/recipes/NAME.json` (a JSON array of `{command, params}`, ending
    with `file.save_as` or `project.new`) and run them in a scratch folder outside the checkout:
-   `bicraft run --file corpus/recipes/NAME.json`. Synthetic values only: no real names, no
+   `bicraft-cli run --file corpus/recipes/NAME.json`. Synthetic values only: no real names, no
    client material, no Microsoft sample.
 2. Open the result in Power BI Desktop and save it from Desktop (Ctrl+S). Desktop is a black
    box: only keyboard input, the rendered page and screenshots (AGENTS.md §1, §8). Take the

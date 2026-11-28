@@ -116,7 +116,7 @@ fn real_metadata_databases_apply_cleanly() {
             }
         }
 
-        // Add `[bicraft test] = 1` to the first table that has measures (else the first table).
+        // Add `[bicraft-cli test] = 1` to the first table that has measures (else the first table).
         let mut edited = model.clone();
         let target = edited
             .tables

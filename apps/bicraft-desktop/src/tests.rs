@@ -1,7 +1,7 @@
 //! UI tests of the window (egui_kittest, no GPU): open a file, switch pages and tabs, click a
 //! slicer and a data point the way a person does (pointer events on the drawn page), resize; the
 //! results are compared with the live viewer's (the same `view.interact` actions on a session of
-//! its own) and the pages with `bicraft render`'s. Fixtures are generated here, never client
+//! its own) and the pages with `bicraft-cli render`'s. Fixtures are generated here, never client
 //! data. With `--features gpu-tests` the window is also drawn with wgpu and saved as PNG
 //! (`BICRAFT_DESKTOP_SHOTS=DIR`).
 
@@ -464,7 +464,7 @@ fn pages_equal_bicraft_render() {
     let fonts = bicraft_render::FontBook::bundled_only();
     let key = bicraft_ui::pages::Key::new(loaded.seq, 0, 1.0);
     let ours = bicraft_ui::pages::render(&loaded.snap, &loaded.assets, &fonts, key).unwrap();
-    // … and `bicraft render` (report.render) on the same file
+    // … and `bicraft-cli render` (report.render) on the same file
     let mut s = Session::new();
     s.execute("file.open", &json!({"path": path})).unwrap();
     let r = s
@@ -480,7 +480,7 @@ fn pages_equal_bicraft_render() {
     assert_eq!((pm.width(), pm.height()), (ours.width, ours.height));
     assert!(
         pm.data() == ours.rgba.as_slice(),
-        "the desktop draws what `bicraft render` draws"
+        "the desktop draws what `bicraft-cli render` draws"
     );
 }
 
@@ -519,6 +519,50 @@ fn live_reload_follows_the_file() {
     .unwrap();
     s.execute("file.save", &json!({})).unwrap();
     wait(&mut h, "the re-read", |a| value(a, &n.card) == 350.0 && ready(a));
+}
+
+#[test]
+fn reload_clears_its_status_message() {
+    use bicraft_ui::source::{Origin, Request, StartSource, Update, Worker};
+    let dir = Temp::new("reload-status");
+    let (path, _) = shop(dir.path());
+    let start: StartSource = Box::new(|origin, link| {
+        bicraft_ui::source::spawn(link, move |link| {
+            if let Origin::Local { path, lang } = origin {
+                crate::local::run(&path, &lang, None, link);
+            }
+        })
+    });
+    let origin = Origin::Local {
+        path,
+        lang: "en-US".into(),
+    };
+    let w = Worker::start(origin, std::sync::Arc::new(|| {}), &start);
+    // the status the window shows once every update before a `Files` answer is applied
+    let status_until_files = |w: &Worker| -> Option<String> {
+        let deadline = Instant::now() + Duration::from_secs(60);
+        let mut status = None;
+        while Instant::now() < deadline {
+            for u in w.poll() {
+                match u {
+                    Update::Status(s) => status = Some(s),
+                    Update::Files(_) => return status,
+                    _ => {}
+                }
+            }
+            std::thread::sleep(Duration::from_millis(10));
+        }
+        panic!("no answer from the source");
+    };
+    // the opening clears its "path…" message
+    w.send(Request::ListFiles);
+    assert_eq!(status_until_files(&w).as_deref(), Some(""));
+    // a reload shows "path…" while it re-reads the file, then clears it too
+    w.send(Request::Reload);
+    w.send(Request::ListFiles);
+    let after = status_until_files(&w);
+    assert_eq!(after.as_deref(), Some(""), "the status after a reload: {after:?}");
+    w.send(Request::Stop);
 }
 
 /// Standard base64 (the inline images of `report.render`).

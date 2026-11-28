@@ -261,3 +261,105 @@ fn edit_groups_starts_from_the_group_and_speaks_french() {
     assert!(h.state().cmd.group.is_none());
     assert!(h.state().error.as_deref().is_some_and(|e| e.contains("colonne")));
 }
+
+/// [`session`] with a column chart of [Total] by Product on its page.
+fn chart_session() -> Session {
+    let mut s = session();
+    let page = s.report.as_ref().unwrap().pages[0].name.clone();
+    s.execute(
+        "visual.add",
+        &json!({"page": page, "visual_type": "clusteredColumnChart", "x": 20, "y": 20, "width": 600, "height": 400,
+                "fields": [{"role": "Category", "field": "Sales[Product]"}, {"role": "Y", "field": "[Total]"}]}),
+    )
+    .unwrap();
+    s.dirty = false;
+    s.report_dirty = false;
+    s
+}
+
+/// The screen centre and the point of each bar the chart's hit map selects, in hit order.
+fn bars(h: &Harness<'_, App>) -> Vec<(egui::Pos2, Value)> {
+    let app = h.state();
+    let (Some(placed), Some((_, Ok(img)))) = (app.placed, app.shown.as_ref()) else {
+        return Vec::new();
+    };
+    img.hits
+        .iter()
+        .filter_map(|x| {
+            let a = x.action_for(false)?;
+            (a["action"] == "select" && !a["point"].is_null()).then(|| {
+                let (bx, by, w, hh) = x.shape.bounds();
+                let pos = egui::pos2(
+                    placed.rect.min.x + (bx + w / 2.0) * placed.zoom,
+                    placed.rect.min.y + (by + hh / 2.0) * placed.zoom,
+                );
+                (pos, a["point"].clone())
+            })
+        })
+        .collect()
+}
+
+/// Group data (G75): two bars Ctrl+clicked, then the bar's right-click menu › Group data makes a
+/// list group of exactly their categories through `visual.group_points`.
+#[test]
+fn group_data_on_selected_bars_makes_a_group_of_their_values() {
+    let mut app = App::new("en-US", engine_shell(Caps::DESKTOP, chart_session)).with_sync_render();
+    app.open_path(Path::new("shop.pbip"));
+    let mut h = harness(app, (1400.0, 900.0));
+    for _ in 0..200 {
+        h.step();
+        if bars(&h).len() >= 4 {
+            break;
+        }
+    }
+    let b = bars(&h);
+    assert!(b.len() >= 4, "the chart's bars: {b:?}");
+    let picked: Vec<(egui::Pos2, Value)> = b.into_iter().take(2).collect();
+    let mut want: Vec<Value> = picked.iter().map(|(_, p)| p[0]["v"].clone()).collect();
+    // Ctrl+click on each bar: the reader's selection of the two
+    for (pos, _) in &picked {
+        let placed = h.state().placed.unwrap();
+        let (x, y) = (
+            (pos.x - placed.rect.min.x) / placed.zoom,
+            (pos.y - placed.rect.min.y) / placed.zoom,
+        );
+        h.state_mut().click_report(x, y, true, *pos);
+        steps(&mut h, 3);
+    }
+    // the right-click menu of the second bar
+    let at = picked[1].0;
+    h.hover_at(at);
+    h.step();
+    right_click(&mut h, at);
+    steps(&mut h, 2);
+    click(&mut h, "Group data");
+    steps(&mut h, 6);
+    let p = last_sent(&h, "visual.group_points").unwrap_or_else(|| panic!("visual.group_points was not sent: state {:?} status {:?} error {:?} visual {:?} point {:?} sent {:?}", crate::ribbon::state(h.state(), "visual.group_points"), h.state().status, h.state().error, h.state().cmd.visual, h.state().cmd.point, h.state().sent.iter().rev().take(5).map(|c| c.id).collect::<Vec<_>>()));
+    assert!(p["page"].is_string() && p["visual"].is_string(), "{p}");
+    assert!(h.state().error.is_none(), "{:?}", h.state().error);
+    assert!(
+        columns(&h).contains(&"Product (groups)".to_string()),
+        "{:?}",
+        columns(&h)
+    );
+    // the group read back holds exactly the two bars' values
+    let def = h
+        .state()
+        .loaded
+        .as_ref()
+        .and_then(|l| {
+            l.snap
+                .pointer("/model/tables/0/columns")?
+                .as_array()?
+                .iter()
+                .find(|c| c["name"] == "Product (groups)")
+                .map(|c| c["group"].clone())
+        })
+        .unwrap();
+    let mut got: Vec<Value> = def["groups"][0]["values"].as_array().unwrap().clone();
+    let key = |v: &Value| v.as_str().unwrap_or_default().to_string();
+    got.sort_by_key(key);
+    want.sort_by_key(key);
+    assert_eq!(got, want, "{def}");
+    assert_eq!(def["groups"].as_array().unwrap().len(), 1, "{def}");
+}

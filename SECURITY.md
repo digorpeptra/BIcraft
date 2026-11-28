@@ -1,6 +1,6 @@
 # Security policy
 
-BIcraft reads files from anyone and, with `bicraft serve`, answers requests from a network. We
+BIcraft reads files from anyone and, with `bicraft-cli serve`, answers requests from a network. We
 treat both as hostile ([AGENTS.md](AGENTS.md) §3), and we want to hear about every way around
 that.
 
@@ -32,7 +32,7 @@ In scope, in decreasing order of exposure:
 
 | Area | What counts | Where |
 |---|---|---|
-| The server, `bicraft serve` | anything a network client can do beyond what its role allows: escaping the workspace root (paths, symlinks, uploaded and zipped projects), running a command the server policy denies, reaching the host (processes, network) from a command, request smuggling or parser bugs in the HTTP layer, Origin and DNS-rebinding bypasses, cross-workspace access, exhausting memory, disk, threads or connections past the configured caps | `crates/mcp/src/http*`, `crates/http`, `crates/engine/src/sandbox.rs`, [docs/server-mode.md](docs/server-mode.md), [docs/web-deployment.md](docs/web-deployment.md) |
+| The server, `bicraft-cli serve` | anything a network client can do beyond what its role allows: escaping the workspace root (paths, symlinks, uploaded and zipped projects), running a command the server policy denies, reaching the host (processes, network) from a command, request smuggling or parser bugs in the HTTP layer, Origin and DNS-rebinding bypasses, cross-workspace access, exhausting memory, disk, threads or connections past the configured caps | `crates/mcp/src/http*`, `crates/http`, `crates/engine/src/sandbox.rs`, [docs/server-mode.md](docs/server-mode.md), [docs/web-deployment.md](docs/web-deployment.md) |
 | Authentication and the workspace ACL | accepting a token, JWT or identity header that should be refused (signature, `alg`, issuer, audience, expiry, proxy address), a reader acting as an editor, a token or secret written to a log or an answer | `crates/auth`, [docs/auth.md](docs/auth.md) |
 | The file readers | a crash, hang, unbounded allocation, stack overflow or out-of-bounds read on a crafted PBIX, PBIT, PBIP, PBIR, TMDL, TMSL, ABF, VertiPaq, SQLite, XPress9, ZIP, JSON, DAX or M input; a write outside the target folder | the L0–L4 crates (`crates/opc`, `xpress9`, `abf`, `vertipaq`, `sqlite`, `pbix`, `pbip`, `pbir`, `tmdl`, `tmsl`, `metadata`, `dax`, `data`) |
 | The live viewer and the desktop app | the viewer's token, Origin checks and routes; a report that makes the app run code or open something without the user | `crates/view`, `crates/ui`, `apps/` |

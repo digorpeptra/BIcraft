@@ -1,4 +1,4 @@
-//! `bicraft vpax` and the M9.3 read commands through `bicraft run`.
+//! `bicraft-cli vpax` and the M9.3 read commands through `bicraft-cli run`.
 
 use std::process::Command;
 
@@ -9,7 +9,7 @@ mod tempdir;
 use tempdir::TempDir;
 
 fn bicraft(args: &[&str]) -> (i32, Value) {
-    let out = Command::new(env!("CARGO_BIN_EXE_bicraft"))
+    let out = Command::new(env!("CARGO_BIN_EXE_bicraft-cli"))
         .args(args)
         .output()
         .unwrap();

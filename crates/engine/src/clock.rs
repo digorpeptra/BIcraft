@@ -3,7 +3,7 @@
 //!
 //! A process-wide setting, because the offset belongs to the machine (or the server's
 //! configuration), not to a session. The default is UTC (offset 0), as in the Power BI service:
-//! `bicraft serve` keeps it unless `--local-offset` says otherwise. The desktop app and the CLI
+//! `bicraft-cli serve` keeps it unless `--local-offset` says otherwise. The desktop app and the CLI
 //! install the machine's time zone ([`LocalClock::Zone`] with
 //! `bicraft_locale::calendar::machine_offset_minutes`), read at each evaluation, so a refresh
 //! after a daylight-saving change gets the new offset.
@@ -23,7 +23,7 @@ pub enum LocalClock {
     /// Local time is UTC (the default, and the Power BI service's).
     #[default]
     Utc,
-    /// A fixed offset in minutes (`bicraft serve --local-offset +02:00`).
+    /// A fixed offset in minutes (`bicraft-cli serve --local-offset +02:00`).
     Fixed(i32),
     /// A time zone: the offset at the evaluation's instant (daylight saving included).
     Zone(OffsetFn),
@@ -120,7 +120,7 @@ impl LocalClock {
 
 static CLOCK: RwLock<LocalClock> = RwLock::new(LocalClock::Utc);
 
-/// Sets the process's local clock (the desktop app and the CLI at start, `bicraft serve` from
+/// Sets the process's local clock (the desktop app and the CLI at start, `bicraft-cli serve` from
 /// `--local-offset`).
 pub fn set_local_clock(clock: LocalClock) {
     *CLOCK.write().unwrap_or_else(|e| e.into_inner()) = clock;

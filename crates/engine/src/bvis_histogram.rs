@@ -10,7 +10,7 @@ pub(super) const DEF: Def = Def {
     guid: "bicraftHistogram4C8E1A7D3F9B2E6A0D5C",
     name: "bicraftHistogram",
     display_name: "BIcraft Histogram",
-    version: "1.3.2.0",
+    version: "1.3.3.0",
     description: "Counts the values of a numeric column in bins (BIcraft, docs/formats/bicraft-visuals.md)",
     roles: &[
         Role {

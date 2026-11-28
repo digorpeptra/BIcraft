@@ -1,4 +1,4 @@
-//! L6: the workspace controller of a Kubernetes deployment of `bicraft serve`
+//! L6: the workspace controller of a Kubernetes deployment of `bicraft-cli serve`
 //! (docs/web-deployment.md, "Workspace controller"; docs/kubernetes.md, "The controller").
 //!
 //! - [`reconcile::Controller`] reconciles `BicraftWorkspace` resources: for each one a
@@ -6,7 +6,7 @@
 //!   `PersistentVolumeClaim`, written with server-side apply and owned by the workspace, so that
 //!   deleting the workspace deletes them (the claim only with `reclaimPolicy: Delete`).
 //! - [`gateway::Gateway`] is the HTTP entry point: it authenticates with `bicraft-auth` (the same
-//!   three modes as `bicraft serve`), checks the workspace's grants, wakes a workspace at zero
+//!   three modes as `bicraft-cli serve`), checks the workspace's grants, wakes a workspace at zero
 //!   replicas and holds the request until its pod is ready, forwards the request with the checked
 //!   identity, and serves the admin API. Idle workspaces go back to zero replicas.
 //! - [`kube`] is a minimal Kubernetes API client over `ureq` (no async runtime, no new

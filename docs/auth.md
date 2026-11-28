@@ -1,10 +1,10 @@
-# Authentication of `bicraft serve`
+# Authentication of `bicraft-cli serve`
 
 Status: implemented 2026-10-26 (web stage 1, authentication lot; `docs/web-deployment.md`,
 decision 3 and security item 5). Code: `crates/auth` (`bicraft-auth`, L0), wired into the MCP
-HTTP endpoint (`crates/mcp/src/http.rs`) and `bicraft serve` (`apps/bicraft-cli/src/serve_cmd.rs`).
+HTTP endpoint (`crates/mcp/src/http.rs`) and `bicraft-cli serve` (`apps/bicraft-cli/src/serve_cmd.rs`).
 
-`bicraft serve` authenticates every request once at least one mode is configured, then checks the
+`bicraft-cli serve` authenticates every request once at least one mode is configured, then checks the
 identity against a workspace ACL. Without any mode it keeps listening on loopback only and refuses
 any other `--listen` address. Three modes, any combination:
 
@@ -101,7 +101,7 @@ from the proxy pods only). A header from any other address is refused with 400.
 ## API tokens
 
 ```sh
-bicraft serve token create --name ci --role agent
+bicraft-cli serve token create --name ci --role agent
 # token: bct_…            (stdout, shown once: give it to the agent)
 # entry: {"name":"ci","sha256":"…","roles":["agent"],"groups":[]}
 ```
@@ -117,7 +117,7 @@ Put the entries in a tokens file and pass it with `--api-tokens FILE` or `BICRAF
 ```
 
 A token generated elsewhere (a secret manager) is hashed with
-`printf %s "$TOKEN" | bicraft serve token hash --name ci`; it must have at least 32 characters.
+`printf %s "$TOKEN" | bicraft-cli serve token hash --name ci`; it must have at least 32 characters.
 
 **Why SHA-256 and not argon2.** A salted slow hash protects *passwords*, which are guessable. A
 token is 256 random bits from the OS generator: no hash makes brute force feasible, so SHA-256
@@ -230,7 +230,7 @@ Over MCP HTTP:
 ## The viewer in a browser
 
 Status: implemented 2026-10-28 (web stage 2, viewer server mode; code `crates/mcp/src/http/viewer.rs`,
-operations in `docs/kubernetes.md`, "Viewer"). `bicraft serve` serves each workspace's live viewer
+operations in `docs/kubernetes.md`, "Viewer"). `bicraft-cli serve` serves each workspace's live viewer
 at `/w/<id>/view/` with the same `Host` check, authentication and ACL as the MCP endpoint (a
 workspace the identity may not open: 404). Editors and readers both get the page; what each sees is
 in "Roles" (readers: saved files; editors: their MCP session, unsaved edits included). Slicer clicks,
@@ -243,7 +243,7 @@ credentials besides the MCP ones:
 | Path | How | When |
 |---|---|---|
 | **Trusted identity header** (primary) | the auth proxy (oauth2-proxy, Pomerium, Authelia, Traefik forward-auth) logs the user in with its own cookie and sets the identity headers on every request, page and API calls alike | any deployment with people: SSO, MFA and session lifetime stay the identity provider's |
-| **One-time login URL** | a holder of a bearer credential (an API token, or an OIDC access token from a CLI) calls `POST /w/<id>/view/login` and gets `{url, expires_in: 60}`; opening the URL (`GET /w/<id>/view/login/<code>`, single use, 60 s) sets the login cookie and redirects to the page | no proxy, `bicraft serve` reached directly (not through the controller's gateway, which authenticates every request itself: there, use the proxy): an operator or an agent hands a browser session to a person |
+| **One-time login URL** | a holder of a bearer credential (an API token, or an OIDC access token from a CLI) calls `POST /w/<id>/view/login` and gets `{url, expires_in: 60}`; opening the URL (`GET /w/<id>/view/login/<code>`, single use, 60 s) sets the login cookie and redirects to the page | no proxy, `bicraft-cli serve` reached directly (not through the controller's gateway, which authenticates every request itself: there, use the proxy): an operator or an agent hands a browser session to a person |
 
 The login cookie: `bicraft_view=<64 hex>; Path=/w/<id>/; HttpOnly; SameSite=Lax` (and `Secure` when
 the public URL is `https`). It names a server-side login (256 random bits from the OS generator,
@@ -259,7 +259,7 @@ nothing, and the `POST` routes need the CSRF checks below.
 
 **CSRF.** Each page load gets a private view id (`?v=`, bound to the identity that loaded the
 page: another identity's requests with it answer 404) and an interaction token (32 hex digits,
-embedded in the page; a native client such as `bicraft-desktop` gets both from `POST …/view/api/session`
+embedded in the page; a native client such as `bicraft` gets both from `POST …/view/api/session`
 with a bearer credential or the proxy's headers, never the cookie: docs/desktop.md). `POST …/api/interact` needs the token in `X-Bicraft-Token`, and, when the
 browser sends them, `Origin` equal to the public origin (`--public-url`, else `http://<Host>`) and
 `Sec-Fetch-Site: same-origin`; otherwise 403. Set `--public-url` on every deployment behind an
@@ -344,7 +344,7 @@ carry the v2 issuer. A v2 access token's `aud` is the API's client id. Request t
 never for Microsoft Graph (Graph tokens are not meant to be validated by others).
 
 ```sh
-bicraft serve --listen 0.0.0.0:7878 --public-url https://bicraft.example.com --root /data/workspaces \
+bicraft-cli serve --listen 0.0.0.0:7878 --public-url https://bicraft.example.com --root /data/workspaces \
   --auth-config /etc/bicraft/entra.json
 ```
 
@@ -360,7 +360,7 @@ account). Use Google directly for workloads that present ID tokens, and put huma
 proxy (oauth2-proxy with the Google provider) or a broker such as Keycloak.
 
 ```sh
-bicraft serve ... --oidc-issuer https://accounts.google.com \
+bicraft-cli serve ... --oidc-issuer https://accounts.google.com \
   --oidc-audience 1234567890-abc.apps.googleusercontent.com \
   --grant 'email:ana@example.com=*'
 ```
@@ -390,7 +390,7 @@ audience `api://default`, scopes in `scp` (array), a `groups` claim added in the
 server's claims.
 
 ```sh
-bicraft serve ... --oidc-issuer https://example.okta.com/oauth2/default \
+bicraft-cli serve ... --oidc-issuer https://example.okta.com/oauth2/default \
   --oidc-audience api://default --oidc-scope bicraft --grant 'group:BI Team=*'
 ```
 
@@ -412,7 +412,7 @@ oauth2-proxy in reverse-proxy mode sends `X-Forwarded-User`, `X-Forwarded-Email`
 `X-Forwarded-Groups` (`--pass-user-headers`, on by default): the defaults.
 
 ```sh
-bicraft serve --listen 0.0.0.0:7878 --allow-host bicraft.example.com --root /data/workspaces \
+bicraft-cli serve --listen 0.0.0.0:7878 --allow-host bicraft.example.com --root /data/workspaces \
   --trusted-proxy 10.42.0.0/16 --grant 'group:bi-team@example.com=*'
 ```
 
@@ -426,9 +426,9 @@ when configured). Traefik forward-auth: whatever `authResponseHeaders` copies.
 ### Agents and CI with API tokens
 
 ```sh
-bicraft serve token create --name ci --role agent   # token for the agent, entry for tokens.json
+bicraft-cli serve token create --name ci --role agent   # token for the agent, entry for tokens.json
 kubectl create secret generic bicraft-tokens --from-file=tokens.json
-bicraft serve ... --api-tokens /etc/bicraft/tokens.json --grant 'role:agent=sales,finance'
+bicraft-cli serve ... --api-tokens /etc/bicraft/tokens.json --grant 'role:agent=sales,finance'
 ```
 
 Mixed modes are common: OIDC for people, tokens for agents, in one file or with both flag sets.

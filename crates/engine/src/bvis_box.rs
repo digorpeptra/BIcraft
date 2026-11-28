@@ -10,7 +10,7 @@ pub(super) const DEF: Def = Def {
     guid: "bicraftBoxPlot2E7B4D9A1F6C3E8B5D0A",
     name: "bicraftBoxPlot",
     display_name: "BIcraft Box Plot",
-    version: "1.3.2.0",
+    version: "1.3.3.0",
     description: "Quartiles, whiskers at 1.5 IQR and outliers of a measure over a column's items (BIcraft, docs/formats/bicraft-visuals.md)",
     roles: &[
         Role {

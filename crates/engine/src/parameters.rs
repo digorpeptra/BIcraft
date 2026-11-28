@@ -551,6 +551,56 @@ pub(crate) fn is_fields_column(c: &Column) -> bool {
         })
 }
 
+/// Whether column `c` is a what-if parameter's column: `ParameterMetadata` without a kind (Desktop
+/// writes `{"version": 0}` on it, docs/formats/parameters.md).
+pub(crate) fn is_what_if_column(c: &Column) -> bool {
+    c.extra
+        .get("extendedProperties")
+        .and_then(Value::as_array)
+        .is_some_and(|list| {
+            list.iter().any(|e| {
+                e.get("name").and_then(Value::as_str) == Some(PARAMETER_METADATA)
+                    && e.get("value")
+                        .is_some_and(|v| v.is_object() && v.get("kind").is_none())
+            })
+        })
+}
+
+/// The default of what-if column `table[column]`: the number its table's
+/// `SELECTEDVALUE('table'[column], default)` measure returns when nothing is selected.
+pub(crate) fn what_if_default(m: &SemanticModel, table: &str, column: &str) -> Option<f64> {
+    let t = m.table(table)?;
+    t.measures.iter().find_map(|x| {
+        let (Some(Expr::Call { name, args, .. }), _) = bicraft_dax::parse_expression(&x.expression) else {
+            return None;
+        };
+        if !name.eq_ignore_ascii_case("SELECTEDVALUE") || args.len() != 2 {
+            return None;
+        }
+        let Some(Some(Expr::Column {
+            table: Some(ct),
+            name: cn,
+            variation: None,
+            ..
+        })) = args.first()
+        else {
+            return None;
+        };
+        if !ct.eq_ignore_ascii_case(&t.name) || !cn.eq_ignore_ascii_case(column) {
+            return None;
+        }
+        let number = |e: &Expr| match e {
+            Expr::Number { text, .. } => text.parse::<f64>().ok(),
+            _ => None,
+        };
+        match args.get(1)?.as_ref()? {
+            Expr::Unary { op, operand, .. } if op == "-" => number(operand).map(|x| -x),
+            e => number(e),
+        }
+        .filter(|x| x.is_finite())
+    })
+}
+
 /// The column grouped by `fields` (`relatedColumnDetails.groupByColumns`), the label column.
 fn grouped_by<'t>(t: &'t Table, fields: &str) -> Option<&'t Column> {
     t.columns.iter().find(|c| {

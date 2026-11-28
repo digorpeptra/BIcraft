@@ -21,7 +21,7 @@ use std::io::Write as _;
 
 use tiny_skia::{PathSegment, Pixmap, Transform};
 
-use crate::canvas::{LayerBody, Op, Rgb, TextOp};
+use crate::canvas::{LayerBody, Op, Part, Rgb, TextOp};
 use crate::fonts::FontBook;
 use crate::ttf_subset::{self, FaceInfo};
 
@@ -50,6 +50,8 @@ struct FaceUse {
     uni: BTreeMap<u16, String>,
     /// Advance widths (font units), for the TJ adjustments.
     adv: BTreeMap<u16, u16>,
+    /// A CFF face embedded whole: the face as a file of its own (else a TrueType subset).
+    whole: Option<Vec<u8>>,
 }
 
 struct Doc<'a> {
@@ -77,13 +79,17 @@ struct Doc<'a> {
 /// A structure element (ISO 32000-1 §14.7.2).
 struct Elem {
     id: usize,
-    /// The standard structure type (`Document`, `Sect`, `P`, `Figure`).
+    /// The standard structure type (`Document`, `Sect`, `P`, `Figure`, `Table`, `TR`, `TH`,
+    /// `TD`).
     role: &'static str,
     parent: Option<usize>,
     title: Option<String>,
     alt: Option<String>,
     /// The page object it is on.
     page: Option<usize>,
+    /// Its place among its parent's elements in the reading order (smaller first; elements
+    /// without one keep their drawing order, before the others).
+    order: Option<(f32, f32, f32)>,
     kids: Vec<Kid>,
 }
 
@@ -98,12 +104,36 @@ enum Kid {
 }
 
 /// An open element: the visual's alt text, and its `Figure` once its graphics need one.
+#[derive(Clone)]
 struct Frame {
     elem: usize,
+    /// The element's type.
+    role: &'static str,
+    /// The alt text that stands for all the content (text included).
     alt: Option<String>,
+    /// The alt text of the graphics' figure when there is no `alt` (a chart's title).
+    label: Option<String>,
     figure: Option<usize>,
     /// The paragraph the last text run went to: its element, baseline and where the run ended.
     para: Option<(usize, f32, f32)>,
+    /// A part that got no element of its own (inside a figure, a row outside a table, no room
+    /// left): its content goes to the element around it, and closing it hands its figure and
+    /// paragraph back to that element's frame.
+    pass: bool,
+}
+
+impl Frame {
+    fn new(elem: usize, role: &'static str) -> Frame {
+        Frame {
+            elem,
+            role,
+            alt: None,
+            label: None,
+            figure: None,
+            para: None,
+            pass: false,
+        }
+    }
 }
 
 /// The content stream being written: its `StructParents` key, the page it is on, the form
@@ -317,6 +347,7 @@ impl<'a> Doc<'a> {
             title,
             alt,
             page: self.mark.as_ref().map(|m| m.page),
+            order: None,
             kids: Vec::new(),
         });
         self.elems.get_mut(parent)?.kids.push(Kid::Elem(i));
@@ -346,6 +377,12 @@ impl<'a> Doc<'a> {
         let near = t.size.max(1.0) * 0.5;
         let para = match self.stack.last() {
             Some(Frame { alt: Some(_), .. }) => return self.open_graphic(out),
+            // a table cell's text is the cell's own content
+            Some(Frame {
+                elem,
+                role: "TH" | "TD",
+                ..
+            }) => Some(*elem),
             Some(Frame {
                 para: Some((p, y, end)),
                 ..
@@ -359,9 +396,10 @@ impl<'a> Doc<'a> {
         if let Some(top) = self.stack.last_mut() {
             top.para = para.map(|p| (p, ty, x0 + t.width * t.tf.sx));
         }
+        let tag = para.and_then(|p| self.elems.get(p)).map_or("P", |e| e.role);
         match para.and_then(|p| self.mcid(p)) {
             Some(n) => {
-                let _ = writeln!(out, "/P <</MCID {n}>> BDC");
+                let _ = writeln!(out, "/{tag} <</MCID {n}>> BDC");
             }
             None => out.push_str("/Artifact BMC\n"),
         }
@@ -377,12 +415,14 @@ impl<'a> Doc<'a> {
             Some(Frame { figure: Some(f), .. }) => Some(*f),
             Some(Frame {
                 elem,
-                alt: Some(a),
+                alt,
+                label,
                 figure: None,
                 ..
-            }) => {
-                let (elem, alt) = (*elem, a.clone());
-                let f = self.elem("Figure", elem, None, Some(alt));
+            }) if alt.is_some() || label.is_some() => {
+                let elem = *elem;
+                let alt = alt.clone().or_else(|| label.clone());
+                let f = self.elem("Figure", elem, None, alt);
                 if let Some(top) = self.stack.last_mut() {
                     top.figure = f;
                 }
@@ -427,9 +467,17 @@ impl<'a> Doc<'a> {
         }
         let use_ = self.fonts.face_bytes(i).and_then(|(data, index)| {
             let info = ttf_subset::info(&data, index)?;
-            (info.glyf && info.embeddable()).then_some(info)
+            // TrueType faces are subset; CFF faces are embedded whole, when not too large
+            if info.glyf {
+                info.embeddable().then_some((info, None))
+            } else if info.cff && info.embeddable_whole() {
+                let whole = ttf_subset::opentype_face(&data, index)?;
+                Some((info, Some(whole)))
+            } else {
+                None
+            }
         });
-        let rec = use_.map(|info| {
+        let rec = use_.map(|(info, whole)| {
             let id = self.reserve();
             FaceUse {
                 id,
@@ -438,6 +486,7 @@ impl<'a> Doc<'a> {
                 gids: BTreeSet::new(),
                 uni: BTreeMap::new(),
                 adv: BTreeMap::new(),
+                whole,
             }
         });
         let ok = rec.is_some();
@@ -600,36 +649,73 @@ impl<'a> Doc<'a> {
                 }
                 out.push_str("Q\n");
             }
-            Op::Begin { title, alt } => {
-                let t = Some(title.clone()).filter(|t| !t.trim().is_empty());
-                let e = self
-                    .stack
-                    .last()
-                    .map(|f| f.elem)
-                    .and_then(|p| self.elem("Sect", p, t, None));
-                match (e, self.stack.last().map(|f| f.elem)) {
-                    (Some(elem), _) => self.stack.push(Frame {
-                        elem,
-                        alt: alt.clone(),
-                        figure: None,
-                        para: None,
-                    }),
-                    // no room for one more element: the visual's content goes to the one around it
-                    (None, Some(elem)) => self.stack.push(Frame {
-                        elem,
-                        alt: None,
-                        figure: None,
-                        para: None,
-                    }),
-                    (None, None) => {}
-                }
-            }
+            Op::Begin(part) => self.begin(part),
             Op::End => {
                 // the page's own section stays open
-                if self.stack.len() > 1 {
-                    self.stack.pop();
+                if self.stack.len() > 1
+                    && let Some(f) = self.stack.pop()
+                    && f.pass
+                    && let Some(top) = self.stack.last_mut()
+                {
+                    top.figure = f.figure;
+                    top.para = f.para;
                 }
             }
+        }
+    }
+
+    /// Opens the element of part `part` under the open one: a `Sect` per visual, a `Table` with
+    /// its `TR` rows of `TH` and `TD` cells. Inside a figure with alt text, or where the part
+    /// does not fit (a row outside a table, no room left), the content goes to the open element.
+    fn begin(&mut self, part: &Part) {
+        let Some(top) = self.stack.last().cloned() else {
+            return;
+        };
+        let pass = Frame {
+            pass: true,
+            ..top.clone()
+        };
+        if top.alt.is_some() {
+            self.stack.push(pass);
+            return;
+        }
+        let (role, title, frame_alt, label, order) = match part {
+            Part::Visual {
+                title,
+                alt,
+                label,
+                order,
+            } => (
+                "Sect",
+                Some(title.clone()).filter(|t| !t.trim().is_empty()),
+                alt.clone(),
+                label.clone(),
+                Some(*order),
+            ),
+            Part::Table => ("Table", None, None, None, None),
+            Part::Row if top.role == "Table" => ("TR", None, None, None, None),
+            Part::HeadCell if top.role == "TR" => ("TH", None, None, None, None),
+            Part::Cell if top.role == "TR" => ("TD", None, None, None, None),
+            Part::Row | Part::HeadCell | Part::Cell => {
+                self.stack.push(pass);
+                return;
+            }
+        };
+        match self.elem(role, top.elem, title, None) {
+            Some(elem) => {
+                if let Some(e) = self.elems.get_mut(elem) {
+                    e.order = order;
+                }
+                if let Some(t) = self.stack.last_mut() {
+                    t.para = None;
+                }
+                self.stack.push(Frame {
+                    alt: frame_alt,
+                    label,
+                    ..Frame::new(elem, role)
+                });
+            }
+            None => self.stack.push(pass),
         }
     }
 
@@ -854,13 +940,30 @@ impl<'a> Doc<'a> {
             let Some((data, index)) = self.fonts.face_bytes(*i) else {
                 continue;
             };
-            let sub = ttf_subset::subset(&data, index, &f.gids).unwrap_or_default();
-            let base = format!("{}+{}", subset_tag(*i, &f.gids), f.info.ps_name);
+            // a TrueType subset (`FontFile2`, named as a subset), or a CFF face whole
+            // (`FontFile3` of subtype `OpenType`, under a `CIDFontType0` whose CIDs are glyph ids)
+            let (prog, base, file_key, file_dict) = match &f.whole {
+                Some(w) => (
+                    w.clone(),
+                    f.info.ps_name.clone(),
+                    "FontFile3",
+                    "/Subtype /OpenType".to_string(),
+                ),
+                None => {
+                    let sub = ttf_subset::subset(&data, index, &f.gids).unwrap_or_default();
+                    let len = sub.len();
+                    (
+                        sub,
+                        format!("{}+{}", subset_tag(*i, &f.gids), f.info.ps_name),
+                        "FontFile2",
+                        format!("/Length1 {len}"),
+                    )
+                }
+            };
             let file = {
-                let z = deflate(&sub);
+                let z = deflate(&prog);
                 let mut b = format!(
-                    "<< /Length1 {} /Filter /FlateDecode /Length {} >>\nstream\n",
-                    sub.len(),
+                    "<< {file_dict} /Filter /FlateDecode /Length {} >>\nstream\n",
                     z.len()
                 )
                 .into_bytes();
@@ -873,7 +976,7 @@ impl<'a> Doc<'a> {
             let flags = if f.info.italic_angle != 0.0 { 4 | 64 } else { 4 };
             let desc = self.add(
                 format!(
-                    "<< /Type /FontDescriptor /FontName /{base} /Flags {flags} /FontBBox [{} {} {} {}] /ItalicAngle {} /Ascent {} /Descent {} /CapHeight {} /StemV 80 /FontFile2 {file} 0 R >>",
+                    "<< /Type /FontDescriptor /FontName /{base} /Flags {flags} /FontBBox [{} {} {} {}] /ItalicAngle {} /Ascent {} /Descent {} /CapHeight {} /StemV 80 /{file_key} {file} 0 R >>",
                     sc(f.info.bbox[0]),
                     sc(f.info.bbox[1]),
                     sc(f.info.bbox[2]),
@@ -889,13 +992,24 @@ impl<'a> Doc<'a> {
             for (g, a) in &f.adv {
                 let _ = write!(w, "{g} [{}] ", num(f32::from(*a) * k));
             }
+            let (cid_type, gid_map) = if f.whole.is_some() {
+                ("CIDFontType0", "")
+            } else {
+                ("CIDFontType2", " /CIDToGIDMap /Identity")
+            };
             let cid = self.add(
                 format!(
-                    "<< /Type /Font /Subtype /CIDFontType2 /BaseFont /{base} /CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >> /FontDescriptor {desc} 0 R /DW 0 /W [{w}] /CIDToGIDMap /Identity >>"
+                    "<< /Type /Font /Subtype /{cid_type} /BaseFont /{base} /CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >> /FontDescriptor {desc} 0 R /DW 0 /W [{w}]{gid_map} >>"
                 )
                 .into_bytes(),
             );
-            let cmap = self.stream("", to_unicode(&f.uni).as_bytes());
+            // every glyph drawn maps to text (a glyph that no character of its run maps to,
+            // such as a ligature, reads as the replacement character)
+            let mut uni = f.uni.clone();
+            for g in &f.gids {
+                uni.entry(*g).or_insert_with(|| "\u{fffd}".to_string());
+            }
+            let cmap = self.stream("", to_unicode(&uni).as_bytes());
             self.set(
                 f.id,
                 format!(
@@ -912,6 +1026,103 @@ impl<'a> Doc<'a> {
         self.faces = faces;
         notes
     }
+}
+
+/// What a PDF claims to conform to, beyond PDF 1.7 (`report.export_pdf`'s `pdf_ua` and
+/// `pdf_a`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PdfConformance {
+    /// Identified as PDF/UA-1 (ISO 14289-1) in its metadata. The structure tree is written
+    /// either way.
+    pub ua: bool,
+    /// Identified as PDF/A-2b (ISO 19005-2, level B): metadata, an sRGB output intent.
+    pub archive: bool,
+}
+
+impl Default for PdfConformance {
+    fn default() -> Self {
+        PdfConformance {
+            ua: true,
+            archive: false,
+        }
+    }
+}
+
+/// An uncompressed stream object (the metadata: PDF/A forbids filtering it).
+fn raw_stream(dict: &str, data: &[u8]) -> Vec<u8> {
+    let mut b = format!("<< {dict} /Length {} >>\nstream\n", data.len()).into_bytes();
+    b.extend_from_slice(data);
+    b.extend_from_slice(b"\nendstream");
+    b
+}
+
+/// `s` with XML's special characters escaped.
+fn xml(s: &str) -> String {
+    let mut o = String::with_capacity(s.len());
+    for c in s.chars() {
+        match c {
+            '&' => o.push_str("&amp;"),
+            '<' => o.push_str("&lt;"),
+            '>' => o.push_str("&gt;"),
+            '"' => o.push_str("&quot;"),
+            c => o.push(c),
+        }
+    }
+    o
+}
+
+/// The XMP metadata packet: the title, producer and creator as the information dictionary has
+/// them, and the PDF/A and PDF/UA identification asked for. A PDF/A file that also claims
+/// PDF/UA describes the PDF/UA schema, which PDF/A does not predefine.
+fn xmp(title: &str, producer: &str, conf: PdfConformance) -> String {
+    let mut s = String::from(
+        "<?xpacket begin=\"\u{feff}\" id=\"W5M0MpCehiHzreSzNTczkc9d\"?>\n<x:xmpmeta xmlns:x=\"adobe:ns:meta/\">\n<rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">\n",
+    );
+    let _ = write!(
+        s,
+        "<rdf:Description rdf:about=\"\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\" xmlns:pdf=\"http://ns.adobe.com/pdf/1.3/\" xmlns:xmp=\"http://ns.adobe.com/xap/1.0/\">\n<dc:format>application/pdf</dc:format>\n<dc:title><rdf:Alt><rdf:li xml:lang=\"x-default\">{}</rdf:li></rdf:Alt></dc:title>\n<pdf:Producer>{}</pdf:Producer>\n<xmp:CreatorTool>BIcraft</xmp:CreatorTool>\n</rdf:Description>\n",
+        xml(title),
+        xml(producer)
+    );
+    if conf.archive {
+        s.push_str("<rdf:Description rdf:about=\"\" xmlns:pdfaid=\"http://www.aiim.org/pdfa/ns/id/\">\n<pdfaid:part>2</pdfaid:part>\n<pdfaid:conformance>B</pdfaid:conformance>\n</rdf:Description>\n");
+    }
+    if conf.ua {
+        s.push_str("<rdf:Description rdf:about=\"\" xmlns:pdfuaid=\"http://www.aiim.org/pdfua/ns/id/\">\n<pdfuaid:part>1</pdfuaid:part>\n</rdf:Description>\n");
+    }
+    if conf.archive && conf.ua {
+        s.push_str(concat!(
+            "<rdf:Description rdf:about=\"\" xmlns:pdfaExtension=\"http://www.aiim.org/pdfa/ns/extension/\" xmlns:pdfaSchema=\"http://www.aiim.org/pdfa/ns/schema#\" xmlns:pdfaProperty=\"http://www.aiim.org/pdfa/ns/property#\">\n",
+            "<pdfaExtension:schemas><rdf:Bag><rdf:li rdf:parseType=\"Resource\">\n",
+            "<pdfaSchema:schema>PDF/UA identification</pdfaSchema:schema>\n",
+            "<pdfaSchema:namespaceURI>http://www.aiim.org/pdfua/ns/id/</pdfaSchema:namespaceURI>\n",
+            "<pdfaSchema:prefix>pdfuaid</pdfaSchema:prefix>\n",
+            "<pdfaSchema:property><rdf:Seq><rdf:li rdf:parseType=\"Resource\">\n",
+            "<pdfaProperty:name>part</pdfaProperty:name>\n",
+            "<pdfaProperty:valueType>Integer</pdfaProperty:valueType>\n",
+            "<pdfaProperty:category>internal</pdfaProperty:category>\n",
+            "<pdfaProperty:description>The part of ISO 14289 the file conforms to</pdfaProperty:description>\n",
+            "</rdf:li></rdf:Seq></pdfaSchema:property>\n",
+            "</rdf:li></rdf:Bag></pdfaExtension:schemas>\n",
+            "</rdf:Description>\n",
+        ));
+    }
+    s.push_str("</rdf:RDF>\n</x:xmpmeta>\n<?xpacket end=\"w\"?>");
+    s
+}
+
+/// A 16-byte file identifier from the file's bytes (two FNV-1a digests), in hex.
+fn file_id(b: &[u8]) -> String {
+    let mut out = String::with_capacity(32);
+    for seed in [0xcbf2_9ce4_8422_2325u64, 0x8422_2325_cbf2_9ce4] {
+        let mut h = seed;
+        for x in b {
+            h ^= u64::from(*x);
+            h = h.wrapping_mul(0x0100_0000_01b3);
+        }
+        let _ = write!(out, "{h:016X}");
+    }
+    out
 }
 
 /// A ToUnicode CMap mapping glyph ids (2-byte codes) to their text.
@@ -978,6 +1189,7 @@ impl<'a> Writer<'a> {
             title: None,
             alt: None,
             page: None,
+            order: None,
             kids: Vec::new(),
         });
         Writer {
@@ -999,12 +1211,7 @@ impl<'a> Writer<'a> {
         let title: String = title.chars().take(500).collect();
         d.stack.clear();
         if let Some(sect) = d.elem("Sect", 0, Some(title.clone()), None) {
-            d.stack.push(Frame {
-                elem: sect,
-                alt: None,
-                figure: None,
-                para: None,
-            });
+            d.stack.push(Frame::new(sect, "Sect"));
         }
         let mut c = format!("{PT_PER_PX} 0 0 -{PT_PER_PX} 0 {} cm\n", num(h * PT_PER_PX));
         d.ops(&mut c, ops);
@@ -1081,12 +1288,56 @@ impl<'a> Writer<'a> {
                 *slot = k || i == 0;
             }
         }
+        // a row kept keeps all its cells, empty ones too, so the columns stay in place
+        for i in 0..n {
+            let cells: Vec<usize> = match d.elems.get(i) {
+                Some(e) if e.role == "TR" && keep.get(i).copied().unwrap_or(false) => e
+                    .kids
+                    .iter()
+                    .filter_map(|k| match k {
+                        Kid::Elem(c) => Some(*c),
+                        Kid::Content { .. } => None,
+                    })
+                    .collect(),
+                _ => continue,
+            };
+            for c in cells {
+                if let Some(slot) = keep.get_mut(c) {
+                    *slot = true;
+                }
+            }
+        }
+        // the reading order: elements that have a place in it (visuals) sorted by it
+        let orders: Vec<Option<(f32, f32, f32)>> = d.elems.iter().map(|e| e.order).collect();
+        let key = |k: &Kid| match k {
+            Kid::Elem(c) => orders.get(*c).copied().flatten(),
+            Kid::Content { .. } => None,
+        };
+        for e in &mut d.elems {
+            if e.kids.iter().any(|k| key(k).is_some()) {
+                // a total order (NaN included): no place first, then by place
+                e.kids.sort_by(|a, b| match (key(a), key(b)) {
+                    (None, None) => std::cmp::Ordering::Equal,
+                    (None, Some(_)) => std::cmp::Ordering::Less,
+                    (Some(_), None) => std::cmp::Ordering::Greater,
+                    (Some(x), Some(y)) => {
+                        x.0.total_cmp(&y.0)
+                            .then(x.1.total_cmp(&y.1))
+                            .then(x.2.total_cmp(&y.2))
+                    }
+                });
+            }
+        }
         let mut bodies: Vec<(usize, Vec<u8>)> = Vec::new();
         for e in &d.elems {
             let parent = e.parent.and_then(|p| d.elems.get(p)).map_or(root, |p| p.id);
             let mut b = format!("<< /Type /StructElem /S /{} /P {parent} 0 R", e.role);
             if let Some(pg) = e.page {
                 let _ = write!(b, " /Pg {pg} 0 R");
+            }
+            // a column header heads the cells under it (ISO 32000-1 §14.8.5.7)
+            if e.role == "TH" {
+                b.push_str(" /A << /O /Table /Scope /Column >>");
             }
             if let Some(t) = &e.title {
                 let _ = write!(b, " /T {}", text_string(t));
@@ -1147,7 +1398,7 @@ impl<'a> Writer<'a> {
     }
 
     /// The file, and the fonts it embeds. `lang` is the document's language (`en-US`).
-    pub(crate) fn finish(self, title: &str, lang: &str) -> (Vec<u8>, Vec<PdfFont>) {
+    pub(crate) fn finish(self, title: &str, lang: &str, conf: PdfConformance) -> (Vec<u8>, Vec<PdfFont>) {
         let Writer {
             mut d,
             catalog,
@@ -1156,6 +1407,9 @@ impl<'a> Writer<'a> {
             struct_root,
             kids,
         } = self;
+        // one title for the information dictionary and the metadata (control characters
+        // dropped: XML cannot hold them)
+        let title: String = title.chars().filter(|c| !c.is_control()).take(500).collect();
         let notes = d.finish_fonts();
         Self::structure(&mut d, struct_root);
         let outline = Self::outline(&mut d, &kids);
@@ -1215,14 +1469,32 @@ impl<'a> Writer<'a> {
                 cat.push_str(" /PageMode /UseOutlines");
             }
         }
+        let producer = format!("BIcraft {}", env!("CARGO_PKG_VERSION"));
+        // the metadata (XMP, uncompressed as PDF/A asks) that says what the file conforms to
+        if conf.ua || conf.archive {
+            let xmp = xmp(&title, &producer, conf);
+            let m = d.add(raw_stream("/Type /Metadata /Subtype /XML", xmp.as_bytes()));
+            let _ = write!(cat, " /Metadata {m} 0 R");
+        }
+        // PDF/A: the colours are sRGB (an output intent with our sRGB profile)
+        if conf.archive {
+            let profile = d.stream("/N 3", &crate::icc::srgb_profile());
+            let intent = d.add(
+                format!(
+                    "<< /Type /OutputIntent /S /GTS_PDFA1 /OutputConditionIdentifier {n} /Info {n} /DestOutputProfile {profile} 0 R >>",
+                    n = text_string(crate::icc::SRGB_NAME)
+                )
+                .into_bytes(),
+            );
+            let _ = write!(cat, " /OutputIntents [{intent} 0 R]");
+        }
         cat.push_str(" >>");
         d.set(catalog, cat.into_bytes());
         d.set(
             info,
             format!(
-                "<< /Title {} /Producer (BIcraft {}) /Creator (BIcraft) >>",
-                text_string(title),
-                env!("CARGO_PKG_VERSION")
+                "<< /Title {} /Producer ({producer}) /Creator (BIcraft) >>",
+                text_string(&title)
             )
             .into_bytes(),
         );
@@ -1235,6 +1507,8 @@ impl<'a> Writer<'a> {
             out.extend_from_slice(o.as_deref().unwrap_or(b"null"));
             out.extend_from_slice(b"\nendobj\n");
         }
+        // the file identifier: a digest of the body (deterministic)
+        let id = file_id(&out);
         let xref = out.len();
         out.extend_from_slice(format!("xref\n0 {}\n0000000000 65535 f \n", d.objs.len() + 1).as_bytes());
         for o in offsets {
@@ -1242,7 +1516,7 @@ impl<'a> Writer<'a> {
         }
         out.extend_from_slice(
             format!(
-                "trailer\n<< /Size {} /Root {catalog} 0 R /Info {info} 0 R >>\nstartxref\n{xref}\n%%EOF\n",
+                "trailer\n<< /Size {} /Root {catalog} 0 R /Info {info} 0 R /ID [<{id}> <{id}>] >>\nstartxref\n{xref}\n%%EOF\n",
                 d.objs.len() + 1
             )
             .as_bytes(),

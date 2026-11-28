@@ -1,5 +1,5 @@
 //! `cargo xtask oracle-gen uilang OUT.pbix COMMANDS.json LAYOUT.json [CULTURE]`: the UI-language oracle
-//! report (M10.2). It writes the `bicraft run` commands of a synthetic report whose visuals show
+//! report (M10.2). It writes the `bicraft-cli run` commands of a synthetic report whose visuals show
 //! the text Power BI Desktop generates in its own UI language: auto titles ("Sum of Amount by
 //! Region and Category"), the nine implicit-measure names, "(Blank)" (a blank Region row),
 //! "Total" rows and columns, the waterfall legend, a gauge's and a KPI's titles, empty visuals,

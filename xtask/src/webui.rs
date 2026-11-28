@@ -146,7 +146,7 @@ fn build(args: &[String]) -> Result<(), String> {
     }
     let out = bundle(out, opt)?;
     println!(
-        "\nTo embed it, build bicraft with\n  BICRAFT_WEBUI_DIR={}\n(then `bicraft view FILE --ui egui`, or /w/<id>/view/app/ on `bicraft serve`)",
+        "\nTo embed it, build bicraft with\n  BICRAFT_WEBUI_DIR={}\n(then `bicraft-cli view FILE --ui egui`, or /w/<id>/view/app/ on `bicraft-cli serve`)",
         out.display()
     );
     Ok(())
@@ -217,7 +217,7 @@ pub fn bundle(out: Option<PathBuf>, opt: bool) -> Result<PathBuf, String> {
     Ok(out)
 }
 
-/// Whether the binary `bin` embeds the browser app (`bicraft build-info`).
+/// Whether the binary `bin` embeds the browser app (`bicraft-cli build-info`).
 pub fn binary_embeds(bin: &Path) -> Result<bool, String> {
     let o = Command::new(bin)
         .arg("build-info")

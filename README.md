@@ -13,9 +13,10 @@
 
 <p align="center">
   Create, read, modify, validate and convert PBIX, PBIT and PBIP files, their TMDL and TMSL models
-  and their PBIR reports, and check every DAX expression against the model. One binary,
-  <code>bicraft</code>, is both a CLI and an MCP server, so people, scripts and agents use the same
-  commands. Native on Windows and Linux; files it writes open in the free Power BI Desktop.
+  and their PBIR reports, and check every DAX expression against the model. Two programs share
+  one engine: <code>bicraft</code>, the desktop app, and <code>bicraft-cli</code>, both a CLI and
+  an MCP server, so people, scripts and agents use the same commands. Native on Windows and Linux;
+  files it writes open in the free Power BI Desktop.
 </p>
 
 <p align="center">
@@ -28,7 +29,7 @@
 
 <p align="center">
   <img src="docs/images/bicraft-app-light.png" alt="The BIcraft desktop app in its light theme: the Home ribbon (open, reload, light, dark and high-contrast themes, Power Query, get data, new measure, format painter, undo history), the Filters, Visualizations and Data panes on the right, and on the canvas a sales dashboard for a fictional bike shop: a title and a Region dropdown slicer, three year-to-date KPI cards (revenue, gross margin, units) each with its change against last year and a sparkline, a margin-rate bullet gauge against a 38% target, a line chart of revenue by month this year and last, a bullet chart of revenue against target by category, a column chart of gross margin by category, a slope chart of revenue by region from last year to this year, and a matrix of categories with revenue, margin and year-on-year growth" width="100%">
-  <br><sub><b>BIcraft's own app</b> (<code>bicraft-desktop</code>) with a synthetic dashboard open, built by the recipe <a href="examples/ridgeline-cycles.json"><code>examples/ridgeline-cycles.json</code></a> and drawn by <code>bicraft-desktop --render</code>; every value is made up.</sub>
+  <br><sub><b>BIcraft's own app</b> (<code>bicraft</code>) with a synthetic dashboard open, built by the recipe <a href="examples/ridgeline-cycles.json"><code>examples/ridgeline-cycles.json</code></a> and drawn by <code>bicraft --render</code>; every value is made up.</sub>
 </p>
 
 <p align="center">
@@ -47,12 +48,12 @@
 
 ## What sets BIcraft apart
 
-- **Its own report app, on the desktop and in the browser.** `bicraft-desktop` and the browser
+- **Its own report app, on the desktop and in the browser.** `bicraft` and the browser
   app run the same Rust UI (egui), draw the same pixels and reach every engine command from a
   button: model, Data and Report views, the Format pane, Power Query, DAX with a formula bar.
   Native on Windows and Linux, no web engine inside ([docs/desktop.md](docs/desktop.md),
   [docs/webui.md](docs/webui.md)).
-- **A server for teams, with a Kubernetes deployment (preview).** `bicraft serve` hosts
+- **A server for teams, with a Kubernetes deployment (preview).** `bicraft-cli serve` hosts
   workspaces for many users over MCP Streamable HTTP, with API tokens or OIDC sign-in,
   per-workspace access control and a sandboxed root. A static container image, a Helm chart and a
   controller that creates workspaces on demand. Tested so far in a local kind cluster and against
@@ -73,7 +74,7 @@
   ([docs/benchmarks.md](docs/benchmarks.md), [docs/storage-engine.md](docs/storage-engine.md),
   [docs/beyond-ram.md](docs/beyond-ram.md)).
 - **Made for AI agents and pipelines.** Every operation is a command that the CLI, the MCP
-  server and the UI share, so an agent can do anything a person can; `bicraft test` gates a
+  server and the UI share, so an agent can do anything a person can; `bicraft-cli test` gates a
   project in CI.
 
 ## What works today
@@ -99,12 +100,12 @@ BIcraft is pre-1.0 and under active development (see the [roadmap](ROADMAP.md)).
 - **Convert**: PBIX → PBIP/PBIT, PBIT ↔ PBIP, TMSL ↔ TMDL, PBIP/PBIT/new model → PBIX. Every
   conversion goes through one in-memory model.
 - **Query and preview**: run DAX queries over a file's data, render report pages to PNG, and watch
-  a project in a live web viewer while an agent builds it. `bicraft-desktop` reads the same reports
+  a project in a live web viewer while an agent builds it. `bicraft` reads the same reports
   natively (Windows and Linux, no web engine), from a file or a BIcraft server.
-- **Find what is used and what is not**: `bicraft usage` lists every place a table, column or
+- **Find what is used and what is not**: `bicraft-cli usage` lists every place a table, column or
   measure is used (DAX, row-level security, relationships, visuals, filters, bookmarks), and
-  `bicraft unused` lists, or removes, what nothing uses.
-- **Gate a project in CI**: `bicraft test` runs DAX assertions over the data, best-practice and
+  `bicraft-cli unused` lists, or removes, what nothing uses.
+- **Gate a project in CI**: `bicraft-cli test` runs DAX assertions over the data, best-practice and
   declarative model rules and report rules from a `bicraft.tests.yaml`, with JUnit or SARIF
   output for the pipeline ([docs/ci-tests.md](docs/ci-tests.md)).
 
@@ -130,12 +131,14 @@ Every known shortfall is listed in [docs/gaps.md](docs/gaps.md); the plan is in
 
 ## Getting started
 
-There are no published packages yet. Build from source with Rust 1.95 or newer:
+Download a release archive ([Downloads](#downloads)), or build from source with Rust 1.95 or
+newer:
 
 ```sh
 git clone <this repository> bicraft
 cd bicraft
-cargo build --release -p bicraft-cli     # target/release/bicraft (bicraft.exe on Windows)
+cargo build --release -p bicraft-cli       # target/release/bicraft-cli (bicraft-cli.exe on Windows)
+cargo build --release -p bicraft-desktop   # target/release/bicraft, the desktop app (bicraft.exe)
 ```
 
 `cargo xtask dist` builds the Windows x64 and Linux x64 release archives locally, with an
@@ -145,21 +148,21 @@ Every subcommand prints JSON to stdout and errors to stderr. Exit codes: `0` suc
 `1` invalid or a command failed, `2` usage or I/O error.
 
 ```sh
-bicraft new-project out Sales --format tmdl            # a new PBIP project
-bicraft inspect Sales.pbix                             # kind, parts, model, pages, visuals
-bicraft validate-model out/Sales.pbip                  # every measure and calculated column
-bicraft validate-dax "DIVIDE(SUM(Sales[Amount]), COUNTROWS(Sales))" --model out/Sales.pbip --table Sales
-bicraft validate-report out/Sales.pbip                 # PBIR schemas, structure, bound fields
-bicraft usage out/Sales.pbip "[Total Amount]"          # where a field is used (DAX, RLS, visuals, filters...)
-bicraft unused out/Sales.pbip --remove --dry-run       # what nothing uses; then --remove --save
-bicraft test out/Sales.pbip --format junit --output bicraft-junit.xml   # CI quality gates (docs/ci-tests.md)
-bicraft convert Sales.pbix out/Sales.pbip --format pbip-tmdl
-bicraft diff Sales.pbix out/Sales.pbip                # semantic diff across formats (docs/diff.md)
-bicraft diff --git main HEAD out/Sales.pbip --markdown   # a project between git revisions, for a PR
-bicraft dax-query Sales.pbix "EVALUATE SUMMARIZECOLUMNS(Sales[Region], \"Total\", [Total Amount])"
-bicraft view out/Sales.pbip --open                     # live viewer in the browser
-bicraft-desktop out/Sales.pbip                         # native desktop app, no browser (docs/desktop.md)
-bicraft licenses                                       # licence and third-party notices
+bicraft-cli new-project out Sales --format tmdl        # a new PBIP project
+bicraft-cli inspect Sales.pbix                         # kind, parts, model, pages, visuals
+bicraft-cli validate-model out/Sales.pbip              # every measure and calculated column
+bicraft-cli validate-dax "DIVIDE(SUM(Sales[Amount]), COUNTROWS(Sales))" --model out/Sales.pbip --table Sales
+bicraft-cli validate-report out/Sales.pbip             # PBIR schemas, structure, bound fields
+bicraft-cli usage out/Sales.pbip "[Total Amount]"      # where a field is used (DAX, RLS, visuals, filters...)
+bicraft-cli unused out/Sales.pbip --remove --dry-run   # what nothing uses; then --remove --save
+bicraft-cli test out/Sales.pbip --format junit --output bicraft-junit.xml   # CI quality gates (docs/ci-tests.md)
+bicraft-cli convert Sales.pbix out/Sales.pbip --format pbip-tmdl
+bicraft-cli diff Sales.pbix out/Sales.pbip            # semantic diff across formats (docs/diff.md)
+bicraft-cli diff --git main HEAD out/Sales.pbip --markdown   # a project between git revisions, for a PR
+bicraft-cli dax-query Sales.pbix "EVALUATE SUMMARIZECOLUMNS(Sales[Region], \"Total\", [Total Amount])"
+bicraft-cli view out/Sales.pbip --open                 # live viewer in the browser
+bicraft out/Sales.pbip                             # native desktop app, no browser (docs/desktop.md)
+bicraft-cli licenses                                   # licence and third-party notices
 ```
 
 ### An example dashboard
@@ -171,14 +174,14 @@ and one report page with built-in visuals and three of BIcraft's own (Gauge / KP
 and a bullet gauge, Bullet, Dumbbell as a slope chart). Every step is an engine command, so an agent can do the same over MCP.
 
 ```sh
-bicraft run --file examples/ridgeline-cycles.json                    # writes ridgeline-cycles.pbip
-bicraft render ridgeline-cycles.pbip --page 0 --scale 1.25 --out dashboard.png
-bicraft-desktop ridgeline-cycles.pbip --render app.png --size 1920x1080 --set '{"ribbonTab": "home", "theme": "dark"}'
+bicraft-cli run --file examples/ridgeline-cycles.json                # writes ridgeline-cycles.pbip
+bicraft-cli render ridgeline-cycles.pbip --page 0 --scale 1.25 --out dashboard.png
+bicraft ridgeline-cycles.pbip --render app.png --size 1920x1080 --set '{"ribbonTab": "home", "theme": "dark"}'
 ```
 
 <p align="center">
-  <img src="docs/images/dashboard-ridgeline.png" alt="The example dashboard drawn by bicraft render without the app: KPI cards for year-to-date revenue, gross margin and units with their change against last year and sparklines, a margin-rate bullet gauge, a monthly revenue line chart against last year, a bullet chart of revenue against target by category, a gross margin column chart, a slope chart of revenue by region, and a category matrix" width="100%">
-  <br><sub>The page alone, drawn by <code>bicraft render</code> (no window, no Power BI Desktop).</sub>
+  <img src="docs/images/dashboard-ridgeline.png" alt="The example dashboard drawn by bicraft-cli render without the app: KPI cards for year-to-date revenue, gross margin and units with their change against last year and sparklines, a margin-rate bullet gauge, a monthly revenue line chart against last year, a bullet chart of revenue against target by category, a gross margin column chart, a slope chart of revenue by region, and a category matrix" width="100%">
+  <br><sub>The page alone, drawn by <code>bicraft-cli render</code> (no window, no Power BI Desktop).</sub>
 </p>
 
 <p align="center">
@@ -192,22 +195,22 @@ Every operation in BIcraft is an engine command with a stable id, so people, scr
 agents use the same verbs:
 
 ```sh
-bicraft commands measure                               # list commands
-bicraft describe measure.add                           # parameters of one command
-bicraft run --open out/Sales.pbip \
+bicraft-cli commands measure                           # list commands
+bicraft-cli describe measure.add                       # parameters of one command
+bicraft-cli run --open out/Sales.pbip \
   --cmd 'measure.add={"table":"Sales","name":"Total Amount","expression":"SUM(Sales[Amount])"}' \
   --save                                               # DAX is validated before it is applied
-bicraft mcp                                            # MCP server over stdio
-bicraft setup                                          # register `bicraft mcp` with your agents
+bicraft-cli mcp                                        # MCP server over stdio
+bicraft-cli setup                                      # register `bicraft-cli mcp` with your agents
 ```
 
 Register the MCP server with any MCP client:
 
 ```json
-{ "mcpServers": { "bicraft": { "command": "bicraft", "args": ["mcp"] } } }
+{ "mcpServers": { "bicraft": { "command": "bicraft-cli", "args": ["mcp"] } } }
 ```
 
-`bicraft setup` writes this entry for Claude Code, Claude Desktop, VS Code, Cursor and Codex.
+`bicraft-cli setup` writes this entry for Claude Code, Claude Desktop, VS Code, Cursor and Codex.
 [docs/mcp.md](docs/mcp.md) lists the tools (`list_commands`, `run_command`, `batch`,
 `open_file`, `inspect_file`, `validate_*`, `model_usage`, `model_unused`, `remove_unused`, `save`,
 `save_as`, `convert`, …), the editing rules, undo/redo, the live viewer and a typical agent
@@ -222,7 +225,7 @@ your agent's skills directory (for Claude Code, `.claude/skills/` or `~/.claude/
 
 ## Server and Kubernetes
 
-`bicraft serve` exposes the same engine over MCP Streamable HTTP, one workspace per folder, with
+`bicraft-cli serve` exposes the same engine over MCP Streamable HTTP, one workspace per folder, with
 authentication (API tokens or OIDC), per-workspace access control and a sandboxed workspace
 root. A static container image and a Helm chart run one workspace per pod; a controller creates
 workspaces on demand. See [docs/kubernetes.md](docs/kubernetes.md),
@@ -233,7 +236,7 @@ workspaces on demand. See [docs/kubernetes.md](docs/kubernetes.md),
 
 A Rust workspace (edition 2024) of layered crates: primitives (OPC, XPress9, SQLite, ABF,
 VertiPaq) → model and report → DAX → serializations (TMSL, TMDL, PBIR, legacy layout) →
-containers (PBIX, PBIP) → engine → MCP server and viewer → the `bicraft` CLI. A crate depends
+containers (PBIX, PBIP) → engine → MCP server and viewer → `bicraft-cli`. A crate depends
 only on lower layers (`cargo xtask layers`), and conversions always go through the model.
 
 Input files are treated as hostile: no `unsafe`, no panicking calls, checked arithmetic, capped
@@ -253,23 +256,30 @@ egui UI and BIcraft's fourteen Power BI visuals. [ROADMAP.md](ROADMAP.md) says w
 
 ## Downloads
 
-No release has been published yet, so there is nothing to download. Two ways to get the binaries:
+The first release is **v0.1.0**. Its archives are on the
+[releases page](https://github.com/digorpeptra/BIcraft/releases), with `SHA256SUMS`, one
+checksum per archive. Each archive holds both programs: `bicraft`, the desktop app, and
+`bicraft-cli`, the command-line tool and MCP server.
 
-- **Build from source** with Rust 1.95 or newer, as in [Getting started](#getting-started).
-- **Build the release archives** with `cargo xtask dist` ([docs/releasing.md](docs/releasing.md)):
+| Platform | Archive | Holds |
+|---|---|---|
+| Windows x64 (Windows 10 or later) | `bicraft-0.1.0-windows-x64.zip` | `bicraft.exe`, `bicraft-cli.exe` and `install.ps1` at the top; the README, `docs/mcp.md`, the visuals, the licences and the notices |
+| Linux x64 (glibc) | `bicraft-0.1.0-linux-x64.tar.gz` | `bin/bicraft`, `bin/bicraft-cli` and `install.sh`; under `share/`, the menu entry, icons, file types (.pbix, .pbit, .pbip) and AppStream metadata of the app, the README, the MCP reference, the licences and the notices (`share/doc/bicraft/`) and the visuals (`share/bicraft/visuals/`) |
 
-  | Platform | Archive | Holds |
-  |---|---|---|
-  | Windows x64 | `bicraft-<version>-windows-x64.zip` | `bicraft.exe`, `bicraft-desktop.exe`, `install.ps1` |
-  | Linux x64 (static, musl) | `bicraft-<version>-linux-x64.tar.gz` | `bicraft`, `install.sh` |
+Both run from the extracted folder. `install.ps1` copies the two programs to
+`%LOCALAPPDATA%\bicraft\bin`; `install.sh` copies `bin/` and `share/` under `~/.local` (or a
+prefix you give), so the app gets its menu entry and file types. Neither changes `PATH`, the
+registry, default applications or client configurations. BIcraft's fourteen Power BI visuals come
+as `.pbiviz` files in each archive.
 
-  Each archive also holds the README, the MCP reference, BIcraft's fourteen Power BI visuals as
-  `.pbiviz` files, the licences and the notices; `SHA256SUMS` lists a checksum per archive. The
-  install scripts copy the binaries to a folder of your choice and never change `PATH`, the
-  registry or client configurations.
+The Linux programs are linked against glibc (dynamically, built on Ubuntu 22.04); the archive's
+README states the oldest glibc they need. The desktop app needs a graphical session (Wayland or
+X11) and a Vulkan or OpenGL driver. It has been built and checked in WSL Ubuntu (its offscreen
+render of a project, `bicraft FILE --render`), but not yet run in a full Linux desktop session.
 
-The GitHub workflow `.github/workflows/release.yml` is ready to build `bicraft` archives for a
-`v*` tag and attach them to a GitHub release; it has not been run yet.
+The archives are built by `cargo xtask dist`, locally or by the GitHub workflow
+`.github/workflows/release.yml` for a `v*` tag; [docs/releasing.md](docs/releasing.md) describes
+both. You can also build from source, as in [Getting started](#getting-started).
 
 ## Interoperability
 
@@ -332,7 +342,7 @@ Copyright (c) 2026 the BIcraft contributors. Required notices are in [NOTICE](NO
 Embedded third-party material keeps its own licence: each component is described in
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md), every asset is listed with its author, source
 and licence in [ATTRIBUTION.md](ATTRIBUTION.md), and the licence texts are under
-[`licenses/`](licenses/). `bicraft licenses` prints them.
+[`licenses/`](licenses/). `bicraft-cli licenses` prints them.
 
 BIcraft's icons, themes, custom visuals, screenshots, sample reports and test files are its own
 work, drawn or generated in code on synthetic data. Apart from the open-licensed Microsoft

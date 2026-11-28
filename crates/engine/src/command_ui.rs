@@ -36,13 +36,16 @@ pub enum Tab {
     Data,
     Analyze,
     View,
+    /// Desktop's Optimize tab: pausing visual queries, refreshing them, the query reduction
+    /// presets (G60).
+    Optimize,
     Visual,
     Table,
     Measure,
 }
 
 impl Tab {
-    pub const ALL: [Tab; 11] = [
+    pub const ALL: [Tab; 12] = [
         Tab::File,
         Tab::Home,
         Tab::Insert,
@@ -51,6 +54,7 @@ impl Tab {
         Tab::Data,
         Tab::Analyze,
         Tab::View,
+        Tab::Optimize,
         Tab::Visual,
         Tab::Table,
         Tab::Measure,
@@ -67,6 +71,7 @@ impl Tab {
             Tab::Data => "data",
             Tab::Analyze => "analyze",
             Tab::View => "view",
+            Tab::Optimize => "optimize",
             Tab::Visual => "visual",
             Tab::Table => "table",
             Tab::Measure => "measure",
@@ -84,6 +89,7 @@ impl Tab {
             Tab::Data => "Data",
             Tab::Analyze => "Analyze",
             Tab::View => "View",
+            Tab::Optimize => "Optimize",
             Tab::Visual => "Visual",
             Tab::Table => "Table",
             Tab::Measure => "Measure",
@@ -292,7 +298,7 @@ impl Need {
     }
 }
 
-/// Who asks: an editor, or a read-only caller (a `reader` grant of `bicraft serve`,
+/// Who asks: an editor, or a read-only caller (a `reader` grant of `bicraft-cli serve`,
 /// `docs/auth.md` "Roles").
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Caller {

@@ -1940,6 +1940,35 @@ fn whole_visual_conditional_colours_are_drawn() {
     assert_eq!(dist.color, rgb(0x00AA00), "{names:?}");
 }
 
+/// The KPI's indicator at its goal takes the Colour coding's Neutral colour (`status.neutralColor`
+/// in the snapshot's `format.kpi`, or its fx); above the goal it keeps the Good colour.
+#[test]
+fn the_kpi_at_its_goal_is_drawn_in_the_neutral_colour() {
+    let rgb = |h: u32| canvas::Rgb((h >> 16) as u8, (h >> 8) as u8, h as u8);
+    let kpi = |last: f64, format: Value, styles: Value| {
+        json!([{"name": "k", "type": "kpi", "x": 0, "y": 0, "width": 500, "height": 300,
+            "format": format,
+            "data": {"status": "ok", "visual_styles": styles,
+                     "columns": [{"name": "Month", "role": "TrendLine", "kind": "column", "data_type": "string"},
+                                 {"name": "Total", "role": "Indicator", "kind": "measure"},
+                                 {"name": "Target", "role": "Goal", "kind": "measure"}],
+                     "rows": [["Jan", 5.0, 4.0], ["Feb", last, 4.0]]}}])
+    };
+    let value = |s: Value, t: &str| texts(&snap(s)).into_iter().find(|r| r.text == t).map(|r| r.color);
+    let format = json!({"kpi": {"good_color": "#123456", "neutral_color": "#AAAA00"}});
+    assert_eq!(
+        value(kpi(4.0, format.clone(), json!({})), "4"),
+        Some(rgb(0xAAAA00))
+    );
+    // above the goal: Good
+    assert_eq!(value(kpi(8.0, format, json!({})), "8"), Some(rgb(0x123456)));
+    // the neutral colour's fx (`data.visual_styles`)
+    assert_eq!(
+        value(kpi(4.0, json!({}), json!({"neutral_color": "#00AAAA"})), "4"),
+        Some(rgb(0x00AAAA))
+    );
+}
+
 #[test]
 fn the_classic_card_applies_its_display_units_and_decimals() {
     // `labels.labelDisplayUnits` / `labelPrecision` of Power BI's classic card: auto keeps the
@@ -1977,4 +2006,158 @@ fn the_classic_card_applies_its_display_units_and_decimals() {
     }
     // auto (0) is the default
     assert_eq!(shown(json!({"labels": {"display_units": 0}})), auto);
+}
+
+/// The author's grid (the app's View › Gridlines) is drawn over the page and under the visuals:
+/// its dots show on the empty page, not over an opaque visual; without the option, no dots.
+#[test]
+fn the_grid_is_drawn_under_the_visuals() {
+    let s = snap(json!([
+        {"name": "bt", "type": "actionButton", "x": 330, "y": 10, "width": 120, "height": 40,
+         "button": {"text": "", "fill": "#E6E6E6", "show_fill": true}}
+    ]));
+    let fonts = FontBook::bundled_only();
+    let none = HashMap::<String, Vec<u8>>::new();
+    let plain_opts = RenderOptions { raw: true, ..opts() };
+    let grid_opts = RenderOptions {
+        grid: Some(crate::GridDots {
+            step: (8.0, 8.0),
+            dot: 2.0,
+            rgba: [255, 0, 0, 255],
+        }),
+        ..plain_opts.clone()
+    };
+    let plain = render_page(&s, 0, &none, &fonts, &plain_opts).unwrap();
+    let grid = render_page(&s, 0, &none, &fonts, &grid_opts).unwrap();
+    let px = |img: &PageImage, x: u32, y: u32| {
+        let i = ((y * img.width + x) * 4) as usize;
+        (img.rgba[i], img.rgba[i + 1], img.rgba[i + 2])
+    };
+    let red = (255, 0, 0);
+    // a grid point of the empty page
+    assert_eq!(px(&grid, 200, 304), red);
+    assert_ne!(px(&plain, 200, 304), red);
+    // a grid point under the button: the button's fill, as without the grid
+    assert_ne!(px(&grid, 336, 24), red);
+    assert_eq!(px(&grid, 336, 24), px(&plain, 336, 24));
+}
+
+/// The colour at report pixel (x, y) of `s` drawn with the pointer at `pointer` and the image
+/// `assets`.
+fn pixel_assets(
+    s: &Value,
+    assets: &HashMap<String, Vec<u8>>,
+    pointer: Option<states::Pointer>,
+    x: f32,
+    y: f32,
+) -> (u8, u8, u8) {
+    let fonts = FontBook::bundled_only();
+    let o = RenderOptions { pointer, ..opts() };
+    let img = render_page(s, 0, assets, &fonts, &o).unwrap();
+    let pm = tiny_skia::Pixmap::decode_png(&img.png).unwrap();
+    let p = pm.pixel((x * img.scale) as u32, (y * img.scale) as u32).unwrap();
+    (p.red(), p.green(), p.blue())
+}
+
+fn sum((r, g, b): (u8, u8, u8)) -> u16 {
+    u16::from(r) + u16::from(g) + u16::from(b)
+}
+
+/// An action button's shadow and glow follow its state (Format › Style › Shape shadow, Shape
+/// glow, with Apply settings to: State): the hover state's shadow falls outside the button only
+/// under the pointer, the press state's glow only when pressed, the disabled state's shadow only
+/// while the button is disabled; its tile shape (Format › Shape) outlines the fill.
+#[test]
+fn action_buttons_draw_their_state_shadow_glow_and_shape() {
+    let s = snap(json!([
+        {"name": "bt", "type": "actionButton", "x": 100, "y": 100, "width": 100, "height": 40,
+         "button": {"fill": "#102030", "show_fill": true, "states": {
+            "hover": {"show_shadow": true, "shadow": "#000000", "shadow_angle": 0,
+                      "shadow_distance": 8, "shadow_transparency": 0},
+            "press": {"show_glow": true, "glow": "#FF0000", "glow_transparency": 0, "glow_blur": 6}}},
+         "interaction": {"button": {"kind": "PageNavigation", "page": "p2", "enabled": true}}},
+        {"name": "off", "type": "actionButton", "x": 300, "y": 100, "width": 100, "height": 40,
+         "button": {"fill": "#102030", "show_fill": true, "states": {
+            "disabled": {"show_shadow": true, "shadow": "#000000", "shadow_angle": 90,
+                         "shadow_distance": 8, "shadow_transparency": 0}}},
+         "interaction": {"button": {"kind": "Drillthrough", "page": "p2", "enabled": false}}},
+        {"name": "pill", "type": "actionButton", "x": 100, "y": 250, "width": 100, "height": 40,
+         "button": {"fill": "#102030", "show_fill": true, "shape": {"tile": "pill"}}}
+    ]));
+    let none: HashMap<String, Vec<u8>> = HashMap::new();
+    let px = |p: Option<states::Pointer>, x: f32, y: f32| pixel_assets(&s, &none, p, x, y);
+    // right of the button, inside the shadow's reach
+    let background = px(None, 203.0, 120.0);
+    assert!(
+        sum(px(over("bt", None, false), 203.0, 120.0)) < sum(background),
+        "the hover shadow darkens the page right of the button"
+    );
+    // above the button, past the hover shadow's blur: the press glow
+    let above = px(None, 150.0, 96.0);
+    assert_eq!(
+        px(over("bt", None, false), 150.0, 96.0),
+        above,
+        "no glow on hover"
+    );
+    let glow = px(over("bt", None, true), 150.0, 96.0);
+    assert!(
+        glow.0 > glow.1 && glow.0 > glow.2 && glow != above,
+        "a red glow: {glow:?}"
+    );
+    // the disabled button's shadow below it
+    assert!(
+        sum(px(None, 350.0, 143.0)) < sum(px(None, 350.0, 160.0)),
+        "the disabled state's shadow"
+    );
+    // a pill leaves its corners to the page and fills its middle
+    assert_eq!(px(None, 150.0, 270.0), (0x10, 0x20, 0x30));
+    assert_ne!(px(None, 101.0, 251.0), (0x10, 0x20, 0x30), "the pill's corner");
+}
+
+/// An action button draws the fill image and the custom icon of its state (Format › Style ›
+/// Fill › Image, Icon › Custom): the hover state's image under the pointer, the default state's
+/// elsewhere, the disabled state's while disabled.
+#[test]
+fn action_buttons_draw_their_state_fill_image_and_custom_icon() {
+    let png = |r: u8, g: u8, b: u8| {
+        let mut pm = tiny_skia::Pixmap::new(8, 8).unwrap();
+        pm.fill(tiny_skia::Color::from_rgba8(r, g, b, 255));
+        pm.encode_png().unwrap()
+    };
+    let (red, green, blue) = (
+        "00000000000000000000000000000001",
+        "00000000000000000000000000000002",
+        "00000000000000000000000000000003",
+    );
+    let assets: HashMap<String, Vec<u8>> = [
+        (red.to_string(), png(220, 0, 0)),
+        (green.to_string(), png(0, 200, 0)),
+        (blue.to_string(), png(0, 0, 230)),
+    ]
+    .into();
+    let image = |id: &str| json!({"id": id, "mime": "image/png", "width": 8, "height": 8, "fit": "fit"});
+    let s = snap(json!([
+        {"name": "bt", "type": "actionButton", "x": 100, "y": 100, "width": 100, "height": 40,
+         "button": {"fill": "#102030", "show_fill": true, "fill_image": image(red),
+            "states": {"hover": {"fill_image": image(green)},
+                       "press": {"icon": "custom", "icon_image": image(blue), "text": "Go"}}},
+         "interaction": {"button": {"kind": "PageNavigation", "page": "p2", "enabled": true}}},
+        {"name": "off", "type": "actionButton", "x": 300, "y": 100, "width": 100, "height": 40,
+         "button": {"fill": "#102030", "show_fill": true,
+            "states": {"disabled": {"fill_image": image(blue)}}},
+         "interaction": {"button": {"kind": "Drillthrough", "page": "p2", "enabled": false}}}
+    ]));
+    let px = |p: Option<states::Pointer>, x: f32, y: f32| pixel_assets(&s, &assets, p, x, y);
+    assert_eq!(px(None, 105.0, 105.0), (220, 0, 0), "the default fill image");
+    assert_eq!(
+        px(over("bt", None, false), 105.0, 105.0),
+        (0, 200, 0),
+        "the hover one"
+    );
+    // pressed: the default image stays, the custom icon is drawn left of the text
+    assert_eq!(px(over("bt", None, true), 105.0, 105.0), (220, 0, 0));
+    let found_blue = (100..200).any(|x| px(over("bt", None, true), x as f32, 120.0) == (0, 0, 230));
+    assert!(found_blue, "the custom icon of the press state");
+    assert!(!(100..200).any(|x| px(None, x as f32, 120.0) == (0, 0, 230)));
+    assert_eq!(px(None, 305.0, 105.0), (0, 0, 230), "the disabled state's image");
 }

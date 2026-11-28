@@ -56,13 +56,19 @@ pub(crate) fn num_of(v: Option<&Value>) -> Option<f64> {
     cell_num(v).filter(|n| n.abs() <= MAX_ABS)
 }
 
-/// A number written with a column's format string (`f`), or as BIcraft writes numbers without
-/// one. A negative value under a one-section format is the sign before the formatted size
+/// A number written with a column's whole format string (`f`: scaling commas, quoted and escaped
+/// text, sections, as the runtime's `formatNumber` reads them; [`super::gauge::full_format`]), or
+/// as BIcraft writes numbers without one. A format `FORMAT` refuses keeps the digits and the
+/// currency, a negative value under a one-section format the sign before the formatted size
 /// (`-$40.00`), as the runtime's `formatNumber` writes it.
 pub(crate) fn fmt_num(v: f64, f: &str, fr: bool) -> String {
     let g: String = f.chars().take(200).collect();
     if g.trim().is_empty() {
         return fmt_auto(v);
+    }
+    let loc = crate::fmt::Locale::new(if fr { "fr-FR" } else { "en-US" });
+    if let Some(s) = super::gauge::full_format(v, &g, &loc) {
+        return s;
     }
     if v < 0.0 && !g.contains(';') {
         return format!("-{}", fmt_num(-v, &g, fr));
@@ -72,12 +78,7 @@ pub(crate) fn fmt_num(v: f64, f: &str, fr: bool) -> String {
         kind: "measure".into(),
         data_type: "double".into(),
     };
-    crate::fmt::fmt_val(
-        v,
-        Some(&col),
-        &crate::fmt::Locale::new(if fr { "fr-FR" } else { "en-US" }),
-        false,
-    )
+    crate::fmt::fmt_val(v, Some(&col), &loc, false)
 }
 
 /// `s` with a plus sign when `v` is above zero and the text has no sign of its own.
@@ -762,6 +763,10 @@ mod tests {
     fn numbers_take_their_format() {
         assert_eq!(fmt_num(1234.5, "", false), "1,234.50");
         assert_eq!(fmt_num(1234.5, "#,0", false), "1,235");
+        // scaling commas, at the end of the digits or after the decimals, and quoted text
+        assert_eq!(fmt_num(1_234_567.0, "#,##0,\"K\"", false), "1,235K");
+        assert_eq!(fmt_num(7_433_915.0, "$#,0.00,,\"M\"", false), "$7.43M");
+        assert_eq!(fmt_num(-7_433_915.0, "$#,0.0,,\"M\"", false), "-$7.4M");
         assert_eq!(signed(3.0, "3".into()), "+3");
         assert_eq!(signed(-3.0, "-3".into()), "-3");
         assert_eq!(pct_text(-0.4, false), "-40.0%");

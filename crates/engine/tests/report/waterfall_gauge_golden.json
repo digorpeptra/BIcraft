@@ -850,6 +850,36 @@
       {"row":-1,"prim":21,"item":3,"kind":"total","label":"Total","value":1050.5,"start":0.0,"end":1050.5,"measure":0}
     ]
   },
+  "wf_scaled": {
+    "prims": [
+      {"t":"rect","x":1.0,"y":1.0,"w":478.0,"h":278.0,"fill":"#F7F6F3","opacity":1.0,"rx":12.0,"stroke":"#E9E8E3","sw":1.0,"role":"card"},
+      {"t":"line","x1":68.45,"y1":255.0,"x2":472.0,"y2":255.0,"stroke":"#E8E7E2","width":1.0},
+      {"t":"text","x":64.45,"y":255.0,"text":"0","size":11.0,"fill":"#5F5E5A","anchor":"end","rotate":0.0},
+      {"t":"line","x1":68.45,"y1":179.0,"x2":472.0,"y2":179.0,"stroke":"#E8E7E2","width":1.0},
+      {"t":"text","x":64.45,"y":179.0,"text":"500,000","size":11.0,"fill":"#5F5E5A","anchor":"end","rotate":0.0},
+      {"t":"line","x1":68.45,"y1":103.0,"x2":472.0,"y2":103.0,"stroke":"#E8E7E2","width":1.0},
+      {"t":"text","x":64.45,"y":103.0,"text":"1,000,000","size":11.0,"fill":"#5F5E5A","anchor":"end","rotate":0.0},
+      {"t":"line","x1":68.45,"y1":27.0,"x2":472.0,"y2":27.0,"stroke":"#E8E7E2","width":1.0},
+      {"t":"text","x":64.45,"y":27.0,"text":"1,500,000","size":11.0,"fill":"#5F5E5A","anchor":"end","rotate":0.0},
+      {"t":"rect","x":89.97,"y":67.35,"w":91.47,"h":187.65,"fill":"#1F9D55","opacity":1.0,"rx":4.0,"grad":"#50B37A"},
+      {"t":"line","x1":181.44,"y1":67.35,"x2":224.49,"y2":67.35,"stroke":"#C8C7C0","width":1.0},
+      {"t":"text","x":135.71,"y":62.85,"text":"+1,234.6K","size":11.0,"fill":"#1F1E1C","anchor":"middle","rotate":0.0,"weight":600},
+      {"t":"text","x":135.71,"y":264.5,"text":"Jan","size":11.0,"fill":"#5F5E5A","anchor":"middle","rotate":0.0},
+      {"t":"rect","x":224.49,"y":67.35,"w":91.47,"h":35.65,"fill":"#D64545","opacity":1.0,"rx":4.0,"grad":"#DF6E6E"},
+      {"t":"line","x1":315.96,"y1":103.0,"x2":359.01,"y2":103.0,"stroke":"#C8C7C0","width":1.0},
+      {"t":"text","x":270.23,"y":107.5,"text":"-234.6K","size":11.0,"fill":"#1F1E1C","anchor":"middle","rotate":0.0,"weight":600},
+      {"t":"text","x":270.23,"y":264.5,"text":"Feb","size":11.0,"fill":"#5F5E5A","anchor":"middle","rotate":0.0},
+      {"t":"rect","x":359.01,"y":103.0,"w":91.47,"h":152.0,"fill":"#4A5BE8","opacity":1.0,"rx":4.0,"sq":"b","grad":"#727FED"},
+      {"t":"text","x":404.74,"y":98.5,"text":"1,000.0K","size":11.0,"fill":"#1F1E1C","anchor":"middle","rotate":0.0,"weight":600},
+      {"t":"text","x":404.74,"y":264.5,"text":"Total","size":11.0,"fill":"#5F5E5A","anchor":"middle","rotate":0.0},
+      {"t":"line","x1":68.45,"y1":255.0,"x2":472.0,"y2":255.0,"stroke":"#C8C7C0","width":1.0}
+    ],
+    "hits": [
+      {"row":0,"prim":9,"item":0,"kind":"step","label":"Jan","value":1234567.0,"start":0.0,"end":1234567.0,"measure":0},
+      {"row":1,"prim":13,"item":1,"kind":"step","label":"Feb","value":-234567.0,"start":1234567.0,"end":1000000.0,"measure":0},
+      {"row":-1,"prim":17,"item":2,"kind":"total","label":"Total","value":1000000.0,"start":0.0,"end":1000000.0,"measure":0}
+    ]
+  },
   "wf_small_fall_horizontal": {
     "prims": [
       {"t":"rect","x":1.0,"y":1.0,"w":418.0,"h":238.0,"fill":"#F7F6F3","opacity":1.0,"rx":12.0,"stroke":"#E9E8E3","sw":1.0,"role":"card"},

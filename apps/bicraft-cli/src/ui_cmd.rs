@@ -1,16 +1,16 @@
-//! `bicraft ui`: the client of the UI control channel (ROADMAP M11.6, docs/desktop.md "Control
+//! `bicraft-cli ui`: the client of the UI control channel (ROADMAP M11.6, docs/desktop.md "Control
 //! channel"), so agents, scripts and tests drive a running app and look at it:
 //!
 //! ```text
-//! bicraft ui [--control FILE | --view | --serve] [--url URL] [--workspace ID] [--view-id V]
+//! bicraft-cli ui [--control FILE | --view | --serve] [--url URL] [--workspace ID] [--view-id V]
 //!            METHOD [PARAMS-JSON] [--out FILE.png]
-//! bicraft ui command ID [PARAMS-JSON]
+//! bicraft-cli ui command ID [PARAMS-JSON]
 //! ```
 //!
 //! The token file says where the app listens: `{"addr", "token"}` is the desktop's loopback
-//! socket (one JSON line each way), `{"url", "token"}` the relay of `bicraft view --control` to
+//! socket (one JSON line each way), `{"url", "token"}` the relay of `bicraft-cli view --control` to
 //! the browser app (an HTTP POST with the token as bearer), `{"kind": "serve", "url", "token"}`
-//! the relay of `bicraft serve --viewer-control` (`--workspace` names the workspace). For a
+//! the relay of `bicraft-cli serve --viewer-control` (`--workspace` names the workspace). For a
 //! server, `--url` gives the viewer's URL instead (`https://h/w/<id>/view/`, the token from
 //! `BICRAFT_CONTROL_TOKEN` or the file), the server's own credential comes from
 //! `BICRAFT_SERVER_TOKEN` (`Authorization: Bearer`) and the control token goes in
@@ -35,15 +35,15 @@ const WAIT: Duration = Duration::from_secs(75);
 /// Which app's default token file.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Kind {
-    /// `bicraft-desktop --control`: `control.json`.
+    /// `bicraft --control`: `control.json`.
     Desktop,
-    /// `bicraft view --control`: `control-view.json`.
+    /// `bicraft-cli view --control`: `control-view.json`.
     View,
-    /// `bicraft serve --viewer-control`: `control-serve.json`.
+    /// `bicraft-cli serve --viewer-control`: `control-serve.json`.
     Serve,
 }
 
-/// Where the app writes its token file by default (as `bicraft-desktop`'s
+/// Where the app writes its token file by default (as `bicraft`'s
 /// `control::default_file`: next to its settings file).
 pub(crate) fn default_file(kind: Kind) -> Option<PathBuf> {
     let dir = if cfg!(windows) {
@@ -131,7 +131,7 @@ fn request(rest: &[String]) -> Result<Value, Failure> {
         }
     };
     let (method, params) = match rest {
-        [] => return Err(usage("ui needs a METHOD (`bicraft ui methods` lists them)")),
+        [] => return Err(usage("ui needs a METHOD (`bicraft-cli ui methods` lists them)")),
         [m] => (m.clone(), json!({})),
         [m, id] if m == "command" && !id.trim_start().starts_with('{') => (m.clone(), json!({"command": id})),
         [m, id, p] if m == "command" && !id.trim_start().starts_with('{') => {
@@ -148,13 +148,13 @@ fn request(rest: &[String]) -> Result<Value, Failure> {
 enum Target {
     /// The desktop's socket.
     Socket { addr: SocketAddr, token: String },
-    /// `bicraft view --control`: `http://127.0.0.1:PORT/api/control`.
+    /// `bicraft-cli view --control`: `http://127.0.0.1:PORT/api/control`.
     Http {
         addr: SocketAddr,
         path: String,
         token: String,
     },
-    /// `bicraft serve --viewer-control`: `http(s)://host/w/<id>/view/api/control[?v=<view>]`,
+    /// `bicraft-cli serve --viewer-control`: `http(s)://host/w/<id>/view/api/control[?v=<view>]`,
     /// the control token in `X-Bicraft-Control`, the server's credential (if any) as bearer.
     Serve {
         url: String,

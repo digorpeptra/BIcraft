@@ -152,6 +152,17 @@ fn body(app: &mut App, ui: &mut Ui, st: &mut ExportData, l: Lang, close: &mut bo
     ));
     ui.radio_value(
         &mut st.kind,
+        "current_layout",
+        l.t(
+            "Data with current layout: the visual's shape (a matrix's rows and columns), .xlsx only",
+            "Données avec la disposition actuelle : la forme du visuel (lignes et colonnes d'une matrice), .xlsx seulement",
+        ),
+    );
+    if st.kind == "current_layout" {
+        st.format = "xlsx";
+    }
+    ui.radio_value(
+        &mut st.kind,
         "summarized",
         l.t(
             "Summarized data: what the visual shows",
@@ -184,11 +195,18 @@ fn body(app: &mut App, ui: &mut Ui, st: &mut ExportData, l: Lang, close: &mut bo
         "xlsx",
         l.t(".xlsx (up to 150,000 rows)", ".xlsx (jusqu'à 150 000 lignes)"),
     );
-    ui.radio_value(
-        &mut st.format,
-        "csv",
-        l.t(".csv (up to 30,000 rows)", ".csv (jusqu'à 30 000 lignes)"),
+    // a CSV file has no layout
+    let csv_ok = st.kind != "current_layout";
+    let r = ui.add_enabled(
+        csv_ok,
+        egui::RadioButton::new(
+            st.format == "csv",
+            l.t(".csv (up to 30,000 rows)", ".csv (jusqu'à 30 000 lignes)"),
+        ),
     );
+    if r.clicked() {
+        st.format = "csv";
+    }
     ui.add_space(10.0);
     let can = mode != "None";
     let default = format!("{}.{}", stem(&name), st.format);
